@@ -25,31 +25,16 @@ export const COMEBACK_MULTIPLIER: number =
 
 /** True when `score` is >30% behind `leaderScore` (and there's a score to chase). */
 export function comebackEligible(score: number, leaderScore: number): boolean {
-  const fn = (core as any).comebackEligible;
-  if (typeof fn === "function") {
-    try {
-      const r = fn(score, leaderScore);
-      if (typeof r === "boolean") return r;
-    } catch {
-      /* fall through to local rule */
-    }
-  }
+  // NOTE: lane 6's core comebackEligible(state, playerId) is match-level —
+  // it does NOT share this numeric signature, so this stays a local rule.
   return leaderScore > 0 && score < leaderScore * 0.7;
 }
 
 /** Flag an entry as the player's once-per-match comeback set (×1.2). */
 export function applyComeback(entry: RepEntry): RepEntry {
-  const fn = (core as any).applyComeback;
-  if (typeof fn === "function") {
-    try {
-      const r = fn(entry);
-      if (r && typeof r === "object" && typeof (r as RepEntry).reps === "number") {
-        return r as RepEntry;
-      }
-    } catch {
-      /* fall through */
-    }
-  }
+  // Callers guard with comebackArmed() first, so tagging is unconditional.
+  // (Core's applyComeback(state, entry) re-checks eligibility itself —
+  // same net effect once armed; local tag avoids the signature mismatch.)
   return { ...entry, comeback: true };
 }
 
@@ -60,6 +45,17 @@ export function comebackUsed(playerId: string, entries: RepEntry[]): boolean {
 
 /** Player is >30% behind the leader AND hasn't used their comeback yet. */
 export function comebackArmed(match: MatchState, playerId: string): boolean {
+  // Lane 6 landed core.comebackEligible(state, playerId) — same contract as
+  // this helper (live + unused + >30% behind the raw leader). Prefer it.
+  const fn = (core as any).comebackEligible;
+  if (typeof fn === "function" && fn.length >= 2) {
+    try {
+      const r = fn(match, playerId);
+      if (typeof r === "boolean") return r;
+    } catch {
+      /* fall through to local rule */
+    }
+  }
   if (match.status !== "live") return false;
   if (comebackUsed(playerId, match.entries)) return false;
   const rows = standings(match);

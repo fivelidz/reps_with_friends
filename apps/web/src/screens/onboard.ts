@@ -9,16 +9,25 @@ export function renderOnboard(root: HTMLElement): () => void {
   let tier: FitnessTier | null = null;
 
   const nameInput = el("input", {
-    class: "input",
+    class: "input input--xl",
     type: "text",
     maxlength: "20",
-    placeholder: "Your name",
+    placeholder: "Your name 🏋️",
     autocomplete: "off",
+    enterkeyhint: "next",
     onInput: () => {
       name = (nameInput as HTMLInputElement).value;
       sync();
     },
   });
+
+  // Multiplier chip copy — spells out what the number means for reps.
+  const multChip: Record<FitnessTier, string> = {
+    couch: "×1.5 — reps count more",
+    casual: "×1.25",
+    fit: "×1.0",
+    athlete: "×0.85 — reps count less",
+  };
 
   const tierCards: HTMLElement[] = [];
   for (const t of ["couch", "casual", "fit", "athlete"] as FitnessTier[]) {
@@ -28,16 +37,22 @@ export function renderOnboard(root: HTMLElement): () => void {
       {
         class: `tiercard tiercard--${t}`,
         type: "button",
+        "aria-pressed": "false",
         onClick: () => {
           tier = t;
-          tierCards.forEach((c) => c.classList.remove("on"));
+          tierCards.forEach((c) => {
+            c.classList.remove("on");
+            c.setAttribute("aria-pressed", "false");
+          });
           card.classList.add("on");
+          card.setAttribute("aria-pressed", "true");
           sync();
         },
       },
+      el("span", { class: "tiercard-check", html: icon("check", 13) }),
       el("div", { class: "tiercard-name h-display", text: info.label }),
       el("div", { class: "tiercard-blurb", text: info.blurb }),
-      el("div", { class: "tiercard-mult", text: `×${info.mult} score` })
+      el("span", { class: "tiercard-mult", text: multChip[t] })
     );
     tierCards.push(card);
   }

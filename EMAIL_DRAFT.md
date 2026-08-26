@@ -44,10 +44,11 @@ Send the Figma and blueprint — I'd rather mark them up before we talk.
 And yes, genuinely open to the equity conversation; if we're building this
 properly I want skin in it, not an invoice.
 
-I've put the prototype up so you and Nico can have a play rather than take my
-word for it: **https://rwf.qalarc.com** — the concept site, a working demo app,
-and a debug page showing every game mechanic we've built so far. The AI guide
-on the site answers questions about the whole system.
+I've put the prototype up so you and Nico can see it rather than take my word
+for it: **https://rwf.qalarc.com** — start with the 90-second match replay
+(watch a couch player beat an athlete on effort, comeback and all), then the
+demo app if you're keen. The AI guide on the site answers questions about the
+whole system.
 
 Tuesday or Wednesday next week? 45 minutes should do it.
 
@@ -68,6 +69,8 @@ Alexei
 - **Doof line:** one line, zero apology theatre. Muso-to-muso — he'll read it.
 - **Prototype framing:** "building is how I read" = discovery, not overreach.
   Directly answers his stated want for a collaborator who takes ownership.
+- **Link framing:** demo-first (the replay does the selling in 90 seconds,
+  zero effort for a non-technical reader); "debug page" language dropped.
 - **Kept from v1:** verification homework, chat-first praise, charity legal
   pushback, Apple Messages parked, Figma + blueprint ask, equity door open,
   Tue/Wed call.

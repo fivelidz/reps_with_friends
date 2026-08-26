@@ -56,10 +56,10 @@ export function renderHome(root: HTMLElement): () => void {
         ? el(
             "div",
             { class: "matchcard-lead" },
-            el("span", { class: "matchcard-leadname", text: `${leader.player.name} · ${leader.rawReps} reps` }),
+            el("span", { class: "matchcard-leadname", text: `🥇 ${leader.player.name} · ${leader.rawReps} reps` }),
             el("span", { class: "matchcard-leadscore", text: `${leader.adjustedScore} pts` })
           )
-        : el("div", { class: "matchcard-lead muted", text: "No reps yet" }),
+        : el("div", { class: "matchcard-lead muted", text: "No reps yet — be first on the board" }),
       el("div", { class: "bar" }, el("i", { style: `width:${leader ? leader.progressPct : 0}%` }))
     );
   });
@@ -75,19 +75,29 @@ export function renderHome(root: HTMLElement): () => void {
         : el(
             "div",
             { class: "rwf-card card-pad emptystate" },
+            el("div", { class: "emptystate-ico", text: "🏋️" }),
             el("div", { class: "h-display", text: "No matches yet" }),
-            el("p", { class: "muted", text: "Start one, link your group chat, let the bot keep score." })
+            el("p", { class: "muted small", text: "Start one, link your group chat, let the bot keep score." }),
+            el("button", {
+              class: "rwf-btn rwf-btn--primary",
+              html: icon("plus", 16) + "<span>NEW MATCH</span>",
+              onClick: () => {
+                location.hash = "#/new";
+              },
+            })
           ),
-      el(
-        "button",
-        {
-          class: "rwf-btn rwf-btn--primary btn-block btn-lg",
-          html: icon("plus", 18) + "<span>NEW MATCH</span>",
-          onClick: () => {
-            location.hash = "#/new";
-          },
-        }
-      )
+      cards.length
+        ? el(
+            "button",
+            {
+              class: "rwf-btn rwf-btn--primary btn-block btn-lg",
+              html: icon("plus", 18) + "<span>NEW MATCH</span>",
+              onClick: () => {
+                location.hash = "#/new";
+              },
+            }
+          )
+        : null
     )
   );
   return () => {};

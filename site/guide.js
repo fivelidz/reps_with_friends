@@ -19,6 +19,11 @@ const SECTIONS = [
   { sel: '#features',     name: 'features' },
   { sel: '#roadmap',      name: 'roadmap' },
   { sel: '.footer',       name: 'footer' },
+  // dissemination page (/system) — absent elsewhere, filtered automatically
+  { sel: '#tokens',       name: 'design tokens' },
+  { sel: '#components',   name: 'component library' },
+  { sel: '#families',     name: 'feature families' },
+  { sel: '#progress',     name: 'progress and roadmap' },
 ];
 
 let sectionTops = [];

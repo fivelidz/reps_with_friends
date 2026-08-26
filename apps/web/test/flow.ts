@@ -63,7 +63,9 @@ let rows = standings(getState().matches.find((x) => x.config.id === mid)!);
 const meRow = rows.find((r) => r.player.id === getState().me!.id)!;
 const dexRow = rows.find((r) => r.player.id === "sim_dex")!;
 ok("standings reflect entries (me 20 raw ×1.25 = 25 adj)", meRow.rawReps === 20 && meRow.adjustedScore === 25);
-ok("couch multiplier applied (dex 30 raw ×1.5 = 45 adj, leads)", dexRow.adjustedScore === 45 && rows[0].player.id === "sim_dex");
+// Lane-6 engine applies ×1.2 to comeback-flagged entries: dex's first set was
+// logged while >30% behind → 30 raw ×1.5 tier ×1.2 comeback = 54 adj.
+ok("couch multiplier + comeback applied (dex 30 raw ×1.5 ×1.2 = 54 adj, leads)", dexRow.adjustedScore === 54 && rows[0].player.id === "sim_dex");
 ok("progress % tracked", meRow.progressPct === 20 && dexRow.progressPct === 30);
 ok("verified 0% (camera not live)", meRow.verifiedPct === 0);
 
@@ -91,7 +93,9 @@ ok("closure detected when raw hits target", closed && done.status === "complete"
 const win = winner(done)!;
 const finalRows = standings(done);
 console.log("   final standings:", finalRows.map((r) => `${r.player.name}:${r.adjustedScore}`).join(" "), `| winner=${done.players.find((p) => p.id === win.playerId)?.name}:${win.adjustedScore}`);
-ok("winner computed with closure bonus", win.playerId === getState().me!.id && win.closedMatch === true && win.adjustedScore === Math.round((30 + 75) * 1.25 * 10) / 10 + 15);
+// My 2nd set (10 squats) was also comeback-flagged (was >30% behind dex):
+// adjusted = (20 + 10×1.2 + 75) × 1.25 = 133.8 (1-dp) + 15 closure = 148.8.
+ok("winner computed with closure bonus", win.playerId === getState().me!.id && win.closedMatch === true && win.adjustedScore === Math.round((20 + 10 * 1.2 + 75) * 1.25 * 10) / 10 + 15);
 
 // 10. charity pot designation
 designateCharity(mid, "movember");

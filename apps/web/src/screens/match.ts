@@ -5,7 +5,7 @@ import { TAUNTS } from "../data.ts";
 import { composeTaunt, narrateMatch } from "../ai.ts";
 import { COMEBACK_MULTIPLIER, comebackArmed } from "../engine-extras.ts";
 import { getMatch, getState, logEntry, touch } from "../state.ts";
-import { avatar, el, fmtScore, icon, toast, topbar, tierBadge } from "../ui.ts";
+import { avatar, el, fmtScore, icon, posMark, toast, topbar, tierBadge } from "../ui.ts";
 
 // Persist across re-renders (same match) so logging feels continuous.
 const panel = { matchId: "", exerciseId: "", count: 10 };
@@ -44,7 +44,11 @@ export function renderMatch(root: HTMLElement, matchId: string): () => void {
       el(
         "div",
         { class: "strow-r1" },
-        el("span", { class: `rank ${i < 3 ? "top" : ""}`, text: String(i + 1) }),
+        el("span", {
+          class: `rank ${i < 3 ? "rank--medal" : ""} ${i < 3 ? "top" : ""}`,
+          text: posMark(i),
+          "aria-label": `position ${i + 1}`,
+        }),
         avatar(row.player.name, row.player.tier),
         el(
           "div",
@@ -55,7 +59,7 @@ export function renderMatch(root: HTMLElement, matchId: string): () => void {
             { class: "strow-meta" },
             el("span", {
               class: `vchip ${row.verifiedPct > 0 ? "vchip--ok" : ""}`,
-              text: `${row.verifiedPct}% ✓`,
+              html: icon("check", 10) + `<span>${row.verifiedPct}%</span>`,
             }),
             comebackArmed(match, row.player.id)
               ? el("span", {
@@ -98,11 +102,26 @@ export function renderMatch(root: HTMLElement, matchId: string): () => void {
     text: `LOG ${panel.count} ${exName().toUpperCase()}`,
     onClick: () => doLog(false),
   });
+
+  // Floating log bar — stays pinned above the nav while the screen scrolls.
+  const stickyInfo = el("span", { class: "stickylog-info" });
+  const stickyBtn = el("button", {
+    class: "rwf-btn rwf-btn--primary stickylog-btn",
+    text: "SEND IT",
+    onClick: () => doLog(false),
+  });
+  const stickyBar = el("div", { class: "stickylog" }, stickyInfo, stickyBtn);
+
   const setCount = (n: number): void => {
     panel.count = Math.max(1, Math.min(500, n));
     countEl.textContent = String(panel.count);
     logBtn.textContent = `LOG ${panel.count} ${exName().toUpperCase()}`;
+    syncSticky();
   };
+  const syncSticky = (): void => {
+    stickyInfo.textContent = `${panel.count} × ${exName()}`;
+  };
+  syncSticky();
 
   const doLog = (verified: boolean): void => {
     const closed = logEntry(matchId, me.id, panel.exerciseId, panel.count, verified);
@@ -122,12 +141,15 @@ export function renderMatch(root: HTMLElement, matchId: string): () => void {
   // ── AI narrator ───────────────────────────────────────────────────────────
   const cachedNarration = narrationCache.get(matchId);
   const narrateBtn = el("button", {
-    class: "rwf-btn btn-block btn-sm narrate-btn",
-    html: icon("mic", 15) + "<span>NARRATE THE MATCH</span>",
+    class: "actbtn actbtn--sky",
+    type: "button",
+    html:
+      `<span class="actbtn-ico">${icon("mic", 19)}</span>` +
+      `<span class="actbtn-label">NARRATE</span>`,
     onClick: async () => {
       narrateBtn.disabled = true;
-      const label = narrateBtn.querySelector("span");
-      if (label) label.textContent = "CALLING THE COMMENTATOR…";
+      const label = narrateBtn.querySelector(".actbtn-label");
+      if (label) label.textContent = "CALLING…";
       const m = getMatch(matchId);
       const text = m ? await narrateMatch(m) : null;
       if (text) {
@@ -135,35 +157,37 @@ export function renderMatch(root: HTMLElement, matchId: string): () => void {
         touch(); // re-render shows the callout
       } else {
         narrateBtn.disabled = false;
-        if (label) label.textContent = "NARRATE THE MATCH";
+        if (label) label.textContent = "NARRATE";
         toast("Commentator unreachable — try again", "warn");
       }
     },
   });
-  const narrateCard = el(
-    "div",
-    { class: "rwf-card card-pad stack-sm narrate-card" },
-    narrateBtn,
-    cachedNarration
-      ? el(
+  const narrateCard = cachedNarration
+    ? el(
+        "div",
+        { class: "rwf-card card-pad stack-sm narrate-card" },
+        el(
           "div",
           { class: "ai-callout" },
           el("div", { class: "seclabel seclabel--lime", text: "🎙️ AI commentary" }),
           el("p", { class: "ai-callout-text", text: cachedNarration })
         )
-      : null
-  );
+      )
+    : null;
 
   // ── AI taunt composer (falls back to the canned list on failure/timeout) ──
   const tauntBtn = el("button", {
-    class: "rwf-btn btn-block tauntbtn",
-    html: icon("flame", 17) + "<span>TAUNT THE CREW</span>",
+    class: "actbtn actbtn--coral",
+    type: "button",
+    html:
+      `<span class="actbtn-ico">${icon("flame", 19)}</span>` +
+      `<span class="actbtn-label">TAUNT CREW</span>`,
     onClick: async () => {
       if (tauntInFlight) return;
       tauntInFlight = true;
       tauntBtn.disabled = true;
-      const label = tauntBtn.querySelector("span");
-      if (label) label.textContent = "COOKING A TAUNT…";
+      const label = tauntBtn.querySelector(".actbtn-label");
+      if (label) label.textContent = "COOKING…";
       // Fresh AI taunt aimed at a random opponent's stats; canned fallback.
       const m = getMatch(matchId);
       const rows = m ? standings(m) : [];
@@ -227,11 +251,13 @@ export function renderMatch(root: HTMLElement, matchId: string): () => void {
         ...rows.map(standingRow)
       ),
 
+      el("div", { class: "actionrow" }, narrateBtn, tauntBtn),
+
       narrateCard,
 
       el(
         "div",
-        { class: "rwf-card card-pad stack-sm" },
+        { class: "rwf-card card-pad stack-sm logpanel" },
         el("div", { class: "seclabel", text: "Log a set" }),
         el("div", { class: "chiprow" }, ...exChips),
         el(
@@ -260,14 +286,14 @@ export function renderMatch(root: HTMLElement, matchId: string): () => void {
         )
       ),
 
-      tauntBtn,
-
       el("div", { class: "rwf-card card-pad stack-sm feed" },
         el("div", { class: "seclabel", text: "Crew feed" }),
         events.length
           ? el("ul", { class: "feedlist" }, ...events.map((e) => el("li", { html: e.html })))
           : el("p", { class: "muted small", text: "Nothing yet. Log the first set." })
-      )
+      ),
+
+      stickyBar
     )
   );
 

@@ -27,6 +27,7 @@ export function renderProfile(root: HTMLElement): () => void {
     const win = m.status === "complete" ? winner(m) : null;
     const champName = win ? m.players.find((p) => p.id === win.playerId)?.name : null;
     const myScore = playerScore(me, m.entries);
+    const iWon = win?.playerId === me.id;
     return el(
       "button",
       {
@@ -38,7 +39,10 @@ export function renderProfile(root: HTMLElement): () => void {
       el(
         "div",
         { class: "histcard-top" },
-        el("span", { class: `pill ${m.status === "complete" ? "pill--done" : "pill--live"}`, html: m.status === "complete" ? "COMPLETE" : `<i class="pulse"></i>LIVE` }),
+        el("span", {
+          class: `pill ${m.status === "complete" ? (iWon ? "pill--won" : "pill--done") : "pill--live"}`,
+          html: m.status === "complete" ? (iWon ? "🏆 WON" : "PLAYED") : `<i class="pulse"></i>LIVE`,
+        }),
         el("span", { class: "muted small", text: new Date(m.startedAt ?? Date.now()).toLocaleDateString("en-AU", { day: "numeric", month: "short" }) })
       ),
       el("div", { class: "histcard-title h-display", text: `${m.config.targetReps}-Rep Match` }),
@@ -46,7 +50,7 @@ export function renderProfile(root: HTMLElement): () => void {
         "div",
         { class: "histcard-line" },
         el("span", { text: `You: ${fmtScore(Math.round(myScore * 10) / 10)} pts` }),
-        el("span", { class: win?.playerId === me.id ? "lime" : "muted", text: champName ? (win?.playerId === me.id ? `🏆 Won` : `Winner: ${champName}`) : "In progress" })
+        el("span", { class: iWon ? "lime" : "muted", text: champName ? (iWon ? "Champion — nice work" : `Winner: ${champName}`) : "In progress" })
       )
     );
   });
@@ -85,7 +89,19 @@ export function renderProfile(root: HTMLElement): () => void {
       ),
       el("div", { class: "statgrid" }, stat("Matches", String(played)), stat("Wins", String(wins)), stat("Total reps", String(totalReps)), stat("Win rate", `${winRate}%`)),
       el("div", { class: "seclabel", text: "History" }),
-      history.length ? el("div", { class: "stack" }, ...history) : el("p", { class: "muted", text: "No matches yet." }),
+      history.length
+        ? el("div", { class: "stack" }, ...history)
+        : el(
+            "div",
+            { class: "rwf-card card-pad emptystate" },
+            el("div", { class: "h-display", text: "No matches yet" }),
+            el("p", { class: "muted small", text: "Your first match is one tap away — the crew is waiting." }),
+            el("button", {
+              class: "rwf-btn rwf-btn--primary",
+              text: "START A MATCH",
+              onClick: () => (location.hash = "#/new"),
+            })
+          ),
       el("div", { class: "resetrow" }, resetBtn)
     )
   );

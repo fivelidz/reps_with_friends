@@ -177,7 +177,7 @@ export function renderSeason(root: HTMLElement): () => void {
     )
   );
 
-  // champion belt (ended seasons)
+  // champion belt (ended seasons) — gold→lime gradient border moment
   const belt = ended
     ? el(
         "div",
@@ -200,7 +200,7 @@ export function renderSeason(root: HTMLElement): () => void {
       )
     : null;
 
-  // ladder table
+  // ladder table — position number + points emphasis
   const ladderRows: HTMLElement[] = ladder.map((row: LadderRow, i) => {
     const p = st.me!;
     const isMe = row.playerId === p.id;
@@ -208,7 +208,7 @@ export function renderSeason(root: HTMLElement): () => void {
     return el(
       "div",
       { class: `ladderrow ${i === 0 ? "lead" : ""}` },
-      el("span", { class: `rank ${i < 3 ? "top" : ""}`, text: String(i + 1) }),
+      el("span", { class: `ladderrank ${i === 0 ? "ladderrank--1" : ""}`, text: String(i + 1) }),
       avatar(nameOf(row.playerId), tierOf(row.playerId)),
       el(
         "div",
@@ -217,7 +217,7 @@ export function renderSeason(root: HTMLElement): () => void {
         el(
           "span",
           { class: "ladderrow-sub" },
-          streak >= 2 ? el("span", { class: "streakbadge", text: `🔥 ${streak}-day streak` }) : null,
+          streak >= 2 ? el("span", { class: "streakbadge", text: `🔥 ×${streak}` }) : null,
           row.mvps > 0 ? el("span", { class: "mvpbadge", text: `🏅 ${row.mvps} MVP` }) : null
         )
       ),
@@ -236,7 +236,12 @@ export function renderSeason(root: HTMLElement): () => void {
     el("div", { class: "seclabel", text: "Ladder — season points" }),
     ladderRows.length
       ? el("div", { class: "ladderlist" }, ...ladderRows)
-      : el("p", { class: "muted small", text: "No matches scored yet — finish a match to open the ladder." })
+      : el(
+          "div",
+          { class: "emptystate" },
+          el("div", { class: "h-display", text: "Ladder's wide open" }),
+          el("p", { class: "muted small", text: "Finish a match while the season is live and the points start flowing." })
+        )
   );
 
   // my streak / forgiveness
@@ -262,7 +267,7 @@ export function renderSeason(root: HTMLElement): () => void {
               el("p", { class: "hint", text: "Today is a play-day and you haven't logged — your streak breaks at midnight." }),
               el("button", {
                 class: "rwf-btn btn-block forgivebtn",
-                html: icon("flame", 16) + `<span>FORGIVE STREAK — ${money(FORGIVE_CENTS)} TO POT</span>`,
+                html: icon("heart", 16) + `<span>FORGIVE STREAK — ${money(FORGIVE_CENTS)} TO POT</span>`,
                 onClick: () => {
                   forgiveStreakAction();
                   toast("Streak forgiven — $2 to the charity pot 🙏", "ok");

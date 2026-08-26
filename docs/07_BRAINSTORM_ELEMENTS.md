@@ -62,6 +62,28 @@
 
 ---
 
+## G. Second wave — proposed 27 Aug (post-prototype, from live build learnings)
+
+| # | Element | What | Why it earns a place | Status |
+|---|---|---|---|---|
+| 26 | **Rematch button** | One tap on a result card → next match, same crew, same settings | The cheapest retention mechanic that exists; momentum at peak interest | 💡 |
+| 27 | **Monday digest** | AI-written weekly recap card auto-posted to the chat (results, MVP, nemesis update, pot total) | Re-opens the loop every week without anyone lifting a finger; uses the AI layer we already run | 💡 |
+| 28 | **Nemesis system** | Auto-detect each player's closest rival from head-to-head record; show on profiles and result cards | Gives every player a personal storyline, not just the leaders' | 💡 |
+| 29 | **Personal records** | PR detection per exercise with celebration cards | Solo-progress layer for the non-competitive half of users | 💡 |
+| 30 | **Photo finish** | Special result card + slow-motion replay styling when top two finish within 5% | Manufactures shareable drama from close matches | 💡 |
+| 31 | **Ghost race** | Solo mode: race your own past performance (your last match's pace as a ghost bar) | Fills the gap between play days; handicap v2 makes it effort-fair | 💡 |
+| 32 | **Guest slot** | Account-less one-match visitor joins via link (no profile, no history) | Removes the last onboarding friction for that one hesitant mate | 💡 |
+| 33 | **Charity all-time ladder** | Crew leaderboard by total charity directed, all-time | Makes the giving competitive too; corporate loves this number | 💡 |
+| 34 | **Roast-tier setting** | Per-crew banter intensity: gentle / standard / feral (gates the AI taunt engine) | Taunting is a feature — but consented. Also the corporate-safe switch | 💡 |
+| 35 | **Adaptive equivalents** | Seated/low-impact exercise variants mapped 1:1 in the exercise library | Accessibility + older family members in "friends, family" mode | 💡 |
+| 36 | **Warm-up predictions** | Before `start`, everyone predicts the winner; correct calls earn a season point | Pre-match engagement + social pressure to show up | 💡 |
+
+**Recommended first four from G:** 26 Rematch, 27 Monday digest, 30 Photo
+finish, 28 Nemesis — one per job (retention, re-engagement, drama, identity),
+all cheap on the existing engine.
+
+---
+
 ## My recommendation for sign-off
 
 Build next (after app polish): **7 Seasons, 13 Result-card images, 9 Comeback

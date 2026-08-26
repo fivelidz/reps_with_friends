@@ -4,7 +4,7 @@ import { CLOSURE_BONUS, potTotalCents, standings, winner } from "../engine.ts";
 import { CHARITIES } from "../data.ts";
 import { designateCharity, getState, voteMvp } from "../state.ts";
 import { drawResultCard } from "../card.ts";
-import { avatar, el, fmtScore, icon, money, tierBadge, toast, topbar } from "../ui.ts";
+import { avatar, el, fmtScore, icon, money, posMark, tierBadge, toast, topbar } from "../ui.ts";
 
 export function renderResult(root: HTMLElement, matchId: string): () => void {
   const st = getState();
@@ -25,10 +25,33 @@ export function renderResult(root: HTMLElement, matchId: string): () => void {
   const chosen = pot?.designatedCharityId ? CHARITIES.find((c) => c.id === pot.designatedCharityId) : undefined;
 
   // ── champion card ──────────────────────────────────────────────────────────
+  // Pure-CSS confetti burst (~20 particles). Colours from the token palette;
+  // hidden entirely under prefers-reduced-motion (see styles.css).
+  const CONFETTI_COLORS = ["var(--lime)", "var(--coral)", "var(--amber)", "var(--sky)", "#e8eaed"];
+  const confetti = el(
+    "div",
+    { class: "confetti", "aria-hidden": "true" },
+    ...Array.from({ length: 20 }, (_, i) => {
+      const angle = (i / 20) * Math.PI * 2 + 0.4;
+      const dist = 90 + ((i * 37) % 70);
+      return el("i", {
+        class: "confetti-p",
+        style:
+          `--tx:${Math.round(Math.cos(angle) * dist)}px;` +
+          `--ty:${Math.round(60 + Math.sin(angle) * 60 + (i % 5) * 22)}px;` +
+          `--rot:${Math.round(((i * 53) % 360) - 180)}deg;` +
+          `--c:${CONFETTI_COLORS[i % CONFETTI_COLORS.length]};` +
+          `--d:${(i % 7) * 90}ms;` +
+          `--w:${5 + (i % 3) * 3}px;`,
+      });
+    })
+  );
+
   const champCard = el(
     "div",
     { class: "rwf-card card-pad champcard" },
-    el("div", { class: "champcrown", html: icon("crown", 30) }),
+    confetti,
+    el("div", { class: "champcrown", html: icon("crown", 34) }),
     el("div", { class: "seclabel seclabel--lime", text: "Champion" }),
     avatar(champ.name, champ.tier, 64),
     el("div", { class: "champname h-display", text: champ.name }),
@@ -46,7 +69,11 @@ export function renderResult(root: HTMLElement, matchId: string): () => void {
       el(
         "div",
         { class: "strow-r1" },
-        el("span", { class: `rank rank--${i + 1}`, text: String(i + 1) }),
+        el("span", {
+          class: `rank ${i < 3 ? "rank--medal" : ""} rank--${i + 1}`,
+          text: posMark(i),
+          "aria-label": `position ${i + 1}`,
+        }),
         el("span", { class: "strow-name" }, row.player.name, tierBadge(row.player.tier)),
         el("div", { class: "score" }, el("b", { text: fmtScore(row.adjustedScore) }), el("span", { text: `${row.rawReps} raw` }))
       ),
@@ -132,20 +159,26 @@ export function renderResult(root: HTMLElement, matchId: string): () => void {
         )
       : el(
           "div",
-          { class: "mvp-chips" },
-          ...match.players.map((p) =>
-            el(
-              "button",
-              {
-                class: "mvp-chip",
-                type: "button",
-                onClick: () => {
-                  voteMvp(matchId, p.id);
-                  toast(`MVP vote locked: ${p.name} 🏅`, "ok");
+          { class: "stack-sm" },
+          el("p", { class: "hint", text: "Tap a player — one vote, locks instantly." }),
+          el(
+            "div",
+            { class: "mvp-chips" },
+            ...match.players.map((p) =>
+              el(
+                "button",
+                {
+                  class: "mvp-chip",
+                  type: "button",
+                  onClick: () => {
+                    voteMvp(matchId, p.id);
+                    toast(`MVP vote locked: ${p.name} 🏅`, "ok");
+                  },
                 },
-              },
-              avatar(p.name, p.tier, 30),
-              el("span", { class: "mvp-chip-name", text: p.name })
+                avatar(p.name, p.tier, 30),
+                el("span", { class: "mvp-chip-name", text: p.name }),
+                el("span", { class: "mvp-chip-vote", text: "VOTE" })
+              )
             )
           )
         )
@@ -194,7 +227,12 @@ export function renderResult(root: HTMLElement, matchId: string): () => void {
     "div",
     { class: "rwf-card card-pad stack-sm sharecard" },
     el("div", { class: "seclabel", text: "Share card" }),
-    canvas,
+    el(
+      "div",
+      { class: "photoframe" },
+      canvas,
+      el("div", { class: "photoframe-cap", text: "REPS WITH FRIENDS 📸" })
+    ),
     el("button", {
       class: "rwf-btn rwf-btn--primary btn-block",
       html: icon("download", 16) + "<span>SAVE CARD</span>",

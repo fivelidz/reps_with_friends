@@ -62,6 +62,8 @@ const ICONS: Record<string, string> = {
   mic: '<rect x="9" y="3" width="6" height="11" rx="3"/><path d="M5 11a7 7 0 0 0 14 0M12 18v3"/>',
   medal: '<circle cx="12" cy="9" r="5"/><path d="M8.5 13.5 7 21l5-2.5L17 21l-1.5-7.5"/>',
   download: '<path d="M12 4v11m0 0 5-5m-5 5-5-5M4 20h16"/>',
+  heart: '<path d="M12 20s-7.5-4.6-9.3-9A5.2 5.2 0 0 1 12 6.6a5.2 5.2 0 0 1 9.3 4.4C19.5 15.4 12 20 12 20z"/>',
+  chev: '<path d="M9 5l7 7-7 7"/>',
 };
 
 export function icon(name: string, size = 20): string {
@@ -146,4 +148,10 @@ export function money(cents: number): string {
 
 export function fmtScore(n: number): string {
   return Number.isInteger(n) ? String(n) : n.toFixed(1);
+}
+
+/** Position marker: medals for the podium, plain number below. */
+const MEDALS = ["🥇", "🥈", "🥉"];
+export function posMark(i: number): string {
+  return i < 3 ? MEDALS[i] : String(i + 1);
 }
