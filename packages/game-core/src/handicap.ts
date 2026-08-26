@@ -9,6 +9,7 @@
 //   docs/05_RESEARCH_WEARABLES.md.
 
 import type { Player, RepEntry } from "./types.ts";
+import { COMEBACK_MULTIPLIER } from "./comeback.ts";
 
 export const TIER_MULTIPLIERS: Record<Player["tier"], number> = {
   couch: 1.5,
@@ -39,7 +40,8 @@ export function effortMultiplier(player: Player, entry: RepEntry): number {
 
 /** Adjusted (handicapped) value of one logged entry. */
 export function scoreEntry(player: Player, entry: RepEntry): number {
-  return entry.reps * effortMultiplier(player, entry);
+  const base = entry.reps * effortMultiplier(player, entry);
+  return entry.comeback ? base * COMEBACK_MULTIPLIER : base;
 }
 
 /** Total adjusted score across all of a player's entries. */

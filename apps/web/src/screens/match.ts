@@ -2,13 +2,18 @@
 // Demo crewmates (sim_*) log reps on a timer while this screen is open.
 import { standings, type MatchState, type StandingRow } from "../engine.ts";
 import { TAUNTS } from "../data.ts";
-import { getState, logEntry, touch } from "../state.ts";
+import { composeTaunt, narrateMatch } from "../ai.ts";
+import { COMEBACK_MULTIPLIER, comebackArmed } from "../engine-extras.ts";
+import { getMatch, getState, logEntry, touch } from "../state.ts";
 import { avatar, el, fmtScore, icon, toast, topbar, tierBadge } from "../ui.ts";
 
 // Persist across re-renders (same match) so logging feels continuous.
 const panel = { matchId: "", exerciseId: "", count: 10 };
 const tauntFeed: { at: number; text: string }[] = [];
 let tauntIdx = Math.floor(Math.random() * TAUNTS.length);
+// Last AI narration per match — shown instantly on re-render, refreshed on click.
+const narrationCache = new Map<string, string>();
+let tauntInFlight = false;
 
 export function renderMatch(root: HTMLElement, matchId: string): () => void {
   const st = getState();
@@ -45,10 +50,20 @@ export function renderMatch(root: HTMLElement, matchId: string): () => void {
           "div",
           { class: "strow-id" },
           el("span", { class: "strow-name" }, row.player.name, tierBadge(row.player.tier)),
-          el("span", {
-            class: `vchip ${row.verifiedPct > 0 ? "vchip--ok" : ""}`,
-            text: `${row.verifiedPct}% ✓`,
-          })
+          el(
+            "span",
+            { class: "strow-meta" },
+            el("span", {
+              class: `vchip ${row.verifiedPct > 0 ? "vchip--ok" : ""}`,
+              text: `${row.verifiedPct}% ✓`,
+            }),
+            comebackArmed(match, row.player.id)
+              ? el("span", {
+                  class: "cbk-badge",
+                  text: `⚡ COMEBACK ×${COMEBACK_MULTIPLIER} ARMED`,
+                })
+              : null
+          )
         ),
         el(
           "div",
@@ -91,6 +106,11 @@ export function renderMatch(root: HTMLElement, matchId: string): () => void {
 
   const doLog = (verified: boolean): void => {
     const closed = logEntry(matchId, me.id, panel.exerciseId, panel.count, verified);
+    // Comeback toast: state.logEntry flags the entry when the player is armed.
+    const after = getMatch(matchId);
+    const last = after?.entries[after.entries.length - 1];
+    const comebackApplied = !!last && last.playerId === me.id && !!(last as any).comeback;
+    if (comebackApplied) toast(`⚡ COMEBACK ×${COMEBACK_MULTIPLIER} applied to that set!`, "ok");
     if (closed) {
       toast("You closed the match! 🏆", "ok");
       location.hash = `#/result/${matchId}`;
@@ -98,6 +118,80 @@ export function renderMatch(root: HTMLElement, matchId: string): () => void {
       toast(`+${panel.count} ${exName()} logged`, "ok");
     }
   };
+
+  // ── AI narrator ───────────────────────────────────────────────────────────
+  const cachedNarration = narrationCache.get(matchId);
+  const narrateBtn = el("button", {
+    class: "rwf-btn btn-block btn-sm narrate-btn",
+    html: icon("mic", 15) + "<span>NARRATE THE MATCH</span>",
+    onClick: async () => {
+      narrateBtn.disabled = true;
+      const label = narrateBtn.querySelector("span");
+      if (label) label.textContent = "CALLING THE COMMENTATOR…";
+      const m = getMatch(matchId);
+      const text = m ? await narrateMatch(m) : null;
+      if (text) {
+        narrationCache.set(matchId, text);
+        touch(); // re-render shows the callout
+      } else {
+        narrateBtn.disabled = false;
+        if (label) label.textContent = "NARRATE THE MATCH";
+        toast("Commentator unreachable — try again", "warn");
+      }
+    },
+  });
+  const narrateCard = el(
+    "div",
+    { class: "rwf-card card-pad stack-sm narrate-card" },
+    narrateBtn,
+    cachedNarration
+      ? el(
+          "div",
+          { class: "ai-callout" },
+          el("div", { class: "seclabel seclabel--lime", text: "🎙️ AI commentary" }),
+          el("p", { class: "ai-callout-text", text: cachedNarration })
+        )
+      : null
+  );
+
+  // ── AI taunt composer (falls back to the canned list on failure/timeout) ──
+  const tauntBtn = el("button", {
+    class: "rwf-btn btn-block tauntbtn",
+    html: icon("flame", 17) + "<span>TAUNT THE CREW</span>",
+    onClick: async () => {
+      if (tauntInFlight) return;
+      tauntInFlight = true;
+      tauntBtn.disabled = true;
+      const label = tauntBtn.querySelector("span");
+      if (label) label.textContent = "COOKING A TAUNT…";
+      // Fresh AI taunt aimed at a random opponent's stats; canned fallback.
+      const m = getMatch(matchId);
+      const rows = m ? standings(m) : [];
+      const myIdx = rows.findIndex((r) => r.player.id === me.id);
+      const pool = rows.filter((_, i) => i !== myIdx);
+      const target = pool.length ? pool[Math.floor(Math.random() * pool.length)] : rows[0];
+      let line: string | null = null;
+      if (m && target) {
+        line = await composeTaunt(
+          me.name,
+          {
+            name: target.player.name,
+            tier: target.player.tier,
+            rank: rows.indexOf(target) + 1,
+            rawReps: target.rawReps,
+            adjustedScore: target.adjustedScore,
+          },
+          m.config.targetReps
+        );
+      }
+      if (!line) line = TAUNTS[tauntIdx++ % TAUNTS.length]; // fallback: canned
+      tauntFeed.unshift({ at: Date.now(), text: line });
+      tauntFeed.length = Math.min(tauntFeed.length, 10);
+      toast(`🔥 “${line}”`, "warn");
+      tauntInFlight = false;
+      touch();
+    },
+  });
 
   // ── feed (entries + this session's taunts) ─────────────────────────────────
   const esc = (s: string): string => s.replace(/[&<>"']/g, (ch) => `&#${ch.charCodeAt(0)};`);
@@ -133,6 +227,8 @@ export function renderMatch(root: HTMLElement, matchId: string): () => void {
         ...rows.map(standingRow)
       ),
 
+      narrateCard,
+
       el(
         "div",
         { class: "rwf-card card-pad stack-sm" },
@@ -164,20 +260,7 @@ export function renderMatch(root: HTMLElement, matchId: string): () => void {
         )
       ),
 
-      el(
-        "button",
-        {
-          class: "rwf-btn btn-block tauntbtn",
-          html: icon("flame", 17) + "<span>TAUNT THE CREW</span>",
-          onClick: () => {
-            const line = TAUNTS[tauntIdx++ % TAUNTS.length];
-            tauntFeed.unshift({ at: Date.now(), text: line });
-            tauntFeed.length = Math.min(tauntFeed.length, 10);
-            toast(`🔥 “${line}”`, "warn");
-            touch();
-          },
-        }
-      ),
+      tauntBtn,
 
       el("div", { class: "rwf-card card-pad stack-sm feed" },
         el("div", { class: "seclabel", text: "Crew feed" }),

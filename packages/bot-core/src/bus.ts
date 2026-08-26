@@ -6,12 +6,18 @@
 //
 // Command surface (identical on both platforms):
 //   new [target] · join [tier] · start · log <exercise> <reps>[!] ·
-//   s / standings · taunt <name> · pot <cents> · result · link <code> · help
+//   s / standings · taunt <name> · pot <cents> · result · link <code> ·
+//   watch <code> · challenge <code> · season new|ladder · help
+//
+// `handle` is synchronous (canned taunts, no network). `handleAsync` is the
+// same bus but lets `taunt` try the local AI endpoint first (2s timeout,
+// canned fallback) — the bots use it; tests use the sync path.
 
 import type { FitnessTier, Player, RepEntry } from "@rwf/game-core";
-import { logReps, winner } from "@rwf/game-core";
+import { logReps, standings, winner } from "@rwf/game-core";
 import type { MatchStore, StoredMatch } from "./store.ts";
 import {
+  challengeCard,
   helpCard,
   joinCard,
   linkCard,
@@ -19,10 +25,24 @@ import {
   newCard,
   potCard,
   resultCard,
+  rivalryCard,
+  seasonHelpCard,
+  seasonLadderCard,
+  seasonNewCard,
   standingsCard,
   startCard,
   tauntCard,
+  watchCard,
 } from "./cards.ts";
+import { cardFileName, writeResultCardSvg } from "./card-image.ts";
+import {
+  comebackEligibleIds,
+  createSeason,
+  recordMatch,
+  seasonLadder,
+} from "./game-extras.ts";
+import type { SeasonMatchResult } from "./game-extras.ts";
+import { aiTaunt } from "./ai.ts";
 
 export interface InboundMessage {
   /** Chat/channel key — one match per chat. */
@@ -46,6 +66,9 @@ const COMMANDS = new Set([
   "pot",
   "result",
   "link",
+  "watch",
+  "challenge",
+  "season",
   "help",
 ]);
 
@@ -92,20 +115,44 @@ export function looksLikeCommand(text: string): boolean {
   return p !== null && COMMANDS.has(p.cmd);
 }
 
-export class CommandBus {
-  constructor(private store: MatchStore) {}
+export interface BusOptions {
+  /** Where result-card SVGs are written (default `.data/cards`). */
+  cardsDir?: string;
+  /** Base URL for card links (default `http://localhost:4173/cards`). */
+  cardsUrl?: string;
+}
 
-  /** Handle one inbound message. Never throws — errors come back as cards. */
+export class CommandBus {
+  constructor(
+    private store: MatchStore,
+    private opts: BusOptions = {}
+  ) {}
+
+  /** Handle one inbound message synchronously. Never throws — errors come back as cards. */
   handle(msg: InboundMessage): string {
     try {
-      return this.dispatch(msg);
+      return this.dispatch(msg, false) as string;
     } catch (err) {
       const detail = err instanceof Error ? err.message : String(err);
       return `⚠️ ${detail}`;
     }
   }
 
-  private dispatch(msg: InboundMessage): string {
+  /**
+   * Same as handle(), but `taunt` first tries the local AI endpoint
+   * (2s timeout, canned fallback). Bots use this; the sync path stays
+   * network-free for tests.
+   */
+  async handleAsync(msg: InboundMessage): Promise<string> {
+    try {
+      return await (this.dispatch(msg, true) as string | Promise<string>);
+    } catch (err) {
+      const detail = err instanceof Error ? err.message : String(err);
+      return `⚠️ ${detail}`;
+    }
+  }
+
+  private dispatch(msg: InboundMessage, allowAi: boolean): string | Promise<string> {
     const parsed = parse(msg.text);
     if (!parsed) return helpCard();
     const { cmd, args, rest } = parsed;
@@ -119,15 +166,21 @@ export class CommandBus {
       case "log":
         return this.cmdLog(msg, args);
       case "standings":
-        return standingsCard(this.mustMatch(msg.chatId));
+        return this.cmdStandings(msg);
       case "taunt":
-        return this.cmdTaunt(msg, rest);
+        return this.cmdTaunt(msg, rest, allowAi);
       case "pot":
         return this.cmdPot(msg, args);
       case "result":
         return this.cmdResult(msg);
       case "link":
         return this.cmdLink(msg, args);
+      case "watch":
+        return this.cmdWatch(msg, args);
+      case "challenge":
+        return this.cmdChallenge(msg, args);
+      case "season":
+        return this.cmdSeason(args);
       case "help":
         return helpCard();
       default:
@@ -203,23 +256,28 @@ export class CommandBus {
     };
     const { state, closedMatch } = logReps(m.state, entry);
     this.store.update(msg.chatId, state);
+    if (closedMatch) this.recordSeasonResult(state); // counts toward `season ladder`
     return logCard(msg.playerName, exercise.name, reps, verified, closedMatch, state.config.targetReps);
   }
 
-  private cmdTaunt(msg: InboundMessage, rest: string): string {
+  private cmdTaunt(msg: InboundMessage, rest: string, allowAi: boolean): string | Promise<string> {
     const raw = rest.trim();
     const m = this.store.get(msg.chatId);
+    let targetName: string;
     if (!raw) {
       const others = m?.state.players.filter((p) => p.id !== msg.playerId) ?? [];
       if (others.length === 0) throw new Error("usage: `taunt <name>` — give me a target");
-      const pick = others[Math.floor(Math.random() * others.length)];
-      return tauntCard(pick.name);
+      targetName = others[Math.floor(Math.random() * others.length)].name;
+    } else {
+      const lower = raw.toLowerCase();
+      const target = m?.state.players.find(
+        (p) => p.name.toLowerCase().includes(lower) || lower.includes(p.name.toLowerCase())
+      );
+      targetName = target ? target.name : raw;
     }
-    const lower = raw.toLowerCase();
-    const target = m?.state.players.find(
-      (p) => p.name.toLowerCase().includes(lower) || lower.includes(p.name.toLowerCase())
-    );
-    return tauntCard(target ? target.name : raw);
+    if (!allowAi) return tauntCard(targetName); // sync path: canned lines only
+    // async path: try the banter engine, fall back to canned on any failure
+    return aiTaunt(targetName).then((ai) => tauntCard(targetName, ai ?? undefined));
   }
 
   private cmdPot(msg: InboundMessage, args: string[]): string {
@@ -241,7 +299,16 @@ export class CommandBus {
     if (!w) throw new Error("no winner recorded — match state looks broken");
     const champ = m.state.players.find((p) => p.id === w.playerId);
     if (!champ) throw new Error(`winner ${w.playerId} not in player list — match state looks broken`);
-    return resultCard(m, champ.name, w.adjustedScore);
+    const base = resultCard(m, champ.name, w.adjustedScore);
+    // Generate the branded SVG card and append its URL. Card generation must
+    // never break the result — on any failure the text card still goes out.
+    try {
+      writeResultCardSvg(m, champ.name, this.opts.cardsDir ?? ".data/cards");
+      const url = `${this.opts.cardsUrl ?? "http://localhost:4173/cards"}/${cardFileName(m.state.config.id)}`;
+      return `${base}\n\n🖼 Result card: ${url}`;
+    } catch {
+      return base;
+    }
   }
 
   private cmdLink(msg: InboundMessage, args: string[]): string {
@@ -250,6 +317,117 @@ export class CommandBus {
       throw new Error("usage: `link <code>` — e.g. `link CREW-7Q2` (one word)");
     this.store.link(msg.chatId, code);
     return linkCard(code);
+  }
+
+  // `watch <CODE>` — spectate another crew's matches from this chat.
+  private cmdWatch(msg: InboundMessage, args: string[]): string {
+    const code = args[0];
+    if (!code || args.length > 1)
+      throw new Error("usage: `watch <code>` — e.g. `watch CREW-7Q2` (one word)");
+    const count = this.store.watchCrew(msg.chatId, code);
+    const crewLive = this.store.findChatByCrew(code) != null;
+    return watchCard(code, count, crewLive);
+  }
+
+  // `challenge <CODE>` / `challenge accept` / `challenge` (list) — crew-vs-crew.
+  private cmdChallenge(msg: InboundMessage, args: string[]): string {
+    const m = this.store.get(msg.chatId);
+    const myCrew = m?.crewCode;
+    if (!myCrew) throw new Error("link this chat to your crew first: `link <code>`");
+
+    if (normalizeToken(args[0] ?? "") === "accept") {
+      const pending = this.store
+        .challengesFor(myCrew)
+        .filter((c) => c.status === "pending" && c.toCrew === myCrew);
+      if (pending.length === 0)
+        throw new Error(`no pending challenges against *${myCrew}* — issue one with \`challenge <CODE>\``);
+      const c = this.store.acceptChallenge(pending[0].id);
+      if (!c) throw new Error("challenge vanished — try again");
+      return rivalryCard(c.fromCrew, c.toCrew);
+    }
+
+    if (args.length === 0) {
+      const list = this.store.challengesFor(myCrew);
+      if (list.length === 0)
+        return `⚔️ No challenges for *${myCrew}* yet — stir the pot: \`challenge <CODE>\``;
+      const lines = list.map((c) =>
+        c.status === "pending"
+          ? `• ${c.fromCrew} → ${c.toCrew} (pending${c.toCrew === myCrew ? " — \`challenge accept\` to lock it in" : ""})`
+          : `• ${c.fromCrew} vs ${c.toCrew} (accepted 🔥)`
+      );
+      return [`⚔️ *Crew challenges for ${myCrew}*`, "", ...lines].join("\n");
+    }
+
+    const code = args[0];
+    if (args.length > 1) throw new Error("usage: `challenge <code>` — e.g. `challenge CREW-9ZZ` (one word)");
+    if (code === myCrew) throw new Error("challenging your own crew? Bold. Pick another: `challenge <CODE>`");
+    const c = this.store.createChallenge(myCrew, code);
+    return challengeCard(c.fromCrew, c.toCrew);
+  }
+
+  // `season new [name]` / `season ladder` — seasons over @rwf/game-core.
+  private cmdSeason(args: string[]): string {
+    const sub = normalizeToken(args[0] ?? "");
+    if (sub === "new") {
+      const name = args.slice(1).join(" ").trim() || `Season ${new Date().toLocaleDateString("en-AU", { day: "numeric", month: "short" })}`;
+      this.store.setSeason("active", createSeason({ name }));
+      return seasonNewCard(name);
+    }
+    if (sub === "ladder") {
+      const season = this.store.getSeason("active") as ReturnType<typeof createSeason> | undefined;
+      if (!season) throw new Error("no season yet — start one with `season new [name]`");
+      return seasonLadderCard(season.name, seasonLadder(season));
+    }
+    if (sub === "") {
+      const season = this.store.getSeason("active") as { name?: string } | undefined;
+      return seasonHelpCard(season?.name);
+    }
+    throw new Error("usage: `season new [name]` · `season ladder`");
+  }
+
+  // `s` — own match if there is one, else the watched crew's match.
+  private cmdStandings(msg: InboundMessage): string {
+    const own = this.store.get(msg.chatId);
+    if (own) {
+      const spectators = own.crewCode ? this.store.spectatorCount(own.crewCode) : 0;
+      return standingsCard(own, { spectators, comeback: comebackEligibleIds(own.state) });
+    }
+    // Spectator mode: no match here, but this chat watches a crew.
+    const crew = this.store.spectatingCrew(msg.chatId);
+    if (crew) {
+      const chatId = this.store.findChatByCrew(crew);
+      const m = chatId ? this.store.get(chatId) : undefined;
+      if (m)
+        return `👁 *Watching crew ${crew}*\n\n${standingsCard(m, {
+          spectators: this.store.spectatorCount(crew),
+          comeback: comebackEligibleIds(m.state),
+        })}`;
+      return `👁 Watching crew *${crew}* — no match found for them yet (their chat needs a \`new\` + \`link ${crew}\`).`;
+    }
+    return standingsCard(this.mustMatch(msg.chatId)); // throws the friendly error
+  }
+
+  /** Record a just-closed match into the active season (if any). Never throws. */
+  private recordSeasonResult(state: import("@rwf/game-core").MatchState): void {
+    try {
+      const season = this.store.getSeason("active") as ReturnType<typeof createSeason> | undefined;
+      if (!season) return;
+      const w = winner(state);
+      const result: SeasonMatchResult = {
+        matchId: state.config.id,
+        winnerId: w?.playerId ?? "",
+        at: Date.now(),
+        rows: standings(state).map((r) => ({
+          playerId: r.player.id,
+          name: r.player.name,
+          adjustedScore: r.adjustedScore,
+          rawReps: r.rawReps,
+        })),
+      };
+      this.store.setSeason("active", recordMatch(season, result));
+    } catch {
+      /* season bookkeeping must never break the match */
+    }
   }
 
   // ── helpers ───────────────────────────────────────────────────────────────

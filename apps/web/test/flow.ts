@@ -16,11 +16,16 @@ import {
   createCrew,
   createMatchAction,
   designateCharity,
+  endSeasonAction,
+  forgiveStreakAction,
   getState,
   joinCrew,
   logEntry,
+  startSeasonAction,
+  voteMvp,
 } from "../src/state.ts";
 import { potTotalCents, standings, winner } from "../src/engine.ts";
+import { comebackArmed, seasonLadder } from "../src/engine-extras.ts";
 
 let step = 0;
 function ok(label: string, cond: boolean): void {
@@ -107,5 +112,44 @@ const saved = store.get("rwf.state.v1")!;
 store.delete("rwf.state.v1");
 store.set("rwf.state.v1", saved);
 ok("state JSON round-trips", JSON.parse(saved).matches.length === 2);
+
+// 14. seasons: start → complete a match while live → ladder scores it (+MVP)
+startSeasonAction("Test Season");
+ok("season created (4 weeks, live)", getState().season?.config.weeks === 4 && !getState().season?.endedAt);
+addDemoCrew(mid2);
+logEntry(mid2, "sim_dex", "situp", 200, false); // couch ×1.5 = 300 adj — dex leads
+const m2 = () => getState().matches.find((x) => x.config.id === mid2)!;
+ok("comeback armed when >30% behind leader", comebackArmed(m2(), getState().me!.id) === true);
+logEntry(mid2, getState().me!.id, "situp", 100, false); // casual ×1.25 = 125 adj — comeback fires HERE
+const flagged = m2().entries[m2().entries.length - 1];
+ok("comeback entry flagged (×1.2, once per match)", !!(flagged as any).comeback === true && comebackArmed(m2(), getState().me!.id) === false);
+const closed2 = logEntry(mid2, getState().me!.id, "situp", 400, false); // 100+400=500 → closes
+ok("second match closed", closed2 && m2().status === "complete");
+ok("comeback not re-applied on later entries", !(m2().entries[m2().entries.length - 1] as any).comeback);
+const win2 = winner(m2())!;
+voteMvp(mid2, "sim_priya");
+const ladder = seasonLadder(getState().season!);
+const meL = ladder.find((r) => r.playerId === getState().me!.id)!;
+const priyaL = ladder.find((r) => r.playerId === "sim_priya")!;
+ok(
+  "season ladder: match recorded, points/mvp counted",
+  ladder.length === 4 && meL.played === 1 && priyaL.mvps === 1 && meL.points === (win2.playerId === getState().me!.id ? 4 : 1)
+);
+ok("mvp vote locked (one vote)", voteMvpGuard() === true);
+function voteMvpGuard(): boolean {
+  voteMvp(mid2, "sim_sam"); // second vote must be ignored
+  return getState().mvp![mid2] === "sim_priya";
+}
+
+// 15. streak forgiveness: $2 to the season pot, idempotent per day
+const potBefore = getState().season!.potCents;
+forgiveStreakAction();
+forgiveStreakAction(); // same day → no double charge
+ok("forgive adds $2 once per day", getState().season!.potCents === potBefore + 200);
+
+// 16. end season → champion stamped from ladder
+endSeasonAction();
+const ended = getState().season!;
+ok("season ended with champion", !!ended.endedAt && ended.championId === seasonLadder(ended)[0].playerId);
 
 console.log(`\nAll ${step} flow checks passed.`);

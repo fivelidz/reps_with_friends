@@ -8,11 +8,26 @@ import {
   designate,
   logReps,
   startMatch,
+  standings,
+  winner,
   type CharityPot,
   type FitnessTier,
   type MatchState,
   type Player,
 } from "./engine.ts";
+import {
+  applyComeback,
+  comebackArmed,
+  createSeason,
+  endSeason as endSeasonFn,
+  forgiveStreak as forgiveStreakFn,
+  recordSeasonMatch,
+  SEASON_MVP_POINTS,
+  SEASON_PLAY_POINTS,
+  SEASON_WIN_POINTS,
+  type SeasonMatchResult,
+  type SeasonState,
+} from "./engine-extras.ts";
 import { DEMO_CREW, EXERCISES, STAKE_CENTS } from "./data.ts";
 
 const KEY = "rwf.state.v1";
@@ -23,10 +38,16 @@ export interface AppState {
   crew: { name: string; code: string } | null;
   matches: MatchState[]; // chronological; render reversed
   pots: Record<string, CharityPot>;
+  /** Active 4-week season (optional — added Aug 2026, older states lack it). */
+  season?: SeasonState | null;
+  /** Ended seasons, newest last (kept for the champions list). */
+  seasonHistory?: SeasonState[];
+  /** MVP votes: matchId → voted playerId (one local vote per match). */
+  mvp?: Record<string, string>;
 }
 
 function defaultState(): AppState {
-  return { v: 1, me: null, crew: null, matches: [], pots: {} };
+  return { v: 1, me: null, crew: null, matches: [], pots: {}, season: null, seasonHistory: [], mvp: {} };
 }
 
 function load(): AppState {
@@ -34,7 +55,13 @@ function load(): AppState {
     const raw = localStorage.getItem(KEY);
     if (!raw) return defaultState();
     const p = JSON.parse(raw) as AppState;
-    if (p && p.v === 1 && Array.isArray(p.matches) && typeof p.pots === "object") return p;
+    if (p && p.v === 1 && Array.isArray(p.matches) && typeof p.pots === "object") {
+      // Backward-compatible field normalisation (keys added after v1 shipped).
+      if (!("season" in p)) p.season = null;
+      if (!("seasonHistory" in p)) p.seasonHistory = [];
+      if (!("mvp" in p)) p.mvp = {};
+      return p;
+    }
   } catch {
     /* corrupt state → fresh start */
   }
@@ -155,6 +182,11 @@ export function addDemoCrew(matchId: string): number {
 /**
  * Log a rep entry. Returns true if this entry closed the match
  * (player's raw total reached the target).
+ *
+ * Comeback rule: if the player is >30% behind the leader and hasn't used
+ * their once-per-match comeback yet, the entry is flagged (×1.2 — engine
+ * applies the multiplier once lane 6's comeback scoring lands).
+ * If a season is active, a closed match is recorded into it (idempotent).
  */
 export function logEntry(
   matchId: string,
@@ -167,14 +199,105 @@ export function logEntry(
   update((s) => {
     const m = s.matches.find((x) => x.config.id === matchId);
     if (!m || m.status !== "live") return;
-    const res = logReps(m, { playerId, exerciseId, reps, at: Date.now(), verified });
+    let entry = { playerId, exerciseId, reps, at: Date.now(), verified };
+    if (comebackArmed(m, playerId)) entry = applyComeback(entry) as typeof entry;
+    const res = logReps(m, entry);
     m.entries = res.state.entries;
     m.status = res.state.status;
     m.completedAt = res.state.completedAt;
     m.closedBy = res.state.closedBy;
     closed = res.closedMatch;
+    if (res.closedMatch && s.season && !s.season.endedAt) {
+      const rec = buildSeasonResult(s, res.state);
+      if (rec) s.season = recordSeasonMatch(s.season, rec);
+    }
   });
   return closed;
+}
+
+/** Season points: play 1, win +3, MVP +1 (winner's row = 4). */
+function buildSeasonResult(s: AppState, m: MatchState): SeasonMatchResult | null {
+  if (m.status !== "complete") return null;
+  const win = winner(m);
+  if (!win) return null;
+  const mvp = s.mvp?.[m.config.id];
+  return {
+    matchId: m.config.id,
+    at: m.completedAt ?? Date.now(),
+    winnerId: win.playerId,
+    mvpPlayerId: mvp,
+    rows: standings(m).map((r) => ({
+      playerId: r.player.id,
+      won: r.player.id === win.playerId,
+      points:
+        (r.player.id === win.playerId ? SEASON_WIN_POINTS : 0) +
+        SEASON_PLAY_POINTS +
+        (mvp === r.player.id ? SEASON_MVP_POINTS : 0),
+    })),
+  };
+}
+
+// ── seasons ──────────────────────────────────────────────────────────────────
+
+/** Start a 4-week season for the crew. */
+export function startSeasonAction(name: string): void {
+  update((s) => {
+    if (s.season && !s.season.endedAt) return; // one active season at a time
+    s.season = createSeason({
+      id: rid("sn"),
+      name: name.trim().slice(0, 24) || "Season 1",
+      weeks: 4,
+      startedAt: Date.now(),
+    });
+  });
+}
+
+/** Forgive MY streak for today — $2 into the season charity pot. */
+export function forgiveStreakAction(): void {
+  update((s) => {
+    if (!s.me || !s.season || s.season.endedAt) return;
+    s.season = forgiveStreakFn(s.season, s.me.id);
+  });
+}
+
+/** End the season now — champion is stamped from the ladder. */
+export function endSeasonAction(): void {
+  update((s) => {
+    if (!s.season || s.season.endedAt) return;
+    s.season = endSeasonFn(s.season);
+  });
+}
+
+/** Start a fresh season; the ended one moves to seasonHistory (champions list). */
+export function startNextSeasonAction(name: string): void {
+  update((s) => {
+    if (s.season) {
+      const done = s.season.endedAt ? s.season : endSeasonFn(s.season);
+      s.seasonHistory = [...(s.seasonHistory ?? []), done];
+    }
+    s.season = createSeason({
+      id: rid("sn"),
+      name: name.trim().slice(0, 24) || "Season 1",
+      weeks: 4,
+      startedAt: Date.now(),
+    });
+  });
+}
+
+// ── MVP vote ─────────────────────────────────────────────────────────────────
+
+/** One local vote per match; upserts the season record with the MVP. */
+export function voteMvp(matchId: string, playerId: string): void {
+  update((s) => {
+    if (s.mvp?.[matchId]) return; // vote already locked
+    s.mvp = s.mvp ?? {};
+    s.mvp[matchId] = playerId;
+    const m = s.matches.find((x) => x.config.id === matchId);
+    if (s.season && !s.season.endedAt && m && m.status === "complete") {
+      const rec = buildSeasonResult(s, m);
+      if (rec) s.season = recordSeasonMatch(s.season, rec);
+    }
+  });
 }
 
 export function designateCharity(matchId: string, charityId: string): void {

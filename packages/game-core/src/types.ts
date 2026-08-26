@@ -29,6 +29,8 @@ export interface RepEntry {
   verified: boolean;
   /** Average %HRR (Karvonen) during the set, if a strap/watch was connected. */
   avgHrrPct?: number;
+  /** Comeback multiplier applied (once per player per match, when >30% behind). */
+  comeback?: boolean;
 }
 
 export type MatchStatus = "open" | "live" | "complete";

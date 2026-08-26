@@ -22,6 +22,20 @@ this sells the vision.
 - Verified headless via CDP: zero console errors, both canvases mount, rep counter
   ticks at 2.4s, handicap math correct (200×1.5=300), reveals fire on scroll, graph
   nodes render (lime/sky/amber confirmed by pixel analysis), all requests localhost-only.
+- ✅ **AI guide widget** (`site/guide.js` + markup in index.html + styles appended to
+  site.css; loaded via its own `<script type="module">` so it can never break main.js
+  boot). Lime circular launcher bottom-right with inline dumbbell/close SVG glyphs,
+  pulse ring until first open, `aria-label="Ask the RWF guide"` + aria-expanded.
+  360×520 chat panel (mobile ≤620px: full-width bottom sheet), header
+  "RWF Guide · GLM-5.3" with live dot, user msgs right/lime, bot left/surface,
+  4 starter chips, Enter-to-send, three-dot loading, coral error bubble with Retry
+  ("Guide is catching its breath — try again"). POSTs `/api/ai` (serve.ts, GLM-5.3)
+  with last-12 history + system hint carrying the currently-visible section
+  (scroll-tracked vs section offsets, rAF-throttled). 30s AbortController timeout;
+  non-JSON/502/429 handled. History in memory only. Reduced-motion: no pulse/bounce/
+  blink/slide. Open state persisted in sessionStorage. Verified headless (CDP):
+  open/close/pulse-removal/greeting/chip-send/real GLM reply/sessionStorage restore,
+  zero console errors.
 
 ## Design direction (follow precisely)
 Dark athletic: near-black `--bg`, electric lime `--lime` primary, coral `--coral`

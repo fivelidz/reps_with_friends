@@ -7,8 +7,8 @@
 // reply posted in-channel. No game logic lives here — everything is
 // @rwf/bot-core over @rwf/game-core. Heartbeat every 15s in live mode.
 
-import { mkdirSync, writeFileSync } from "node:fs";
-import { join, resolve } from "node:path";
+import { mkdirSync, statSync, writeFileSync } from "node:fs";
+import { basename, join, resolve } from "node:path";
 import { CommandBus, MatchStore } from "@rwf/bot-core";
 
 const ROOT = resolve(import.meta.dir, "../..");
@@ -18,9 +18,13 @@ const HEARTBEAT_MS = 15_000;
 
 // ── sim harness ─────────────────────────────────────────────────────────────
 
-function sim(): void {
-  const store = new MatchStore(join(DATA, "sim-slack.json"));
-  const bus = new CommandBus(store);
+async function sim(): Promise<void> {
+  const cardsDir = join(DATA, "cards");
+  const simFile = join(DATA, "sim-slack.json");
+  mkdirSync(DATA, { recursive: true });
+  writeFileSync(simFile, "{}"); // scratch store — fresh demo every run
+  const store = new MatchStore(simFile);
+  const bus = new CommandBus(store, { cardsDir });
   const inChannel = (name: string, uid: string, text: string) => ({
     chatId: "slack:C08MATCH",
     playerId: `slack:${uid}`,
@@ -30,38 +34,101 @@ function sim(): void {
   const ben = (t: string) => inChannel("Ben", "U111", t);
   const dave = (t: string) => inChannel("Dave", "U222", t);
   const nico = (t: string) => inChannel("Nico", "U333", t);
+  // Second channel: spectators' lounge (watches the crew, never joins).
+  const inLounge = (name: string, uid: string, text: string) => ({
+    chatId: "slack:C08LOUNGE",
+    playerId: `slack:${uid}`,
+    playerName: name,
+    text,
+  });
+  const mia = (t: string) => inLounge("Mia", "U444", t);
+  // Third channel: a rival crew (for the crew-vs-crew challenge flow).
+  const inRival = (name: string, uid: string, text: string) => ({
+    chatId: "slack:C08RIVAL",
+    playerId: `slack:${uid}`,
+    playerName: name,
+    text,
+  });
+  const rivalA = (t: string) => inRival("Alf", "U555", t);
+  const rivalB = (t: string) => inRival("Rene", "U666", t);
 
-  const script: { user: string; text: string }[] = [
-    { user: "ben", text: "/rwf help" },
-    { user: "ben", text: "new" },
-    { user: "ben", text: "join athlete" },
-    { user: "dave", text: "join couch" },
-    { user: "nico", text: "join fit" },
-    { user: "ben", text: "start" },
-    { user: "dave", text: "log pushups 40" },
-    { user: "nico", text: "log squats 60!" },
-    { user: "ben", text: "log burpees 30" },
-    { user: "dave", text: "log squats 60" },
-    { user: "ben", text: "taunt dave" },
-    { user: "dave", text: "log sit-ups 50" },
-    { user: "nico", text: "s" },
-    { user: "dave", text: "pot 500" },
-    { user: "nico", text: "pot 1000" },
-    { user: "dave", text: "log burpees 45" },
-    { user: "ben", text: "log pushups 280" }, // athlete closes at 310 raw…
-    { user: "nico", text: "result" }, // …but the couch player's adjusted score takes it
-    { user: "ben", text: "link CREW-7Q2" },
+  const script: { label: string; steps: { m: ReturnType<typeof ben>; chan?: string }[] }[] = [
+    {
+      label: "full match (help → new → join×3 → link → season → start → logs → close → result)",
+      steps: [
+        { m: ben("/rwf help") },
+        { m: ben("new") },
+        { m: ben("join athlete") },
+        { m: dave("join couch") },
+        { m: nico("join fit") },
+        { m: ben("link CREW-7Q2") }, // crew binding early so spectators/challenges key off it
+        { m: ben("season new Preseason") }, // matches now record toward the ladder
+        { m: ben("start") },
+        { m: dave("log pushups 40") },
+        { m: nico("log squats 60!") },
+        { m: ben("log burpees 30") },
+        { m: dave("log squats 60") },
+        { m: ben("taunt dave") }, // AI taunt (live attempt, canned fallback)
+        { m: dave("log sit-ups 50") },
+        { m: nico("s") }, // standings: ⚡ comeback markers + 👁 spectator count
+        { m: dave("pot 500") },
+        { m: nico("pot 1000") },
+        { m: dave("log burpees 45") },
+        { m: ben("log pushups 280") }, // athlete closes at 310 raw…
+        { m: nico("result") }, // …but the couch player's adjusted score takes it (+ SVG card URL)
+      ],
+    },
+    {
+      label: "season ladder after the match",
+      steps: [{ m: ben("season ladder") }],
+    },
+    {
+      label: "spectator mode (watch from another channel, `s` without joining)",
+      steps: [
+        { m: mia("watch CREW-7Q2"), chan: "#lounge" },
+        { m: mia("s"), chan: "#lounge" },
+      ],
+    },
+    {
+      label: "crew-vs-crew challenge (rival crew issues, CREW-7Q2 accepts)",
+      steps: [
+        { m: rivalA("new 50"), chan: "#rival-crew" }, // rival channel needs a match before linking a crew
+        { m: rivalA("join casual"), chan: "#rival-crew" },
+        { m: rivalB("join fit"), chan: "#rival-crew" },
+        { m: rivalA("link CREW-9ZZ"), chan: "#rival-crew" },
+        { m: rivalA("challenge CREW-7Q2"), chan: "#rival-crew" },
+        { m: ben("challenge accept") }, // accepted back in the home crew's channel
+      ],
+    },
   ];
-  const players = { ben, dave, nico };
 
   console.log("=== RWF Slack bot — SIM MODE (no tokens, no sends) ===\n");
-  for (const step of script) {
-    const m = players[step.user as keyof typeof players](step.text.replace(/^\/rwf\s+/, ""));
-    console.log(`▸ /rwf by ${m.playerName}: ${m.text}`);
-    console.log(bus.handle(m));
-    console.log("");
+  let count = 0;
+  for (const section of script) {
+    console.log(`── ${section.label} ──`);
+    for (const step of section.steps) {
+      const text = step.m.text.replace(/^\/rwf\s+/, "");
+      const where = step.chan ? ` (${step.chan})` : "";
+      console.log(`▸ /rwf by ${step.m.playerName}${where}: ${text}`);
+      console.log(await bus.handleAsync(step.m));
+      console.log("");
+      count++;
+    }
   }
-  console.log(`=== sim done — ${script.length} commands, store: ${join(DATA, "sim-slack.json")} ===`);
+
+  // Result-card artifact: prove the SVG landed on disk.
+  const m = store.get("slack:C08MATCH");
+  if (m) {
+    const cardPath = join(cardsDir, `${m.state.config.id.replace(/[^a-zA-Z0-9_-]/g, "-")}.svg`);
+    try {
+      const size = statSync(cardPath).size;
+      console.log(`── result card artifact ──`);
+      console.log(`🖼 ${cardPath} (${size} bytes) → http://localhost:4173/cards/${basename(cardPath)}`);
+    } catch {
+      console.log(`🖼 result card missing at ${cardPath} — check cardsDir`);
+    }
+  }
+  console.log(`\n=== sim done — ${count} commands, store: ${join(DATA, "sim-slack.json")} ===`);
 }
 
 // ── live mode (Bolt Socket Mode) ────────────────────────────────────────────
@@ -82,7 +149,7 @@ async function live(): Promise<void> {
 
   mkdirSync(DATA, { recursive: true });
   const store = new MatchStore(join(DATA, "bot-matches.json"));
-  const bus = new CommandBus(store);
+  const bus = new CommandBus(store, { cardsDir: join(DATA, "cards") });
 
   const app = new App({
     token: botToken,
@@ -112,7 +179,7 @@ async function live(): Promise<void> {
   app.command("/rwf", async ({ command, ack, respond, client }) => {
     await ack();
     const playerName = await displayName(client, command.user_id);
-    const reply = bus.handle({
+    const reply = await bus.handleAsync({
       chatId: `slack:${command.channel_id}`,
       playerId: `slack:${command.user_id}`,
       playerName,
@@ -150,7 +217,7 @@ const mode = process.argv[2] ?? "--sim";
 if (mode === "--live") {
   await live();
 } else if (mode === "--sim") {
-  sim();
+  await sim();
 } else {
   console.error("usage: bun apps/bot-slack/main.ts [--sim|--live]");
   process.exit(1);

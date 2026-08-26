@@ -10,6 +10,7 @@ import { renderLink } from "./screens/link.ts";
 import { renderMatch } from "./screens/match.ts";
 import { renderResult } from "./screens/result.ts";
 import { renderProfile } from "./screens/profile.ts";
+import { renderSeason } from "./screens/season.ts";
 
 let cleanup: (() => void) | null = null;
 let lastKey = "__boot__";
@@ -25,6 +26,7 @@ function renderNav(): void {
   const tabs: { hash: string; label: string; ico: string; match: (h: string) => boolean }[] = [
     { hash: "#/", label: "Matches", ico: "home", match: (h) => h === "#/" || h.startsWith("#/match") || h.startsWith("#/result") },
     { hash: "#/new", label: "New", ico: "plus", match: (h) => h.startsWith("#/new") || h.startsWith("#/link") },
+    { hash: "#/season", label: "Season", ico: "trophy", match: (h) => h.startsWith("#/season") },
     { hash: "#/profile", label: "Profile", ico: "user", match: (h) => h.startsWith("#/profile") },
   ];
   for (const t of tabs) {
@@ -85,6 +87,9 @@ function route(): void {
         break;
       case "result":
         cleanup = renderResult(app, id);
+        break;
+      case "season":
+        cleanup = renderSeason(app);
         break;
       case "profile":
         cleanup = renderProfile(app);

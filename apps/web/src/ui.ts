@@ -59,6 +59,9 @@ const ICONS: Record<string, string> = {
   hash: '<path d="M9 4v16M15 4v16M4.5 9h15M4.5 15h15"/>',
   crown: '<path d="M4 8l4 4 4-6.5L16 12l4-4v9.5H4z"/>',
   bolt: '<path d="M13 3 5 13.5h5L10.5 21 19 10.5h-5z"/>',
+  mic: '<rect x="9" y="3" width="6" height="11" rx="3"/><path d="M5 11a7 7 0 0 0 14 0M12 18v3"/>',
+  medal: '<circle cx="12" cy="9" r="5"/><path d="M8.5 13.5 7 21l5-2.5L17 21l-1.5-7.5"/>',
+  download: '<path d="M12 4v11m0 0 5-5m-5 5-5-5M4 20h16"/>',
 };
 
 export function icon(name: string, size = 20): string {

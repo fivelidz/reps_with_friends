@@ -11,6 +11,62 @@ import { readFileSync, existsSync } from "node:fs";
 const PORT = 4173;
 const startedAt = Date.now();
 
+// Z.AI (GLM) key from .env — server-side only, never sent to clients.
+const envFile = existsSync(".env") ? readFileSync(".env", "utf8") : "";
+const ZAI_KEY = envFile.match(/^ZAI_API_KEY=(.+)$/m)?.[1]?.trim() ?? "";
+const ZAI_URL = "https://api.z.ai/api/anthropic/v1/messages";
+const AI_MODEL = "glm-5.3";
+
+const RWF_SYSTEM = `You are the Reps With Friends guide — a sharp, warm, slightly cheeky fitness-tech expert.
+Reps With Friends: real-time multiplayer fitness game. Groups agree on exercises, race to 300 total reps (any reps, any order, any mix); first to raw target CLOSES the match; winner = highest EFFORT-ADJUSTED score (handicap: couch 1.5x, casual 1.25x, fit 1.0x, athlete 0.85x; v2 blends measured %HRR vs personal baseline). Charity pots: winner directs contributions to charity, no cash to winner. Played inside WhatsApp/Slack group chats via bots; the app is home base (profile, crew, seasons). Seasons are 4-week series with points, champion belt, relegation. Comeback multiplier x1.2 when >30% behind (once per match). Verification: in-browser camera pose counting (MoveNet) + BLE heart-rate straps; no video leaves the device. Corporate mode: org leagues, employer-funded pots, aggregate-only dashboards. Roadmap phases 0-4. Answer concisely (under 120 words), Aussie-friendly tone, no emoji spam. If asked something you don't know, say so.`;
+
+// naive global rate limit for the AI endpoint (local demo: 60/min)
+const aiHits: number[] = [];
+function rateLimited(): boolean {
+  const now = Date.now();
+  while (aiHits.length && now - aiHits[0] > 60_000) aiHits.shift();
+  aiHits.push(now);
+  return aiHits.length > 60;
+}
+
+async function aiChat(body: any): Promise<Response> {
+  if (!ZAI_KEY) return Response.json({ error: "AI not configured (no key)" }, { status: 503 });
+  if (rateLimited()) return Response.json({ error: "slow down" }, { status: 429 });
+
+  const msgs = Array.isArray(body?.messages)
+    ? body.messages
+        .filter((m: any) => (m?.role === "user" || m?.role === "assistant") && typeof m?.content === "string" && m.content.trim())
+        .slice(-12)
+        .map((m: any) => ({ role: m.role, content: m.content.slice(0, 2000) }))
+    : [];
+  if (msgs.length === 0) return Response.json({ error: "messages required" }, { status: 400 });
+
+  try {
+    const ctrl = new AbortController();
+    setTimeout(() => ctrl.abort(), 30_000);
+    const r = await fetch(ZAI_URL, {
+      method: "POST",
+      headers: { "content-type": "application/json", "x-api-key": ZAI_KEY, "anthropic-version": "2023-06-01" },
+      body: JSON.stringify({
+        model: AI_MODEL,
+        max_tokens: 600,
+        system: typeof body?.system === "string" && body.system.trim() ? `${RWF_SYSTEM}\n\nAdditional context: ${body.system.slice(0, 1500)}` : RWF_SYSTEM,
+        messages: msgs,
+      }),
+      signal: ctrl.signal,
+    });
+    if (!r.ok) {
+      const errText = await r.text().catch(() => "");
+      return Response.json({ error: `upstream ${r.status}`, detail: errText.slice(0, 300) }, { status: 502 });
+    }
+    const data = await r.json();
+    const text = data?.content?.filter((c: any) => c?.type === "text").map((c: any) => c.text).join("\n") ?? "";
+    return Response.json({ text, model: AI_MODEL });
+  } catch (e: any) {
+    return Response.json({ error: "ai failed", detail: String(e?.message ?? e).slice(0, 200) }, { status: 502 });
+  }
+}
+
 const MIME: Record<string, string> = {
   ".html": "text/html; charset=utf-8",
   ".js": "text/javascript; charset=utf-8",
@@ -106,7 +162,7 @@ async function apiState(): Promise<Response> {
   });
 }
 
-Bun.serve({
+const server = Bun.serve({
   port: PORT,
   async fetch(req) {
     const url = new URL(req.url);
@@ -114,6 +170,16 @@ Bun.serve({
 
     if (p === "/api/state") return apiState();
     if (p === "/api/health") return Response.json({ ok: true });
+    if (p === "/api/ai" && req.method === "POST") {
+      let body: any;
+      try { body = await req.json(); } catch { body = {}; }
+      body.__req = undefined;
+      return aiChat(body);
+    }
+    if (p.startsWith("/cards/")) {
+      const r = file(`.data${p}`, p); // .data/cards/<name>.svg
+      return r ?? new Response("card not found", { status: 404 });
+    }
 
     let r: Response | null = null;
     if (p === "/" || p.startsWith("/design")) {

@@ -39,8 +39,16 @@
     </div>
   </header>
 
-  <!-- ── Console ─────────────────────────────────────────────── -->
-  <main class="console">
+  <!-- ── Tab switcher (Operations ↔ Corporate) ───────────────── -->
+  <nav class="tabbar" role="tablist" aria-label="Console views">
+    <button class="tabbtn tabbtn--active" id="tabbtn-ops" role="tab"
+            aria-selected="true" aria-controls="tab-ops" data-tab="ops">Operations</button>
+    <button class="tabbtn" id="tabbtn-corporate" role="tab"
+            aria-selected="false" aria-controls="tab-corporate" data-tab="corporate">Corporate</button>
+  </nav>
+
+  <!-- ── Console · Operations tab ─────────────────────────────── -->
+  <main class="console" id="tab-ops" role="tabpanel" aria-labelledby="tabbtn-ops">
 
     <section class="stats" id="stats" aria-label="System stats"></section>
 
@@ -66,6 +74,69 @@
         </div>
       </aside>
 
+    </div>
+  </main>
+
+  <!-- ── Console · Corporate tab (HR / employer view) ─────────── -->
+  <main class="console console--corp" id="tab-corporate" role="tabpanel" aria-labelledby="tabbtn-corporate" hidden>
+
+    <!-- k-anonymity banner — the Sahha-EAP heritage rule -->
+    <div class="agg-banner" role="note">
+      <span class="agg-banner-k mono">k ≥ 5</span>
+      <span><strong>No individual health data.</strong> Aggregates of 5+ only —
+        smaller groups are suppressed. Wellbeing reporting is for program
+        oversight, never individual monitoring.</span>
+    </div>
+
+    <!-- Panel 4 · Aggregate wellbeing dashboard -->
+    <section class="panel" aria-label="Aggregate wellbeing">
+      <div class="panel-head">
+        <h2>Aggregate wellbeing</h2>
+        <span class="panel-sub mono" id="wellbeing-sub">—</span>
+      </div>
+      <div class="wellbeing-body">
+        <section class="stats" id="wb-stats" aria-label="Wellbeing stats"></section>
+      </div>
+    </section>
+
+    <div class="cols-corp">
+
+      <!-- Panel 2 · Org leagues -->
+      <section class="panel" aria-label="Org leagues">
+        <div class="panel-head">
+          <h2>Org leagues</h2>
+          <span class="panel-sub mono" id="orgs-sub">—</span>
+        </div>
+        <div class="matches-scroll">
+          <div class="otable" id="orgs" role="grid"></div>
+        </div>
+      </section>
+
+      <div class="corp-right">
+
+        <!-- Panel 3 · Employer-funded pots -->
+        <section class="panel" aria-label="Employer-funded pots">
+          <div class="panel-head">
+            <h2>Employer-funded pots</h2>
+            <span class="panel-sub mono">monthly</span>
+          </div>
+          <div class="pots-framing">
+            Employer funds the pot — teams compete to direct it.
+            <strong>No employee money handled.</strong>
+          </div>
+          <div id="pots"></div>
+        </section>
+
+        <!-- Panel 5 · Renewal outlook -->
+        <section class="panel" aria-label="Renewal outlook">
+          <div class="panel-head">
+            <h2>Renewal outlook</h2>
+            <span class="panel-sub mono">auto-summary</span>
+          </div>
+          <div id="renewal"></div>
+        </section>
+
+      </div>
     </div>
   </main>
 

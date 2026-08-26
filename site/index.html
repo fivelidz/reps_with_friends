@@ -284,7 +284,45 @@
   </div>
 </footer>
 
+<!-- ============ AI GUIDE WIDGET ============ -->
+<button id="guideLauncher" class="guide-launcher pulse" type="button" aria-label="Ask the RWF guide" aria-expanded="false" aria-controls="guidePanel">
+  <svg class="glyph glyph-dumbbell" viewBox="0 0 24 24" width="26" height="26" aria-hidden="true" fill="currentColor">
+    <rect x="1" y="10.7" width="3.2" height="2.6" rx="1.1"/>
+    <rect x="4.6" y="8.2" width="3.4" height="7.6" rx="1.2"/>
+    <rect x="8.6" y="11" width="6.8" height="2" rx="1"/>
+    <rect x="16" y="8.2" width="3.4" height="7.6" rx="1.2"/>
+    <rect x="19.8" y="10.7" width="3.2" height="2.6" rx="1.1"/>
+  </svg>
+  <svg class="glyph glyph-close" viewBox="0 0 24 24" width="22" height="22" aria-hidden="true" fill="none" stroke="currentColor" stroke-width="2.4" stroke-linecap="round">
+    <path d="M6 6l12 12M18 6L6 18"/>
+  </svg>
+</button>
+
+<section id="guidePanel" class="guide-panel" role="dialog" aria-label="RWF guide chat" aria-hidden="true">
+  <header class="guide-head">
+    <span class="guide-dot" aria-hidden="true"></span>
+    <p class="guide-title">RWF Guide · <b>GLM-5.3</b></p>
+    <button id="guideClose" class="guide-close" type="button" aria-label="Close guide">
+      <svg viewBox="0 0 24 24" width="16" height="16" aria-hidden="true" fill="none" stroke="currentColor" stroke-width="2.4" stroke-linecap="round"><path d="M6 6l12 12M18 6L6 18"/></svg>
+    </button>
+  </header>
+  <div id="guideMessages" class="guide-msgs" aria-live="polite"></div>
+  <div id="guideChips" class="guide-chips">
+    <button class="guide-chip" type="button" data-q="How do handicaps work?">How do handicaps work?</button>
+    <button class="guide-chip" type="button" data-q="What's a 300?">What's a 300?</button>
+    <button class="guide-chip" type="button" data-q="How does verification work?">How does verification work?</button>
+    <button class="guide-chip" type="button" data-q="Can my workplace play?">Can my workplace play?</button>
+  </div>
+  <form id="guideForm" class="guide-form">
+    <input id="guideInput" class="guide-input" type="text" placeholder="Ask the guide…" autocomplete="off" maxlength="500" aria-label="Message the RWF guide">
+    <button id="guideSend" class="guide-send" type="submit" aria-label="Send message">
+      <svg viewBox="0 0 24 24" width="18" height="18" aria-hidden="true" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round"><path d="M5 12h13M12 5l7 7-7 7"/></svg>
+    </button>
+  </form>
+</section>
+
 <noscript><style>.reveal{opacity:1;transform:none}</style></noscript>
 <script type="module" src="/site/main.js"></script>
+<script type="module" src="/site/guide.js"></script>
 </body>
 </html>

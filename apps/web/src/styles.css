@@ -662,3 +662,137 @@ body::before {
   .code { font-size: 36px; }
   .champscore { font-size: 46px; }
 }
+
+/* ── AI narrator + comeback (match screen) ────────────────────────────────── */
+
+.strow-meta { display: flex; align-items: center; gap: 10px; flex-wrap: wrap; }
+
+.cbk-badge {
+  display: inline-flex; align-items: center; gap: 4px;
+  font-size: 9.5px; font-weight: 700;
+  letter-spacing: 0.12em;
+  color: var(--amber);
+  border: 1px solid rgba(255, 176, 32, 0.5);
+  background: rgba(255, 176, 32, 0.09);
+  border-radius: var(--pill);
+  padding: 2px 8px;
+  animation: cbk-pulse 2.2s ease-in-out infinite;
+}
+@keyframes cbk-pulse {
+  0%, 100% { box-shadow: 0 0 0 rgba(255, 176, 32, 0); }
+  50% { box-shadow: 0 0 14px rgba(255, 176, 32, 0.35); }
+}
+
+.narrate-btn { color: var(--sky); border-color: rgba(110, 193, 255, 0.4); }
+.narrate-btn:hover { color: var(--sky); border-color: var(--sky); box-shadow: 0 0 20px rgba(110, 193, 255, 0.18); }
+
+.ai-callout {
+  display: flex; flex-direction: column; gap: 7px;
+  padding: 13px 14px;
+  border-left: 3px solid var(--lime);
+  border-radius: var(--radius-sm);
+  background: linear-gradient(90deg, var(--lime-glow), transparent 80%);
+}
+.ai-callout-text { color: var(--text); font-size: 14px; font-style: italic; line-height: 1.55; }
+
+/* ── MVP vote (result screen) ─────────────────────────────────────────────── */
+
+.mvpcard { border-color: rgba(255, 176, 32, 0.3); }
+.mvp-chips { display: flex; flex-wrap: wrap; gap: 8px; }
+.mvp-chip {
+  display: inline-flex; align-items: center; gap: 8px;
+  padding: 7px 14px 7px 8px;
+  border-radius: var(--pill);
+  border: 1px solid var(--line);
+  background: var(--surface-2);
+  color: var(--text);
+  font: inherit; font-size: 13px; font-weight: 600;
+  cursor: pointer;
+  transition: all var(--ease);
+}
+.mvp-chip:hover { border-color: var(--amber); box-shadow: 0 0 18px rgba(255, 176, 32, 0.18); }
+.mvp-locked {
+  display: flex; align-items: center; gap: 12px;
+  padding: 11px 13px;
+  border-radius: var(--radius-sm);
+  border: 1px solid rgba(255, 176, 32, 0.4);
+  background: rgba(255, 176, 32, 0.08);
+}
+.mvp-locked-id { display: flex; flex-direction: column; gap: 2px; min-width: 0; }
+.mvp-locked-name { font-weight: 700; font-size: 15px; color: var(--amber); }
+.mvp-medal { margin-left: auto; font-size: 22px; }
+
+/* ── shareable result card ────────────────────────────────────────────────── */
+
+.sharecard { border-color: rgba(198, 243, 46, 0.3); }
+.result-canvas {
+  width: 100%; height: auto; display: block;
+  border-radius: var(--radius-sm);
+  border: 1px solid var(--line);
+}
+
+/* ── season ───────────────────────────────────────────────────────────────── */
+
+.season-pitch { align-items: center; text-align: center; display: flex; flex-direction: column; gap: 12px; }
+.season-title { font-size: 22px; }
+.ptsrow { display: flex; gap: 8px; flex-wrap: wrap; justify-content: center; }
+
+.season-head { gap: 12px; }
+.season-meta { display: flex; justify-content: space-between; gap: 10px; }
+.amber { color: var(--amber); }
+
+.belt-emoji { font-size: 44px; line-height: 1; filter: drop-shadow(0 0 18px rgba(255, 176, 32, 0.35)); }
+.beltcard {
+  display: flex; flex-direction: column; align-items: center; gap: 10px;
+  text-align: center;
+  padding: 26px 18px 22px;
+  border-color: rgba(255, 176, 32, 0.45);
+  background:
+    radial-gradient(120% 90% at 50% 0%, rgba(255, 176, 32, 0.14), transparent 55%),
+    var(--surface);
+  box-shadow: 0 0 44px rgba(255, 176, 32, 0.14);
+}
+.beltname { font-size: 32px; letter-spacing: 0.04em; color: var(--amber); }
+.beltstats { text-align: center; }
+
+.ladderlist { display: flex; flex-direction: column; gap: 4px; }
+.ladderrow {
+  display: flex; align-items: center; gap: 10px;
+  padding: 10px 12px;
+  border-radius: var(--radius-sm);
+  border: 1px solid transparent;
+}
+.ladderrow.lead {
+  background: linear-gradient(90deg, var(--lime-glow), transparent 72%);
+  border-color: rgba(198, 243, 46, 0.22);
+}
+.ladderrow-id { display: flex; flex-direction: column; gap: 3px; min-width: 0; flex: 1; }
+.ladderrow-name { display: flex; align-items: center; gap: 8px; font-weight: 600; font-size: 14.5px; }
+.ladderrow-sub { display: flex; align-items: center; gap: 8px; flex-wrap: wrap; }
+.ladderrow-nums { text-align: right; line-height: 1.15; }
+.ladderrow-nums b { font-family: var(--font-display); font-size: 19px; color: var(--lime); }
+.ladderrow.lead .ladderrow-nums b { color: var(--lime); }
+.ladderrow-nums span { display: block; font-size: 10.5px; color: var(--faint); font-family: var(--font-mono); }
+
+.streakbadge {
+  font-size: 10px; font-weight: 700; letter-spacing: 0.06em;
+  color: var(--coral);
+  border: 1px solid rgba(255, 92, 56, 0.4);
+  background: var(--coral-glow);
+  border-radius: var(--pill);
+  padding: 2px 8px;
+}
+.mvpbadge {
+  font-size: 10px; font-weight: 700; letter-spacing: 0.06em;
+  color: var(--amber);
+  border: 1px solid rgba(255, 176, 32, 0.4);
+  background: rgba(255, 176, 32, 0.08);
+  border-radius: var(--pill);
+  padding: 2px 8px;
+}
+
+.streakcard { border-color: var(--line); }
+.streakcard.atrisk { border-color: rgba(255, 92, 56, 0.45); box-shadow: 0 0 22px rgba(255, 92, 56, 0.1); }
+.streakline { display: flex; align-items: baseline; justify-content: space-between; gap: 10px; }
+.forgivebtn { color: var(--coral); border-color: rgba(255, 92, 56, 0.4); }
+.forgivebtn:hover { color: var(--coral); border-color: var(--coral); box-shadow: 0 0 20px var(--coral-glow); }

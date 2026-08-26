@@ -52,7 +52,7 @@ ws.onmessage = (ev: MessageEvent) => {
     return;
   }
   if (msg.method === "Runtime.exceptionThrown") {
-    consoleErrors.push(`EXCEPTION: ${JSON.stringify(msg.params.exceptionDetails).slice(0, 300)}`);
+    consoleErrors.push(`EXCEPTION: ${JSON.stringify(msg.params.exceptionDetails).slice(0, 2000)}`);
   }
   if (msg.method === "Runtime.consoleAPICalled" && ["error", "assert"].includes(msg.params.type)) {
     consoleErrors.push(`CONSOLE.${msg.params.type}: ${JSON.stringify(msg.params.args).slice(0, 300)}`);
@@ -113,7 +113,16 @@ try {
   await evalJs(`[...document.querySelectorAll("button")].find(b => b.textContent === "CREATE & GET CODE").click()`);
   await sleep(300);
   ok("crew created → home", await evalJs(`location.hash === "#/"`));
-  ok("bottom nav now visible (3 tabs)", await evalJs(`document.getElementById("nav").children.length === 3`));
+  ok("bottom nav now visible (4 tabs incl. Season)", await evalJs(`document.getElementById("nav").children.length === 4`));
+
+  // 3b. start a season NOW so the match we're about to play scores season points
+  await evalJs(`location.hash = "#/season"`);
+  await sleep(300);
+  await evalJs(`[...document.querySelectorAll("button")].find(b => b.textContent.includes("START SEASON")).click()`);
+  await sleep(300);
+  ok("season live (header + ladder card)", await evalJs(`!!document.querySelector(".season-head") && !!document.querySelector(".ladderlist, .ladderrow, .rwf-card")`));
+  await evalJs(`location.hash = "#/"`);
+  await sleep(300);
 
   // 4. new match: target 100
   await evalJs(`[...document.querySelectorAll("button")].find(b => b.textContent === "NEW MATCH").click()`);
@@ -150,11 +159,16 @@ try {
   const rawAfter = await evalJs(`[...document.querySelectorAll(".strow")].map(r => r.querySelector(".score span").textContent).join(",")`);
   ok(`standings updated after log (raw: ${rawAfter})`, rawAfter.includes("50 raw"));
 
-  // 9. crew feed + taunt (before closing the match)
+  // 9. crew feed + AI taunt (before closing the match).
+  //    AI composer can take up to 3s (timeout → canned fallback) — poll for it.
   ok("crew feed shows entries", await evalJs(`document.querySelectorAll(".feedlist li").length >= 1`));
   await evalJs(`[...document.querySelectorAll("button")].find(b => b.textContent.includes("TAUNT")).click()`);
-  await sleep(300);
-  ok("taunt lands in crew feed", await evalJs(`[...document.querySelectorAll(".feedlist li")].some(li => li.textContent.includes("You:"))`));
+  let tauntLanded = false;
+  for (let i = 0; i < 20 && !tauntLanded; i++) {
+    await sleep(300);
+    tauntLanded = await evalJs(`[...document.querySelectorAll(".feedlist li")].some(li => li.textContent.includes("You:"))`);
+  }
+  ok("taunt lands in crew feed (AI or canned fallback)", tauntLanded);
 
   // 10. camera verify button logs verified:false (+50 → 100 raw = target → closes)
   await evalJs(`[...document.querySelectorAll("button")].find(b => b.textContent.includes("CAMERA VERIFY")).click()`);
@@ -168,11 +182,27 @@ try {
   ok(`pot shows $20 (${potTotal})`, potTotal === "$20");
   ok("final standings rendered", await evalJs(`document.querySelectorAll(".rwf-card .strow").length === 4`));
 
+  // 11a. MVP vote — chips, one vote, locks
+  ok("MVP vote chips rendered (one per player)", await evalJs(`document.querySelectorAll(".mvp-chip").length === 4`));
+  await evalJs(`document.querySelectorAll(".mvp-chip")[1].click()`);
+  await sleep(300);
+  ok("MVP vote locked (chips replaced)", await evalJs(`!!document.querySelector(".mvp-locked") && document.querySelectorAll(".mvp-chip").length === 0`));
+
+  // 11b. shareable result card canvas
+  ok("result card canvas 1200×675 rendered", await evalJs(`(() => { const c = document.querySelector(".result-canvas"); return !!c && c.width === 1200 && c.height === 675; })()`));
+
   // 12. designate charity
   await evalJs(`document.querySelector(".charitycard").click()`);
   await evalJs(`[...document.querySelectorAll("button")].find(b => b.textContent === "DESIGNATE POT").click()`);
   await sleep(300);
   ok("pot designated (confirmation banner)", await evalJs(`!!document.querySelector(".potdone")`));
+
+  // 12b. season ladder scored the completed match (+ MVP badge from the vote)
+  await evalJs(`location.hash = "#/season"`);
+  await sleep(300);
+  const ladderN = await evalJs(`document.querySelectorAll(".ladderrow").length`);
+  ok(`season ladder scored the match (${ladderN} players)`, ladderN === 4);
+  ok("MVP badge shows on ladder", await evalJs(`!!document.querySelector(".mvpbadge")`));
 
   // 13. profile
   await evalJs(`location.hash = "#/profile"`);
@@ -186,9 +216,9 @@ try {
   await sleep(900);
   ok("state survives reload (home with 1 match card)", await evalJs(`location.hash === "#/" || location.hash === "" ? document.querySelectorAll(".matchcard").length === 1 : false`));
 
-  // 15. console error audit
-  ok(`zero console errors across whole flow (${consoleErrors.length} captured)`, consoleErrors.length === 0);
+  // 15. console error audit (print captured errors BEFORE failing so they're visible)
   if (consoleErrors.length) console.log(consoleErrors.join("\n"));
+  ok(`zero console errors across whole flow (${consoleErrors.length} captured)`, consoleErrors.length === 0);
 
   console.log(`\nBrowser flow: all ${step} checks passed, 0 console errors.`);
 } finally {

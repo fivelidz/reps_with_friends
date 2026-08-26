@@ -1,0 +1,14 @@
+{
+  "name": "Reps With Friends",
+  "short_name": "RWF",
+  "description": "The group chat gets fit. Winner picks the charity.",
+  "start_url": "/app",
+  "scope": "/app",
+  "display": "standalone",
+  "orientation": "portrait",
+  "background_color": "#0a0b0d",
+  "theme_color": "#0a0b0d",
+  "icons": [
+    { "src": "./icon.svg", "sizes": "any", "type": "image/svg+xml", "purpose": "any" }
+  ]
+}

@@ -12,6 +12,32 @@ web UI); build the web UI now, Tauri-wrap later with zero changes.
 player rows, diffed activity feed, graceful degradation. Smoke-tested through
 7 poll cycles incl. failure/recovery.
 
+✅ CORPORATE TAB (2nd view, "Operations" ↔ "Corporate" tab bar; state preserved
+per tab — panels toggle `hidden`, DOM never destroyed). Sahha-EAP-informed:
+aggregate-only, HR-friendly, employer-funded. Panels:
+1. **Tab shell** — sticky underline tab bar (role=tablist), both tabs render
+   from the same poll loop.
+2. **Org leagues** — 3 seed orgs (Kalarc Group 4 crews / Wollongong Steel 2 /
+   Test Corp 1) joined to live /api/state matches by crewCode (live pill,
+   liveCrews n/n, live players/pot); standings by aggregate season points;
+   expandable crew rows; amber "INSTALL PENDING" pill for orgs w/o Slack.
+3. **Employer-funded pots** — per-org monthly budget vs contributed (CSS bar),
+   matches sponsored + live now, all-org totals; framing: "Employer funds the
+   pot — teams compete to direct it. No employee money handled."
+4. **Aggregate wellbeing** — participation (headcount-weighted), weekly active
+   crews (seed + unseeded live), effort trend (8-wk avg adjusted score,
+   pure-SVG sparkline; current wk goes live only when ≥5 players = k-anon),
+   charity total (seed baseline + live pots). Banner: "No individual health
+   data. Aggregates of 5+ only."
+5. **Renewal outlook** — auto-summary headline (nearest renewal · participation
+   · recommendation) + per-org rows w/ urgency pills; rec rules: ≥70% expand
+   +2 teams / 45–70% hold / <45% at-risk.
+All org data is `// SEED DATA — replace with org API` in hub.js (ORG_SEED,
+EFFORT_TREND_SEED, CHARITY_BASELINE_CENTS, WEEKLY_ACTIVE_CREWS_SEED).
+Verified: bun parse + 25-check DOM-shim smoke test (empty + live merge paths,
+caught+fixed one missing-field bug), curl :4173 serves all three files.
+Pre-edit snapshots in apps/hub/archive/. No backend changes.
+
 ## Data contract (root `serve.ts` exposes `/api/state`)
 ```json
 {

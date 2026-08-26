@@ -18,19 +18,48 @@ export interface StoredMatch {
   state: MatchState;
   potCents: number;
   potContributors: Record<string, number>;
-  /** Crew this chat is bound to via `link <code>` (ops hub surfaces it). */
+  /** Crew this chat is bound to via `link <CODE>` (ops hub surfaces it). */
   crewCode?: string;
 }
 
+/** Crew-vs-crew challenge (stub — engine wiring lands with rivalry matches). */
+export interface CrewChallenge {
+  id: string;
+  fromCrew: string;
+  toCrew: string;
+  at: number;
+  status: "pending" | "accepted";
+  acceptedAt?: number;
+}
+
+/**
+ * Top-level keys in the store file that are NOT chatId → StoredMatch entries.
+ * (The file keeps its existing shape; these keys are additions.)
+ */
+const RESERVED_KEYS = new Set(["seasons", "spectators", "challenges"]);
+
 export class MatchStore {
   private matches = new Map<string, StoredMatch>(); // chatId → match
+  /** seasonKey → SeasonState ("active" for the running season). */
+  private seasons: Record<string, unknown> = {};
+  /** crewCode → chatIds watching that crew (`watch <CODE>`). */
+  private spectators: Record<string, string[]> = {};
+  /** Crew-vs-crew challenges. */
+  private challenges: CrewChallenge[] = [];
   private file: string;
 
   constructor(file = ".data/bot-matches.json") {
     this.file = file;
     try {
-      const raw = JSON.parse(readFileSync(file, "utf8")) as Record<string, StoredMatch>;
-      for (const [k, v] of Object.entries(raw)) this.matches.set(k, v);
+      const raw = JSON.parse(readFileSync(file, "utf8")) as Record<string, unknown>;
+      if (raw && typeof raw === "object") {
+        if (raw.seasons && typeof raw.seasons === "object") this.seasons = raw.seasons;
+        if (raw.spectators && typeof raw.spectators === "object") this.spectators = raw.spectators;
+        if (Array.isArray(raw.challenges)) this.challenges = raw.challenges;
+        for (const [k, v] of Object.entries(raw)) {
+          if (!RESERVED_KEYS.has(k)) this.matches.set(k, v as StoredMatch);
+        }
+      }
     } catch {
       /* fresh start */
     }
@@ -97,6 +126,77 @@ export class MatchStore {
     return m;
   }
 
+  // ── seasons (persisted under top-level "seasons") ─────────────────────────
+
+  getSeason(key: string): unknown {
+    return this.seasons[key];
+  }
+
+  setSeason(key: string, state: unknown): void {
+    this.seasons[key] = state;
+    this.persist();
+  }
+
+  // ── spectators (persisted under top-level "spectators") ───────────────────
+
+  /** Register a chatId as watching a crew code. Returns the spectator count. */
+  watchCrew(chatId: string, crewCode: string): number {
+    const list = (this.spectators[crewCode] ?? []).filter((c) => c !== chatId);
+    list.push(chatId);
+    this.spectators[crewCode] = list;
+    this.persist();
+    return list.length;
+  }
+
+  spectatorCount(crewCode: string): number {
+    return this.spectators[crewCode]?.length ?? 0;
+  }
+
+  /** The crew code this chat is watching, if any. */
+  spectatingCrew(chatId: string): string | undefined {
+    for (const [code, list] of Object.entries(this.spectators)) {
+      if (list.includes(chatId)) return code;
+    }
+    return undefined;
+  }
+
+  /** The chatId whose match is linked to a crew code, if any. */
+  findChatByCrew(crewCode: string): string | undefined {
+    for (const [chatId, m] of this.matches) {
+      if (m.crewCode === crewCode) return chatId;
+    }
+    return undefined;
+  }
+
+  // ── crew-vs-crew challenges (persisted under top-level "challenges") ──────
+
+  createChallenge(fromCrew: string, toCrew: string): CrewChallenge {
+    const c: CrewChallenge = {
+      id: `ch-${Date.now().toString(36)}-${Math.floor(Math.random() * 1e6).toString(36)}`,
+      fromCrew,
+      toCrew,
+      at: Date.now(),
+      status: "pending",
+    };
+    this.challenges.push(c);
+    this.persist();
+    return c;
+  }
+
+  challengesFor(crewCode: string): CrewChallenge[] {
+    return this.challenges.filter((c) => c.fromCrew === crewCode || c.toCrew === crewCode);
+  }
+
+  acceptChallenge(id: string): CrewChallenge | undefined {
+    const c = this.challenges.find((x) => x.id === id && x.status === "pending");
+    if (c) {
+      c.status = "accepted";
+      c.acceptedAt = Date.now();
+      this.persist();
+    }
+    return c;
+  }
+
   private must(chatId: string): StoredMatch {
     const m = this.matches.get(chatId);
     if (!m) throw new Error("no match in this chat — say `new` to start one");
@@ -105,8 +205,11 @@ export class MatchStore {
 
   private persist(): void {
     mkdirSync(dirname(this.file), { recursive: true });
-    const obj: Record<string, StoredMatch> = {};
+    const obj: Record<string, unknown> = {};
     for (const [k, v] of this.matches) obj[k] = v;
+    if (Object.keys(this.seasons).length > 0) obj.seasons = this.seasons;
+    if (Object.keys(this.spectators).length > 0) obj.spectators = this.spectators;
+    if (this.challenges.length > 0) obj.challenges = this.challenges;
     writeFileSync(this.file, JSON.stringify(obj, null, 2));
   }
 }
