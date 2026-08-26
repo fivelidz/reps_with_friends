@@ -1,7 +1,7 @@
 // @rwf/bot-core — card formatters (WhatsApp + Slack compatible: *bold*, emoji)
 
-import type { MatchState, StandingRow } from "@rwf/game-core";
-import { standings } from "@rwf/game-core";
+import type { MatchState, StandingRow } from "../../game-core/src/index.ts";
+import { standings } from "../../game-core/src/index.ts";
 import type { StoredMatch } from "./store.ts";
 
 const money = (cents: number) => `$${(cents / 100).toFixed(2)}`;

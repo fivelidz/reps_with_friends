@@ -10,7 +10,7 @@
 import { mkdirSync, writeFileSync } from "node:fs";
 import { join } from "node:path";
 import type { StoredMatch } from "./store.ts";
-import { standings, winner } from "@rwf/game-core";
+import { standings, winner } from "../../game-core/src/index.ts";
 
 export const CARD_WIDTH = 1200;
 export const CARD_HEIGHT = 675;

@@ -13,8 +13,8 @@
 // same bus but lets `taunt` try the local AI endpoint first (2s timeout,
 // canned fallback) — the bots use it; tests use the sync path.
 
-import type { FitnessTier, Player, RepEntry } from "@rwf/game-core";
-import { logReps, standings, winner } from "@rwf/game-core";
+import type { FitnessTier, Player, RepEntry } from "../../game-core/src/index.ts";
+import { logReps, standings, winner } from "../../game-core/src/index.ts";
 import type { MatchStore, StoredMatch } from "./store.ts";
 import {
   challengeCard,
@@ -408,7 +408,7 @@ export class CommandBus {
   }
 
   /** Record a just-closed match into the active season (if any). Never throws. */
-  private recordSeasonResult(state: import("@rwf/game-core").MatchState): void {
+  private recordSeasonResult(state: import("../../game-core/src/index.ts").MatchState): void {
     try {
       const season = this.store.getSeason("active") as ReturnType<typeof createSeason> | undefined;
       if (!season) return;

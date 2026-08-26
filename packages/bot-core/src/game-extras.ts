@@ -15,10 +15,10 @@
 // wrapped so a signature drift degrades to the local path instead of
 // breaking the bot.
 
-import type { MatchState, StandingRow } from "@rwf/game-core";
-import { standings } from "@rwf/game-core";
+import type { MatchState, StandingRow } from "../../game-core/src/index.ts";
+import { standings } from "../../game-core/src/index.ts";
 
-const gameCore: any = await import("@rwf/game-core");
+const gameCore: any = await import("../../game-core/src/index.ts");
 
 /** Which engine is actually serving each feature (for logs/sims). */
 export const usingLane6Comeback = typeof gameCore?.comebackEligible === "function";

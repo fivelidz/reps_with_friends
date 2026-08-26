@@ -1,8 +1,8 @@
 // @rwf/bot-core — match store (prototype: in-memory + JSON file persistence)
 
-import type { MatchState } from "@rwf/game-core";
-import { createMatch, startMatch } from "@rwf/game-core";
-import type { Player } from "@rwf/game-core";
+import type { MatchState } from "../../game-core/src/index.ts";
+import { createMatch, startMatch } from "../../game-core/src/index.ts";
+import type { Player } from "../../game-core/src/index.ts";
 import { readFileSync, writeFileSync, mkdirSync } from "node:fs";
 import { dirname } from "node:path";
 
