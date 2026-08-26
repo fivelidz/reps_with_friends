@@ -1,0 +1,11 @@
+{
+  "name": "@rwf/game-core",
+  "version": "0.1.0",
+  "description": "Reps With Friends — pure game engine: 300-format matches, handicap scoring, charity pot ledger",
+  "type": "module",
+  "main": "src/index.ts",
+  "scripts": {
+    "test": "bun test",
+    "sim": "bun run test/sim.ts"
+  }
+}
