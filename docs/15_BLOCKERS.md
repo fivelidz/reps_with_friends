@@ -14,6 +14,7 @@ Status: 🟥 blocked · 🟧 partial · 🟩 clear*
 | T5 | **App ↔ bot state split** — localStorage vs .data JSON, no sync | A crew created in the app can't be played by the bots yet (code binding is manual) | Wire app → apps/api ← bots (the API is built and tested; migration is mechanical) | 🟧 |
 | T6 | **AI key balance** — primary Z.AI key exhausted; running on secondary | AI features (guide, narrator, taunts) die if secondary runs dry | Monitor usage; top up Z.AI; fallbacks already degrade gracefully | 🟧 |
 | T7 | **CF token lacks Tunnel:Edit** — Pages works, named tunnel doesn't | Can't expose the LOCAL server (live bots, live /api/state) at rwf.qalarc.com | Widen token scope or `cloudflared tunnel login` once; then bots' live data can flow through the same domain | 🟧 |
+| T8 | **GitHub Actions runners not assigning** (27 Aug) — pushes land but runs queue forever (`runner_id: null`), reruns fail with no logs; likely included-minutes exhaustion or spending limit on the account | Push-to-deploy broken — deploys fall back to local wrangler (works, manual) | Alexei: check github.com/settings/billing → Actions minutes / spending limit. If minutes exhausted: raise limit or make repo public (Actions free for public repos) or self-host a runner on minirig | 🟥 |
 
 ## Legal / compliance
 
