@@ -7,6 +7,10 @@
 // Run: bun serve.ts   → http://localhost:4173
 
 import { readFileSync, existsSync } from "node:fs";
+import { CommandBus, MatchStore } from "./packages/bot-core/src/index.ts";
+
+// In-memory bot console for the debug page (separate scratch store).
+const simBus = new CommandBus(new MatchStore(".data/sim-debug.json"));
 
 const PORT = 4173;
 const startedAt = Date.now();
@@ -176,6 +180,23 @@ const server = Bun.serve({
       body.__req = undefined;
       return aiChat(body);
     }
+    if (p === "/api/sim" && req.method === "POST") {
+      try {
+        const body = await req.json();
+        const text = String(body?.text ?? "").slice(0, 300);
+        if (!text.trim()) return Response.json({ ok: false, error: "text required" }, { status: 400 });
+        const reply = simBus.handle({
+          chatId: "debug-console",
+          playerId: String(body?.userId ?? "debugger"),
+          playerName: String(body?.user ?? "Debugger"),
+          text,
+        });
+        const cardUrl = reply?.match(/https?:\/\/\S+\/cards\/\S+\.svg/)?.[0] ?? null;
+        return Response.json({ ok: true, reply, cardUrl });
+      } catch (e: any) {
+        return Response.json({ ok: false, error: String(e?.message ?? e) }, { status: 500 });
+      }
+    }
     if (p.startsWith("/cards/")) {
       const r = file(`.data${p}`, p); // .data/cards/<name>.svg
       return r ?? new Response("card not found", { status: 404 });
@@ -192,6 +213,8 @@ const server = Bun.serve({
       r = dirRoute("apps/web/dist", url) ?? new Response("app not built yet — run lane 02", { status: 404 });
     } else if (p.startsWith("/hub")) {
       r = dirRoute("apps/hub", url) ?? new Response("hub not built yet — run lane 05", { status: 404 });
+    } else if (p.startsWith("/debug")) {
+      r = dirRoute("apps/debug", url) ?? new Response("debug not found", { status: 404 });
     } else {
       r = dirRoute("site", url);
     }

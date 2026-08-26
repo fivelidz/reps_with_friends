@@ -1,0 +1,11 @@
+{
+  "name": "@rwf/api",
+  "version": "0.1.0",
+  "description": "Reps With Friends unified API — replaces localStorage (app) + bot-matches.json (bots)",
+  "private": true,
+  "type": "module",
+  "scripts": {
+    "start": "bun src/main.ts",
+    "test": "bun test"
+  }
+}

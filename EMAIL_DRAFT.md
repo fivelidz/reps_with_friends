@@ -44,6 +44,11 @@ Send the Figma and blueprint — I'd rather mark them up before we talk.
 And yes, genuinely open to the equity conversation; if we're building this
 properly I want skin in it, not an invoice.
 
+I've put the prototype up so you and Nico can have a play rather than take my
+word for it: **https://rwf.qalarc.com** — the concept site, a working demo app,
+and a debug page showing every game mechanic we've built so far. The AI guide
+on the site answers questions about the whole system.
+
 Tuesday or Wednesday next week? 45 minutes should do it.
 
 Cheers,
