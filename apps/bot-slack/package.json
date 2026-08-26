@@ -8,5 +8,8 @@
     "@rwf/bot-core": "../../packages/bot-core",
     "@rwf/game-core": "../../packages/game-core",
     "@slack/bolt": "^5.0.0"
+  },
+  "devDependencies": {
+    "tsx": "^4.23.12"
   }
 }

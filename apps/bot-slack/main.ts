@@ -7,11 +7,15 @@
 // reply posted in-channel. No game logic lives here — everything is
 // @rwf/bot-core over @rwf/game-core. Heartbeat every 15s in live mode.
 
-import { mkdirSync, statSync, writeFileSync } from "node:fs";
-import { basename, join, resolve } from "node:path";
+import { mkdirSync, readFileSync, statSync, writeFileSync } from "node:fs";
+import { homedir } from "node:os";
+import { basename, dirname, join, resolve } from "node:path";
+import { fileURLToPath } from "node:url";
 import { CommandBus, MatchStore } from "@rwf/bot-core";
 
-const ROOT = resolve(import.meta.dir, "../..");
+// Portable across Bun and Node (import.meta.dir is Bun-only).
+const HERE = dirname(fileURLToPath(import.meta.url));
+const ROOT = resolve(HERE, "../..");
 const DATA = join(ROOT, ".data");
 const HEARTBEAT = join(DATA, "heartbeat-slack.json");
 const HEARTBEAT_MS = 15_000;
@@ -133,13 +137,32 @@ async function sim(): Promise<void> {
 
 // ── live mode (Bolt Socket Mode) ────────────────────────────────────────────
 
+// Token file written by quickstart.ts — fallback when env vars are absent.
+function readTokenFile(): { bot?: string; app?: string } {
+  try {
+    const text = readFileSync(join(homedir(), ".config", "rwf", "bot-slack.env"), "utf8");
+    const out: { bot?: string; app?: string } = {};
+    for (const line of text.split("\n")) {
+      let m = line.match(/^\s*SLACK_BOT_TOKEN\s*=\s*(\S+)/);
+      if (m) out.bot = m[1];
+      m = line.match(/^\s*SLACK_APP_TOKEN\s*=\s*(\S+)/);
+      if (m) out.app = m[1];
+    }
+    return out;
+  } catch {
+    return {};
+  }
+}
+
 async function live(): Promise<void> {
-  const botToken = process.env.SLACK_BOT_TOKEN;
-  const appToken = process.env.SLACK_APP_TOKEN;
+  const fileTokens = readTokenFile();
+  const botToken = process.env.SLACK_BOT_TOKEN ?? fileTokens.bot;
+  const appToken = process.env.SLACK_APP_TOKEN ?? fileTokens.app;
   if (!botToken || !appToken) {
     console.error(
-      "live mode needs SLACK_BOT_TOKEN (xoxb-…) and SLACK_APP_TOKEN (xapp-…) in the env.\n" +
-        "See README.md for the one-time Slack app setup."
+      "live mode needs Slack tokens. Either:\n" +
+        "  1. Run:  bun quickstart.ts    (validates + saves them, one time), or\n" +
+        "  2. Export SLACK_BOT_TOKEN (xoxb-…) and SLACK_APP_TOKEN (xapp-…) in the env."
     );
     process.exit(1);
   }

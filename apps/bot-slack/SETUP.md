@@ -24,12 +24,28 @@ tokens, ~5 minutes:
 
 - **Slash Commands** → Create: command `/rwf`, request URL `https://unused/` (Socket Mode doesn't need a real URL), description "Reps With Friends match commands"
 
-## 5. Run
+## 5. Save the tokens (one command)
 
 ```bash
 cd apps/bot-slack
-SLACK_BOT_TOKEN=xoxb-… SLACK_APP_TOKEN=xapp-… bun main.ts --live
+bun quickstart.ts
 ```
+
+Paste the two tokens when prompted (or pass them up front:
+`bun quickstart.ts --bot xoxb-… --app xapp-…`). quickstart validates both
+against Slack live, prints your team name, and saves them to
+`~/.config/rwf/bot-slack.env` (chmod 600). If a token is wrong it tells you
+exactly which settings page to fix.
+
+## 6. Run
+
+```bash
+bun main.ts --live
+```
+
+No env vars needed — `--live` reads `~/.config/rwf/bot-slack.env` automatically
+(env vars still win if set). Later, `bun quickstart.ts --check` re-validates
+the saved tokens if anything misbehaves.
 
 In any channel: `/rwf new` → `/rwf join casual` → `/rwf start` → `/rwf log pushups 25` → `/rwf s`
 
