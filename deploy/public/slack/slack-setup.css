@@ -1,0 +1,29 @@
+body { margin: 0; background: var(--bg); color: var(--text); font-family: var(--font-body); }
+.setup { max-width: 760px; margin: 0 auto; padding: 48px 20px 80px; }
+.setup-head { margin-bottom: 36px; }
+.setup-kicker { color: var(--lime); font-size: 12px; font-weight: 700; letter-spacing: 0.22em; margin: 0 0 8px; }
+.setup-head h1 { font-size: clamp(30px, 6vw, 44px); margin: 0 0 10px; letter-spacing: -0.02em; }
+.setup-sub { color: var(--muted); margin: 0; font-size: 15px; }
+.step { display: flex; gap: 18px; background: var(--surface); border: 1px solid var(--line); border-radius: var(--radius); padding: 22px; margin-bottom: 16px; }
+.step-no { flex: 0 0 34px; height: 34px; border-radius: 50%; background: var(--lime); color: var(--bg); font-weight: 700; display: flex; align-items: center; justify-content: center; font-size: 15px; }
+.step-body { flex: 1; min-width: 0; }
+.step-body h2 { margin: 2px 0 10px; font-size: 17px; letter-spacing: -0.01em; }
+.step-body p { color: var(--muted); font-size: 14px; margin: 0 0 12px; }
+.step-body a { color: var(--lime); }
+.hint { font-size: 12.5px !important; color: var(--faint) !important; }
+.hint code, .step-body code, .tok code { font-family: var(--font-mono); color: var(--lime); background: rgba(198,243,46,0.08); padding: 1px 5px; border-radius: 4px; font-size: 0.92em; }
+.manifest-box { position: relative; background: var(--bg); border: 1px solid var(--line); border-radius: 10px; padding: 14px; }
+.manifest-box pre { margin: 0 0 10px; font-family: var(--font-mono); font-size: 11.5px; line-height: 1.55; color: var(--muted); overflow-x: auto; max-height: 260px; white-space: pre; }
+.btnrow { display: flex; gap: 10px; flex-wrap: wrap; }
+.btnrow .rwf-btn { text-decoration: none; display: inline-flex; align-items: center; }
+.tok { color: var(--muted); font-size: 14px; padding-left: 18px; margin: 0 0 6px; }
+.tok li { margin-bottom: 8px; }
+.tok b { color: var(--text); }
+.cid-form { display: flex; gap: 10px; margin-bottom: 14px; flex-wrap: wrap; }
+.cid-form input { flex: 1; min-width: 240px; background: var(--surface-2); color: var(--text); border: 1px solid var(--line-bright); border-radius: var(--pill); padding: 10px 18px; font-family: var(--font-mono); font-size: 13px; }
+.cid-form input:focus { outline: none; border-color: var(--lime); }
+.cid-result .cid-label { color: var(--muted); font-size: 13px; margin-bottom: 10px; }
+.cmd { font-family: var(--font-mono); font-size: 12.5px; color: var(--lime); background: var(--bg); border: 1px solid var(--line); border-radius: 10px; padding: 14px; overflow-x: auto; margin: 0 0 12px; }
+.setup-foot { text-align: center; color: var(--faint); font-size: 13px; margin-top: 28px; }
+.setup-foot a { color: var(--muted); text-decoration: none; margin: 0 6px; }
+.setup-foot a:hover { color: var(--lime); }

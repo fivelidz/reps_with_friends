@@ -1,0 +1,96 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8" />
+<meta name="viewport" content="width=device-width, initial-scale=1.0" />
+<title>RWF · Connect WhatsApp</title>
+<link rel="stylesheet" href="/design/tokens.css" />
+<link rel="stylesheet" href="/design/fonts/fonts.css" />
+<link rel="stylesheet" href="/connect/connect.css" />
+<link rel="icon" href="data:image/svg+xml,<svg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 100 100'><text y='.9em' font-size='90'>📲</text></svg>">
+</head>
+<body>
+<main class="setup">
+  <header class="setup-head">
+    <p class="setup-kicker">REPS WITH FRIENDS</p>
+    <h1>Link your WhatsApp group</h1>
+    <p class="setup-sub">No new app for your mates. The game moves into the group chat that already exists — here's the flow.</p>
+  </header>
+
+  <!-- CODE ENTRY -->
+  <section class="step">
+    <div class="step-no">1</div>
+    <div class="step-body">
+      <h2>Your crew code</h2>
+      <p>Created in the <a href="/app">app</a> (Crew → new). Six characters, like <code>KX4T9C</code>.</p>
+      <form class="cid-form" id="codeForm">
+        <input id="codeInput" placeholder="KX4T9C" maxlength="8" autocomplete="off" aria-label="Crew code" />
+        <button class="rwf-btn rwf-btn--primary" type="submit">Generate links</button>
+      </form>
+    </div>
+  </section>
+
+  <!-- RESULT -->
+  <section id="result" hidden>
+    <div class="step">
+      <div class="step-no">2</div>
+      <div class="step-body">
+        <h2>Add the bot to your group</h2>
+        <p>In WhatsApp, open your group → <b>Add participant</b> → add this number:</p>
+        <div class="numbox">
+          <span class="num" id="botNumber">+61 493 484 788</span>
+          <button class="rwf-btn" id="copyNumber" type="button">Copy</button>
+        </div>
+        <p class="hint">WhatsApp has no bot-invite API — this one manual add is by design (your group stays yours; the bot is just a participant).</p>
+      </div>
+    </div>
+
+    <div class="step">
+      <div class="step-no">3</div>
+      <div class="step-body">
+        <h2>Send the link command</h2>
+        <p>Tap to open WhatsApp with the message ready to send <b>in the group</b> (or DM the bot for solo play):</p>
+        <div class="btnrow">
+          <a class="rwf-btn rwf-btn--primary" id="waGroup" href="#">Open WhatsApp (group) →</a>
+          <a class="rwf-btn" id="waDm" href="#">DM the bot</a>
+        </div>
+        <p class="hint">The message is just <code id="cmdText">link KX4T9C</code> — the bot confirms, and your crew's matches go live in that chat.</p>
+      </div>
+    </div>
+
+    <div class="step">
+      <div class="step-no">4</div>
+      <div class="step-body qr-body">
+        <div>
+          <h2>In person? Scan it</h2>
+          <p>Mates standing around the gym? They scan, tap, linked. The QR encodes the same WhatsApp deep link.</p>
+          <p class="hint">Print it, stick it on the squat rack. (Ask the gym first.)</p>
+        </div>
+        <div id="qrWrap" class="qrwrap" aria-label="QR code to link crew"></div>
+      </div>
+    </div>
+  </section>
+
+  <!-- FLOW DIAGRAM -->
+  <section class="step">
+    <div class="step-no">✓</div>
+    <div class="step-body">
+      <h2>What happens next</h2>
+      <ol class="tok">
+        <li>Bot confirms the link in chat: <code>🔗 Chat linked to crew KX4T9C</code></li>
+        <li>Anyone in the group: <code>new</code> → <code>join couch</code> → <code>start</code></li>
+        <li>Log reps as you go: <code>log pushups 25</code> — standings post to the group</li>
+        <li>First to 300 closes it, effort-adjusted winner, charity pot, result card</li>
+      </ol>
+      <p class="hint">Full command list: <code>help</code> in the chat, or the <a href="/debug">debug console</a>.</p>
+    </div>
+  </section>
+
+  <footer class="setup-foot">
+    <a href="/">← site</a> · <a href="/slack">Slack setup →</a> · <a href="/app">app</a>
+  </footer>
+</main>
+<script src="/connect/qr.js"></script>
+<script type="module" src="/connect/connect.js"></script>
+</body>
+</html>

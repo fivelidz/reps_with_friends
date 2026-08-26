@@ -1,0 +1,91 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8" />
+<meta name="viewport" content="width=device-width, initial-scale=1.0" />
+<title>RWF · Add the Slack app</title>
+<link rel="stylesheet" href="/design/tokens.css" />
+<link rel="stylesheet" href="/design/fonts/fonts.css" />
+<link rel="stylesheet" href="/slack/slack-setup.css" />
+<link rel="icon" href="data:image/svg+xml,<svg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 100 100'><text y='.9em' font-size='90'>💬</text></svg>">
+</head>
+<body>
+<main class="setup">
+  <header class="setup-head">
+    <p class="setup-kicker">REPS WITH FRIENDS</p>
+    <h1>Add RWF to Slack</h1>
+    <p class="setup-sub">Five minutes, one workspace, zero cost. The bot runs on our infra — you just install the app.</p>
+  </header>
+
+  <!-- STEP 1 -->
+  <section class="step" id="s1">
+    <div class="step-no">1</div>
+    <div class="step-body">
+      <h2>Create the app from our manifest</h2>
+      <p>Go to <a href="https://api.slack.com/apps" target="_blank" rel="noopener">api.slack.com/apps</a> →
+        <b>Create New App</b> → <b>From an app manifest</b> → pick your workspace → paste this:</p>
+      <div class="manifest-box">
+        <pre id="manifestText">loading…</pre>
+        <button class="rwf-btn rwf-btn--primary" id="copyManifest" type="button">Copy manifest</button>
+      </div>
+      <p class="hint">Any workspace works — including a free one made just for testing.</p>
+    </div>
+  </section>
+
+  <!-- STEP 2 -->
+  <section class="step" id="s2">
+    <div class="step-no">2</div>
+    <div class="step-body">
+      <h2>Install &amp; grab your tokens</h2>
+      <ol class="tok">
+        <li><b>Install to Workspace</b> (app settings → Install App) → allow</li>
+        <li>Copy the <b>Bot User OAuth Token</b> (<code>xoxb-…</code>)</li>
+        <li>Toggle <b>Socket Mode</b> ON → copy the <b>App-Level Token</b> (<code>xapp-…</code>)</li>
+      </ol>
+    </div>
+  </section>
+
+  <!-- STEP 3 -->
+  <section class="step" id="s3">
+    <div class="step-no">3</div>
+    <div class="step-body">
+      <h2>Generate your install link</h2>
+      <p>Paste the <b>Client ID</b> (app settings → Basic Information — starts <code>1…</code> . <code>…</code>)
+         and we'll build the one-click <b>Add to Slack</b> link you can share with any workspace admin:</p>
+      <form class="cid-form" id="cidForm">
+        <input id="cidInput" placeholder="Client ID e.g. 1234567890.1234567890" autocomplete="off" aria-label="Slack app Client ID" />
+        <button class="rwf-btn rwf-btn--primary" type="submit">Build link</button>
+      </form>
+      <div id="cidResult" class="cid-result" hidden>
+        <p class="cid-label">Your Add-to-Slack link (also bookmarkable with <code>?client_id=…</code> on this page):</p>
+        <div class="manifest-box">
+          <pre id="oauthUrl">—</pre>
+          <div class="btnrow">
+            <button class="rwf-btn" id="copyOauth" type="button">Copy link</button>
+            <a class="rwf-btn rwf-btn--primary" id="openOauth" href="#" target="_blank" rel="noopener">Add to Slack ↗</a>
+          </div>
+        </div>
+        <p class="hint">Anyone in your org with permission can click it — Slack walks them through the install.</p>
+      </div>
+    </div>
+  </section>
+
+  <!-- STEP 4 -->
+  <section class="step" id="s4">
+    <div class="step-no">4</div>
+    <div class="step-body">
+      <h2>Bring the bot online</h2>
+      <p>We run the bot; you just need it running when your crew plays:</p>
+      <pre class="cmd">cd apps/bot-slack
+SLACK_BOT_TOKEN=xoxb-… SLACK_APP_TOKEN=xapp-… bun main.ts --live</pre>
+      <p class="hint">Then in any channel: <code>/rwf new</code> → <code>/rwf join casual</code> → <code>/rwf start</code> → <code>/rwf log pushups 25</code></p>
+    </div>
+  </section>
+
+  <footer class="setup-foot">
+    <a href="/">← site</a> · <a href="/connect">WhatsApp connect →</a> · <a href="/debug">debug</a>
+  </footer>
+</main>
+<script type="module" src="/slack/slack-setup.js"></script>
+</body>
+</html>

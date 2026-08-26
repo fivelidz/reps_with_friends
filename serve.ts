@@ -215,6 +215,10 @@ const server = Bun.serve({
       r = dirRoute("apps/hub", url) ?? new Response("hub not built yet — run lane 05", { status: 404 });
     } else if (p.startsWith("/debug")) {
       r = dirRoute("apps/debug", url) ?? new Response("debug not found", { status: 404 });
+    } else if (p.startsWith("/slack")) {
+      r = dirRoute("apps/slack-setup", url) ?? new Response("slack setup not found", { status: 404 });
+    } else if (p.startsWith("/connect")) {
+      r = dirRoute("apps/connect", url) ?? new Response("connect not found", { status: 404 });
     } else {
       r = dirRoute("site", url);
     }

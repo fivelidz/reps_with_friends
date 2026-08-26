@@ -9,7 +9,7 @@ echo "▸ building app bundle"
 bun build apps/web/src/main.ts --outdir apps/web/dist --minify >/dev/null
 
 echo "▸ assembling deploy/public (functions/ lives beside it — wrangler picks it up from cwd)"
-mkdir -p deploy/public/site deploy/public/design deploy/public/app deploy/public/hub deploy/public/debug deploy/public/cards
+mkdir -p deploy/public/site deploy/public/design deploy/public/app deploy/public/hub deploy/public/debug deploy/public/slack deploy/public/connect deploy/public/cards
 
 cp site/index.html deploy/public/index.html
 cp site/site.css site/main.js site/guide.js deploy/public/site/
@@ -18,6 +18,8 @@ cp -r design/. deploy/public/design/
 cp -r apps/web/dist/. deploy/public/app/
 cp apps/hub/index.html apps/hub/hub.js apps/hub/hub.css deploy/public/hub/
 cp apps/debug/index.html apps/debug/debug.js apps/debug/debug.css deploy/public/debug/
+cp apps/slack-setup/index.html apps/slack-setup/slack-setup.js apps/slack-setup/slack-setup.css apps/slack-setup/manifest.yml deploy/public/slack/
+cp apps/connect/index.html apps/connect/connect.js apps/connect/connect.css apps/connect/qr.js deploy/public/connect/
 # deploy/functions/api/{ai,state}.js are source-controlled as-is
 
 echo "▸ bundle ready:"
