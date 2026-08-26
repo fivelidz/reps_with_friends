@@ -9,7 +9,7 @@ echo "▸ building app bundle"
 bun build apps/web/src/main.ts --outdir apps/web/dist --minify >/dev/null
 
 echo "▸ assembling deploy/public (functions/ lives beside it — wrangler picks it up from cwd)"
-mkdir -p deploy/public/site deploy/public/design deploy/public/app deploy/public/hub deploy/public/debug deploy/public/slack deploy/public/connect deploy/public/cards
+mkdir -p deploy/public/site deploy/public/design deploy/public/app deploy/public/hub deploy/public/debug deploy/public/slack deploy/public/connect deploy/public/demo deploy/public/cards
 
 cp site/index.html deploy/public/index.html
 cp site/site.css site/main.js site/guide.js deploy/public/site/
