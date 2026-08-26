@@ -1,0 +1,14 @@
+[Unit]
+Description=RWF Slack bot (Bolt Socket Mode)
+After=network-online.target
+
+[Service]
+Type=simple
+WorkingDirectory=%h/reps_with_friends/apps/bot-slack
+ExecStart=/home/qalarc/.bun/bin/bun main.ts --live
+Restart=always
+RestartSec=10
+EnvironmentFile=%h/.config/rwf/bot-slack.env
+
+[Install]
+WantedBy=default.target

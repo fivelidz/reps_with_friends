@@ -1,0 +1,67 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8" />
+<meta name="viewport" content="width=device-width, initial-scale=1.0" />
+<title>RWF · Watch a match</title>
+<link rel="stylesheet" href="/design/tokens.css" />
+<link rel="stylesheet" href="/design/fonts/fonts.css" />
+<link rel="stylesheet" href="/demo/demo.css" />
+<link rel="icon" href="data:image/svg+xml,<svg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 100 100'><text y='.9em' font-size='90'>▶️</text></svg>">
+</head>
+<body>
+<main class="demo">
+  <header class="demo-head">
+    <p class="demo-kicker">REPS WITH FRIENDS · LIVE REPLAY</p>
+    <h1>Watch a 300 unfold</h1>
+    <p class="demo-sub">A real match, replayed. Four mates, mixed fitness, one rule: effort wins the day.</p>
+    <div class="demo-controls">
+      <button class="rwf-btn rwf-btn--primary" id="btnPlay" type="button">▶ Play</button>
+      <button class="rwf-btn" id="btnSpeed" type="button">1×</button>
+      <button class="rwf-btn" id="btnRestart" type="button">↺ Restart</button>
+    </div>
+  </header>
+
+  <section class="demo-stage">
+    <!-- chat -->
+    <div class="phone">
+      <div class="phone-top">
+        <span class="phone-title">🏋️ Reps With Friends</span>
+        <span class="phone-sub">Dave, Ben, Alexei, Nico</span>
+      </div>
+      <div class="chat" id="chat" aria-live="polite"></div>
+    </div>
+
+    <!-- standings -->
+    <div class="board">
+      <div class="board-head">
+        <span class="rwf-tag"><span class="rwf-dot rwf-dot--ok"></span><span id="matchStatus">match live</span></span>
+        <span class="rwf-tag" id="matchTarget">first to 300</span>
+      </div>
+      <div id="rows" class="rows"></div>
+      <div class="pot" id="pot" hidden>
+        <span>💰 Charity pot</span><b id="potAmt">$0.00</b>
+        <span class="pot-note" id="potNote"></span>
+      </div>
+    </div>
+  </section>
+
+  <section class="demo-cta" id="cta" hidden>
+    <div class="cta-card">
+      <h2>Your turn.</h2>
+      <p>That's one match. Seasons, handicaps, comebacks and charity pots do the rest.</p>
+      <div class="btnrow">
+        <a class="rwf-btn rwf-btn--primary" href="/connect">Link your WhatsApp →</a>
+        <a class="rwf-btn" href="/slack">Add to Slack</a>
+        <a class="rwf-btn" href="/app">Open the app</a>
+      </div>
+    </div>
+  </section>
+
+  <footer class="demo-foot">
+    <a href="/">← site</a> · <a href="/debug">debug all elements</a> · <a href="/hub">ops console</a>
+  </footer>
+</main>
+<script type="module" src="/demo/demo.js"></script>
+</body>
+</html>

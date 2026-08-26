@@ -20,6 +20,7 @@ cp apps/hub/index.html apps/hub/hub.js apps/hub/hub.css deploy/public/hub/
 cp apps/debug/index.html apps/debug/debug.js apps/debug/debug.css deploy/public/debug/
 cp apps/slack-setup/index.html apps/slack-setup/slack-setup.js apps/slack-setup/slack-setup.css apps/slack-setup/manifest.yml deploy/public/slack/
 cp apps/connect/index.html apps/connect/connect.js apps/connect/connect.css apps/connect/qr.js deploy/public/connect/
+cp apps/demo/index.html apps/demo/demo.js apps/demo/demo.css deploy/public/demo/
 # deploy/functions/api/{ai,state}.js are source-controlled as-is
 
 echo "▸ bundle ready:"

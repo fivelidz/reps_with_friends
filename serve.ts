@@ -219,6 +219,8 @@ const server = Bun.serve({
       r = dirRoute("apps/slack-setup", url) ?? new Response("slack setup not found", { status: 404 });
     } else if (p.startsWith("/connect")) {
       r = dirRoute("apps/connect", url) ?? new Response("connect not found", { status: 404 });
+    } else if (p.startsWith("/demo")) {
+      r = dirRoute("apps/demo", url) ?? new Response("demo not found", { status: 404 });
     } else {
       r = dirRoute("site", url);
     }
