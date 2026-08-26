@@ -1,0 +1,13 @@
+{
+  "name": "@rwf/bot-core",
+  "version": "0.1.0",
+  "description": "Shared command bus + card formatters for RWF chat bots (WhatsApp + Slack)",
+  "type": "module",
+  "main": "src/index.ts",
+  "scripts": {
+    "test": "bun test"
+  },
+  "dependencies": {
+    "@rwf/game-core": "workspace:./../game-core"
+  }
+}

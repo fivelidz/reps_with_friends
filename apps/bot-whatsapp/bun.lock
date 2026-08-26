@@ -1,0 +1,20 @@
+{
+  "lockfileVersion": 1,
+  "configVersion": 1,
+  "workspaces": {
+    "": {
+      "name": "@rwf/bot-whatsapp",
+      "dependencies": {
+        "@rwf/bot-core": "file:../../packages/bot-core",
+        "@rwf/game-core": "file:../../packages/game-core",
+      },
+    },
+  },
+  "packages": {
+    "@rwf/bot-core": ["@rwf/bot-core@file:../../packages/bot-core", { "dependencies": { "@rwf/game-core": "workspace:./../game-core" } }],
+
+    "@rwf/game-core": ["@rwf/game-core@file:../../packages/game-core", {}],
+
+    "@rwf/bot-core/@rwf/game-core": ["@rwf/game-core@file:../../packages/game-core", {}],
+  }
+}

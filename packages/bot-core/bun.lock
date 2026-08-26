@@ -1,0 +1,18 @@
+{
+  "lockfileVersion": 1,
+  "configVersion": 1,
+  "workspaces": {
+    "": {
+      "name": "@rwf/bot-core",
+      "dependencies": {
+        "@rwf/game-core": "workspace:./../game-core",
+      },
+    },
+    "../game-core": {
+      "name": "@rwf/game-core",
+    },
+  },
+  "packages": {
+    "@rwf/game-core": ["@rwf/game-core@workspace:../game-core"],
+  }
+}

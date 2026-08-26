@@ -1,0 +1,12 @@
+{
+  "name": "@rwf/bot-slack",
+  "version": "0.1.0",
+  "description": "Reps With Friends Slack bot (Bolt, Socket Mode)",
+  "private": true,
+  "type": "module",
+  "dependencies": {
+    "@rwf/bot-core": "../../packages/bot-core",
+    "@rwf/game-core": "../../packages/game-core",
+    "@slack/bolt": "^5.0.0"
+  }
+}

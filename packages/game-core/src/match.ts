@@ -93,13 +93,17 @@ export function winner(state: MatchState): {
   closedMatch: boolean;
 } | null {
   if (state.status !== "complete") return null;
-  const rows = standings(state).map((r) => ({
-    ...r,
-    adjustedScore:
-      r.player.id === state.closedBy
-        ? r.adjustedScore + CLOSURE_BONUS
-        : r.adjustedScore,
-  }));
+  // Apply the closure bonus, THEN rank — the bonus must be able to decide
+  // the winner, so standings' pre-bonus ordering can't be trusted here.
+  const rows = standings(state)
+    .map((r) => ({
+      ...r,
+      adjustedScore:
+        r.player.id === state.closedBy
+          ? r.adjustedScore + CLOSURE_BONUS
+          : r.adjustedScore,
+    }))
+    .sort((a, b) => b.adjustedScore - a.adjustedScore);
   const top = rows[0];
   return {
     playerId: top.player.id,

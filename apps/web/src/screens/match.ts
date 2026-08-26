@@ -1,0 +1,213 @@
+// Match view — live standings, rep logging, taunts, crew feed.
+// Demo crewmates (sim_*) log reps on a timer while this screen is open.
+import { standings, type MatchState, type StandingRow } from "../engine.ts";
+import { TAUNTS } from "../data.ts";
+import { getState, logEntry, touch } from "../state.ts";
+import { avatar, el, fmtScore, icon, toast, topbar, tierBadge } from "../ui.ts";
+
+// Persist across re-renders (same match) so logging feels continuous.
+const panel = { matchId: "", exerciseId: "", count: 10 };
+const tauntFeed: { at: number; text: string }[] = [];
+let tauntIdx = Math.floor(Math.random() * TAUNTS.length);
+
+export function renderMatch(root: HTMLElement, matchId: string): () => void {
+  const st = getState();
+  const match = st.matches.find((m) => m.config.id === matchId);
+  if (!match) {
+    location.hash = "#/";
+    return () => {};
+  }
+  if (match.status === "complete") {
+    location.hash = `#/result/${matchId}`;
+    return () => {};
+  }
+  const me = st.me!;
+  if (panel.matchId !== matchId || !match.config.exercises.some((e) => e.id === panel.exerciseId)) {
+    panel.matchId = matchId;
+    panel.exerciseId = match.config.exercises[0].id;
+    panel.count = 10;
+  }
+
+  // ── standings ──────────────────────────────────────────────────────────────
+  const rows = standings(match);
+  const topScore = rows[0]?.adjustedScore ?? 0;
+
+  const standingRow = (row: StandingRow, i: number): HTMLElement =>
+    el(
+      "div",
+      { class: `strow ${i === 0 ? "lead" : ""}` },
+      el(
+        "div",
+        { class: "strow-r1" },
+        el("span", { class: `rank ${i < 3 ? "top" : ""}`, text: String(i + 1) }),
+        avatar(row.player.name, row.player.tier),
+        el(
+          "div",
+          { class: "strow-id" },
+          el("span", { class: "strow-name" }, row.player.name, tierBadge(row.player.tier)),
+          el("span", {
+            class: `vchip ${row.verifiedPct > 0 ? "vchip--ok" : ""}`,
+            text: `${row.verifiedPct}% ✓`,
+          })
+        ),
+        el(
+          "div",
+          { class: "score" },
+          el("b", { text: fmtScore(row.adjustedScore) }),
+          el("span", { text: `${row.rawReps} raw` })
+        )
+      ),
+      el("div", { class: "bar" }, el("i", { style: `width:${row.progressPct}%` })),
+      i === 0 && topScore > 0 ? el("span", { class: "leadflag", text: "LEADING" }) : null
+    );
+
+  // ── log panel ──────────────────────────────────────────────────────────────
+  const exChips = match.config.exercises.map((ex) =>
+    el("button", {
+      class: `chip chip--sm ${panel.exerciseId === ex.id ? "on" : ""}`,
+      type: "button",
+      text: ex.name,
+      onClick: () => {
+        panel.exerciseId = ex.id;
+        touch();
+      },
+    })
+  );
+
+  const countEl = el("span", { class: "stepval", text: String(panel.count) });
+  const exName = (): string =>
+    match.config.exercises.find((e) => e.id === panel.exerciseId)?.name ?? "";
+
+  const logBtn = el("button", {
+    class: "rwf-btn rwf-btn--primary btn-block btn-lg",
+    text: `LOG ${panel.count} ${exName().toUpperCase()}`,
+    onClick: () => doLog(false),
+  });
+  const setCount = (n: number): void => {
+    panel.count = Math.max(1, Math.min(500, n));
+    countEl.textContent = String(panel.count);
+    logBtn.textContent = `LOG ${panel.count} ${exName().toUpperCase()}`;
+  };
+
+  const doLog = (verified: boolean): void => {
+    const closed = logEntry(matchId, me.id, panel.exerciseId, panel.count, verified);
+    if (closed) {
+      toast("You closed the match! 🏆", "ok");
+      location.hash = `#/result/${matchId}`;
+    } else {
+      toast(`+${panel.count} ${exName()} logged`, "ok");
+    }
+  };
+
+  // ── feed (entries + this session's taunts) ─────────────────────────────────
+  const esc = (s: string): string => s.replace(/[&<>"']/g, (ch) => `&#${ch.charCodeAt(0)};`);
+  const nameOf = (pid: string): string => match.players.find((p) => p.id === pid)?.name ?? "?";
+  const exOf = (eid: string): string => match.config.exercises.find((e) => e.id === eid)?.name.toLowerCase() ?? eid;
+  const events: { at: number; html: string }[] = [
+    ...match.entries.slice(-8).map((e) => ({
+      at: e.at,
+      html: `<b>${esc(nameOf(e.playerId))}</b> logged <b>${e.reps}</b> ${esc(exOf(e.exerciseId))}`,
+    })),
+    ...tauntFeed.map((t) => ({ at: t.at, html: `<b>You</b>: “${esc(t.text)}”` })),
+  ]
+    .sort((a, b) => b.at - a.at)
+    .slice(0, 5);
+
+  // ── assemble ───────────────────────────────────────────────────────────────
+  root.append(
+    el(
+      "section",
+      { class: "screen" },
+      topbar("Match", {
+        back: "#/",
+        right: el(
+          "span",
+          { class: "topbar-meta" },
+          el("span", { class: "pill pill--live", html: `<i class="pulse"></i>LIVE` }),
+          el("span", { class: "muted small", text: `→ ${match.config.targetReps} reps` })
+        ),
+      }),
+
+      el("div", { class: "rwf-card card-pad stack-sm" },
+        el("div", { class: "seclabel", text: "Standings — adjusted score" }),
+        ...rows.map(standingRow)
+      ),
+
+      el(
+        "div",
+        { class: "rwf-card card-pad stack-sm" },
+        el("div", { class: "seclabel", text: "Log a set" }),
+        el("div", { class: "chiprow" }, ...exChips),
+        el(
+          "div",
+          { class: "stepper" },
+          el("button", { class: "stepbtn", type: "button", text: "−", onClick: () => setCount(panel.count - 5) }),
+          countEl,
+          el("button", { class: "stepbtn", type: "button", text: "+", onClick: () => setCount(panel.count + 5) })
+        ),
+        el("div", { class: "quickrow" },
+          ...[10, 25, 50].map((n) =>
+            el("button", { class: "chip chip--sm", type: "button", text: `+${n}`, onClick: () => setCount(n) })
+          )
+        ),
+        logBtn,
+        el(
+          "button",
+          {
+            class: "rwf-btn btn-block btn-sm btn--ghost",
+            html: icon("camera", 15) + "<span>CAMERA VERIFY · COMING SOON</span>",
+            onClick: () => {
+              doLog(false); // camera counting is lane 07 — logs unverified for now
+              toast("Camera counting coming soon — set logged unverified", "info");
+            },
+          }
+        )
+      ),
+
+      el(
+        "button",
+        {
+          class: "rwf-btn btn-block tauntbtn",
+          html: icon("flame", 17) + "<span>TAUNT THE CREW</span>",
+          onClick: () => {
+            const line = TAUNTS[tauntIdx++ % TAUNTS.length];
+            tauntFeed.unshift({ at: Date.now(), text: line });
+            tauntFeed.length = Math.min(tauntFeed.length, 10);
+            toast(`🔥 “${line}”`, "warn");
+            touch();
+          },
+        }
+      ),
+
+      el("div", { class: "rwf-card card-pad stack-sm feed" },
+        el("div", { class: "seclabel", text: "Crew feed" }),
+        events.length
+          ? el("ul", { class: "feedlist" }, ...events.map((e) => el("li", { html: e.html })))
+          : el("p", { class: "muted small", text: "Nothing yet. Log the first set." })
+      )
+    )
+  );
+
+  // ── demo-crew simulator ────────────────────────────────────────────────────
+  const sims = match.players.filter((p) => p.id.startsWith("sim_"));
+  let handle: number | undefined;
+  if (sims.length > 0) {
+    handle = window.setInterval(() => {
+      const s = getState();
+      const m: MatchState | undefined = s.matches.find((x) => x.config.id === matchId);
+      if (!m || m.status !== "live") return;
+      const p = sims[Math.floor(Math.random() * sims.length)];
+      const ex = m.config.exercises[Math.floor(Math.random() * m.config.exercises.length)];
+      const reps = 8 + Math.floor(Math.random() * 22);
+      const closed = logEntry(matchId, p.id, ex.id, reps, false);
+      if (closed) {
+        toast(`${p.name} closed the match!`, "warn");
+        location.hash = `#/result/${matchId}`;
+      }
+    }, 7000);
+  }
+
+  return () => {
+    if (handle !== undefined) clearInterval(handle);
+  };
+}

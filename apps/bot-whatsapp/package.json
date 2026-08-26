@@ -1,0 +1,15 @@
+{
+  "name": "@rwf/bot-whatsapp",
+  "version": "0.1.0",
+  "description": "Reps With Friends WhatsApp bot (Qalarc Hub transport)",
+  "private": true,
+  "type": "module",
+  "scripts": {
+    "sim": "bun main.ts --sim",
+    "live": "bun main.ts --live"
+  },
+  "dependencies": {
+    "@rwf/bot-core": "file:../../packages/bot-core",
+    "@rwf/game-core": "file:../../packages/game-core"
+  }
+}
