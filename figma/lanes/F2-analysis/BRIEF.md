@@ -5,7 +5,13 @@ produce the decision document: what we adopt, what we keep, what we argue.
 
 **Owns:** `figma/notes/analysis.md`, docs/13 §7 divergence log
 
-## Status: waiting on F1
+## Status: ✅ done (28 Aug 2026)
+
+`figma/notes/analysis.md` written (design language, product model, 20 new
+concepts, 32-row divergence log, gaps both ways, founder-call one-pager);
+docs/13 §7 filled. Method note: analysis built from the complete file.json
+text/style extraction (this agent can't view images) — visual-only qualities
+need one human pass before F3 locks.
 
 ## Method
 1. Read `figma/notes/catalogue.md` + LOOK at every export in

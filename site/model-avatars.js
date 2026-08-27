@@ -59,6 +59,14 @@ export const MODELS = [
   { id: 'orc-human', name: 'Orc — human palette', file: '/models/orc.glb', rig: 'rigify', native: [], colorway: 'human' },
   { id: 'marauder', name: 'Orc Marauder — armoured', file: '/models/orc_marauder.glb', rig: 'rigify', native: [], dark: true },
   { id: 'soldier', name: 'Soldier — palette-treated', file: '/models/Soldier.glb', rig: 'mixamo', native: ['Idle', 'Walk', 'Run'], palette: 'soldier' },
+  // ── anyCreature compiled (spec → skinned GLB, vertex-coloured + AO-baked).
+  // creature: true → native-anim playback only, no exercise retarget (the rigs
+  // are creature skeletons, not mixamo/rigify humanoids).
+  { id: 'ac-wolf', name: 'Wolf — anyCreature', file: '/models/wolf.glb', rig: 'anycreature', native: ['idle', 'move'], creature: true },
+  { id: 'ac-dragon-hunter', name: 'Wyvern Hunter — anyCreature', file: '/models/dragon_hunter.glb', rig: 'anycreature', native: ['idle', 'move', 'flap', 'attack'], creature: true },
+  { id: 'ac-dragon-elder', name: 'Wyvern Elder — anyCreature', file: '/models/dragon_elder.glb', rig: 'anycreature', native: ['idle', 'move', 'flap', 'attack'], creature: true, dark: true },
+  { id: 'ac-adventurer', name: 'Adventurer — anyCreature', file: '/models/humanoid_adventurer.glb', rig: 'anycreature', native: ['idle', 'walk', 'attack'], creature: true },
+  { id: 'ac-brute', name: 'Brute — anyCreature', file: '/models/humanoid_brute.glb', rig: 'anycreature', native: ['idle', 'walk', 'attack'], creature: true },
 ];
 
 const loader = new GLTFLoader();

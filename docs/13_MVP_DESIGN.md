@@ -797,28 +797,44 @@ our interaction model** — but argue from these tables, not vibes.
 
 | # | Element / decision | Ours (this doc) | Theirs (Figma) | Decision + rationale | Status |
 |---|---|---|---|---|---|
-| 1 | Primary colour | Lime #c6f32e on near-black | *TBD* | | ☐ open |
-| 2 | Effort/heat colour | Coral #ff5c38 | *TBD* | | ☐ open |
-| 3 | Typography | Space Grotesk, uppercase display, mono numerals | *TBD* | | ☐ open |
-| 4 | Nav model | topbar + per-screen primary pill, no bottom tab bar | *TBD* | | ☐ open |
-| 5 | Screen count / inventory | 12 (§2) | *TBD* | | ☐ open |
-| 6 | Onboarding length | name + tier, <20s | *TBD* | | ☐ open |
-| 7 | Verification entry | camera opt-in on Log Reps, manual always available | *TBD* | | ☐ open |
-| 8 | Standings presentation | adjusted score primary, raw secondary, progress bar | *TBD* | | ☐ open |
-| 9 | Comeback visibility | persistent armed badge on standings row | *TBD* | | ☐ open |
-| 10 | Result card format | 1200×675 branded canvas, PNG share | *TBD* | | ☐ open |
-| 11 | MVP vote placement | on Result screen, one vote, locks on tap | *TBD* | | ☐ open |
-| 12 | Charity pot placement | card on Result + dedicated screen | *TBD* | | ☐ open |
-| 13 | Season prominence | tab-level surface from MVP (retention fix) | *TBD* | | ☐ open |
-| 14 | Corporate admin | aggregate-only, k≥5, employer-funded pot | *TBD* | | ☐ open |
-| 15 | Voice/tone | Aussie cheeky, never mean (§1.4) | *TBD* | | ☐ open |
-| 16 | Motion budget | 160ms law, comeback is loudest | *TBD* | | ☐ open |
-| 17 | Empty/error pattern | icon+headline+sentence+pill (§2.12) | *TBD* | | ☐ open |
-| 18 | Accessibility floor | 44px targets, reduced-motion, AA contrast | *TBD* | | ☐ open |
-| 19 | | | | | ☐ open |
-| 20 | | | | | ☐ open |
+| 1 | Primary colour | Lime #c6f32e on near-black | Gold #FFC821 on ink #0B0A12 + purple #8B5CF6 energy axis | **decide-on-call** — Ben flags palette as his A1/D5 (sign-off + licensing). Gold+purple = game; lime+coral = athletic. Founder taste; F3 maps either into tokens.css 1:1. | ☎ call |
+| 2 | Effort/heat colour | Coral #ff5c38 (effort, HR, comeback) | Orange #FF8A00 urgency/streaks + red #FF4D5E danger + green #34D399 success — more semantic axes | **adopt structure** — their split (energy ≠ danger ≠ success) is cleaner than coral doing double duty; exact hues ride on decision 1. | ✅ adopt |
+| 3 | Typography | Space Grotesk, uppercase display, mono numerals | Anton (display + scores, 44/32/24/56) + Inter (utility 400–700) | **decide-on-call** — both free licences; type ROLES map cleanly either way. Lean adopt Anton+Inter (conventional game-adjacent) vs SG (distinctive). | ☎ call |
+| 4 | Nav model | topbar + per-screen primary pill, no bottom tab bar | 4-tab bottom nav (Battle/Feed/Power-Ups/Profile) + central raised LOG button 64pt, quick-log sheet from anywhere | **adopt** — logging is the one daily action; central + thumb-zone beats per-screen pill hunting. Keep one-primary-CTA rule inside screens. | ✅ adopt |
+| 5 | Screen count / inventory | 12 (§2) | 66 mobile + 5 corporate web + 5 admin + 12 prototype | **decide-on-call (scope)** — his MVP list is genuinely bigger (power-ups, notif modes, Pro scaffolding). Launch-gate checklist agreed on call; F4 sequences. | ☎ call |
+| 6 | Onboarding length | name + tier, <20s, no auth | 12 screens: auth/verify/DOB/profile/tz+quiet hours/tier/exercise prefs/notif intensity/path | **decide-on-call** — coupled to platform (row 19). Native → adopt theirs; PWA+bot → keep ours, steal notif-intensity + quiet-hours as post-join steps. | ☎ call |
+| 7 | Verification entry | camera opt-in on Log Reps, manual always available | Rep Cam = "Later"; integrity via peer challenges (anonymous, 3/battle, trust score) + dispute timeline | **hybrid** — keep camera as positive verify (shipped, "honest by design"); adopt challenge/dispute as social backstop in V1. | ⚖ hybrid |
+| 8 | Standings presentation | adjusted score primary, raw secondary, progress bar | completion % primary + "106 / 120 RUF" secondary, progress ring on hero | **decide-on-call** — coupled to fairness model (row 21). % of own target vs adjusted score changes what a row even means. | ☎ call |
+| 9 | Comeback visibility | persistent armed ⚡×1.2 badge on standings row | comeback quest after absence + Best Comeback award + revenge reminder | **hybrid** — ours is in-battle drama (keep), theirs is re-engagement (adopt). Different mechanisms, same value. | ⚖ hybrid |
+| 10 | Result card format | 1200×675 branded canvas, client-side PNG share | server-rendered image API, no health data, pre-written editable message, reps.fit join link | **adopt** — server render is more reliable/shareable; keep our 16:9 layout as template. | ✅ adopt |
+| 11 | MVP vote placement | on Result screen, one vote, locks on tap | auto-computed awards instead (most consistent / best comeback / most active / PB) | **hybrid (lean theirs)** — awards need zero coordination and cover the same "effort ≠ winning" value; keep MVP vote only if seasons survive (row 13). | ⚖ hybrid |
+| 12 | Charity pot placement | card on Result + dedicated screen; loser's-round pledge, winner directs | charity as stake type (missed targets donate), Charity Bomb event, corporate pot (winning dept picks) | **decide-on-call** — same soul, different mechanics. Ours is an end-of-match ritual; theirs compounds daily under daily-winner rhythm. | ☎ call |
+| 13 | Season prominence | tab-level surface from MVP (retention fix) | no seasons at all — retention via streaks, daily loot, awards, rematch | **keep** — our long-arc layer is a gap in theirs; fold daily-winner rhythm INTO the season if row 3 goes their way. | 🔒 keep |
+| 14 | Corporate admin | aggregate-only, k≥5, employer-funded pot | full suite (5 web screens + mobile + admin), opt-in, declined-private, consent-gated exports, $/seat | **adopt direction, keep k≥5** — privacy postures agree verbatim; our k≥5 suppression is stricter, keep it. Build his surfaces post-MVP. | ⚖ hybrid |
+| 15 | Voice/tone | Aussie cheeky, never mean (§1.4) | same + "rest day (never missed day)" + money-screens-drop-banter + corporate tone pack | **adopt** — same voice, three extra rules that are all correct. | ✅ adopt |
+| 16 | Motion budget | 160ms law, comeback is loudest | strategic intensity ramp: 200ms setup, 250ms count-up, 400ms springs, 1.2s winner confetti, DZ3 heartbeat; anti-casino clause | **adopt** — richer game-feel; port our single reduced-motion switch onto it. Keep the anti-slot-machine clause verbatim. | ✅ adopt |
+| 17 | Empty/error pattern | icon+headline+sentence+pill (§2.12) | System State set: empty/error/offline/locked/restricted/loading | **adopt** — strict superset (locked + restricted map to Pro + region gates). | ✅ adopt |
+| 18 | Accessibility floor | 44px targets, reduced-motion, AA contrast | + dynamic type 135%, screen-reader order, orange ≥17pt rule, timers-as-text | **adopt** — superset, no conflict. | ✅ adopt |
+| 19 | Platform / distribution | PWA + WhatsApp/Slack bots day one, no install, <30s cold start | native app: auth, push, app-store IAP; Slack = V1.x; WhatsApp = share target only | **decide-on-call (top)** — our bots are shipped differentiation; his DZ notifications assume push. Staged: bots now, native at retention. | ☎ call |
+| 20 | Scoring unit | raw reps + adjusted score | RUF (Reps Units), admin-versioned conversion, pre-log preview ("20 push-ups = 20 RUF · takes you to 92%") | **adopt** — superset of our exercise-mix logic; pre-log preview is trust craft. Keep mono presentation. | ✅ adopt |
+| 21 | Fairness model | shared target 300 + tier multipliers (couch ×1.5) → adjusted score | personalised targets (Light 60 / Solid 120 / Hero 200 RUF), private tier, winner = completion % of own target | **decide-on-call (top)** — the deepest divergence; Ben's own D8. Theirs hides ability (privacy, simple math); ours makes handicap the spectacle. Hybrid possible. | ☎ call |
+| 22 | Battle rhythm | one match to target, first-to-close finale, days-left urgency | multi-day battles, daily winner each battle day + overall (most days won), nightly countdown → danger zone | **decide-on-call (top)** — daily winners = stronger habit loop + fresh-start-for-losers; our close-moment = better finale. Hybrid: daily winners inside season container. | ☎ call |
+| 23 | Danger zone | none (days-left timer only) | 3-level escalation T-3h/1h/30min gold→orange→red, server-emitted, layout never changes, bg #150810 | **adopt (if row 22 daily rhythm)** — good urgency craft with a11y discipline; worthless without nightly countdowns. | ✅ adopt* |
+| 24 | Power-ups | none (comeback badge only) | 4 at launch (Lightning ×3/10min, Steal 10%, Shield, Freeze +30min), rarity, inventory, daily drop, store, Pro slots | **decide-on-call (top)** — biggest MVP scope add + monetisation spine; Ben puts them IN the launch gate. | ☎ call |
+| 25 | Money | charity pledges only, settled externally | wagers (feature-flagged, KYC, regions, responsible play) + Reps Pro sub + store, separate ledgers | **decide-on-call** — Ben's D7 "wagers in launch or not"; his gating craft (never 'escrow', fees pre-commit) adoptable whenever. Pro pricing = his D3. | ☎ call |
+| 26 | Log flow | full screen, stepper ±1/±10, camera toggle | bottom sheet, recent exercise preselected, presets 5/10/20/30/50, RUF preview, UNDO 30s, ≤3 taps | **adopt** — strictly better for the 95% case; keep stepper + camera inside picker for the long tail. | ✅ adopt |
+| 27 | Offline/sync | queue + banner + retry | queued-logs screen, FIFO, idempotency keys, duplicate detection, sync-conflict resolver UI | **adopt** — we built the states; his resolver + queue screen are the missing UX. | ✅ adopt |
+| 28 | Timezone | implicit | dual clock everywhere (group + local), group clock governs, DST screen | **adopt** — table stakes for shared clocks; our crew is already multi-tz. | ✅ adopt |
+| 29 | Avatars | initials disc, deterministic hue, never photos | photo upload + initials fallback | **decide-on-call (lean keep)** — photos raise moderation/privacy load his file doesn't price in. Initials for MVP. | ☎ call |
+| 30 | Terminology / domain | match · crew · adjusted · rwf.app | battle · crew/group · RUF · reps.fit · "rest day (never missed day)" | **adopt** — battle is the better word, voice built on it; domain is a brand call. | ✅ adopt |
+| 31 | Streaks | season streaks + forgive ($2 to pot) | active-day streaks + Streak Freeze ($0.99 / 1 free per mo Pro) | **hybrid** — keep forgiveness-as-generosity; purchasable freeze folds into store if row 24 adopted. | ⚖ hybrid |
+| 32 | Taunts/reactions | taunt feed + bot commands + AI narrator | emoji reactions + taunt composer + notification centre | **hybrid** — reactions lighter than taunt bubbles; keep bot-side taunts (shipped), add in-app reactions. | ⚖ hybrid |
+
+*Full detail, evidence and the founder-call one-pager: `figma/notes/analysis.md` (lane F2). Decision key: ✅ adopt · 🔒 keep · ⚖ hybrid · ☎ decide-on-call.*
 
 ---
 
-*End of doc 13. When the Figma lands: fill §7, then reconcile doc 02 Phase 0
-checklist ("Audit the Figma against this plan").*
+*End of doc 13. §7 filled 28 Aug 2026 from the Figma audit (lane F2 — see
+`figma/notes/analysis.md` for evidence + the founder-call one-pager). Next:
+reconcile doc 02 Phase 0 checklist ("Audit the Figma against this plan") and
+take the ☎ rows to the founder call (docs/09).*

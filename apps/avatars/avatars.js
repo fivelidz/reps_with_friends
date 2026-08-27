@@ -583,6 +583,57 @@ if (modelGrid) {
       // colourway / palette treatment BEFORE the avatar is posed & framed
       if (M.colorway) applyColorway(gltfScene, M.colorway);
       if (M.palette === 'soldier') applySoldierPalette(gltfScene);
+
+      if (M.creature) {
+        // ── anyCreature compiled GLB: creature skeleton, native anims only.
+        // No exercise retarget — centre on the ground, normalise scale, frame
+        // by bounding sphere, auto-play the first native animation.
+        const box0 = new THREE.Box3().setFromObject(gltfScene);
+        const c0 = box0.getCenter(new THREE.Vector3());
+        gltfScene.position.sub(new THREE.Vector3(c0.x, box0.min.y, c0.z));
+        const s0 = 1.5 / Math.max(0.01, box0.max.y - box0.min.y);
+        gltfScene.scale.setScalar(s0);
+        scene.add(gltfScene);
+        const box = new THREE.Box3().setFromObject(gltfScene);
+        const sphere = box.getBoundingSphere(new THREE.Sphere());
+        const radius = Math.max(sphere.radius, 0.55);
+        const vFov = THREE.MathUtils.degToRad(cam.fov);
+        const hFov = 2 * Math.atan(Math.tan(vFov / 2) * (W / H));
+        const dist = (radius * 1.12) / Math.sin(Math.min(vFov, hFov) / 2);
+        cam.position.set(sphere.center.x + dist * 0.18, sphere.center.y + radius * 0.22, dist);
+        cam.lookAt(sphere.center.x, sphere.center.y, sphere.center.z);
+        entry.root3d = gltfScene;
+        entry.ok = true;
+        // native animation buttons — clips come from a fresh load (cache holds
+        // the scene only), the mixer binds to THIS card's scene instance
+        card.querySelectorAll('[data-native]').forEach((btn) => {
+          btn.addEventListener('click', () => {
+            if (entry.mixer) { entry.mixer.stopAllAction(); entry.mixer = null; }
+            const name = btn.dataset.native;
+            if (!name) return;
+            import('/site/lib/GLTFLoader.js').then(({ GLTFLoader }) =>
+              new GLTFLoader().loadAsync(M.file)
+            ).then((g) => {
+              const clip = THREE.AnimationClip.findByName(g.animations, name);
+              if (clip) {
+                entry.mixer = new THREE.AnimationMixer(entry.root3d);
+                entry.mixer.clipAction(clip).play();
+              }
+            }).catch(() => {});
+          });
+        });
+        // auto-play the first native anim (idle) once visible
+        import('/site/lib/GLTFLoader.js').then(({ GLTFLoader }) =>
+          new GLTFLoader().loadAsync(M.file)
+        ).then((g) => {
+          if (g.animations && g.animations.length && !entry.mixer) {
+            entry.mixer = new THREE.AnimationMixer(entry.root3d);
+            entry.mixer.clipAction(g.animations[0]).play();
+          }
+        }).catch(() => {});
+        return;
+      }
+
       const av = new ModelAvatar(gltfScene, M.rig);
       // normalise scale to ~1.5 units tall so all cards share a camera
       const s = 1.5 / av.H;
