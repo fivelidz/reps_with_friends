@@ -1,6 +1,34 @@
 // /demo — auto-playing match replay. Scripted timeline, real engine math.
 const $ = (id) => document.getElementById(id);
 
+// ── squad strip — mini 3D avatars, one per player ────────────────────────────
+// Dynamic import: if WebGL/avatars ever fail, the replay itself must still run.
+// The strip animates while the replay plays and freezes on pause.
+let squad = null;
+import('/site/avatars.js')
+  .then(({ AvatarScene }) => {
+    const mount = $('squadStripCanvas');
+    if (!mount) return;
+    squad = new AvatarScene({
+      mount,
+      avatars: [
+        { tier: 'couch', exercise: 'squat' },       // Dave
+        { tier: 'athlete', exercise: 'pushup' },    // Ben
+        { tier: 'casual', exercise: 'curl' },       // Alexei
+        { tier: 'fit', exercise: 'jumpingjack' },   // Nico
+      ],
+    });
+    if (squad.dead) { squad = null; $('squadStrip').style.display = 'none'; return; }
+    squad.freeze(); // still until the replay starts
+    squad.start();
+  })
+  .catch((err) => {
+    console.warn('squad strip unavailable —', err);
+    const strip = $('squadStrip');
+    if (strip) strip.style.display = 'none';
+  });
+
+
 // ── players & engine math (exact game-core semantics) ──────────────────────
 const TIER = { couch: 1.5, casual: 1.25, fit: 1.0, athlete: 0.85 };
 const PLAYERS = [
@@ -107,7 +135,7 @@ const SCRIPT = [
   [1200, () => { user('Ben', 'log pushups 60!'); log('ben', 60); }],
   [600, () => bot('💪 <b>Ben</b> logs 60 push-ups ✅camera — 255 raw, closing in')],
   [900, () => { user('Dave', 'log pushups 25!'); log('dave', 25); }],
-  [500, () => bot('💪 <b>Dave</b> logs 25 push-ups ✅camera'); renderRows(); }],
+  [500, () => { bot('💪 <b>Dave</b> logs 25 push-ups ✅camera'); renderRows(); }],
 
   [1300, () => { user('Ben', 'log squats 45!'); log('ben', 45); state.closed = true; }],
   [600, () => bot('🔥 <b>Ben</b> logs 45 squats — <b>THAT\'S 300. MATCH CLOSED</b> 🏁', true)],
@@ -140,12 +168,14 @@ function reset() {
   $('potNote').textContent = '';
   $('matchStatus').textContent = 'match live';
   $('cta').hidden = true;
+  if (squad) squad.reset();
   renderRows();
 }
 function stop() {
   if (timer) clearTimeout(timer);
   timer = null;
   playing = false;
+  if (squad) squad.freeze();
   $('btnPlay').textContent = '▶ Play';
 }
 function step() {
@@ -156,6 +186,7 @@ function step() {
 function play() {
   if (cursor >= SCRIPT.length) reset();
   playing = true;
+  if (squad) squad.resume();
   $('btnPlay').textContent = '⏸ Pause';
   step();
 }
@@ -169,3 +200,9 @@ $('btnSpeed').addEventListener('click', () => {
 });
 
 reset();
+
+// Autoplay: "Watch a match" should mean exactly that — it plays on arrival.
+// Skipped under reduced-motion (user presses play deliberately).
+if (!matchMedia('(prefers-reduced-motion: reduce)').matches) {
+  setTimeout(() => { if (!playing && cursor === 0) play(); }, 700);
+}

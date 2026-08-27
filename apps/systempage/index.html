@@ -31,11 +31,11 @@
     <h1>Every element, component, style — and where the build stands</h1>
     <p class="sys-sub">The living reference for Reps With Friends: design system, feature inventory, progress metrics, and system map. If it exists, it's on this page.</p>
     <div class="stat-row">
-      <div class="stat"><b>90+</b><span>tests green</span></div>
-      <div class="stat"><b>36</b><span>elements catalogued</span></div>
-      <div class="stat"><b>16</b><span>components</span></div>
-      <div class="stat"><b>9</b><span>public pages</span></div>
-      <div class="stat"><b>7</b><span>systems</span></div>
+      <div class="stat"><b data-count="90" data-suffix="+">90+</b><span>tests green</span></div>
+      <div class="stat"><b data-count="36">36</b><span>elements catalogued</span></div>
+      <div class="stat"><b data-count="18">18</b><span>components</span></div>
+      <div class="stat"><b data-count="9">9</b><span>public pages</span></div>
+      <div class="stat"><b data-count="7">7</b><span>systems</span></div>
       <div class="stat"><b>CI/CD</b><span>push → live</span></div>
     </div>
   </header>
@@ -47,18 +47,19 @@
 
     <h3>Colour</h3>
     <div class="swatches">
-      <button class="swatch" data-hex="#0a0b0d"><i style="background:#0a0b0d;border:1px solid #31353e"></i><span>--bg</span><em>#0a0b0d</em></button>
-      <button class="swatch" data-hex="#121418"><i style="background:#121418"></i><span>--surface</span><em>#121418</em></button>
-      <button class="swatch" data-hex="#1a1d23"><i style="background:#1a1d23"></i><span>--surface-2</span><em>#1a1d23</em></button>
-      <button class="swatch" data-hex="#23262d"><i style="background:#23262d"></i><span>--line</span><em>#23262d</em></button>
-      <button class="swatch" data-hex="#e8eaed"><i style="background:#e8eaed"></i><span>--text</span><em>#e8eaed</em></button>
-      <button class="swatch" data-hex="#9aa0a8"><i style="background:#9aa0a8"></i><span>--muted</span><em>#9aa0a8</em></button>
-      <button class="swatch is-primary" data-hex="#c6f32e"><i style="background:#c6f32e"></i><span>--lime</span><em>#c6f32e</em></button>
-      <button class="swatch" data-hex="#ff5c38"><i style="background:#ff5c38"></i><span>--coral</span><em>#ff5c38</em></button>
-      <button class="swatch" data-hex="#ffb020"><i style="background:#ffb020"></i><span>--amber</span><em>#ffb020</em></button>
-      <button class="swatch" data-hex="#6ec1ff"><i style="background:#6ec1ff"></i><span>--sky</span><em>#6ec1ff</em></button>
+      <button class="swatch" data-hex="#0a0b0d" title="Click to copy #0a0b0d"><i style="background:#0a0b0d;border:1px solid #31353e"></i><span>--bg</span><em>#0a0b0d</em><svg class="sw-copy" viewBox="0 0 24 24" width="14" height="14" aria-hidden="true" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><rect x="9" y="9" width="11" height="11" rx="2"/><path d="M5 15V5a2 2 0 0 1 2-2h10"/></svg></button>
+      <button class="swatch" data-hex="#121418" title="Click to copy #121418"><i style="background:#121418"></i><span>--surface</span><em>#121418</em><svg class="sw-copy" viewBox="0 0 24 24" width="14" height="14" aria-hidden="true" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><rect x="9" y="9" width="11" height="11" rx="2"/><path d="M5 15V5a2 2 0 0 1 2-2h10"/></svg></button>
+      <button class="swatch" data-hex="#1a1d23" title="Click to copy #1a1d23"><i style="background:#1a1d23"></i><span>--surface-2</span><em>#1a1d23</em><svg class="sw-copy" viewBox="0 0 24 24" width="14" height="14" aria-hidden="true" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><rect x="9" y="9" width="11" height="11" rx="2"/><path d="M5 15V5a2 2 0 0 1 2-2h10"/></svg></button>
+      <button class="swatch" data-hex="#23262d" title="Click to copy #23262d"><i style="background:#23262d"></i><span>--line</span><em>#23262d</em><svg class="sw-copy" viewBox="0 0 24 24" width="14" height="14" aria-hidden="true" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><rect x="9" y="9" width="11" height="11" rx="2"/><path d="M5 15V5a2 2 0 0 1 2-2h10"/></svg></button>
+      <button class="swatch" data-hex="#e8eaed" title="Click to copy #e8eaed"><i style="background:#e8eaed"></i><span>--text</span><em>#e8eaed</em><span class="sw-ct ct-aaa">16.3:1 · AAA</span><svg class="sw-copy" viewBox="0 0 24 24" width="14" height="14" aria-hidden="true" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><rect x="9" y="9" width="11" height="11" rx="2"/><path d="M5 15V5a2 2 0 0 1 2-2h10"/></svg></button>
+      <button class="swatch" data-hex="#9aa0a8" title="Click to copy #9aa0a8"><i style="background:#9aa0a8"></i><span>--muted</span><em>#9aa0a8</em><span class="sw-ct ct-aaa">7.5:1 · AAA</span><svg class="sw-copy" viewBox="0 0 24 24" width="14" height="14" aria-hidden="true" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><rect x="9" y="9" width="11" height="11" rx="2"/><path d="M5 15V5a2 2 0 0 1 2-2h10"/></svg></button>
+      <button class="swatch is-primary" data-hex="#c6f32e" title="Click to copy #c6f32e"><i style="background:#c6f32e"></i><span>--lime</span><em>#c6f32e</em><span class="sw-ct ct-aaa">15.3:1 · AAA</span><svg class="sw-copy" viewBox="0 0 24 24" width="14" height="14" aria-hidden="true" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><rect x="9" y="9" width="11" height="11" rx="2"/><path d="M5 15V5a2 2 0 0 1 2-2h10"/></svg></button>
+      <button class="swatch" data-hex="#ff5c38" title="Click to copy #ff5c38"><i style="background:#ff5c38"></i><span>--coral</span><em>#ff5c38</em><span class="sw-ct ct-aa">6.4:1 · AA</span><svg class="sw-copy" viewBox="0 0 24 24" width="14" height="14" aria-hidden="true" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><rect x="9" y="9" width="11" height="11" rx="2"/><path d="M5 15V5a2 2 0 0 1 2-2h10"/></svg></button>
+      <button class="swatch" data-hex="#ffb020" title="Click to copy #ffb020"><i style="background:#ffb020"></i><span>--amber</span><em>#ffb020</em><span class="sw-ct ct-aaa">10.8:1 · AAA</span><svg class="sw-copy" viewBox="0 0 24 24" width="14" height="14" aria-hidden="true" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><rect x="9" y="9" width="11" height="11" rx="2"/><path d="M5 15V5a2 2 0 0 1 2-2h10"/></svg></button>
+      <button class="swatch" data-hex="#6ec1ff" title="Click to copy #6ec1ff"><i style="background:#6ec1ff"></i><span>--sky</span><em>#6ec1ff</em><span class="sw-ct ct-aaa">10.1:1 · AAA</span><svg class="sw-copy" viewBox="0 0 24 24" width="14" height="14" aria-hidden="true" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><rect x="9" y="9" width="11" height="11" rx="2"/><path d="M5 15V5a2 2 0 0 1 2-2h10"/></svg></button>
+      <button class="swatch" data-hex="#5f646d" title="Click to copy #5f646d"><i style="background:#5f646d"></i><span>--faint</span><em>#5f646d</em><span class="sw-ct ct-large">3.3:1 · large only</span><svg class="sw-copy" viewBox="0 0 24 24" width="14" height="14" aria-hidden="true" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><rect x="9" y="9" width="11" height="11" rx="2"/><path d="M5 15V5a2 2 0 0 1 2-2h10"/></svg></button>
     </div>
-    <p class="sys-note">Rule: <b>lime is earned</b> — it marks effort, verification, winning, action. Coral is heat (comeback, HR, down-states). Amber is pending. Sky is information.</p>
+    <p class="sys-note">Rule: <b>lime is earned</b> — it marks effort, verification, winning, action. Coral is heat (comeback, HR, down-states). Amber is pending. Sky is information. Contrast chips: WCAG ratio vs <code>--bg</code>.</p>
 
     <h3>Type</h3>
     <div class="type-scale">
@@ -83,7 +84,7 @@
   <!-- ═══════════════ COMPONENTS ═══════════════ -->
   <section id="components" class="sys-sec reveal">
     <h2>02 · Component library</h2>
-    <p class="sys-note">16 primitives, rendered live. Every screen in the app, site, hub console and bot cards composes from these.</p>
+    <p class="sys-note">18 primitives, rendered live. Every screen in the app, site, hub console and bot cards composes from these.</p>
 
     <div class="comp-grid">
       <div class="comp"><p class="comp-name">Buttons</p>
@@ -165,6 +166,27 @@
       <div class="comp"><p class="comp-name">Empty state</p>
         <div class="comp-demo"><div class="empty">No matches yet — <b>start one</b></div></div>
         <p class="comp-use">Friendly copy + one action. Never a blank screen.</p></div>
+
+      <div class="comp"><p class="comp-name">Toast</p>
+        <div class="comp-demo toast-col">
+          <div class="toast toast--ok"><span class="rwf-dot rwf-dot--ok"></span>Reps logged — 40 push-ups counted</div>
+          <div class="toast toast--err"><span class="rwf-dot rwf-dot--down"></span>Camera lost the set — log it manually</div>
+        </div>
+        <p class="comp-use">Transient confirmations. Auto-dismiss 2.4s, stack bottom-up, max three on screen.</p></div>
+
+      <div class="comp"><p class="comp-name">Confetti burst</p>
+        <div class="comp-demo">
+          <div class="conf-demo">
+            <i class="cfk" style="left:12%;top:8%;background:var(--lime);transform:rotate(20deg)"></i>
+            <i class="cfk" style="left:26%;top:22%;background:var(--coral);transform:rotate(-15deg)"></i>
+            <i class="cfk" style="left:80%;top:10%;background:var(--sky);transform:rotate(45deg)"></i>
+            <i class="cfk" style="left:90%;top:34%;background:var(--amber);transform:rotate(-30deg)"></i>
+            <i class="cfk" style="left:8%;top:62%;background:var(--amber);transform:rotate(60deg)"></i>
+            <i class="cfk" style="left:86%;top:70%;background:var(--lime);transform:rotate(-50deg)"></i>
+            <div class="minicard"><span class="rwf-tag">match complete</span><b>Dave takes it 🎉</b><span>adjusted 285 · Ben closed at 300 raw</span></div>
+          </div>
+        </div>
+        <p class="comp-use">Victory moments — match close, PRs, photo finish. Canvas particles at 60fps; reduced-motion → single flash.</p></div>
     </div>
   </section>
 
@@ -180,11 +202,11 @@
     <h2>04 · Progress &amp; roadmap</h2>
 
     <div class="phase-track">
-      <div class="phase done"><b>Phase 0</b><span>due diligence · research · plan</span><i>✓ complete</i></div>
-      <div class="phase now"><b>Prototype</b><span>engine · bots · app · site · hub · AI · live hosting</span><i>● you are here — feature-complete demo</i></div>
-      <div class="phase"><b>MVP</b><span>unified API wired to app + bots · auth · first real crews</span><i>next</i></div>
-      <div class="phase"><b>Pilot</b><span>WhatsApp Cloud API · Stripe pots · Slack directory · legal opinion</span><i>gated</i></div>
-      <div class="phase"><b>Public</b><span>native apps · wearables v2 · corporate scale</span><i>gated</i></div>
+      <div class="phase done"><span class="p-node" aria-hidden="true"></span><div class="p-body"><b>Phase 0</b><span>due diligence · research · plan</span></div><i>✓ complete</i></div>
+      <div class="phase now"><span class="p-node" aria-hidden="true"></span><div class="p-body"><b>Prototype</b><span>engine · bots · app · site · hub · AI · live hosting</span></div><i>● you are here — feature-complete demo</i></div>
+      <div class="phase"><span class="p-node" aria-hidden="true"></span><div class="p-body"><b>MVP</b><span>unified API wired to app + bots · auth · first real crews</span></div><i>next</i></div>
+      <div class="phase"><span class="p-node" aria-hidden="true"></span><div class="p-body"><b>Pilot</b><span>WhatsApp Cloud API · Stripe pots · Slack directory · legal opinion</span></div><i>gated</i></div>
+      <div class="phase"><span class="p-node" aria-hidden="true"></span><div class="p-body"><b>Public</b><span>native apps · wearables v2 · corporate scale</span></div><i>gated</i></div>
     </div>
 
     <h3>What's working today</h3>
@@ -218,14 +240,14 @@
         <div class="map-node">Hub console <span>ops + corporate</span></div>
         <div class="map-node">Chat <span>WhatsApp · Slack</span></div>
       </div>
-      <div class="map-arrow">→</div>
+      <div class="map-arrow" aria-hidden="true"><svg viewBox="0 0 32 12" width="32" height="12" focusable="false"><path class="map-flow" d="M2 6h24m0 0l-6-4.6M26 6l-6 4.6" stroke="currentColor" stroke-width="1.8" fill="none" stroke-linecap="round" stroke-linejoin="round"/></svg></div>
       <div class="map-col">
         <p class="map-head">EDGE</p>
         <div class="map-node accent">Cloudflare Pages <span>rwf.qalarc.com · CI/CD</span></div>
         <div class="map-node accent">Pages Functions <span>/api/ai · /api/state</span></div>
         <div class="map-node">Local serve <span>:4173 · sim · cards</span></div>
       </div>
-      <div class="map-arrow">→</div>
+      <div class="map-arrow" aria-hidden="true"><svg viewBox="0 0 32 12" width="32" height="12" focusable="false"><path class="map-flow" d="M2 6h24m0 0l-6-4.6M26 6l-6 4.6" stroke="currentColor" stroke-width="1.8" fill="none" stroke-linecap="round" stroke-linejoin="round"/></svg></div>
       <div class="map-col">
         <p class="map-head">CORE</p>
         <div class="map-node accent">game-core <span>pure TS · 44 tests</span></div>
@@ -276,6 +298,7 @@
 </section>
 
 <noscript><style>.reveal{opacity:1;transform:none}</style></noscript>
+<script type="module" src="/site/guide.js"></script>
 <script type="module" src="/system/system.js"></script>
 </body>
 </html>

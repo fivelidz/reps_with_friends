@@ -12,7 +12,7 @@ echo "▸ assembling deploy/public (functions/ lives beside it — wrangler pick
 mkdir -p deploy/public/site deploy/public/design deploy/public/app deploy/public/hub deploy/public/debug deploy/public/slack deploy/public/connect deploy/public/demo deploy/public/system deploy/public/cards
 
 cp site/index.html deploy/public/index.html
-cp site/site.css site/main.js site/guide.js deploy/public/site/
+cp site/*.css site/*.js deploy/public/site/
 cp -r site/lib deploy/public/site/lib
 cp -r design/. deploy/public/design/
 cp -r apps/web/dist/. deploy/public/app/

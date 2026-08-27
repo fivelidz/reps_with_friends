@@ -9,6 +9,20 @@ body { margin: 0; background: var(--bg); color: var(--text); font-family: var(--
 .demo-stage { display: grid; grid-template-columns: 380px 1fr; gap: 18px; align-items: start; }
 @media (max-width: 860px) { .demo-stage { grid-template-columns: 1fr; } }
 
+/* squad strip — mini avatars above the standings board */
+.board-col { display: flex; flex-direction: column; gap: 18px; min-width: 0; }
+.squadstrip { overflow: hidden; }
+#squadStripCanvas { position: relative; height: 118px; }
+#squadStripCanvas canvas { width: 100%; height: 100%; }
+.squadstrip-names {
+  display: grid; grid-template-columns: repeat(4, 1fr);
+  padding: 5px 0 9px; border-top: 1px solid var(--line);
+}
+.squadstrip-names span {
+  text-align: center; font-family: var(--font-mono); font-size: 10px;
+  font-weight: 700; letter-spacing: 0.14em; text-transform: uppercase;
+}
+
 /* phone / chat */
 .phone { background: var(--surface); border: 1px solid var(--line); border-radius: 20px; overflow: hidden; }
 .phone-top { padding: 14px 18px; border-bottom: 1px solid var(--line); background: var(--surface-2); display: flex; flex-direction: column; gap: 2px; }
@@ -66,3 +80,20 @@ body { margin: 0; background: var(--bg); color: var(--text); font-family: var(--
   .bub, .cta-card { animation: none; }
   .cb { animation: none; }
 }
+
+/* CTA — described system links */
+.cta-more {
+  display: grid; grid-template-columns: repeat(2, 1fr); gap: 10px;
+  margin-top: 22px; text-align: left;
+}
+.cta-more a {
+  display: flex; flex-direction: column; gap: 3px;
+  border: 1px solid var(--line); border-radius: 12px;
+  background: var(--surface-2);
+  padding: 12px 14px; text-decoration: none; color: inherit;
+  transition: border-color 160ms ease, transform 160ms ease;
+}
+.cta-more a:hover { border-color: var(--lime); transform: translateY(-2px); }
+.cta-more b { font-size: 13px; text-transform: uppercase; letter-spacing: 0.04em; }
+.cta-more span { font-size: 12px; color: var(--muted); line-height: 1.45; }
+@media (max-width: 640px) { .cta-more { grid-template-columns: 1fr; } }

@@ -8,6 +8,14 @@
 <link rel="stylesheet" href="/design/fonts/fonts.css" />
 <link rel="stylesheet" href="/demo/demo.css" />
 <link rel="icon" href="data:image/svg+xml,<svg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 100 100'><text y='.9em' font-size='90'>▶️</text></svg>">
+<script type="importmap">
+{
+  "imports": {
+    "three": "/site/lib/three.module.js",
+    "three/addons/controls/OrbitControls.js": "/site/lib/OrbitControls.js"
+  }
+}
+</script>
 </head>
 <body>
 <main class="demo">
@@ -32,8 +40,19 @@
       <div class="chat" id="chat" aria-live="polite"></div>
     </div>
 
-    <!-- standings -->
-    <div class="board">
+    <!-- standings + squad strip -->
+    <div class="board-col">
+      <div class="squadstrip rwf-card" id="squadStrip">
+        <div id="squadStripCanvas" role="img" aria-label="Four mini figures — Dave, Ben, Alexei and Nico — mid-workout"></div>
+        <div class="squadstrip-names" aria-hidden="true">
+          <span style="color:var(--amber)">Dave</span>
+          <span style="color:var(--coral)">Ben</span>
+          <span style="color:var(--sky)">Alexei</span>
+          <span style="color:var(--lime)">Nico</span>
+        </div>
+      </div>
+
+      <div class="board">
       <div class="board-head">
         <span class="rwf-tag"><span class="rwf-dot rwf-dot--ok"></span><span id="matchStatus">match live</span></span>
         <span class="rwf-tag" id="matchTarget">first to 300</span>
@@ -42,6 +61,7 @@
       <div class="pot" id="pot" hidden>
         <span>💰 Charity pot</span><b id="potAmt">$0.00</b>
         <span class="pot-note" id="potNote"></span>
+      </div>
       </div>
     </div>
   </section>
@@ -54,6 +74,13 @@
         <a class="rwf-btn rwf-btn--primary" href="/connect">Link your WhatsApp →</a>
         <a class="rwf-btn" href="/slack">Add to Slack</a>
         <a class="rwf-btn" href="/app">Open the app</a>
+      </div>
+      <div class="cta-more">
+        <a href="/app"><b>The app</b><span>Onboard, crew, match, seasons — phone-first, works right now.</span></a>
+        <a href="/system"><b>Full system</b><span>Every token, component, element and progress metric.</span></a>
+        <a href="/hub"><b>Ops console</b><span>Live matches, bot health, corporate wellbeing views.</span></a>
+        <a href="/debug"><b>Debug console</b><span>Live bot simulator and the full element gallery.</span></a>
+        <a href="/api/state"><b>Live state API</b><span>The JSON everything polls.</span></a>
       </div>
     </div>
   </section>

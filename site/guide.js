@@ -8,6 +8,36 @@ const SYSTEM = 'You are guiding a visitor around the Reps With Friends showcase 
 const HISTORY_LIMIT = 12;   // last N messages sent to the model
 const TIMEOUT_MS = 30_000;  // AbortController deadline
 const OPEN_KEY = 'rwf-guide-open'; // sessionStorage: panel open across reloads
+const INTRO_KEY = 'rwf-guide-intro-shown'; // sessionStorage: 5s auto-intro, once per session
+
+// ---- prebaked starter answers ------------------------------------------------
+// Chip questions are answered LOCALLY — zero network, instant. Keys are the
+// exact data-q strings from the chips in site/index.html and
+// apps/systempage/index.html. Free-typed questions still go to /api/ai.
+const PREBAKED = {
+  // — site chips —
+  'How do handicaps work?':
+    "Every rep is scaled by a **handicap tier**, so a couch rookie and an athlete can go head-to-head: `couch ×1.50` · `casual ×1.25` · `fit ×1.00` · `athlete ×0.85`. 100 raw reps scores 150 as couch, 85 as athlete. When heart-rate straps land, handicap v2 blends your measured **%HRR** into the multiplier, and anyone >30% behind gets a once-per-match **comeback ×1.2** boost.",
+  "What's a 300?":
+    "A **300** is the signature match format: any exercises, any order — the first crew to close the raw 300-rep target ends the match. Closing isn't winning, though: every rep is effort-adjusted by handicap tier, and the top adjusted score takes it. The crew that closes banks a **+15 bonus**, so racing to finish and piling on effort both pay.",
+  'How does verification work?':
+    "Verification runs **entirely in your browser — nothing leaves your device**. The camera feed is counted on-device by in-browser pose detection (MoveNet), and heart rate streams in over Web Bluetooth from a chest strap. The engine already accepts `avgHrrPct` and `verified` flags; later phases add HealthKit / Health Connect, then WHOOP/Garmin cloud cross-checks.",
+  'Can my workplace play?':
+    "Yes — **corporate mode** is already built into the hub console. Organisations get their own leagues with **employer-funded charity pots** (no employee money is ever handled), and the wellbeing dashboard is **aggregate-only** with k≥5 suppression, so no individual's data surfaces. Renewal-outlook reporting rounds it out for the employer.",
+  // — /system chips —
+  'What am I looking at on this page?':
+    "This is **/system** — the dissemination page for the whole Reps With Friends build. It walks through the design tokens, the 18-component design system, the feature families A–G, and exactly where the project stands against the roadmap. Everything here is real and live — 90+ tests green, push-to-deploy in ~20s.",
+  'Which features are live right now?':
+    "**Live now:** the full 300-format core loop (tier handicaps, closure bonus, charity-pot ledger, AI taunts), the 4-week retention arc (seasons, divisions, streaks, comeback ×1.2), the WhatsApp + Slack bots, the phone-first PWA, this site, and the corporate console (seeded). **Next lane:** camera verification — MoveNet counting plus BLE heart-rate, with the %HRR handicap v2 already engine-ready.",
+  'What are the current blockers?':
+    "Three red ones: the **Slack app** needs a five-minute human creation step before it can offer a permanent install link; **WhatsApp Cloud API** group support is unverified, which shapes the pilot architecture; and a **charity-wager legal opinion** is required before real money moves. Just behind: always-on bot hosting (kit ready) and unifying app ↔ API ↔ bot state.",
+  'How do the design tokens work?':
+    "`design/tokens.css` is the single source of truth — every page imports it, never forks it. Near-black surfaces, with **lime strictly earned** (verified reps, winning, the one primary CTA), coral for effort and heat, amber for pending, sky for info. Space Grotesk carries display and body, **every number is mono**, and all motion is one 160ms ease.",
+};
+
+// First-open self-introduction: who the guide is, what it knows, invitation.
+const GREETING =
+  "Hey! I'm the **RWF guide** — the AI concierge built into this page. I know the whole build: the 300 match format, handicap tiers, verification, seasons, the bots, corporate mode, and what's live versus next. Tap a starter chip below for an instant answer, or type anything and I'll answer live.";
 
 // ---- context awareness: which section is on screen -------------------------
 const SECTIONS = [
@@ -76,6 +106,7 @@ function init() {
   const history = []; // {role:'user'|'assistant', content} — memory only
   let busy = false;
   let greeted = false;
+  let activeTyper = null; // in-flight typewriter (prebaked answer / greeting)
 
   // -- open / close ----------------------------------------------------------
   function setPanel(open, { focus = true } = {}) {
@@ -87,7 +118,7 @@ function init() {
       try { sessionStorage.setItem(OPEN_KEY, '1'); } catch { /* private mode */ }
       if (!greeted) {
         greeted = true;
-        addMsg('bot', "Hey! I'm the RWF guide. Ask me about the match format, handicaps, verification — or tap a starter below.");
+        activeTyper = typeBotMsg(GREETING); // the guide introduces itself
       }
       if (focus) input.focus();
     } else {
@@ -126,8 +157,32 @@ function init() {
       launcher.classList.remove('pulse');
       greeted = true;
       addMsg('bot', "Still here — ask away.");
+      sessionStorage.setItem(INTRO_KEY, '1'); // panel is already open — no auto-intro
     }
   } catch { /* ignore */ }
+
+  // -- 5s self-intro: auto-open once per session --------------------------------
+  // Desktop + motion only. If the visitor already opened (or opened-and-closed)
+  // the panel, the intro counts as shown and we never auto-open. Mobile and
+  // reduced-motion visitors keep the pulsing launcher instead.
+  let introShown = false;
+  try { introShown = sessionStorage.getItem(INTRO_KEY) === '1'; } catch { /* private mode */ }
+  const markIntroShown = () => { try { sessionStorage.setItem(INTRO_KEY, '1'); } catch { /* ignore */ } };
+
+  if (!introShown) {
+    const introTimer = setTimeout(() => {
+      markIntroShown();
+      if (panel.classList.contains('open')) return; // visitor beat us to it
+      if (window.matchMedia('(max-width: 620px)').matches || reducedMotion()) {
+        return; // no auto-open — launcher keeps its pulse ring
+      }
+      setPanel(true, { focus: false }); // polite: no focus steal from the page
+    }, 5000);
+    // any visitor interaction with the widget counts as "intro shown"
+    const cancelIntro = () => { clearTimeout(introTimer); markIntroShown(); };
+    launcher.addEventListener('click', cancelIntro, { once: true, capture: true });
+    closeBtn.addEventListener('click', cancelIntro, { once: true, capture: true });
+  }
 
   // -- message rendering -------------------------------------------------------
   // Markdown-lite, safely: **bold** and `code` via DOM building; everything
@@ -163,6 +218,81 @@ function init() {
     msgsEl.appendChild(div);
     msgsEl.scrollTop = msgsEl.scrollHeight;
     return div;
+  }
+
+  // -- typewriter (prebaked answers + greeting) ---------------------------------
+  // Renders the full markdown-lite DOM up front, then reveals the text
+  // character-by-character at 15–20ms/char (total capped ~7s) with a lime
+  // caret. Reduced motion → instant. Returns {finish} to complete instantly
+  // (used when a new message arrives mid-type).
+  function reducedMotion() {
+    return window.matchMedia('(prefers-reduced-motion: reduce)').matches;
+  }
+
+  function typeBotMsg(text) {
+    const div = document.createElement('div');
+    div.className = 'msg msg--bot msg--in';
+    renderLite(div, text);
+    msgsEl.appendChild(div);
+
+    const walker = document.createTreeWalker(div, NodeFilter.SHOW_TEXT);
+    const nodes = [];
+    for (let n = walker.nextNode(); n; n = walker.nextNode()) nodes.push({ node: n, full: n.nodeValue });
+    const total = nodes.reduce((s, x) => s + x.full.length, 0);
+    msgsEl.scrollTop = msgsEl.scrollHeight;
+    if (!total || reducedMotion()) return { finish() {} }; // instant
+
+    for (const x of nodes) x.node.nodeValue = '';
+    const caret = document.createElement('span');
+    caret.className = 'guide-caret';
+    nodes[0].node.parentElement.appendChild(caret);
+
+    function finishTyper() {
+      clearInterval(iv);
+      for (const x of nodes) x.node.nodeValue = x.full;
+      caret.remove();
+      if (activeTyper === handle) activeTyper = null;
+      msgsEl.scrollTop = msgsEl.scrollHeight;
+    }
+
+    const perChar = Math.max(15, Math.min(20, Math.round(7000 / total)));
+    let ni = 0, ci = 0, iv = null;
+    const handle = { finish: finishTyper };
+    // first char shows synchronously — the answer is visible the instant the
+    // chip is tapped; the typewriter then carries the rest
+    nodes[0].node.nodeValue = nodes[0].full.slice(0, 1);
+    ci = 1;
+    iv = setInterval(() => {
+      const x = nodes[ni];
+      if (!x) return finishTyper();
+      x.node.nodeValue = x.full.slice(0, ci + 1);
+      if (ci + 1 >= x.full.length) {
+        ni += 1; ci = 0;
+        const nxt = nodes[ni];
+        if (nxt) { caret.remove(); nxt.node.parentElement.appendChild(caret); }
+      } else {
+        ci += 1;
+      }
+      msgsEl.scrollTop = msgsEl.scrollHeight;
+      if (ni >= nodes.length) finishTyper();
+    }, perChar);
+    return handle;
+  }
+
+  // Instant local answer for a chip question — no network, no busy lock.
+  // Returns false if the question isn't prebaked (caller falls back to /api/ai).
+  function answerPrebaked(question, chip) {
+    const answer = PREBAKED[question];
+    if (!answer) return false;
+    if (activeTyper) { activeTyper.finish(); activeTyper = null; }
+    addMsg('user', question);
+    history.push({ role: 'user', content: question }, { role: 'assistant', content: answer });
+    activeTyper = typeBotMsg(answer);
+    if (chip) {
+      chip.classList.add('guide-chip--seen');
+      chip.setAttribute('aria-pressed', 'true');
+    }
+    return true;
   }
 
   const THINKING = ['Thinking…', 'Warming up…', 'Counting reps…', 'Checking the ladder…'];
@@ -234,13 +364,14 @@ function init() {
     if (busy) return;
     busy = true;
     sendBtn.disabled = true;
+    if (activeTyper) { activeTyper.finish(); activeTyper = null; } // settle any typing first
     if (!silent) addMsg('user', text);
     const loading = addLoading();
     try {
       const reply = await transmit(text);
       history.push({ role: 'user', content: text }, { role: 'assistant', content: reply });
       addMsg('bot', reply);
-      chipsEl.hidden = true; // starters retire only after the first real answer
+      // chips stay visible — prebaked starters are instant and re-tappable
     } catch {
       // history stays clean (user turn only lands on success) — retry re-sends.
       addError(text);
@@ -264,8 +395,10 @@ function init() {
 
   chipsEl.addEventListener('click', (e) => {
     const chip = e.target.closest('button[data-q]');
-    if (!chip || busy) return;
-    ask(chip.dataset.q);
+    if (!chip) return;
+    // prebaked first (instant, works even while a network ask is in flight);
+    // unknown chip falls through to the live model
+    if (!answerPrebaked(chip.dataset.q, chip)) ask(chip.dataset.q);
   });
 
   // -- section tracking boot ------------------------------------------------------
