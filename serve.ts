@@ -238,6 +238,9 @@ const server = Bun.serve({
       r = dirRoute("apps/connect", url) ?? new Response("connect not found", { status: 404 });
     } else if (p.startsWith("/demo")) {
       r = dirRoute("apps/demo", url) ?? new Response("demo not found", { status: 404 });
+    } else if (p.startsWith("/avatars")) {
+      // Local-only avatar playground — tune the customisation system live.
+      r = dirRoute("apps/avatars", url) ?? new Response("avatars playground not found", { status: 404 });
     } else if (p.startsWith("/system")) {
       r = dirRoute("apps/systempage", url) ?? new Response("system page not found", { status: 404 });
     } else {

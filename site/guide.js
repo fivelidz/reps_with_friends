@@ -364,8 +364,12 @@ function init() {
       if (!res.ok) {
         // 429 (ours or the provider's) → a "come back later", surfaced as a
         // distinct, non-alarming message rather than a generic failure.
+        // 502 is our proxy's code for an upstream failure — in practice that
+        // is almost always the provider's quota window, so treat it the same:
+        // honest message + point at the prebaked chips, which never need the
+        // network.
         const err = new Error('http ' + res.status);
-        err.kind = res.status === 429 ? 'ratelimit' : 'generic';
+        err.kind = res.status === 429 || res.status === 502 ? 'ratelimit' : 'generic';
         throw err;
       }
       const reply = typeof data?.text === 'string' ? data.text.trim() : '';

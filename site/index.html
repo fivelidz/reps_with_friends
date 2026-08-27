@@ -188,14 +188,25 @@
     // Squad strip — 4 avatars, one per tier, counters ticking at tier pace.
     // Raw reps drift apart; adjusted (reps × multiplier) stay level.
     import { AvatarScene } from '/site/avatars.js';
+    import * as THREE from 'three';
 
     const mount = document.getElementById('squadCanvas');
     if (mount) {
+      // Four distinct *characters*, not four colours: build, height, hair and
+      // accessory differ so the tiers read apart even in greyscale.
       const SQUAD = [
-        { tier: 'couch',   mult: 1.5,  exercise: 'squat',       cycle: 2.2,  css: 'var(--amber)' },
-        { tier: 'casual',  mult: 1.25, exercise: 'curl',        cycle: 1.85, css: 'var(--sky)' },
-        { tier: 'fit',     mult: 1.0,  exercise: 'jumpingjack', cycle: 1.55, css: 'var(--lime)' },
-        { tier: 'athlete', mult: 0.85, exercise: 'pushup',      cycle: 1.3,  css: 'var(--coral)' },
+        { tier: 'couch',   mult: 1.5,  exercise: 'squat',       cycle: 2.2,  css: 'var(--amber)',
+          build: 'heavy',   height: 0.94, hair: 'cap',   accessory: 'belt',
+          skinTone: '#f7ddc3', hairColor: '#4a3524' },
+        { tier: 'casual',  mult: 1.25, exercise: 'curl',        cycle: 1.85, css: 'var(--sky)',
+          build: 'average', height: 1.02, hair: 'bun',   accessory: 'wristbands',
+          skinTone: '#e9c49b', hairColor: '#2b2118' },
+        { tier: 'fit',     mult: 1.0,  exercise: 'jumpingjack', cycle: 1.55, css: 'var(--lime)',
+          build: 'average', height: 1.12, hair: 'short', accessory: 'none',
+          skinTone: '#d9a273', hairColor: '#7a4a22' },
+        { tier: 'athlete', mult: 0.85, exercise: 'pushup',      cycle: 1.3,  css: 'var(--coral)',
+          build: 'slim',    height: 1.20, hair: 'short', accessory: 'headband',
+          skinTone: '#8f5a30', hairColor: '#1a1c20' },
       ];
       const countersEl = document.getElementById('squadCounters');
       const cells = SQUAD.map((m) => {
@@ -213,6 +224,12 @@
           tier: m.tier,
           exercise: m.exercise,
           cycle: m.cycle,
+          build: m.build,
+          height: m.height,
+          hair: m.hair,
+          accessory: m.accessory,
+          skinTone: m.skinTone,
+          hairColor: m.hairColor,
           onRep(reps) {
             const c = cells[i];
             c.num.textContent = String(reps).padStart(4, '0');
@@ -221,6 +238,10 @@
         })),
       });
       scene.start();
+      // Inspection hook for the automated avatar check (apps/web/test/avatars-check.ts):
+      // it reads per-rig geometry to prove the four figures really differ.
+      window.__rwfSquad = scene;
+      window.__rwfThree = THREE;
     }
   </script>
 </section>

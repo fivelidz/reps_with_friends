@@ -11,11 +11,17 @@ import('/site/avatars.js')
     if (!mount) return;
     squad = new AvatarScene({
       mount,
+      // Same four characters as the site squad, in the demo's player order —
+      // each a distinct build/height/hair so the strip reads as four people.
       avatars: [
-        { tier: 'couch', exercise: 'squat' },       // Dave
-        { tier: 'athlete', exercise: 'pushup' },    // Ben
-        { tier: 'casual', exercise: 'curl' },       // Alexei
-        { tier: 'fit', exercise: 'jumpingjack' },   // Nico
+        { tier: 'couch', exercise: 'squat', build: 'heavy', height: 0.94,        // Dave
+          hair: 'cap', accessory: 'belt', skinTone: '#f7ddc3', hairColor: '#4a3524' },
+        { tier: 'athlete', exercise: 'pushup', build: 'slim', height: 1.20,      // Ben
+          hair: 'short', accessory: 'headband', skinTone: '#8f5a30', hairColor: '#1a1c20' },
+        { tier: 'casual', exercise: 'curl', build: 'average', height: 1.02,      // Alexei
+          hair: 'bun', accessory: 'wristbands', skinTone: '#e9c49b', hairColor: '#2b2118' },
+        { tier: 'fit', exercise: 'jumpingjack', build: 'average', height: 1.12,  // Nico
+          hair: 'short', accessory: 'none', skinTone: '#d9a273', hairColor: '#7a4a22' },
       ],
     });
     if (squad.dead) { squad = null; $('squadStrip').style.display = 'none'; return; }
