@@ -66,11 +66,18 @@ export function renderLink(root: HTMLElement, matchId: string): () => void {
         el(
           "button",
           {
-            class: "rwf-btn rwf-btn--primary btn-sm",
+            // Secondary: the screen's one lime CTA is "GO TO MATCH →" below.
+            // The code itself is already lime, so copying it reads as an
+            // affordance without a second filled button competing.
+            class: "rwf-btn btn-sm",
             html: icon("copy", 15) + "<span>Copy code</span>",
             onClick: () => copy(code, "Code"),
           }
-        )
+        ),
+        el("p", {
+          class: "muted small",
+          text: "Bots link with this same crew code — the WhatsApp/Slack bots, your mates' phones and this app all converge on one scoreboard through it.",
+        })
       ),
 
       chatCard("whatsapp", "chat", "WhatsApp", "wa"),

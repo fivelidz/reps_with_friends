@@ -1,7 +1,8 @@
 // RWF app entry — hash router + bottom nav. Vanilla TS, engine runs client-side.
 import "./styles.css";
-import { getState, setRenderer } from "./state.ts";
-import { el, icon } from "./ui.ts";
+import { getState, pullCrewIntoState, setRenderer } from "./state.ts";
+import { initSync, subscribeSync, syncSnapshot } from "./sync.ts";
+import { el, icon, mountSyncBar, renderSyncChip } from "./ui.ts";
 import { renderOnboard } from "./screens/onboard.ts";
 import { renderCrew } from "./screens/crew.ts";
 import { renderHome } from "./screens/home.ts";
@@ -14,6 +15,18 @@ import { renderSeason } from "./screens/season.ts";
 
 let cleanup: (() => void) | null = null;
 let lastKey = "__boot__";
+
+// ── sync header (status chip) + sync engine boot ─────────────────────────────
+const syncChip = mountSyncBar(document.getElementById("frame") as HTMLElement | null);
+if (syncChip) {
+  renderSyncChip(syncChip, syncSnapshot());
+  subscribeSync((snap) => renderSyncChip(syncChip, snap));
+  // Refresh the "SYNCED · 2m ago" label even when nothing is happening.
+  setInterval(() => renderSyncChip(syncChip, syncSnapshot()), 30_000);
+}
+initSync();
+// Boot pull: converge with the server + bots if this crew is already synced.
+if (getState().crew) pullCrewIntoState();
 
 function renderNav(): void {
   const nav = document.getElementById("nav");

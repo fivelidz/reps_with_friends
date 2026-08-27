@@ -18,6 +18,8 @@ export const CARD_HEIGHT = 675;
 const BG = "#0a0b0d";
 const LIME = "#c6f32e";
 const LIME_DIM = "#9fd400";
+/** Photo-finish accent (brand coral — effort/heat token). */
+export const CORAL = "#ff5c38";
 const WHITE = "#f4f6f0";
 const GREY = "#5a6068";
 const TRACK = "#1a1e24";
@@ -45,20 +47,46 @@ export function cardFileName(matchId: string): string {
   return `${matchId.replace(/[^a-zA-Z0-9_-]/g, "-")}.svg`;
 }
 
+export interface ResultCardOpts {
+  /** Photo-finish variant: coral accent borders + PHOTO FINISH subtitle. */
+  photoFinish?: boolean;
+  /** Top-two gap %, shown in the photo-finish subtitle. */
+  marginPct?: number;
+}
+
 /**
  * Build the branded result card for a completed match.
  * Winner huge up top, standings rows with progress bars, charity pot line,
  * RWF wordmark + "repswithfriends" footer.
+ *
+ * Photo-finish variant (opts.photoFinish): brand-coral accent border (inset
+ * stroke + coral top/bottom bars) and a "PHOTO FINISH · TOP TWO SEPARATED BY
+ * X%" subtitle instead of the plain match line.
  */
-export function generateResultCardSvg(match: StoredMatch, winnerName: string): string {
+export function generateResultCardSvg(
+  match: StoredMatch,
+  winnerName: string,
+  opts: ResultCardOpts = {}
+): string {
   const rows = standings(match.state).slice(0, 5);
   const more = standings(match.state).length - rows.length;
   const w = winner(match.state);
   const target = match.state.config.targetReps;
   const winnerAdjusted = w ? w.adjustedScore.toFixed(1) : "—";
+  const accent = opts.photoFinish ? CORAL : LIME;
 
   // ── winner block ──────────────────────────────────────────────────────────
   const champ = esc(fit(winnerName, 14).toUpperCase());
+
+  // ── subtitle ──────────────────────────────────────────────────────────────
+  const subtitle = opts.photoFinish
+    ? `PHOTO FINISH · TOP TWO SEPARATED BY ${opts.marginPct ?? "?"}% · FIRST TO ${target}`
+    : `MATCH RESULT · FIRST TO ${target}`;
+
+  // ── photo-finish inset border (coral drama frame) ─────────────────────────
+  const pfFrame = opts.photoFinish
+    ? `\n  <rect x="14" y="14" width="${CARD_WIDTH - 28}" height="${CARD_HEIGHT - 28}" fill="none" stroke="${CORAL}" stroke-width="3" rx="10"/>`
+    : "";
 
   // ── standings rows ────────────────────────────────────────────────────────
   const rowH = 58;
@@ -108,15 +136,15 @@ export function generateResultCardSvg(match: StoredMatch, winnerName: string): s
   </defs>
 
   <rect width="${CARD_WIDTH}" height="${CARD_HEIGHT}" fill="${BG}"/>
-  <rect x="0" y="0" width="${CARD_WIDTH}" height="6" fill="${LIME}"/>
-  <rect x="0" y="${CARD_HEIGHT - 6}" width="${CARD_WIDTH}" height="6" fill="${LIME}" opacity="0.35"/>
+  <rect x="0" y="0" width="${CARD_WIDTH}" height="6" fill="${accent}"/>
+  <rect x="0" y="${CARD_HEIGHT - 6}" width="${CARD_WIDTH}" height="6" fill="${accent}" opacity="0.35"/>${pfFrame}
 
   <g font-family="${FONT}">
     <text x="64" y="76" fill="${LIME}" font-size="25" font-weight="700" letter-spacing="7">REPS WITH FRIENDS</text>
-    <text x="64" y="100" fill="${GREY}" font-size="14" letter-spacing="4">MATCH RESULT · FIRST TO ${target}</text>
+    <text x="64" y="100" fill="${opts.photoFinish ? CORAL : GREY}" font-size="14" letter-spacing="4">${subtitle}</text>
 
     <text x="64" y="228" fill="${WHITE}" font-size="92" font-weight="700" letter-spacing="1">${champ}</text>
-    <text x="66" y="268" fill="${LIME}" font-size="27" font-weight="500">takes it — adjusted score ${winnerAdjusted} · effort wins the day</text>
+    <text x="66" y="268" fill="${accent}" font-size="27" font-weight="500">takes it — adjusted score ${winnerAdjusted} · effort wins the day</text>
 ${rowSvg}${moreLine}${potSvg}
 
     <text x="64" y="648" fill="${GREY}" font-size="15" letter-spacing="3">EFFORT-ADJUSTED SCORING · COUCH 1.5× · ATHLETE 0.85×</text>
@@ -133,9 +161,10 @@ ${rowSvg}${moreLine}${potSvg}
 export function writeResultCardSvg(
   match: StoredMatch,
   winnerName: string,
-  dir = ".data/cards"
+  dir = ".data/cards",
+  opts: ResultCardOpts = {}
 ): string {
-  const svg = generateResultCardSvg(match, winnerName);
+  const svg = generateResultCardSvg(match, winnerName, opts);
   mkdirSync(dir, { recursive: true });
   const path = join(dir, cardFileName(match.state.config.id));
   writeFileSync(path, svg);

@@ -59,6 +59,7 @@ h2 {
 }
 .nav-brand {
   display: flex; align-items: center; gap: 10px;
+  min-height: 44px;
   font-family: var(--font-display); font-weight: 700;
   letter-spacing: .06em; text-decoration: none; color: var(--text);
 }
@@ -66,6 +67,8 @@ h2 {
 .nav-brand-sub { font-family: var(--font-mono); font-weight: 400; font-size: 11px; letter-spacing: .12em; color: var(--faint); text-transform: lowercase; }
 .nav-links { display: flex; align-items: center; gap: 24px; }
 .nav-links a {
+  display: inline-flex; align-items: center;
+  min-height: 44px;
   font-family: var(--font-mono); font-size: 12px;
   letter-spacing: .14em; text-transform: uppercase;
   color: var(--muted); text-decoration: none;
@@ -131,7 +134,9 @@ h2 {
   display: block; font-family: var(--font-mono); font-size: 11px;
   letter-spacing: .2em; text-transform: uppercase; color: var(--muted); margin-bottom: 12px;
 }
-input[type="range"] { width: 100%; accent-color: var(--lime); height: 30px; cursor: pointer; }
+/* 44px tall so the slider thumb is comfortably draggable on a phone; the
+   track itself still renders thin, this is hit area only. */
+input[type="range"] { width: 100%; accent-color: var(--lime); height: 44px; cursor: pointer; }
 .tier-scale { display: grid; grid-template-columns: repeat(4, 1fr); gap: 6px; margin-top: 4px; }
 .tier-scale span {
   text-align: center; font-family: var(--font-mono); font-size: 11px;
@@ -222,8 +227,11 @@ input[type="number"]:focus, input[type="range"]:focus-visible { outline: 2px sol
   display: flex; align-items: center; gap: 9px;
   font-family: var(--font-mono); font-size: 12px; letter-spacing: .06em; color: var(--muted);
 }
-.swatch { width: 10px; height: 10px; border-radius: 50%; flex: none; }
-.swatch--ring { border: 2px solid var(--lime); background: transparent; box-shadow: 0 0 8px var(--lime-glow); }
+/* Scoped to .legend on purpose: /system loads site.css BEFORE system.css and
+   defines its own (much larger) .swatch token cards. An unscoped 10px rule
+   here collapsed every token swatch on /system to 10×10. */
+.legend .swatch { width: 10px; height: 10px; border-radius: 50%; flex: none; }
+.legend .swatch--ring { border: 2px solid var(--lime); background: transparent; box-shadow: 0 0 8px var(--lime-glow); }
 
 /* ---------- verification ---------- */
 .v-grid { display: grid; grid-template-columns: repeat(3, 1fr); gap: 18px; }
@@ -271,9 +279,19 @@ input[type="number"]:focus, input[type="range"]:focus-visible { outline: 2px sol
 .footer-grid { display: flex; flex-wrap: wrap; gap: 40px 60px; justify-content: space-between; align-items: flex-start; padding-bottom: 48px; }
 .footer-word { font-family: var(--font-display); font-weight: 700; font-size: 2rem; letter-spacing: .04em; }
 .footer-tag { color: var(--muted); font-size: .92rem; margin-top: 6px; }
-.footer-col { display: flex; flex-direction: column; gap: 8px; font-size: .92rem; color: var(--muted); }
-.footer-col a { color: var(--muted); text-decoration: none; transition: color var(--ease); }
+.footer-col { display: flex; flex-direction: column; font-size: .92rem; color: var(--muted); }
+/* Stacked links need a real hit area — 24px rows were a thumb-miss risk.
+   Padding (not margin) so the whole row is tappable, negative inline offset
+   keeps the text visually flush with the column edge. */
+.footer-col a {
+  color: var(--muted); text-decoration: none; transition: color var(--ease);
+  display: flex; align-items: center;
+  min-height: 44px;
+  margin-inline: -6px; padding-inline: 6px;
+  border-radius: var(--radius-sm);
+}
 .footer-col a:hover { color: var(--lime); }
+.footer-col .footer-head + a { margin-top: -4px; }
 .footer-head { font-family: var(--font-mono); font-size: 11px; letter-spacing: .2em; text-transform: uppercase; color: var(--faint); margin-bottom: 4px; }
 .footer-base { border-top: 1px solid var(--line); padding: 20px 28px; }
 .footer-base p { font-family: var(--font-mono); font-size: 11px; letter-spacing: .12em; text-transform: uppercase; color: var(--faint); }
@@ -756,6 +774,9 @@ input[type="number"]:focus, input[type="range"]:focus-visible { outline: 2px sol
   width: 20px; height: 20px; border-radius: 50%;
   display: grid; place-items: center;
   font-size: 10px; font-weight: 700;
+  /* Avatar chips are always filled with a BRIGHT accent (lime/sky/coral), so
+     the initial must be the dark ink — inheriting --text gave 1.6:1. */
+  color: #0a0b0d;
 }
 .m-name { font-size: 10.5px; font-weight: 600; display: flex; align-items: center; gap: 5px; flex: 1; min-width: 0; }
 .m-cbk {

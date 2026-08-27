@@ -223,7 +223,11 @@ body {
   padding: 44px 20px; text-align: center; color: var(--faint);
   font-size: 12.5px; line-height: 1.7;
 }
-.empty .empty-glyph { font-size: 18px; margin-bottom: 8px; color: var(--line-bright); }
+/* Decorative mark, but --line-bright is a BORDER token — as text it rendered
+   at 1.5:1 (effectively invisible). --faint-deco is the intended decorative
+   ink and reads as a quiet glyph rather than a rendering bug. Sized up so it
+   works as an icon rather than a stray character. */
+.empty .empty-glyph { font-size: 26px; line-height: 1; margin-bottom: 10px; color: var(--faint-deco); }
 .empty .empty-hint { font-size: 11px; }
 .err-state { color: var(--coral); }
 
@@ -286,9 +290,12 @@ body {
   font-family: var(--font-display);
   font-size: 11px; font-weight: 700; letter-spacing: 0.14em;
   text-transform: uppercase;
-  color: var(--faint);
+  /* --muted, not --faint: an inactive TAB is a real navigation control, not
+     decoration, so it needs AA contrast against the console chrome. */
+  color: var(--muted);
   background: none; border: none; cursor: pointer;
   padding: 12px 14px 10px;
+  min-height: 44px;
   transition: color var(--ease);
 }
 .tabbtn::after {

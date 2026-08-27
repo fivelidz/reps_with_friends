@@ -6,6 +6,8 @@ import { composeTaunt, narrateMatch } from "../ai.ts";
 import { COMEBACK_MULTIPLIER, comebackArmed } from "../engine-extras.ts";
 import { getMatch, getState, logEntry, touch } from "../state.ts";
 import { avatar, el, fmtScore, icon, posMark, toast, topbar, tierBadge } from "../ui.ts";
+import { openCameraVerifier } from "../verify/camera.ts";
+import { openHrSheet, type HrController } from "../verify/hr.ts";
 
 // Persist across re-renders (same match) so logging feels continuous.
 const panel = { matchId: "", exerciseId: "", count: 10 };
@@ -14,6 +16,15 @@ let tauntIdx = Math.floor(Math.random() * TAUNTS.length);
 // Last AI narration per match — shown instantly on re-render, refreshed on click.
 const narrationCache = new Map<string, string>();
 let tauntInFlight = false;
+
+// Lane 7 — live HR strap session. Module-level so it survives re-renders
+// (sim crew logs re-render this screen every few seconds).
+const hrSession: { ctrl: HrController | null; bpm: number; hrrPct: number; lost: boolean } = {
+  ctrl: null,
+  bpm: 0,
+  hrrPct: 0,
+  lost: false,
+};
 
 export function renderMatch(root: HTMLElement, matchId: string): () => void {
   const st = getState();
@@ -123,8 +134,33 @@ export function renderMatch(root: HTMLElement, matchId: string): () => void {
   };
   syncSticky();
 
+  // "One lime CTA per screen" (doc 13 §1.1). The sticky bar is a stand-in for
+  // the real LOG button once that button scrolls out of view — while it IS on
+  // screen, showing both puts two identical lime CTAs in front of the user.
+  // So the bar hides itself whenever logBtn is actually visible.
+  let stickyObserver: IntersectionObserver | undefined;
+  if (typeof IntersectionObserver !== "undefined") {
+    stickyObserver = new IntersectionObserver(
+      (entries) => {
+        const e = entries[0];
+        if (e) stickyBar.classList.toggle("is-hidden", e.isIntersecting);
+      },
+      { root: document.getElementById("app"), threshold: 0.4 }
+    );
+    stickyObserver.observe(logBtn);
+  }
+
   const doLog = (verified: boolean): void => {
-    const closed = logEntry(matchId, me.id, panel.exerciseId, panel.count, verified);
+    // Lane 7: while a strap is live, attach this set's average %HRR (Karvonen).
+    const hr = hrSession.ctrl?.takeSetAverage() ?? null;
+    const closed = logEntry(
+      matchId,
+      me.id,
+      panel.exerciseId,
+      panel.count,
+      verified,
+      hr != null ? { avgHrrPct: hr } : undefined
+    );
     // Comeback toast: state.logEntry flags the entry when the player is armed.
     const after = getMatch(matchId);
     const last = after?.entries[after.entries.length - 1];
@@ -134,8 +170,103 @@ export function renderMatch(root: HTMLElement, matchId: string): () => void {
       toast("You closed the match! 🏆", "ok");
       location.hash = `#/result/${matchId}`;
     } else {
-      toast(`+${panel.count} ${exName()} logged`, "ok");
+      toast(`+${panel.count} ${exName()} logged${hr != null ? ` · ${Math.round(hr)}% HRR` : ""}`, "ok");
     }
+  };
+
+  // ── lane 7: verification (camera counting + HR strap) ─────────────────────
+  const hrChipText = (): string =>
+    hrSession.lost
+      ? `HR LOST · ${Math.round(hrSession.ctrl?.stats().avgHrrPct ?? 0)}% AVG KEPT`
+      : `HR LIVE · ${hrSession.bpm || "–"} BPM · ${Math.round(hrSession.hrrPct)}% HRR`;
+
+  const refreshHrChip = (): void => {
+    const chip = document.querySelector(".hrchip");
+    if (!chip) return;
+    chip.classList.toggle("hrchip--lost", hrSession.lost);
+    const t = chip.querySelector(".hrchip-text");
+    if (t) t.textContent = hrChipText();
+  };
+
+  const disconnectHr = (): void => {
+    const stats = hrSession.ctrl?.stats();
+    hrSession.ctrl?.stop();
+    hrSession.ctrl = null;
+    hrSession.lost = false;
+    toast(
+      stats && stats.avgHrrPct != null
+        ? `Strap off — session avg ${Math.round(stats.avgHrrPct)}% HRR`
+        : "Strap disconnected",
+      "info"
+    );
+    touch();
+  };
+
+  const hrChip = hrSession.ctrl
+    ? el("button", {
+        class: `hrchip ${hrSession.lost ? "hrchip--lost" : ""}`,
+        type: "button",
+        title: "Tap to disconnect the strap",
+        html: `<i class="hrchip-dot"></i><span class="hrchip-text">${hrChipText()}</span>`,
+        onClick: () => disconnectHr(),
+      })
+    : null;
+
+  const openHr = (): void => {
+    if (hrSession.ctrl) {
+      disconnectHr();
+      return;
+    }
+    openHrSheet({
+      onBpm: (bpm, hrrPct) => {
+        hrSession.bpm = bpm;
+        hrSession.hrrPct = hrrPct;
+        refreshHrChip();
+      },
+      onStatus: (status, detail) => {
+        if (status === "disconnected") {
+          hrSession.lost = true;
+          refreshHrChip();
+          toast(detail ?? "Strap disconnected — partial average kept", "warn");
+        }
+      },
+      onConnected: (ctrl) => {
+        hrSession.ctrl = ctrl;
+        hrSession.bpm = ctrl.stats().lastBpm ?? 0;
+        hrSession.hrrPct = 0;
+        hrSession.lost = false;
+        toast(`❤ ${ctrl.deviceName ?? "Strap"} connected — effort now scores`, "ok");
+        touch(); // re-render mounts the live chip
+      },
+    });
+  };
+
+  const openCamera = (): void => {
+    openCameraVerifier({
+      exerciseId: panel.exerciseId,
+      allowedExercises: match.config.exercises.map((e) => e.id),
+      onDone: (r) => {
+        const ex = match.config.exercises.find((e) => e.id === r.exerciseId);
+        if (!ex) {
+          toast("That exercise isn't part of this match", "warn");
+          return;
+        }
+        const hr = hrSession.ctrl?.takeSetAverage() ?? null;
+        const closed = logEntry(
+          matchId,
+          me.id,
+          r.exerciseId,
+          r.reps,
+          true,
+          hr != null ? { avgHrrPct: hr } : undefined
+        );
+        toast(`✓ Camera verified ${r.reps} ${ex.name.toLowerCase()}`, "ok");
+        if (closed) {
+          toast("You closed the match! 🏆", "ok");
+          location.hash = `#/result/${matchId}`;
+        }
+      },
+    });
   };
 
   // ── AI narrator ───────────────────────────────────────────────────────────
@@ -273,16 +404,22 @@ export function renderMatch(root: HTMLElement, matchId: string): () => void {
           )
         ),
         logBtn,
+        hrChip,
         el(
-          "button",
-          {
-            class: "rwf-btn btn-block btn-sm btn--ghost",
-            html: icon("camera", 15) + "<span>CAMERA VERIFY · COMING SOON</span>",
-            onClick: () => {
-              doLog(false); // camera counting is lane 07 — logs unverified for now
-              toast("Camera counting coming soon — set logged unverified", "info");
-            },
-          }
+          "div",
+          { class: "verifyrow" },
+          el("button", {
+            class: "rwf-btn btn-sm btn--ghost verifyrow-btn",
+            type: "button",
+            html: icon("camera", 15) + "<span>CAMERA VERIFY</span>",
+            onClick: openCamera,
+          }),
+          el("button", {
+            class: `rwf-btn btn-sm btn--ghost verifyrow-btn verifyrow-btn--hr ${hrSession.ctrl ? "on" : ""}`,
+            type: "button",
+            html: icon("heart", 15) + `<span>${hrSession.ctrl ? "HR LIVE · END" : "HR STRAP"}</span>`,
+            onClick: openHr,
+          })
         )
       ),
 
@@ -318,5 +455,6 @@ export function renderMatch(root: HTMLElement, matchId: string): () => void {
 
   return () => {
     if (handle !== undefined) clearInterval(handle);
+    stickyObserver?.disconnect();
   };
 }

@@ -87,6 +87,23 @@ async function sim(): Promise<void> {
       steps: [{ m: ben("season ladder") }],
     },
     {
+      label: "G-family: rematch → photo-finish result → nemesis → digest",
+      steps: [
+        { m: ben("rematch") }, // 🔁 RUN IT BACK — same crew, same rules, fresh pot
+        { m: dave("pot 300") }, // seed the fresh pot
+        { m: ben("pot 400") },
+        { m: ben("start") }, // roster carried over — no join step needed
+        { m: dave("log pushups 90") }, // couch 90 raw → 135 adjusted
+        { m: nico("log squats 120") }, // fit 120 raw → 120 adjusted
+        { m: dave("log sit-ups 95") }, // dave 185 raw → 277.5 adjusted
+        { m: ben("log pushups 300") }, // athlete closes at 300 raw → 255 + 15 = 270…
+        { m: nico("result") }, // …Dave by 7.5 (2.7%) → 📸 PHOTO FINISH + coral card
+        { m: ben("nemesis") }, // Ben's nemesis is Dave — beaten 2 of 2
+        { m: dave("nemesis") }, // Dave: no nemesis yet (graceful)
+        { m: nico("digest") }, // 📋 Monday digest (+ AI line if the app server is up)
+      ],
+    },
+    {
       label: "spectator mode (watch from another channel, `s` without joining)",
       steps: [
         { m: mia("watch CREW-7Q2"), chan: "#lounge" },
@@ -126,8 +143,11 @@ async function sim(): Promise<void> {
     const cardPath = join(cardsDir, `${m.state.config.id.replace(/[^a-zA-Z0-9_-]/g, "-")}.svg`);
     try {
       const size = statSync(cardPath).size;
+      const variant = readFileSync(cardPath, "utf8").includes("#ff5c38")
+        ? " — 📸 photo-finish variant (coral accent)"
+        : "";
       console.log(`── result card artifact ──`);
-      console.log(`🖼 ${cardPath} (${size} bytes) → http://localhost:4173/cards/${basename(cardPath)}`);
+      console.log(`🖼 ${cardPath} (${size} bytes)${variant} → http://localhost:4173/cards/${basename(cardPath)}`);
     } catch {
       console.log(`🖼 result card missing at ${cardPath} — check cardsDir`);
     }

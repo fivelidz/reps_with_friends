@@ -5,3 +5,5 @@ export * from "./pot.ts";
 export * from "./comeback.ts";
 export * from "./season.ts";
 export * from "./baseline.ts";
+export * from "./nemesis.ts";
+export * from "./photo-finish.ts";

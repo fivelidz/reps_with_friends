@@ -1,6 +1,59 @@
 // Screen 2 — Crew: create (get a 6-char code) or join by code.
-import { createCrew, getState, joinCrew } from "../state.ts";
+import { createCrew, getState, joinCrew, pullCrewIntoState, syncCrewNow } from "../state.ts";
+import { syncAvailable, syncHasCrew } from "../sync.ts";
 import { copyText, el, icon, toast, topbar } from "../ui.ts";
+
+/** Server-sync card for the manage view: opt in / pull (see sync.ts). */
+function syncCard(): HTMLElement {
+  if (!syncAvailable()) {
+    // Deployed Pages has no API behind it — say so, quietly.
+    return el(
+      "div",
+      { class: "rwf-card card-pad" },
+      el("div", { class: "seclabel", text: "Server sync" }),
+      el("p", {
+        class: "muted small",
+        text: "Local sync only — this device keeps the scoreboard. Server sync runs next to the dev API (localhost:4174).",
+      })
+    );
+  }
+  if (syncHasCrew()) {
+    return el(
+      "div",
+      { class: "rwf-card card-pad stack-sm" },
+      el("div", { class: "seclabel", text: "Server sync" }),
+      el("p", {
+        class: "muted small",
+        text: "Crew mirrored to the server — phones and chat bots converge on the same code and scoreboard.",
+      }),
+      el("button", {
+        class: "rwf-btn btn-sm",
+        html: icon("download", 14) + "<span>PULL UPDATES</span>",
+        onClick: () => {
+          pullCrewIntoState();
+          toast("Pulling latest from server…", "info");
+        },
+      })
+    );
+  }
+  return el(
+    "div",
+    { class: "rwf-card card-pad stack-sm" },
+    el("div", { class: "seclabel", text: "Server sync" }),
+    el("p", {
+      class: "muted small",
+      text: "This crew lives on this device only. Sync it to the server to link phones and chat bots.",
+    }),
+    el("button", {
+      class: "rwf-btn rwf-btn--primary btn-sm",
+      html: icon("bolt", 14) + "<span>SYNC THIS CREW TO THE SERVER</span>",
+      onClick: () => {
+        syncCrewNow();
+        toast("Syncing crew to server…", "info");
+      },
+    })
+  );
+}
 
 export function renderCrew(root: HTMLElement): () => void {
   const st = getState();
@@ -29,6 +82,7 @@ export function renderCrew(root: HTMLElement): () => void {
             }
           )
         ),
+        syncCard(),
         el("p", { class: "hint", text: "Share this code. Your crew joins from the chat or the app." })
       )
     );

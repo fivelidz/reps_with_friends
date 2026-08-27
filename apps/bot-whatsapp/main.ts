@@ -107,6 +107,25 @@ async function sim(): Promise<void> {
       return out.join("\n\n");
     } },
     { label: "season ladder after the match", run: () => Promise.resolve(`▸ Ben: season ladder\n${bus.handle(ben("season ladder"))}`) },
+    { label: "G-family: rematch → photo-finish result → nemesis → digest", run: async () => {
+      const out: string[] = [];
+      const steps = [
+        ben("rematch"),          // 🔁 RUN IT BACK — same crew, same rules, fresh pot
+        dave("pot 300"),         // seed the fresh pot
+        ben("pot 400"),
+        ben("start"),            // roster carried over — no join step needed
+        dave("log pushups 90"),  // couch 90 raw → 135 adjusted
+        nico("log squats 120"),  // fit 120 raw → 120 adjusted
+        dave("log sit-ups 95"),  // dave 185 raw → 277.5 adjusted
+        ben("log pushups 300"),  // athlete closes at 300 raw → 255 + 15 = 270…
+        nico("result"),          // …Dave by 7.5 (2.7%) → 📸 PHOTO FINISH + coral card
+        ben("nemesis"),          // Ben's nemesis is Dave — beaten 2 of 2
+        dave("nemesis"),         // Dave: no nemesis yet (graceful)
+        nico("digest"),          // 📋 Monday digest (+ AI line if the app server is up)
+      ];
+      for (const m of steps) out.push(`▸ ${m.playerName}: ${m.text}\n${await bus.handleAsync(m)}`);
+      return out.join("\n\n");
+    } },
     { label: "spectator mode (watch from another chat, `s` without joining)", run: async () => {
       const out: string[] = [];
       for (const m of [mia("watch CREW-7Q2"), mia("s")]) {
@@ -142,8 +161,11 @@ async function sim(): Promise<void> {
     const cardPath = join(cardsDir, `${m.state.config.id.replace(/[^a-zA-Z0-9_-]/g, "-")}.svg`);
     try {
       const size = statSync(cardPath).size;
+      const variant = readFileSync(cardPath, "utf8").includes("#ff5c38")
+        ? " — 📸 photo-finish variant (coral accent)"
+        : "";
       console.log(`── result card artifact ──`);
-      console.log(`🖼 ${cardPath} (${size} bytes) → http://localhost:4173/cards/${basename(cardPath)}`);
+      console.log(`🖼 ${cardPath} (${size} bytes)${variant} → http://localhost:4173/cards/${basename(cardPath)}`);
     } catch {
       console.log(`🖼 result card missing at ${cardPath} — check cardsDir`);
     }

@@ -74,7 +74,11 @@ body { margin: 0; background: var(--bg); color: var(--text); font-family: var(--
 .btnrow { display: flex; gap: 10px; justify-content: center; flex-wrap: wrap; }
 .btnrow .rwf-btn { text-decoration: none; }
 .demo-foot { text-align: center; color: var(--faint); font-size: 13px; margin-top: 30px; }
-.demo-foot a { color: var(--muted); text-decoration: none; margin: 0 6px; }
+.demo-foot a { color: var(--muted); text-decoration: none; margin: 0 6px;
+  /* inline-flex + min-height keeps these footer links tappable (44px)
+     without changing the centred, dot-separated look. */
+  display: inline-flex; align-items: center; justify-content: center;
+  min-height: 44px; min-width: 44px; }
 .demo-foot a:hover { color: var(--lime); }
 @media (prefers-reduced-motion: reduce) {
   .bub, .cta-card { animation: none; }

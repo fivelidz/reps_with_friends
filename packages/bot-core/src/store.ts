@@ -2,6 +2,8 @@
 
 import type { MatchState } from "../../game-core/src/index.ts";
 import { createMatch, startMatch } from "../../game-core/src/index.ts";
+import { finalStandings, winner } from "../../game-core/src/index.ts";
+import { isPhotoFinish, photoFinishMargin } from "../../game-core/src/index.ts";
 import type { Player } from "../../game-core/src/index.ts";
 import { readFileSync, writeFileSync, mkdirSync } from "node:fs";
 import { dirname } from "node:path";
@@ -14,12 +16,41 @@ const DEFAULT_EXERCISES = [
   { id: "lunge", name: "Lunges" },
 ];
 
+/** Unique match id — random suffix so two matches created in the same ms differ. */
+function newMatchId(chatId: string): string {
+  return `m-${chatId}-${Date.now().toString(36)}-${Math.floor(Math.random() * 1e6).toString(36)}`;
+}
+
+/**
+ * One completed match, snapshotted for rematch / nemesis / digest (G-family).
+ * `rows` are the FINAL standings (closure bonus applied, winner first) — the
+ * same order `winner()` crowns from.
+ */
+export interface MatchHistoryEntry {
+  matchId: string;
+  completedAt: number;
+  targetReps: number;
+  exercises: { id: string; name: string }[];
+  playDays: number[];
+  /** Roster with tiers — rematch re-seeds the next match from this. */
+  players: Player[];
+  rows: { playerId: string; name: string; adjustedScore: number; rawReps: number }[];
+  winnerId: string;
+  /** playerId whose raw total hit target (the closer). */
+  closedById: string;
+  potCents: number;
+  photoFinish: boolean;
+  photoFinishMarginPct: number;
+}
+
 export interface StoredMatch {
   state: MatchState;
   potCents: number;
   potContributors: Record<string, number>;
   /** Crew this chat is bound to via `link <CODE>` (ops hub surfaces it). */
   crewCode?: string;
+  /** Completed matches in this chat, oldest first (rematch/nemesis/digest). */
+  history?: MatchHistoryEntry[];
 }
 
 /** Crew-vs-crew challenge (stub — engine wiring lands with rivalry matches). */
@@ -74,16 +105,24 @@ export class MatchStore {
     targetReps = 300,
     playDays: number[] = [2, 4]
   ): StoredMatch {
+    // Snapshot a completed predecessor into history before replacing it, so
+    // nemesis/digest survive a plain `new` over a finished match.
+    const prev = this.matches.get(chatId);
+    let history = prev?.history;
+    if (prev && prev.state.status === "complete") {
+      const entry = this.snapshot(prev);
+      if (entry) history = [...(history ?? []), entry];
+    }
     const state = createMatch(
       {
-        id: `m-${chatId}-${Date.now().toString(36)}`,
+        id: newMatchId(chatId),
         exercises: DEFAULT_EXERCISES,
         targetReps,
         playDays,
       },
       []
     );
-    const m: StoredMatch = { state, potCents: 0, potContributors: {} };
+    const m: StoredMatch = { state, potCents: 0, potContributors: {}, history };
     this.matches.set(chatId, m);
     this.persist();
     return m;
@@ -108,6 +147,86 @@ export class MatchStore {
     const m = this.must(chatId);
     m.state = state;
     this.persist();
+  }
+
+  // ── match history (rematch / nemesis / digest) ─────────────────────────────
+
+  /** Completed matches in this chat, oldest first. */
+  historyFor(chatId: string): MatchHistoryEntry[] {
+    return this.matches.get(chatId)?.history ?? [];
+  }
+
+  /**
+   * Snapshot the chat's completed match into history (idempotent — a match is
+   * only ever recorded once). Called when a match closes; also defensively by
+   * `rematch`/`create` for completes that predate this feature.
+   */
+  recordHistory(chatId: string): MatchHistoryEntry | null {
+    const m = this.must(chatId);
+    const entry = this.snapshot(m);
+    if (!entry) return null;
+    m.history = [...(m.history ?? []), entry];
+    this.persist();
+    return entry;
+  }
+
+  /** Pure snapshot builder. Null when the match isn't complete or already recorded. */
+  private snapshot(m: StoredMatch): MatchHistoryEntry | null {
+    if (m.state.status !== "complete") return null;
+    if (m.history?.some((h) => h.matchId === m.state.config.id)) return null;
+    const rows = finalStandings(m.state).map((r) => ({
+      playerId: r.player.id,
+      name: r.player.name,
+      adjustedScore: r.adjustedScore,
+      rawReps: r.rawReps,
+    }));
+    const pf = rows.map((r) => ({ playerId: r.playerId, adjustedScore: r.adjustedScore }));
+    return {
+      matchId: m.state.config.id,
+      completedAt: m.state.completedAt ?? Date.now(),
+      targetReps: m.state.config.targetReps,
+      exercises: m.state.config.exercises,
+      playDays: m.state.config.playDays,
+      players: m.state.players,
+      rows,
+      winnerId: winner(m.state)?.playerId ?? rows[0]?.playerId ?? "",
+      closedById: m.state.closedBy ?? "",
+      potCents: m.potCents,
+      photoFinish: isPhotoFinish(pf),
+      photoFinishMarginPct: photoFinishMargin(pf),
+    };
+  }
+
+  /**
+   * `rematch` (G-26): new match from the last completed one — same exercises,
+   * target and play days, roster carried over pre-joined (status open), pot
+   * reset to zero. Crew binding and history survive.
+   */
+  rematch(chatId: string): StoredMatch {
+    const m = this.must(chatId);
+    if (m.state.status !== "complete")
+      throw new Error("rematch needs a completed match — finish the current one first");
+    this.recordHistory(chatId); // defensive no-op if closure already recorded it
+    const prev = this.matches.get(chatId)!;
+    const state = createMatch(
+      {
+        id: newMatchId(chatId),
+        exercises: prev.state.config.exercises,
+        targetReps: prev.state.config.targetReps,
+        playDays: prev.state.config.playDays,
+      },
+      prev.state.players
+    );
+    const next: StoredMatch = {
+      state,
+      potCents: 0,
+      potContributors: {},
+      crewCode: prev.crewCode,
+      history: prev.history,
+    };
+    this.matches.set(chatId, next);
+    this.persist();
+    return next;
   }
 
   contributePot(chatId: string, playerId: string, cents: number): number {

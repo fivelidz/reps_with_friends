@@ -6,15 +6,16 @@
 //
 // Command surface (identical on both platforms):
 //   new [target] · join [tier] · start · log <exercise> <reps>[!] ·
-//   s / standings · taunt <name> · pot <cents> · result · link <code> ·
-//   watch <code> · challenge <code> · season new|ladder · help
+//   s / standings · taunt <name> · pot <cents> · result · rematch ·
+//   nemesis [name] · digest · link <code> · watch <code> · challenge <code> ·
+//   season new|ladder · help
 //
 // `handle` is synchronous (canned taunts, no network). `handleAsync` is the
-// same bus but lets `taunt` try the local AI endpoint first (2s timeout,
-// canned fallback) — the bots use it; tests use the sync path.
+// same bus but lets `taunt` and `digest` try the local AI endpoint first
+// (2s timeout, canned fallback) — the bots use it; tests use the sync path.
 
 import type { FitnessTier, Player, RepEntry } from "../../game-core/src/index.ts";
-import { logReps, standings, winner } from "../../game-core/src/index.ts";
+import { finalStandings, isPhotoFinish, logReps, nemesisFor, photoFinishMargin, standings, winner } from "../../game-core/src/index.ts";
 import type { MatchStore, StoredMatch } from "./store.ts";
 import {
   challengeCard,
@@ -23,7 +24,10 @@ import {
   linkCard,
   logCard,
   newCard,
+  nemesisCard,
+  nemesisNoneCard,
   potCard,
+  rematchCard,
   resultCard,
   rivalryCard,
   seasonHelpCard,
@@ -43,6 +47,7 @@ import {
 } from "./game-extras.ts";
 import type { SeasonMatchResult } from "./game-extras.ts";
 import { aiTaunt } from "./ai.ts";
+import { aiDigestLine, buildDigestCard, digestSummaryForAi } from "./digest.ts";
 
 export interface InboundMessage {
   /** Chat/channel key — one match per chat. */
@@ -65,6 +70,9 @@ const COMMANDS = new Set([
   "taunt",
   "pot",
   "result",
+  "rematch",
+  "nemesis",
+  "digest",
   "link",
   "watch",
   "challenge",
@@ -76,6 +84,10 @@ const ALIASES: Record<string, string> = {
   s: "standings",
   standings: "standings",
   h: "help",
+  again: "rematch",
+  runitback: "rematch",
+  nem: "nemesis",
+  monday: "digest",
 };
 
 /** lowercase + strip non-alphanumerics: "/rwf" → "rwf", "Push-ups!" → "pushups". */
@@ -173,6 +185,12 @@ export class CommandBus {
         return this.cmdPot(msg, args);
       case "result":
         return this.cmdResult(msg);
+      case "rematch":
+        return this.cmdRematch(msg);
+      case "nemesis":
+        return this.cmdNemesis(msg, args);
+      case "digest":
+        return this.cmdDigest(msg, allowAi);
       case "link":
         return this.cmdLink(msg, args);
       case "watch":
@@ -256,7 +274,14 @@ export class CommandBus {
     };
     const { state, closedMatch } = logReps(m.state, entry);
     this.store.update(msg.chatId, state);
-    if (closedMatch) this.recordSeasonResult(state); // counts toward `season ladder`
+    if (closedMatch) {
+      this.recordSeasonResult(state); // counts toward `season ladder`
+      try {
+        this.store.recordHistory(msg.chatId); // rematch / nemesis / digest fuel
+      } catch {
+        /* history must never break the match */
+      }
+    }
     return logCard(msg.playerName, exercise.name, reps, verified, closedMatch, state.config.targetReps);
   }
 
@@ -299,16 +324,94 @@ export class CommandBus {
     if (!w) throw new Error("no winner recorded — match state looks broken");
     const champ = m.state.players.find((p) => p.id === w.playerId);
     if (!champ) throw new Error(`winner ${w.playerId} not in player list — match state looks broken`);
-    const base = resultCard(m, champ.name, w.adjustedScore);
+    // Photo finish (G-30): top two within 5% → dramatic banner + coral card.
+    const final = finalStandings(m.state).map((r) => ({
+      playerId: r.player.id,
+      adjustedScore: r.adjustedScore,
+    }));
+    const pf = isPhotoFinish(final);
+    const pfPct = photoFinishMargin(final);
+    const base = resultCard(m, champ.name, w.adjustedScore, pf ? { photoFinishPct: pfPct } : undefined);
     // Generate the branded SVG card and append its URL. Card generation must
     // never break the result — on any failure the text card still goes out.
     try {
-      writeResultCardSvg(m, champ.name, this.opts.cardsDir ?? ".data/cards");
+      writeResultCardSvg(m, champ.name, this.opts.cardsDir ?? ".data/cards", pf ? { photoFinish: true, marginPct: pfPct } : undefined);
       const url = `${this.opts.cardsUrl ?? "http://localhost:4173/cards"}/${cardFileName(m.state.config.id)}`;
       return `${base}\n\n🖼 Result card: ${url}`;
     } catch {
       return base;
     }
+  }
+
+  // `rematch` (G-26) — new match from the last completed one: same exercises,
+  // target, play days; roster carried over pre-joined; pot reset to zero.
+  private cmdRematch(msg: InboundMessage): string {
+    const m = this.mustMatch(msg.chatId);
+    if (m.state.status !== "complete")
+      throw new Error(
+        `match is still ${m.state.status === "live" ? "live" : "open"} — finish it first, then run it back`
+      );
+    const history = this.store.historyFor(msg.chatId);
+    const prevWinnerName = history.length > 0
+      ? history[history.length - 1].rows.find((r) => r.playerId === history[history.length - 1].winnerId)?.name
+      : undefined;
+    const next = this.store.rematch(msg.chatId);
+    return rematchCard(next, history.length + 1, prevWinnerName);
+  }
+
+  // `nemesis [name]` (G-28) — closest rival from head-to-head history.
+  private cmdNemesis(msg: InboundMessage, args: string[]): string {
+    const history = this.store.historyFor(msg.chatId);
+    if (history.length === 0)
+      return "⚔️ No finished matches in this chat yet — rivalries need history. Close one out and ask again.";
+
+    // id → latest name, from history first, then the live roster.
+    const known = new Map<string, string>();
+    for (const h of history) for (const r of h.rows) known.set(r.playerId, r.name);
+    const m = this.store.get(msg.chatId);
+    for (const p of m?.state.players ?? []) if (!known.has(p.id)) known.set(p.id, p.name);
+
+    let targetId = msg.playerId;
+    const query = args.join(" ").trim().toLowerCase();
+    if (query) {
+      let found: string | null = null;
+      for (const [id, name] of known) {
+        const n = name.toLowerCase();
+        if (n.includes(query) || query.includes(n)) {
+          found = id;
+          break;
+        }
+      }
+      if (!found) throw new Error(`no one called "${args.join(" ")}" in this chat's match history`);
+      targetId = found;
+    } else if (!known.has(targetId)) {
+      throw new Error("you haven't finished a match in this chat yet — try `nemesis <name>`");
+    }
+
+    const results = history.map((h) => ({
+      matchId: h.matchId,
+      standings: h.rows.map((r) => ({ playerId: r.playerId, adjustedScore: r.adjustedScore })),
+    }));
+    const n = nemesisFor(targetId, results);
+    const name = known.get(targetId) ?? msg.playerName;
+    if (!n.nemesisId) return nemesisNoneCard(name);
+    return nemesisCard(name, known.get(n.nemesisId) ?? n.nemesisId, n.record.won, n.record.lost);
+  }
+
+  // `digest` (G-27) — Monday recap from match history. Async path adds a
+  // one-line AI summary when the local AI endpoint is up (silent fallback).
+  private cmdDigest(msg: InboundMessage, allowAi: boolean): string | Promise<string> {
+    const history = this.store.historyFor(msg.chatId);
+    const seasonState = this.store.getSeason("active") as ReturnType<typeof createSeason> | undefined;
+    const season = seasonState
+      ? { name: seasonState.name ?? "Season", ladder: seasonLadder(seasonState) }
+      : undefined;
+    const input = { history, season };
+    const card = buildDigestCard(input);
+    if (!allowAi || history.length === 0) return card;
+    return aiDigestLine(digestSummaryForAi(input)).then((line) =>
+      line ? `${card}\n\n🤖 ${line}` : card
+    );
   }
 
   private cmdLink(msg: InboundMessage, args: string[]): string {

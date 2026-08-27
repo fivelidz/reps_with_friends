@@ -87,6 +87,24 @@ export function standings(state: MatchState): StandingRow[] {
  */
 export const CLOSURE_BONUS = 15;
 
+/**
+ * Final standings for a completed match: `standings()` with the closure bonus
+ * applied to the closer, re-ranked. This is the definitive finishing order
+ * (photo-finish checks, match history, nemesis math all use it). For
+ * non-complete matches it falls back to plain standings.
+ */
+export function finalStandings(state: MatchState): StandingRow[] {
+  const rows = standings(state);
+  if (state.status !== "complete") return rows;
+  return rows
+    .map((r) => ({
+      ...r,
+      adjustedScore:
+        r.player.id === state.closedBy ? r.adjustedScore + CLOSURE_BONUS : r.adjustedScore,
+    }))
+    .sort((a, b) => b.adjustedScore - a.adjustedScore);
+}
+
 export function winner(state: MatchState): {
   playerId: string;
   adjustedScore: number;
@@ -95,16 +113,8 @@ export function winner(state: MatchState): {
   if (state.status !== "complete") return null;
   // Apply the closure bonus, THEN rank — the bonus must be able to decide
   // the winner, so standings' pre-bonus ordering can't be trusted here.
-  const rows = standings(state)
-    .map((r) => ({
-      ...r,
-      adjustedScore:
-        r.player.id === state.closedBy
-          ? r.adjustedScore + CLOSURE_BONUS
-          : r.adjustedScore,
-    }))
-    .sort((a, b) => b.adjustedScore - a.adjustedScore);
-  const top = rows[0];
+  const top = finalStandings(state)[0];
+  if (!top) return null;
   return {
     playerId: top.player.id,
     adjustedScore: top.adjustedScore,

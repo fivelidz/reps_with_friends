@@ -7,7 +7,7 @@ After=network-online.target
 #   autossh -M 0 -N -L 8769:127.0.0.1:8769 fivelidz@superlocal & sleep 2 && bun ...
 Type=simple
 WorkingDirectory=%h/reps_with_friends/apps/bot-whatsapp
-ExecStart=/home/qalarc/.bun/bin/bun main.ts --live
+ExecStart=%h/.bun/bin/bun main.ts --live
 Restart=always
 RestartSec=10
 

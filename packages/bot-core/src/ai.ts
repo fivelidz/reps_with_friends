@@ -18,19 +18,20 @@ function firstString(...vals: unknown[]): string | null {
 }
 
 /**
- * Ask the banter engine for one cheeky Aussie taunt for `target`.
- * Returns the taunt text, or null on any failure (caller falls back to canned).
+ * Generic one-shot call to the local AI endpoint. Returns the reply text
+ * (first line, quote-stripped, length-capped) or null on ANY failure —
+ * down, slow, weird shape. Shared by `aiTaunt` and the digest flavour line.
  */
-export async function aiTaunt(target: string, timeoutMs = 2000): Promise<string | null> {
-  const content = `Write one short cheeky Aussie taunt for ${target} who is slacking in a fitness match. Under 20 words, no emoji.`;
+export async function aiComplete(
+  messages: { role: string; content: string }[],
+  system: string,
+  timeoutMs = 2000
+): Promise<string | null> {
   try {
     const res = await fetch(aiUrl(), {
       method: "POST",
       headers: { "content-type": "application/json" },
-      body: JSON.stringify({
-        messages: [{ role: "user", content }],
-        system: "You are a banter engine for a fitness game with mates. Cheeky, never mean.",
-      }),
+      body: JSON.stringify({ messages, system }),
       signal: AbortSignal.timeout(timeoutMs),
     });
     if (!res.ok) return null;
@@ -54,6 +55,19 @@ export async function aiTaunt(target: string, timeoutMs = 2000): Promise<string 
     if (!out || out.length > 200) return null;
     return out;
   } catch {
-    return null; // down / timeout / garbage — canned lines it is
+    return null; // down / timeout / garbage — caller falls back
   }
+}
+
+/**
+ * Ask the banter engine for one cheeky Aussie taunt for `target`.
+ * Returns the taunt text, or null on any failure (caller falls back to canned).
+ */
+export async function aiTaunt(target: string, timeoutMs = 2000): Promise<string | null> {
+  const content = `Write one short cheeky Aussie taunt for ${target} who is slacking in a fitness match. Under 20 words, no emoji.`;
+  return aiComplete(
+    [{ role: "user", content }],
+    "You are a banter engine for a fitness game with mates. Cheeky, never mean.",
+    timeoutMs
+  );
 }

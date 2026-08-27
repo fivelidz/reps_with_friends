@@ -166,7 +166,9 @@ body::before {
 .rwf-btn:active { transform: translateY(1px); }
 .btn-block { width: 100%; }
 .btn-lg { padding: 15px 22px; font-size: 15px; }
-.btn-sm { padding: 8px 14px; font-size: 12.5px; min-height: 38px; }
+/* 44px is the accessibility floor (doc 13 §5). "Small" now means smaller type
+   and tighter side padding — not a smaller hit area. */
+.btn-sm { padding: 8px 14px; font-size: 12.5px; min-height: 44px; }
 .btn--ghost { background: transparent; color: var(--muted); }
 .btn--ghost:hover { color: var(--sky); border-color: var(--sky); }
 .btn--danger { color: var(--coral); border-color: rgba(255, 92, 56, 0.4); background: transparent; }
@@ -306,6 +308,7 @@ body::before {
   border: 1px solid rgba(198, 243, 46, 0.35);
   border-radius: var(--pill);
   padding: 7px 13px;
+  min-height: 44px;
   cursor: pointer;
   transition: all var(--ease);
 }
@@ -534,7 +537,7 @@ body::before {
   background: var(--lime-glow);
   box-shadow: 0 0 14px var(--lime-glow);
 }
-.chip--sm { padding: 8px 13px; font-size: 12px; min-height: 38px; }
+.chip--sm { padding: 8px 13px; font-size: 12px; min-height: 44px; }
 
 .seg {
   display: flex; gap: 5px;
@@ -546,6 +549,7 @@ body::before {
 .seg-btn {
   flex: 1;
   padding: 9px 0;
+  min-height: 44px;
   border: 0; border-radius: var(--pill);
   background: transparent;
   color: var(--muted);
@@ -559,11 +563,12 @@ body::before {
 .dayrow { display: flex; gap: 7px; }
 .daybtn {
   flex: 1; aspect-ratio: 1;
+  min-width: 44px; min-height: 44px;
   max-width: 46px;
   border-radius: 50%;
   border: 1px solid var(--line);
   background: var(--surface-2);
-  color: var(--faint);
+  color: var(--muted);
   font-family: var(--font-display);
   font-weight: 700; font-size: 13px;
   cursor: pointer;
@@ -1079,6 +1084,17 @@ body::before {
   white-space: nowrap; overflow: hidden; text-overflow: ellipsis;
 }
 .stickylog-btn { flex: none; padding: 11px 22px; pointer-events: auto; }
+/* Hidden while the real LOG button is on screen (see match.ts) so only one
+   lime CTA is ever live. Fades rather than popping — content arrives, chrome
+   doesn't jump (doc 13 §1.3.2). */
+.stickylog { transition: opacity var(--ease), transform var(--ease); }
+.stickylog.is-hidden {
+  opacity: 0;
+  transform: translateY(8px);
+  pointer-events: none;
+  visibility: hidden;
+}
+.stickylog.is-hidden .stickylog-btn { pointer-events: none; }
 
 /* ── reduced motion: kill every animation/transition ──────────────────────── */
 
@@ -1086,6 +1102,218 @@ body::before {
   .screen > *, .toast, .bub, .cta-card { animation: none !important; }
   .confetti { display: none; }
   .cbk-badge, .streakbadge, .pulse, .champcrown, .champname, .belt-emoji { animation: none !important; }
+  .verify-overlay, .verify-sheet, .verify-count.pop, .hrchip, .hrchip-dot { animation: none !important; }
   .bar > i { transition: none; }
   * { transition-duration: 0.01ms !important; scroll-behavior: auto !important; }
 }
+
+/* ── lane 7: verification — camera sheet + HR strap ───────────────────────── */
+
+/* Bottom-sheet overlay, contained by #frame (phone silhouette on desktop). */
+.verify-overlay {
+  position: absolute;
+  inset: 0;
+  z-index: 70;
+  display: flex;
+  align-items: flex-end;
+  justify-content: center;
+  background: rgba(5, 6, 8, 0.7);
+  backdrop-filter: blur(6px);
+  -webkit-backdrop-filter: blur(6px);
+  animation: verify-fade 0.18s ease both;
+}
+@keyframes verify-fade { from { opacity: 0; } to { opacity: 1; } }
+
+.verify-sheet {
+  width: 100%;
+  max-height: 94%;
+  overflow-y: auto;
+  overscroll-behavior: contain;
+  display: flex;
+  flex-direction: column;
+  gap: 10px;
+  padding: 8px 16px calc(16px + env(safe-area-inset-bottom, 0px));
+  background: var(--surface);
+  border: 1px solid var(--line-bright);
+  border-bottom: 0;
+  border-radius: 22px 22px 0 0;
+  box-shadow: 0 -24px 70px rgba(0, 0, 0, 0.6), 0 0 40px rgba(198, 243, 46, 0.05);
+  animation: verify-rise 0.26s cubic-bezier(0.2, 0.7, 0.2, 1) both;
+}
+@keyframes verify-rise {
+  from { opacity: 0; transform: translateY(36px); }
+  to { opacity: 1; transform: none; }
+}
+.verify-sheet--slim { max-width: 420px; }
+
+.verify-grab {
+  flex: none;
+  width: 40px; height: 4px;
+  margin: 2px auto 0;
+  border-radius: var(--pill);
+  background: var(--line-bright);
+}
+
+.verify-head { display: flex; align-items: center; gap: 10px; min-height: 36px; }
+.verify-head .iconbtn { margin-left: auto; width: 36px; height: 36px; }
+.verify-title { font-size: 17px; display: inline-flex; align-items: center; gap: 8px; }
+.verify-title svg { color: var(--coral); }
+
+/* Video stage — camera preview + skeleton overlay + live count. */
+.verify-stage {
+  position: relative;
+  width: 100%;
+  aspect-ratio: 4 / 3;
+  background: #06070a;
+  border-radius: var(--radius-sm);
+  border: 1px solid var(--line);
+  overflow: hidden;
+}
+.verify-video {
+  position: absolute; inset: 0;
+  width: 100%; height: 100%;
+  object-fit: cover;
+  transform: none;
+}
+.verify-video.mirror { transform: scaleX(-1); }
+.verify-canvas {
+  position: absolute; inset: 0;
+  width: 100%; height: 100%;
+  pointer-events: none;
+}
+.verify-canvas.mirror { transform: scaleX(-1); }
+
+.verify-count {
+  position: absolute; top: 10px; left: 12px;
+  font-family: var(--font-display);
+  font-size: 46px; font-weight: 700; line-height: 1;
+  color: var(--lime);
+  text-shadow: 0 0 24px var(--lime-glow), 0 2px 8px rgba(0, 0, 0, 0.6);
+  pointer-events: none;
+}
+.verify-count.pop { animation: verify-pop 0.3s cubic-bezier(0.2, 0.7, 0.2, 1); }
+@keyframes verify-pop {
+  0% { transform: scale(1); }
+  40% { transform: scale(1.22); }
+  100% { transform: scale(1); }
+}
+
+.verify-exrow--locked { opacity: 0.55; pointer-events: none; }
+
+.verify-hint { color: var(--faint); font-size: 12px; }
+
+.verify-status {
+  min-height: 18px;
+  font-size: 12.5px;
+  color: var(--amber);
+  display: none;
+}
+.verify-status.on { display: block; }
+
+.verify-controls { display: flex; flex-direction: column; gap: 10px; }
+.verify-btnrow { display: flex; align-items: center; gap: 8px; }
+.verify-btnrow .rwf-btn { flex: 1; }
+.verify-btnrow .iconbtn,
+.verify-btnrow .verify-skel { flex: none; width: auto; }
+.verify-skel { min-width: 108px; }
+
+.verify-start { flex: 1 1 auto; }
+.verify-start--stop {
+  background: var(--coral);
+  border-color: var(--coral);
+  color: #0a0b0d;
+  box-shadow: 0 0 24px var(--coral-glow);
+}
+.verify-start--stop:hover { background: #ff7350; color: #0a0b0d; }
+
+.verify-summary { display: flex; flex-direction: column; gap: 4px; }
+.verify-sumline {
+  text-align: center;
+  font-size: 14px;
+  color: var(--muted);
+  padding: 6px 0 2px;
+}
+.verify-sumline b {
+  font-family: var(--font-display);
+  font-size: 26px;
+  color: var(--lime);
+  text-shadow: 0 0 18px var(--lime-glow);
+  margin-right: 2px;
+}
+
+.verify-error {
+  display: flex;
+  flex-direction: column;
+  gap: 8px;
+  padding: 14px;
+  border: 1px dashed rgba(255, 176, 32, 0.5);
+  border-radius: var(--radius-sm);
+  background: rgba(255, 176, 32, 0.05);
+}
+.verify-error-title {
+  font-family: var(--font-display);
+  font-weight: 700;
+  font-size: 14px;
+  color: var(--amber);
+  letter-spacing: 0.04em;
+}
+.verify-error-body { color: var(--muted); font-size: 13px; line-height: 1.5; }
+
+.verify-privacy {
+  display: flex; align-items: center; justify-content: center; gap: 6px;
+  color: var(--faint);
+  font-size: 11px;
+  letter-spacing: 0.02em;
+  padding-top: 2px;
+}
+.verify-privacy::before {
+  content: "";
+  width: 12px; height: 12px; flex: none;
+  background: var(--faint);
+  -webkit-mask: url("data:image/svg+xml;utf8,<svg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 24 24' fill='none' stroke='black' stroke-width='2'><rect x='5' y='11' width='14' height='9' rx='2'/><path d='M8 11V7a4 4 0 0 1 8 0v4'/></svg>") center / contain no-repeat;
+  mask: url("data:image/svg+xml;utf8,<svg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 24 24' fill='none' stroke='black' stroke-width='2'><rect x='5' y='11' width='14' height='9' rx='2'/><path d='M8 11V7a4 4 0 0 1 8 0v4'/></svg>") center / contain no-repeat;
+}
+
+/* HR sheet inputs */
+.hr-inputs { display: grid; grid-template-columns: 1fr 1fr; gap: 10px; }
+.hr-input { min-height: 44px; padding: 10px 12px; text-align: center; }
+.hr-body .verify-status { margin-top: -2px; }
+
+/* Match screen: verify button row + live HR chip */
+.verifyrow { display: grid; grid-template-columns: 1fr 1fr; gap: 8px; }
+.verifyrow-btn svg { flex: none; }
+.verifyrow-btn--hr.on {
+  color: var(--coral);
+  border-color: rgba(255, 92, 56, 0.5);
+  background: var(--coral-glow);
+}
+.verifyrow-btn--hr.on svg { fill: currentColor; fill-opacity: 0.2; }
+
+.hrchip {
+  display: flex; align-items: center; justify-content: center; gap: 8px;
+  min-height: 40px;
+  font-family: var(--font-display);
+  font-size: 12px; font-weight: 700;
+  letter-spacing: 0.1em;
+  color: var(--coral);
+  border: 1px solid rgba(255, 92, 56, 0.5);
+  background: var(--coral-glow);
+  border-radius: var(--pill);
+  cursor: pointer;
+  transition: all var(--ease);
+  animation: verify-fade 0.2s ease both;
+}
+.hrchip:hover { border-color: var(--coral); box-shadow: 0 0 20px var(--coral-glow); }
+.hrchip-dot {
+  width: 8px; height: 8px; border-radius: 50%;
+  background: var(--coral);
+  box-shadow: 0 0 8px var(--coral);
+  animation: hr-beat 0.9s ease-in-out infinite;
+}
+@keyframes hr-beat {
+  0%, 100% { transform: scale(1); }
+  30% { transform: scale(1.5); }
+  60% { transform: scale(1.1); }
+}
+.hrchip--lost { color: var(--amber); border-color: rgba(255, 176, 32, 0.5); background: rgba(255, 176, 32, 0.07); }
+.hrchip--lost .hrchip-dot { background: var(--amber); box-shadow: 0 0 8px var(--amber); animation: none; }

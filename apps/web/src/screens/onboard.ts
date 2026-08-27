@@ -13,6 +13,10 @@ export function renderOnboard(root: HTMLElement): () => void {
     type: "text",
     maxlength: "20",
     placeholder: "Your name 🏋️",
+    // A placeholder is not an accessible name — it vanishes on input and is
+    // skipped by some screen readers. The visible "What do we call you?"
+    // seclabel is the real label, so name the field explicitly too.
+    "aria-label": "Your name",
     autocomplete: "off",
     enterkeyhint: "next",
     onInput: () => {

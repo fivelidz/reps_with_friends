@@ -2,11 +2,14 @@
 body { margin: 0; background: var(--bg); color: var(--text); font-family: var(--font-body); }
 html { scroll-behavior: smooth; }
 .sys-nav { position: sticky; top: 0; z-index: 20; display: flex; justify-content: space-between; align-items: center; gap: 12px; padding: 12px 22px; background: rgba(10,11,13,0.92); backdrop-filter: blur(8px); border-bottom: 1px solid var(--line); }
-.sys-nav > a { color: var(--lime); font-weight: 700; letter-spacing: 0.14em; font-size: 13px; text-decoration: none; white-space: nowrap; }
+.sys-nav > a { color: var(--lime); font-weight: 700; letter-spacing: 0.14em; font-size: 13px; text-decoration: none; white-space: nowrap; display: inline-flex; align-items: center; justify-content: center;
+  min-height: 44px; min-width: 44px; }
 .sys-nav-links { display: flex; gap: 2px; overflow-x: auto; scrollbar-width: none; -webkit-overflow-scrolling: touch; }
 .sys-nav-links::-webkit-scrollbar { display: none; }
-.sys-nav-links a { position: relative; color: var(--muted); text-decoration: none; padding: 6px 9px; font-size: 12px; letter-spacing: 0.08em; text-transform: uppercase; white-space: nowrap; transition: color var(--ease); }
-.sys-nav-links a::after { content: ''; position: absolute; left: 9px; right: 9px; bottom: 0; height: 2px; border-radius: 2px; background: var(--lime); transform: scaleX(0); transform-origin: left center; transition: transform 240ms cubic-bezier(0.2,0.7,0.2,1); }
+/* min-height 44 = the accessibility floor; the underline stays visually tight
+   by anchoring ::after to the text baseline rather than the padded box. */
+.sys-nav-links a { position: relative; display: inline-flex; align-items: center; min-height: 44px; color: var(--muted); text-decoration: none; padding: 6px 9px; font-size: 12px; letter-spacing: 0.08em; text-transform: uppercase; white-space: nowrap; transition: color var(--ease); }
+.sys-nav-links a::after { content: ''; position: absolute; left: 9px; right: 9px; bottom: 8px; height: 2px; border-radius: 2px; background: var(--lime); transform: scaleX(0); transform-origin: left center; transition: transform 240ms cubic-bezier(0.2,0.7,0.2,1); }
 .sys-nav-links a:hover { color: var(--lime); }
 .sys-nav-links a:hover::after,
 .sys-nav-links a.active::after { transform: scaleX(1); }
@@ -186,7 +189,11 @@ html { scroll-behavior: smooth; }
 @keyframes map-dash { to { stroke-dashoffset: -10; } }
 
 .sys-foot { text-align: center; color: var(--faint); font-size: 13px; margin-top: 50px; }
-.sys-foot a { color: var(--muted); text-decoration: none; margin: 0 6px; }
+.sys-foot a { color: var(--muted); text-decoration: none; margin: 0 6px;
+  /* inline-flex + min-height keeps these footer links tappable (44px)
+     without changing the centred, dot-separated look. */
+  display: inline-flex; align-items: center; justify-content: center;
+  min-height: 44px; min-width: 44px; }
 .sys-foot a:hover { color: var(--lime); }
 
 /* mobile */

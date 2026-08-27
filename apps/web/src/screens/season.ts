@@ -239,8 +239,17 @@ export function renderSeason(root: HTMLElement): () => void {
       : el(
           "div",
           { class: "emptystate" },
+          // doc 13 §2.12 empty-state pattern: icon + headline + sentence + pill.
+          el("div", { class: "emptystate-ico", text: "🏆" }),
           el("div", { class: "h-display", text: "Ladder's wide open" }),
-          el("p", { class: "muted small", text: "Finish a match while the season is live and the points start flowing." })
+          el("p", { class: "muted small", text: "Finish a match while the season is live and the points start flowing." }),
+          el("button", {
+            class: "rwf-btn btn-sm",
+            text: "START A MATCH",
+            onClick: () => {
+              location.hash = "#/new";
+            },
+          })
         )
   );
 

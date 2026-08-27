@@ -19,6 +19,9 @@ export function helpCard(): string {
     "• `taunt dave` — AI-generated cheek (canned lines if the AI's asleep)",
     "• `pot 500` — chuck $5 in the charity pot",
     "• `result` — final card + shareable result image",
+    "• `rematch` — run it back: same crew, same rules, fresh pot (after a finished match)",
+    "• `nemesis [name]` — who's got your number, from head-to-head history",
+    "• `digest` — the Monday recap: results, pots, rivalries, ladder",
     "• `link <code>` — link this chat to your crew",
     "• `watch <code>` — spectate another crew's matches from this chat",
     "• `challenge <code>` — challenge another crew (`challenge accept` to lock it in)",
@@ -143,15 +146,60 @@ export function seasonHelpCard(activeName?: string): string {
   return ["🏁 *Seasons*", "• `season new [name]` — start a season (matches record as they finish)", "• `season ladder` — the points table", active].join("\n");
 }
 
-export function resultCard(m: StoredMatch, winnerName: string, adjusted: number): string {
+export interface ResultCardOpts {
+  /** Photo-finish percentage gap — adds the dramatic banner line. */
+  photoFinishPct?: number;
+}
+
+export function resultCard(
+  m: StoredMatch,
+  winnerName: string,
+  adjusted: number,
+  opts: ResultCardOpts = {}
+): string {
   const pot = m.potCents > 0 ? `\n\n💰 Charity pot: *${money(m.potCents)}* — ${winnerName} picks where it goes.` : "";
+  // Photo finish (G-30): dramatic banner above the standard result header.
+  const banner =
+    opts.photoFinishPct != null
+      ? `📸 *PHOTO FINISH — top two separated by ${opts.photoFinishPct}%*\n`
+      : "";
   return [
-    `🏁 *MATCH RESULT*`,
+    `${banner}🏁 *MATCH RESULT*`,
     `🏆 *${winnerName}* takes it — adjusted score *${adjusted}*`,
     "",
     ...standings(m.state).map((r, i) => `${i + 1}. ${r.player.name} — ${r.adjustedScore} (${r.rawReps} raw)`),
     pot,
   ].join("\n");
+}
+
+/** `rematch` (G-26) — same crew, same rules, fresh pot. */
+export function rematchCard(m: StoredMatch, matchNumber: number, prevWinnerName?: string): string {
+  const days = m.state.config.playDays.map((d) => ["Sun", "Mon", "Tue", "Wed", "Thu", "Fri", "Sat"][d]).join(" · ");
+  const ex = m.state.config.exercises.map((e) => e.name).join(", ");
+  const roster = m.state.players.map((p) => `${p.name} (${p.tier})`).join(" · ");
+  const revenge = prevWinnerName ? `\nLast one went to *${prevWinnerName}* — revenge is on the table.` : "";
+  return [
+    `🔁 *RUN IT BACK — same crew, same rules*`,
+    `Match ${matchNumber} in this chat — first to ${m.state.config.targetReps} reps`,
+    `Exercises: ${ex}`,
+    `Play days: ${days}`,
+    "",
+    `Roster carried over (${m.state.players.length}): ${roster}`,
+    `💰 Fresh pot — starting from $0.00.`,
+    revenge,
+    "",
+    "`start` when the crew's ready.",
+  ].join("\n");
+}
+
+/** `nemesis` (G-28) — the rival who's got your number. */
+export function nemesisCard(name: string, nemesisName: string, won: number, lost: number): string {
+  const total = won + lost;
+  return `⚔️ *${name}*'s nemesis is *${nemesisName}* — beaten ${lost} of ${total} time${total === 1 ? "" : "s"} they've played.`;
+}
+
+export function nemesisNoneCard(name: string): string {
+  return `⚔️ *${name}* has no nemesis yet — nobody's beaten them twice. Either they're that good, or the history's still short.`;
 }
 
 const TAUNTS = [

@@ -29,6 +29,22 @@ import {
   type SeasonState,
 } from "./engine-extras.ts";
 import { DEMO_CREW, EXERCISES, STAKE_CENTS } from "./data.ts";
+import {
+  armSync,
+  ensureCrewRemote,
+  flush,
+  mergePulled,
+  pullCrew,
+  resetSync,
+  setOnCrewAdopted,
+  syncEnabled,
+  syncLog,
+  syncMatchCreate,
+  syncMvp,
+  syncPlayersAdded,
+  syncSeason,
+  syncToast,
+} from "./sync.ts";
 
 const KEY = "rwf.state.v1";
 
@@ -124,6 +140,66 @@ export function newCrewCode(): string {
   return c;
 }
 
+// ── server sync (offline-first — every call below is a no-op when sync is
+//    disabled; see sync.ts. Local state always wins while offline.) ──────────
+
+/** When the API mints a different crew code, adopt it locally — once. */
+setOnCrewAdopted((remoteCode) => {
+  update((s) => {
+    if (s.crew && s.crew.code !== remoteCode) s.crew.code = remoteCode;
+  });
+  syncToast(`Server synced your crew — your code is now ${remoteCode}`, "ok");
+});
+
+/** Everyone this device knows about (me + all match rosters). */
+function crewRoster(st: AppState): Player[] {
+  const map = new Map<string, Player>();
+  if (st.me) map.set(st.me.id, st.me);
+  for (const m of st.matches) for (const p of m.players) if (!map.has(p.id)) map.set(p.id, p);
+  return [...map.values()];
+}
+
+/** Ensure the crew has a remote twin (arms sync on first use). `probe` = the
+ *  join path (check for an existing twin first); create goes straight to POST. */
+async function kickOffCrewSync(arm: boolean, probe: boolean): Promise<void> {
+  const st = getState();
+  if (!st.crew) return;
+  if (arm) armSync();
+  if (!syncEnabled()) return;
+  const r = await ensureCrewRemote(st.crew, crewRoster(st), { probe });
+  if (r.ok) {
+    void flush();
+    touch(); // re-render — the crew screen's sync card flips to "pull"
+  } else if (r.reason && r.reason !== "disabled") {
+    syncToast("Server unreachable — actions will sync when it's back", "warn");
+  }
+}
+
+/** Crew-screen button: opt in + mirror this crew to the server. */
+export function syncCrewNow(): void {
+  void kickOffCrewSync(true, true);
+}
+
+/** Pull the remote twin and merge (phones + bots converge here). */
+export function pullCrewIntoState(): void {
+  if (!syncEnabled()) return;
+  void (async () => {
+    try {
+      const pulled = await pullCrew();
+      if (!pulled) return;
+      const next = mergePulled(getState(), pulled);
+      if (next) {
+        state = next;
+        persist();
+        renderer?.();
+        syncToast("Pulled the latest from the server", "ok");
+      }
+    } catch {
+      syncToast("Server unreachable — try again when it's back", "warn");
+    }
+  })();
+}
+
 // ── actions ──────────────────────────────────────────────────────────────────
 
 export function completeOnboard(name: string, tier: FitnessTier): void {
@@ -136,6 +212,7 @@ export function createCrew(name: string): void {
   update((s) => {
     s.crew = { name: name.trim().slice(0, 24) || "The Crew", code: newCrewCode() };
   });
+  if (syncEnabled()) void kickOffCrewSync(false, false);
 }
 
 export function joinCrew(code: string): void {
@@ -144,6 +221,7 @@ export function joinCrew(code: string): void {
   update((s) => {
     s.crew = { name: `Crew ${c}`, code: c };
   });
+  if (syncEnabled()) void kickOffCrewSync(false, true);
 }
 
 export function createMatchAction(exerciseIds: string[], targetReps: number, playDays: number[]): string {
@@ -160,12 +238,15 @@ export function createMatchAction(exerciseIds: string[], targetReps: number, pla
     const pot = createPot(rid("pot"), id);
     s.pots[id] = contribute(pot, s.me.id, STAKE_CENTS);
   });
+  const created = getMatch(id);
+  if (created) syncMatchCreate(created);
   return id;
 }
 
 /** Add the local demo crewmates to a match (each stakes into the pot). */
 export function addDemoCrew(matchId: string): number {
   let added = 0;
+  const addedPlayers: Player[] = [];
   update((s) => {
     const m = s.matches.find((x) => x.config.id === matchId);
     if (!m) return;
@@ -174,8 +255,10 @@ export function addDemoCrew(matchId: string): number {
       m.players.push({ ...p });
       s.pots[matchId] = contribute(s.pots[matchId], p.id, STAKE_CENTS);
       added++;
+      addedPlayers.push({ ...p });
     }
   });
+  if (added > 0) syncPlayersAdded(matchId, addedPlayers);
   return added;
 }
 
@@ -193,13 +276,24 @@ export function logEntry(
   playerId: string,
   exerciseId: string,
   reps: number,
-  verified: boolean
+  verified: boolean,
+  // lane 7 (verification & wearables) — optional fields appended to the entry.
+  extra?: { avgHrrPct?: number }
 ): boolean {
   let closed = false;
+  let landed: { playerId: string; exerciseId: string; reps: number; at: number; verified: boolean } | null = null;
   update((s) => {
     const m = s.matches.find((x) => x.config.id === matchId);
     if (!m || m.status !== "live") return;
-    let entry = { playerId, exerciseId, reps, at: Date.now(), verified };
+    const before = m.entries.length;
+    let entry = {
+      playerId,
+      exerciseId,
+      reps,
+      at: Date.now(),
+      verified,
+      ...(extra?.avgHrrPct != null ? { avgHrrPct: extra.avgHrrPct } : {}),
+    };
     if (comebackArmed(m, playerId)) entry = applyComeback(entry) as typeof entry;
     const res = logReps(m, entry);
     m.entries = res.state.entries;
@@ -207,11 +301,16 @@ export function logEntry(
     m.completedAt = res.state.completedAt;
     m.closedBy = res.state.closedBy;
     closed = res.closedMatch;
+    if (res.state.entries.length > before) landed = { ...entry };
     if (res.closedMatch && s.season && !s.season.endedAt) {
       const rec = buildSeasonResult(s, res.state);
       if (rec) s.season = recordSeasonMatch(s.season, rec);
     }
   });
+  if (landed) {
+    const e = landed as { playerId: string; exerciseId: string; reps: number; at: number; verified: boolean };
+    syncLog(matchId, e.playerId, e.exerciseId, e.reps, e.verified, e.at);
+  }
   return closed;
 }
 
@@ -241,6 +340,7 @@ function buildSeasonResult(s: AppState, m: MatchState): SeasonMatchResult | null
 
 /** Start a 4-week season for the crew. */
 export function startSeasonAction(name: string): void {
+  let started = false;
   update((s) => {
     if (s.season && !s.season.endedAt) return; // one active season at a time
     s.season = createSeason({
@@ -249,7 +349,9 @@ export function startSeasonAction(name: string): void {
       weeks: 4,
       startedAt: Date.now(),
     });
+    started = true;
   });
+  if (started) syncSeason(name.trim().slice(0, 24) || "Season 1");
 }
 
 /** Forgive MY streak for today — $2 into the season charity pot. */
@@ -270,6 +372,7 @@ export function endSeasonAction(): void {
 
 /** Start a fresh season; the ended one moves to seasonHistory (champions list). */
 export function startNextSeasonAction(name: string): void {
+  let started = false;
   update((s) => {
     if (s.season) {
       const done = s.season.endedAt ? s.season : endSeasonFn(s.season);
@@ -281,23 +384,28 @@ export function startNextSeasonAction(name: string): void {
       weeks: 4,
       startedAt: Date.now(),
     });
+    started = true;
   });
+  if (started) syncSeason(name.trim().slice(0, 24) || "Season 1");
 }
 
 // ── MVP vote ─────────────────────────────────────────────────────────────────
 
 /** One local vote per match; upserts the season record with the MVP. */
 export function voteMvp(matchId: string, playerId: string): void {
+  let voted = false;
   update((s) => {
     if (s.mvp?.[matchId]) return; // vote already locked
     s.mvp = s.mvp ?? {};
     s.mvp[matchId] = playerId;
+    voted = true;
     const m = s.matches.find((x) => x.config.id === matchId);
     if (s.season && !s.season.endedAt && m && m.status === "complete") {
       const rec = buildSeasonResult(s, m);
       if (rec) s.season = recordSeasonMatch(s.season, rec);
     }
   });
+  if (voted) syncMvp(matchId, playerId);
 }
 
 export function designateCharity(matchId: string, charityId: string): void {
@@ -308,6 +416,7 @@ export function designateCharity(matchId: string, charityId: string): void {
 }
 
 export function resetAll(): void {
+  resetSync(); // fresh start = fresh sync (mappings + outbox + arming)
   try {
     localStorage.removeItem(KEY);
   } catch {

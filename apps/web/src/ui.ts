@@ -155,3 +155,77 @@ const MEDALS = ["🥇", "🥈", "🥉"];
 export function posMark(i: number): string {
   return i < 3 ? MEDALS[i] : String(i + 1);
 }
+
+// ── Sync status bar (app header) ─────────────────────────────────────────────
+// A slim strip above the scroll area: wordmark left, sync chip right. Injected
+// from JS (main.ts) so index.html / styles.css stay untouched.
+
+import type { SyncSnapshot } from "./sync.ts";
+
+const SYNCBAR_CSS = `
+#syncbar{display:flex;align-items:center;justify-content:space-between;gap:10px;
+  flex:none;padding:7px 16px 6px;border-bottom:1px solid var(--line);
+  font-size:10px;letter-spacing:.14em;text-transform:uppercase;color:var(--muted);}
+#syncbar .wordmark{font-family:var(--font-display);font-weight:700;opacity:.55;}
+#syncchip{display:inline-flex;align-items:center;gap:6px;padding:3px 10px;
+  border-radius:999px;border:1px solid var(--line);font-weight:600;line-height:1.4;}
+#syncchip .dot{width:6px;height:6px;border-radius:50%;background:currentColor;flex:none;}
+.syncchip--off{color:var(--muted);opacity:.75;}
+.syncchip--ready{color:var(--muted);}
+.syncchip--syncing{color:var(--muted);}
+.syncchip--synced{color:var(--lime);border-color:rgba(198,243,46,.35);background:var(--lime-glow);}
+.syncchip--offline{color:var(--amber);border-color:rgba(255,176,32,.4);background:rgba(255,176,32,.08);}
+`;
+
+/** Create the header strip inside #frame (before #app). Returns the chip el. */
+export function mountSyncBar(frame: HTMLElement): HTMLElement | null {
+  if (!frame || document.getElementById("syncbar")) return document.getElementById("syncchip");
+  if (!document.getElementById("syncbar-styles")) {
+    document.head.append(el("style", { id: "syncbar-styles", text: SYNCBAR_CSS }));
+  }
+  const chip = el("span", { id: "syncchip", class: "syncchip", "aria-live": "polite" });
+  const bar = el(
+    "div",
+    { id: "syncbar", class: "syncbar" },
+    el("span", { class: "wordmark", text: "RWF" }),
+    chip
+  );
+  frame.insertBefore(bar, frame.firstChild);
+  return chip;
+}
+
+function relTime(ts: number): string {
+  const s = Math.max(0, Math.round((Date.now() - ts) / 1000));
+  if (s < 10) return "just now";
+  if (s < 60) return `${s}s ago`;
+  const m = Math.round(s / 60);
+  if (m < 60) return `${m}m ago`;
+  return `${Math.round(m / 60)}h ago`;
+}
+
+/** Paint the chip from a sync snapshot (see sync.ts for the states). */
+export function renderSyncChip(chip: HTMLElement | null, snap: SyncSnapshot): void {
+  if (!chip) return;
+  let label = "LOCAL ONLY";
+  let cls = "syncchip--off";
+  let title = "This device keeps the scoreboard — no server involved";
+  if (snap.state === "ready") {
+    title = "Server sync available — tap “Sync this crew to the server” on the crew screen";
+  } else if (snap.state === "syncing") {
+    label = "SYNCING…";
+    cls = "syncchip--syncing";
+    title = "Talking to the server";
+  } else if (snap.state === "synced") {
+    label = `SYNCED · ${relTime(snap.lastOk ?? Date.now())}`;
+    cls = "syncchip--synced";
+    title = `Mirrored to the API (${snap.base}) — crew ${snap.crewCode ?? "?"}`;
+  } else if (snap.state === "offline") {
+    label = `OFFLINE — QUEUED ${snap.queued}`;
+    cls = "syncchip--offline";
+    title = "Server unreachable — actions are queued and will flush automatically";
+  }
+  chip.className = cls;
+  chip.title = title;
+  chip.innerHTML = "";
+  chip.append(el("span", { class: "dot" }), document.createTextNode(label));
+}

@@ -5,7 +5,7 @@ After=network-online.target
 [Service]
 Type=simple
 WorkingDirectory=%h/reps_with_friends
-ExecStart=/home/qalarc/.bun/bin/bun serve.ts
+ExecStart=%h/.bun/bin/bun serve.ts
 Restart=always
 RestartSec=5
 Environment=PORT=4173

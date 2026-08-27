@@ -38,6 +38,17 @@ everything moves to one boring Ubuntu box, still deployed by the same kit.
 Migration trigger: first external group playing (same trigger as the
 disposable-number rule in docs/08).
 
+> **⚠ 27 Aug 2026 — install attempt FAILED: minirig unreachable.**
+> Tailscale shows `qalcachyminirig` (100.121.212.116) **offline — last seen
+> ~96 days ago, node key expired**. SSH times out on both `qalarc@qalcachyminirig`
+> and `minirig` (both map to the same dead IP in `~/.ssh/config`). The
+> "already on 24/7" assumption above is stale. Nothing was installed.
+> **Recovery:** power the box on, re-auth Tailscale (expired node key →
+> `sudo tailscale up --force-reauth`, or re-approve the node in the Tailscale
+> admin console), then re-run the kit:
+> `ssh qalarc@qalcachyminirig 'bash -s' < scripts/hosting/install.sh`.
+> If the box is dead/retired, skip straight to Phase-pilot (Oracle Free ARM).
+
 **Phase scale — split:** Slack bot → Cloudflare Worker (HTTP events);
 WhatsApp → Cloud API webhooks; state → Postgres (Neon) + Redis. No VMs left.
 
