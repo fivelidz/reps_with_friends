@@ -8,6 +8,7 @@
 //      style the gallery selects.
 //
 // Local tool only: not linked from the public site, not part of the deploy.
+import * as THREE from 'three';
 import {
   AvatarScene, EXERCISES, EXERCISE_NAMES, TIER_COLORS, TIER_ACCENTS,
   SKIN_TONES, OUTFIT_COLORS, HAIR_STYLES, ACCESSORIES, BUILDS,
