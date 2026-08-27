@@ -11,7 +11,16 @@ body {
 }
 .dbg-brand { font-weight: 700; letter-spacing: 0.06em; font-size: 15px; }
 .dbg-brand span { color: var(--lime); }
-.dbg-nav a { color: var(--muted); text-decoration: none; margin-left: 14px; font-size: 12px; letter-spacing: 0.08em; text-transform: uppercase; }
+.dbg-nav { display: flex; align-items: center; }
+/* min-height 44 = the accessibility tap floor. The links stay visually tight —
+   this is hit area, not visible box (same pattern as site/ and /system). */
+.dbg-nav a {
+  display: inline-flex; align-items: center; justify-content: center;
+  min-height: 44px; min-width: 44px;
+  color: var(--muted); text-decoration: none; margin-left: 6px; padding: 0 8px;
+  border-radius: var(--radius-sm);
+  font-size: 12px; letter-spacing: 0.08em; text-transform: uppercase;
+}
 .dbg-nav a:hover { color: var(--lime); }
 main { max-width: 980px; margin: 0 auto; padding: 20px; display: grid; gap: 16px; }
 .dbg-card { background: var(--surface); border: 1px solid var(--line); border-radius: var(--radius); padding: 18px 20px; }
@@ -28,8 +37,27 @@ pre { font-family: var(--font-mono); font-size: 11.5px; color: var(--muted); ove
 .dbg-lab select, .dbg-lab input[type="number"] {
   background: var(--surface-2); color: var(--text); border: 1px solid var(--line-bright);
   border-radius: 8px; padding: 8px 10px; font-family: var(--font-mono); font-size: 14px;
+  min-height: 44px;
 }
-.dbg-lab input[type="checkbox"] { accent-color: var(--lime); width: 16px; height: 16px; }
+/* The label already wraps the input, so the whole row is clickable — but the
+   control itself must also meet the 44px floor for pointer/AT targeting.
+   Size the box to 44px and scale the (smaller) native glyph up inside it, so
+   the visual weight stays right while the hit area is full size. */
+/* The <label> wraps the input, so the LABEL is the real tap target — give it
+   the 44px floor and enough horizontal padding to be comfortable. The glyph
+   itself stays a normal 18px: stretching a native checkbox to 44px renders it
+   as a big grey slab, which is worse design than a correctly-sized control
+   inside a generous target. */
+.dbg-lab label.chk {
+  min-height: 44px; gap: 10px; cursor: pointer;
+  padding: 0 10px 0 4px; margin-left: -4px;
+  border-radius: var(--radius-sm);
+}
+.dbg-lab label.chk:hover { color: var(--text); }
+.dbg-lab input[type="checkbox"] {
+  accent-color: var(--lime); cursor: pointer;
+  width: 18px; height: 18px; margin: 0; flex: none;
+}
 .dbg-result { font-family: var(--font-mono); font-size: 15px; color: var(--lime); background: var(--bg); border: 1px solid var(--line); border-radius: 8px; padding: 12px 14px; white-space: pre-wrap; }
 .dbg-term { background: var(--bg); border: 1px solid var(--line); border-radius: 8px; padding: 12px; height: 260px; overflow-y: auto; font-family: var(--font-mono); font-size: 12.5px; }
 .dbg-term .t-user { color: var(--sky); margin: 6px 0 2px; }
@@ -51,4 +79,8 @@ pre { font-family: var(--font-mono); font-size: 11.5px; color: var(--muted); ove
 .st-live { color: var(--lime); } .st-next { color: var(--amber); } .st-idea { color: var(--muted); } .st-later { color: var(--faint); }
 .dbg-el p { margin: 4px 0 0; color: var(--muted); font-size: 12px; }
 .dbg-foot { text-align: center; color: var(--faint); font-size: 12px; padding: 24px; }
-.dbg-foot a { color: var(--muted); }
+.dbg-foot a {
+  display: inline-flex; align-items: center; min-height: 44px; padding: 0 8px;
+  color: var(--muted); border-radius: var(--radius-sm);
+}
+.dbg-foot a:hover { color: var(--lime); }

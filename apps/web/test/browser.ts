@@ -1,7 +1,8 @@
 // Real-browser flow verification via Chromium CDP (no deps — bun WebSocket).
 // Walks: onboard → crew → new match (target 100) → link screen (code shown) →
-// demo crew → match view → log reps → standings update → closure → result →
-// charity designation. Fails on ANY console error / uncaught exception.
+// demo crew → match view → log reps → standings update → camera sheet (open +
+// cancel) → manual log closes → result → charity designation. Fails on ANY
+// console error / uncaught exception.
 // Run: bun apps/web/test/browser.ts   (needs `bun serve.ts` on :4173)
 
 import { spawn } from "node:child_process";
@@ -43,6 +44,18 @@ await new Promise((res, rej) => { ws.onopen = res; ws.onerror = rej; });
 let msgId = 0;
 const pending = new Map<number, { resolve: (v: any) => void }>();
 const consoleErrors: string[] = [];
+// TEST UPDATED 2026-08-27: /api/ai is a BEST-EFFORT enhancement — ai.ts returns
+// null on any non-ok response and every caller falls back to canned content
+// (step 19 asserts the taunt still lands). A network failure there is therefore
+// expected product behaviour, not an app defect, but the browser surfaces it as
+// a Log.entryAdded error entry. Previously that made the suite fail whenever the
+// upstream GLM key hit its quota (observed: 502 wrapping an upstream 429
+// "Usage limit reached for 5 hour") — i.e. the suite depended on a third-party
+// billing window. Failures from THIS ONE optional endpoint are collected
+// separately and reported, never fatal. Everything else still fails the run.
+const softNetworkErrors: string[] = [];
+const isOptionalAiFailure = (text: string, url: string): boolean =>
+  url.includes("/api/ai") && /Failed to load resource/i.test(text);
 
 ws.onmessage = (ev: MessageEvent) => {
   const msg = JSON.parse(typeof ev.data === "string" ? ev.data : String(ev.data));
@@ -58,7 +71,12 @@ ws.onmessage = (ev: MessageEvent) => {
     consoleErrors.push(`CONSOLE.${msg.params.type}: ${JSON.stringify(msg.params.args).slice(0, 300)}`);
   }
   if (msg.method === "Log.entryAdded" && msg.params.entry.level === "error") {
-    consoleErrors.push(`LOG: ${msg.params.entry.text} ${msg.params.entry.url ?? ""}`.slice(0, 300));
+    const line = `LOG: ${msg.params.entry.text} ${msg.params.entry.url ?? ""}`.slice(0, 300);
+    if (isOptionalAiFailure(msg.params.entry.text ?? "", msg.params.entry.url ?? "")) {
+      softNetworkErrors.push(line);
+    } else {
+      consoleErrors.push(line);
+    }
   }
 };
 
@@ -135,7 +153,9 @@ try {
   // 5. link screen: code shown big
   ok("link screen shown", await evalJs(`location.hash.startsWith("#/link/")`));
   const code = await evalJs(`document.querySelector(".code")?.textContent ?? ""`);
-  ok(`link code displayed big (${code})`, /^[A-Z0-9]{6}$/.test(code));
+  // TEST UPDATED 2026-08-27 (stale assertion): crew codes are 5 chars per doc 13
+  // §705, matching the API's newCrewCode(). Was asserting 6.
+  ok(`link code displayed big (${code})`, /^[A-Z0-9]{5}$/.test(code));
   ok("WhatsApp + Slack cards present", await evalJs(`document.querySelectorAll(".chatcard").length === 2`));
 
   // 6. demo crew + go to match
@@ -170,10 +190,22 @@ try {
   }
   ok("taunt lands in crew feed (AI or canned fallback)", tauntLanded);
 
-  // 10. camera verify button logs verified:false (+50 → 100 raw = target → closes)
+  // 10. camera verify — TEST UPDATED 2026-08-27 (stale assertion): the product
+  //     intentionally changed (lane 7) — CAMERA VERIFY now opens the on-device
+  //     camera verifier sheet instead of instantly logging a verified:false set.
+  //     New expected behaviour: click → sheet opens as a dialog → cancel it via
+  //     the header ✕ → back on the match screen → log the final 50 manually
+  //     (+50 chip sets count to 50; 50 + 50 = 100 raw = target → match closes).
   await evalJs(`[...document.querySelectorAll("button")].find(b => b.textContent.includes("CAMERA VERIFY")).click()`);
+  await sleep(300);
+  ok("camera verify opens the verifier sheet (dialog)", await evalJs(`!!document.querySelector(".verify-sheet[role='dialog']")`));
+  await evalJs(`document.querySelector(".verify-sheet .iconbtn[aria-label='Close']")?.click()`);
+  await sleep(300);
+  ok("sheet cancelled — back on match screen", await evalJs(`!document.querySelector(".verify-sheet") && location.hash.startsWith("#/match/")`));
+  await evalJs(`[...document.querySelectorAll(".quickrow .chip")].find(c => c.textContent === "+50").click()`);
+  await evalJs(`[...document.querySelectorAll("button")].find(b => b.textContent.startsWith("LOG ")).click()`);
   await sleep(400);
-  ok("camera verify closed the match at 100 raw → result screen", await evalJs(`location.hash.startsWith("#/result/") && [...document.querySelectorAll(".strow")].some(r => r.textContent.includes("100 raw"))`));
+  ok("manual log closed the match at 100 raw → result screen", await evalJs(`location.hash.startsWith("#/result/") && [...document.querySelectorAll(".strow")].some(r => r.textContent.includes("100 raw"))`));
   ok("match closed → result screen", await evalJs(`location.hash.startsWith("#/result/")`));
   ok("champion card rendered", await evalJs(`!!document.querySelector(".champcard") && !!document.querySelector(".champname")`));
   const champ = await evalJs(`document.querySelector(".champname").textContent`);
@@ -219,6 +251,13 @@ try {
   // 15. console error audit (print captured errors BEFORE failing so they're visible)
   if (consoleErrors.length) console.log(consoleErrors.join("\n"));
   ok(`zero console errors across whole flow (${consoleErrors.length} captured)`, consoleErrors.length === 0);
+  if (softNetworkErrors.length) {
+    console.log(
+      `\nNote: ${softNetworkErrors.length} tolerated failure(s) from the optional ` +
+        `/api/ai endpoint (canned fallback covered it — see step 19):\n` +
+        softNetworkErrors.join("\n")
+    );
+  }
 
   console.log(`\nBrowser flow: all ${step} checks passed, 0 console errors.`);
 } finally {

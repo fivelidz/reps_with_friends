@@ -42,7 +42,11 @@ ok("state persisted to rwf.state.v1", store.get("rwf.state.v1")!.includes("Alexe
 // 2. crew
 createCrew("Thursday Legends");
 const code = getState().crew?.code ?? "";
-ok(`crew created with 6-char code (${code})`, /^[A-Z0-9]{6}$/.test(code));
+// TEST UPDATED 2026-08-27 (stale assertion): crew codes are 5 chars, not 6.
+// Doc 13 §705 ("Crew code block") specifies 5 chars, no 0/O/1/I, and the API's
+// newCrewCode() in apps/api/src/db.ts already emits 5 — the local generator was
+// the odd one out, so a locally-created code could never match its remote twin.
+ok(`crew created with 5-char code (${code})`, /^[A-Z0-9]{5}$/.test(code));
 
 // 3. new match
 const mid = createMatchAction(["pushup", "squat", "burpee"], 100, [1, 3, 5]);
@@ -106,8 +110,15 @@ logEntry(mid, "sim_sam", "pushup", 50, false);
 ok("post-complete log ignored", getState().matches.find((x) => x.config.id === mid)!.entries.length === 4);
 
 // 12. join-crew path + second match isolation
-joinCrew("kx4t9c");
-ok("join by code normalises", getState().crew?.code === "KX4T9C");
+// TEST UPDATED 2026-08-27 (stale fixture): codes are 5 chars, so the old
+// 6-char "kx4t9c" fixture is no longer a valid code. joinCrew still normalises
+// case and strips punctuation/whitespace, but now REJECTS wrong-length input
+// instead of silently truncating it to something unjoinable.
+joinCrew(" kx4t9 ");
+ok("join by code normalises", getState().crew?.code === "KX4T9");
+const crewBeforeBadJoin = getState().crew?.code;
+joinCrew("kx4t9c"); // 6 chars → not a real code
+ok("join rejects a wrong-length code (no unjoinable crew persisted)", getState().crew?.code === crewBeforeBadJoin);
 const mid2 = createMatchAction(["situp"], 500, [2, 4]);
 ok("second match independent (live, separate pot)", getState().matches.length === 2 && getState().matches.find((x) => x.config.id === mid2)!.status === "live" && potTotalCents(getState().pots[mid2]) === 500);
 

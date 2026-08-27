@@ -93,11 +93,11 @@ async function sim(): Promise<void> {
         { m: dave("pot 300") }, // seed the fresh pot
         { m: ben("pot 400") },
         { m: ben("start") }, // roster carried over — no join step needed
-        { m: dave("log pushups 90") }, // couch 90 raw → 135 adjusted
-        { m: nico("log squats 120") }, // fit 120 raw → 120 adjusted
-        { m: dave("log sit-ups 95") }, // dave 185 raw → 277.5 adjusted
-        { m: ben("log pushups 300") }, // athlete closes at 300 raw → 255 + 15 = 270…
-        { m: nico("result") }, // …Dave by 7.5 (2.7%) → 📸 PHOTO FINISH + coral card
+        { m: dave("log pushups 90") }, // couch 90 raw → 135 adjusted (first log — no boost)
+        { m: nico("log squats 120") }, // fit 120 raw → 144 adjusted (⚡ comeback ×1.2)
+        { m: dave("log sit-ups 125") }, // dave 215 raw → 322.5 adjusted (25% behind — no boost)
+        { m: ben("log pushups 300") }, // athlete closes at 300 raw → 306 (⚡ comeback) + 15 = 321…
+        { m: nico("result") }, // …Dave by 1.5 (0.5%) → 📸 PHOTO FINISH + coral card
         { m: ben("nemesis") }, // Ben's nemesis is Dave — beaten 2 of 2
         { m: dave("nemesis") }, // Dave: no nemesis yet (graceful)
         { m: nico("digest") }, // 📋 Monday digest (+ AI line if the app server is up)

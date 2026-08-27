@@ -1,4 +1,4 @@
-// Screen 2 — Crew: create (get a 6-char code) or join by code.
+// Screen 2 — Crew: create (get a 5-char code) or join by code.
 import { createCrew, getState, joinCrew, pullCrewIntoState, syncCrewNow } from "../state.ts";
 import { syncAvailable, syncHasCrew } from "../sync.ts";
 import { copyText, el, icon, toast, topbar } from "../ui.ts";
@@ -94,8 +94,8 @@ export function renderCrew(root: HTMLElement): () => void {
   const codeInput = el("input", {
     class: "input input--mono",
     type: "text",
-    maxlength: "6",
-    placeholder: "6-char code",
+    maxlength: "5",
+    placeholder: "5-char code",
     autocomplete: "off",
   });
 
@@ -139,11 +139,13 @@ export function renderCrew(root: HTMLElement): () => void {
             text: "JOIN CREW",
             onClick: () => {
               const v = (codeInput as HTMLInputElement).value;
-              if (v.trim().length < 4) {
-                toast("Codes are 6 characters", "warn");
+              // Codes are 5 chars (doc 13 §705) — normalise, then validate.
+              const norm = v.trim().toUpperCase().replace(/[^A-Z0-9]/g, "");
+              if (!/^[A-Z0-9]{5}$/.test(norm)) {
+                toast("Codes are 5 characters", "warn");
                 return;
               }
-              joinCrew(v);
+              joinCrew(norm);
               toast("Joined crew", "ok");
               location.hash = "#/";
             },

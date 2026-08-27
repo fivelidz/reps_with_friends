@@ -2,7 +2,7 @@
 // Run: bun test packages/bot-core
 
 import { beforeEach, describe, expect, test } from "bun:test";
-import { mkdtempSync, readFileSync } from "node:fs";
+import { mkdtempSync, readFileSync, writeFileSync } from "node:fs";
 import { tmpdir } from "node:os";
 import { join } from "node:path";
 import { CommandBus, looksLikeCommand, parse } from "../src/bus.ts";
@@ -131,7 +131,7 @@ describe("full match flow: new → join×3 → start → logs → close → resu
     // standings mid-match: couch leads on adjusted
     const mid = bus.handle(nico("s"));
     expect(mid).toContain("*Standings* (LIVE)");
-    expect(mid.indexOf("Dave")).toBeLessThan(mid.indexOf("Ben")); // 225 adj vs 25.5
+    expect(mid.indexOf("Dave")).toBeLessThan(mid.indexOf("Ben")); // 243 adj vs 30.6
 
     // taunt resolves player names
     const taunt = bus.handle(ben("taunt dave"));
@@ -149,10 +149,12 @@ describe("full match flow: new → join×3 → start → logs → close → resu
     expect(closeReply).toContain("THAT'S 300! MATCH CLOSED");
     expect(bus.handle(ben("log pushups 10"))).toContain("match is closed");
 
-    // result: dave (couch, 195 raw × 1.5 = 292.5) beats ben (310×0.85 + 15 = 278.5)
+    // result: comeback ×1.2 fires on each trailing player's first set —
+    // dave couch: 60 + 108(×1.2) + 75 + 67.5 = 310.5; ben athlete:
+    // 30.6(×1.2) + 238 + 15 closure = 283.6 → Dave takes it.
     const result = bus.handle(nico("result"));
     expect(result).toContain("MATCH RESULT");
-    expect(result).toContain("*Dave* takes it — adjusted score *292.5*");
+    expect(result).toContain("*Dave* takes it — adjusted score *310.5*");
     expect(result).toContain("$15.00"); // pot on the card
 
     // link binds chatId → crewCode
@@ -242,6 +244,41 @@ describe("comeback marker", () => {
     bus.handle(dave("log squats 200")); // dave 66.7% — right in it
     expect(bus.handle(dave("s"))).not.toContain("⚡");
   });
+
+  // Regression: the ⚡ marker promises "1.2× on their next log" — the log used
+  // to silently skip applyComeback, so the boost was never awarded.
+  test("comeback ×1.2 is actually applied to the eligible player's next log (once)", () => {
+    bus.handle(ben("new 600"));
+    bus.handle(ben("join athlete"));
+    bus.handle(dave("join couch"));
+    bus.handle(ben("start"));
+    bus.handle(ben("log pushups 300")); // ben 50%, dave 0% → dave eligible
+    expect(bus.handle(dave("s"))).toContain("⚡");
+
+    const reply = bus.handle(dave("log squats 100")); // couch 100×1.5×1.2 = 180
+    expect(reply).toContain("⚡ comeback ×1.2 applied");
+    const m = store.get(CHAT)!;
+    expect(m.state.entries.some((e) => e.playerId === "u-dave" && e.comeback)).toBe(true);
+    const row = m.state.entries.length; // sanity: entry stored
+    expect(row).toBeGreaterThan(0);
+
+    // once per player per match: the next log is unboosted
+    bus.handle(ben("log pushups 100")); // keep dave >30% behind (400 vs 100)
+    const second = bus.handle(dave("log squats 100"));
+    expect(second).not.toContain("comeback ×1.2");
+    const daveEntries = store.get(CHAT)!.state.entries.filter((e) => e.playerId === "u-dave");
+    expect(daveEntries.filter((e) => e.comeback)).toHaveLength(1);
+  });
+
+  test("first log of a match never gets comeback (nobody is behind yet)", () => {
+    bus.handle(ben("new 100"));
+    bus.handle(ben("join couch"));
+    bus.handle(dave("join couch"));
+    bus.handle(ben("start"));
+    const first = bus.handle(ben("log pushups 40"));
+    expect(first).not.toContain("comeback ×1.2");
+    expect(store.get(CHAT)!.state.entries[0].comeback).toBeFalsy();
+  });
 });
 
 describe("spectators (watch)", () => {
@@ -271,6 +308,27 @@ describe("spectators (watch)", () => {
 
     // usage error
     expect(bus.handle(mia("watch"))).toContain("usage");
+  });
+
+  // Regression: `watch A` then `watch B` used to leave the chat spectating
+  // BOTH crews — `s` kept showing crew A (stale) and A kept counting it.
+  test("watching a second crew re-binds (old crew loses the spectator)", () => {
+    bus.handle(ben("new"));
+    bus.handle(ben("link CREW-7Q2"));
+    bus.handle(ben("join athlete"));
+    bus.handle(dave("join couch"));
+    bus.handle(ben("start"));
+    bus.handle(ben("log pushups 50"));
+
+    const mia = (text: string) => ({ chatId: "chat-2", playerId: "u-mia", playerName: "Mia", text });
+    bus.handle(mia("watch CREW-7Q2"));
+    bus.handle(mia("watch CREW-9ZZ"));
+
+    expect(store.spectatingCrew("chat-2")).toBe("CREW-9ZZ");
+    expect(store.spectatorCount("CREW-7Q2")).toBe(0);
+    expect(store.spectatorCount("CREW-9ZZ")).toBe(1);
+    // ben's standings no longer carry the stale spectator count
+    expect(bus.handle(ben("s"))).not.toContain("👁 1 watching");
   });
 });
 
@@ -355,5 +413,80 @@ describe("help + async bus", () => {
   test("handleAsync matches handle for non-taunt commands", async () => {
     expect(await bus.handleAsync(ben("flurb"))).toContain("Unknown command");
     expect(await bus.handleAsync(ben("help"))).toContain("REPS WITH FRIENDS");
+  });
+});
+
+// ── legacy store files (pre-history, pre-seasons shape) ─────────────────────
+
+describe("legacy persistence", () => {
+  function writeLegacy(path: string, extra?: (entry: Record<string, any>) => void) {
+    const entry: Record<string, any> = {
+      state: {
+        config: { id: "m-legacy-1", exercises: [{ id: "pushup", name: "Push-ups" }], targetReps: 100, playDays: [2, 4] },
+        players: [
+          { id: "u-old-ben", name: "Old Ben", tier: "casual" },
+          { id: "u-old-dave", name: "Old Dave", tier: "couch" },
+        ],
+        entries: [
+          { playerId: "u-old-ben", exerciseId: "pushup", reps: 60, at: 1, verified: false },
+          { playerId: "u-old-dave", exerciseId: "pushup", reps: 100, at: 2, verified: true },
+        ],
+        status: "complete",
+        startedAt: 1,
+        completedAt: 2,
+        closedBy: "u-old-dave",
+      },
+      potCents: 500,
+      potContributors: { "u-old-ben": 500 },
+      // NOTE: no `history` key, and no top-level seasons/spectators/challenges.
+    };
+    extra?.(entry);
+    writeFileSync(path, JSON.stringify({ "wa:+61411111111": entry }));
+    return { chatId: "wa:+61411111111", ben: "u-old-ben", dave: "u-old-dave" };
+  }
+  const old = (pid: string, name: string, text: string) => ({
+    chatId: "wa:+61411111111",
+    playerId: pid,
+    playerName: name,
+    text,
+  });
+
+  test("legacy entries (no history/seasons keys) load and play fine; rematch history accumulates", () => {
+    const { chatId, ben: ob, dave: od } = writeLegacy(file);
+    const legacyStore = new MatchStore(file);
+    expect(legacyStore.get(chatId)?.state.status).toBe("complete");
+    expect(legacyStore.historyFor(chatId)).toEqual([]); // no history key → empty, not undefined
+
+    const lb = new CommandBus(legacyStore, { cardsDir: join(dir, "cards") });
+    expect(lb.handle(old(ob, "Old Ben", "s"))).toContain("Standings");
+    expect(lb.handle(old(ob, "Old Ben", "result"))).toContain("MATCH RESULT");
+
+    // rematch snapshots the legacy complete into history, then history grows
+    expect(lb.handle(old(ob, "Old Ben", "rematch"))).toContain("RUN IT BACK");
+    expect(legacyStore.historyFor(chatId)).toHaveLength(1);
+    lb.handle(old(ob, "Old Ben", "start"));
+    lb.handle(old(ob, "Old Ben", "log pushups 100"));
+    expect(legacyStore.historyFor(chatId)).toHaveLength(2);
+    expect(lb.handle(old(ob, "Old Ben", "rematch"))).toContain("Match 3 in this chat");
+
+    // and it all survives a reload
+    expect(new MatchStore(file).historyFor(chatId)).toHaveLength(2);
+  });
+
+  // Regression: a legacy LIVE entry without potContributors used to throw
+  // TypeError inside contributePot (caught by the bus, but the pot was lost).
+  test("pot works on a legacy entry missing potContributors", () => {
+    const { chatId, ben: ob } = writeLegacy(file, (e) => {
+      e.state.status = "live";
+      e.state.entries = e.state.entries.slice(0, 1); // 60/100 → not closed
+      delete e.potContributors;
+    });
+    const legacyStore = new MatchStore(file);
+    const lb = new CommandBus(legacyStore, { cardsDir: join(dir, "cards") });
+    const reply = lb.handle(old(ob, "Old Ben", "pot 100"));
+    expect(reply).toContain("$1.00");
+    expect(legacyStore.get(chatId)?.potCents).toBe(600); // 500 legacy + 100
+    const saved = JSON.parse(readFileSync(file, "utf8")) as Record<string, any>;
+    expect(saved[chatId].potCents).toBe(600); // persisted, not just in-memory
   });
 });

@@ -15,7 +15,16 @@
 // (2s timeout, canned fallback) — the bots use it; tests use the sync path.
 
 import type { FitnessTier, Player, RepEntry } from "../../game-core/src/index.ts";
-import { finalStandings, isPhotoFinish, logReps, nemesisFor, photoFinishMargin, standings, winner } from "../../game-core/src/index.ts";
+import {
+  applyComeback,
+  finalStandings,
+  isPhotoFinish,
+  logReps,
+  nemesisFor,
+  photoFinishMargin,
+  standings,
+  winner,
+} from "../../game-core/src/index.ts";
 import type { MatchStore, StoredMatch } from "./store.ts";
 import {
   challengeCard,
@@ -272,7 +281,11 @@ export class CommandBus {
       at: Date.now(),
       verified,
     };
-    const { state, closedMatch } = logReps(m.state, entry);
+    // Comeback (G-25): a >30%-behind player's next entry is tagged ×1.2 —
+    // the ⚡ marker in `s` promises the boost, so the log must deliver it.
+    // applyComeback re-checks eligibility (live, unused, >30% behind) itself.
+    const tagged = applyComeback(m.state, entry);
+    const { state, closedMatch } = logReps(m.state, tagged);
     this.store.update(msg.chatId, state);
     if (closedMatch) {
       this.recordSeasonResult(state); // counts toward `season ladder`
@@ -282,7 +295,8 @@ export class CommandBus {
         /* history must never break the match */
       }
     }
-    return logCard(msg.playerName, exercise.name, reps, verified, closedMatch, state.config.targetReps);
+    const card = logCard(msg.playerName, exercise.name, reps, verified, closedMatch, state.config.targetReps);
+    return tagged.comeback ? `${card}\n⚡ comeback ×1.2 applied — never out of it.` : card;
   }
 
   private cmdTaunt(msg: InboundMessage, rest: string, allowAi: boolean): string | Promise<string> {

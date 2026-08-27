@@ -5,7 +5,11 @@ import { spawn } from "node:child_process";
 
 const APP = "http://localhost:4173/app";
 const DEBUG_PORT = 9334;
-const OUT = new URL("../../screenshots/", import.meta.url).pathname;
+// FIX 2026-08-27: this file lives in apps/web/test/, so "../../screenshots/"
+// resolved to apps/screenshots/ — one level too high. Shots were landing beside
+// the app instead of in apps/web/screenshots/, so anyone reviewing the latter
+// was looking at stale images. One "../" is correct.
+const OUT = new URL("../screenshots/", import.meta.url).pathname;
 
 const chrome = spawn("/usr/bin/chromium", [
   "--headless=new",
@@ -70,6 +74,15 @@ const clickBtn = (match: string) =>
 
 await send("Page.enable");
 await send("Runtime.enable");
+// True phone viewport — --window-size includes browser chrome, so shots were
+// coming out 500px wide instead of the 390px target device width.
+await send("Emulation.setDeviceMetricsOverride", { width: 390, height: 844, deviceScaleFactor: 1, mobile: true });
+await send("Page.navigate", { url: APP });
+await sleep(1200);
+// FIX 2026-08-27: the profile dir persists between runs, so each walk inherited
+// the LAST walk's state — the "season live" shot was actually showing a season
+// already ENDED by the previous run. Start every walk from a clean slate.
+await evalJs(`localStorage.clear()`);
 await send("Page.navigate", { url: APP });
 await sleep(1200);
 
@@ -91,16 +104,29 @@ await shot("polish3_season_pitch");
 await clickBtn("START SEASON");
 
 // 4 — new match → link → demo crew → match
-await clickBtn("NEW MATCH");
-await sleep(400);
+// FIX 2026-08-27: navigate by hash instead of clicking "NEW MATCH". Starting a
+// season routes back to home, so the click-chain was firing on whatever screen
+// happened to be mounted — every shot from here on captured the WRONG screen
+// (polish6_match was actually the season screen). Explicit routing is stable.
+await evalJs(`location.hash = "#/new"`);
+await sleep(500);
 await shot("polish4_newmatch");
+// FIX 2026-08-27: pick the 100 target. The default is 300, but the walker only
+// logs 125 reps — so the match never closed and "polish7_result" was actually
+// another shot of the match screen. 100 is reachable with the sets logged below.
+await evalJs(`[...document.querySelectorAll(".seg-btn")].find(b => b.textContent.trim() === "100")?.click()`);
+await sleep(200);
 await clickBtn("CREATE MATCH");
 await sleep(500);
 await shot("polish5_link");
 await clickBtn("ADD DEMO CREW");
-await sleep(300);
+await sleep(400);
 await clickBtn("GO TO MATCH");
-await sleep(600);
+await sleep(700);
+// Guard: every shot below assumes the live match screen is mounted.
+if (!(await evalJs(`location.hash.startsWith("#/match/")`))) {
+  throw new Error(`expected the match screen, got ${await evalJs(`location.hash`)}`);
+}
 
 // 5 — match live: log sets so bars/medals/feed have content
 await evalJs(`[...document.querySelectorAll(".quickrow .chip")].find(c => c.textContent === "+50").click()`);
@@ -115,11 +141,19 @@ await shot("polish6_match");
 await evalJs(`[...document.querySelectorAll(".quickrow .chip")].find(c => c.textContent === "+50").click()`);
 await clickBtn("LOG 50");
 await sleep(700);
+if (!(await evalJs(`location.hash.startsWith("#/result/")`))) {
+  throw new Error(`expected the result screen, got ${await evalJs(`location.hash`)}`);
+}
 await shot("polish7_result");
 
 // 7 — season (ladder scored) then end → belt
 await evalJs(`location.hash = "#/season"`);
 await sleep(500);
+if (!(await evalJs(`!!document.querySelector(".ladderrow")`))) {
+  // The belt shot is only meaningful with a scored ladder behind it — the
+  // completed match above should have put rows here.
+  throw new Error("expected a scored ladder before ending the season");
+}
 await shot("polish8_season_live");
 await clickBtn("END SEASON NOW");
 await sleep(200);

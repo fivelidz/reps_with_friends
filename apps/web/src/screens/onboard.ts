@@ -26,11 +26,16 @@ export function renderOnboard(root: HTMLElement): () => void {
   });
 
   // Multiplier chip copy — spells out what the number means for reps.
+  // FIX 2026-08-27: the long "— reps count more/less" form wrapped onto a
+  // second line inside a 172px card, so the couch/athlete chips were 38px tall
+  // against 23px for casual/fit and no two chips shared a baseline. Shortened
+  // to a single line; the chips are now bottom-aligned across the grid (CSS
+  // margin-top:auto + nowrap) and the meaning survives.
   const multChip: Record<FitnessTier, string> = {
-    couch: "×1.5 — reps count more",
+    couch: "×1.5 counts more",
     casual: "×1.25",
     fit: "×1.0",
-    athlete: "×0.85 — reps count less",
+    athlete: "×0.85 counts less",
   };
 
   const tierCards: HTMLElement[] = [];

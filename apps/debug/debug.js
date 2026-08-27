@@ -117,14 +117,26 @@ const ELEMENTS = [
   ['D19', 'Employer-funded pots', 'live', 'legally-cleanest structure'],
   ['D20', 'Admin dashboard', 'live', 'aggregate-only, k≥5'],
   ['D21', 'Onboarding-as-a-service', 'idea', 'we run month one'],
-  ['E22', 'Camera rep counting', 'next', 'MoveNet in-browser (lane 7)'],
-  ['E23', 'BLE HR straps', 'next', 'Web Bluetooth GATT 0x180D'],
+  ['E22', 'Camera rep counting', 'live', 'MoveNet in-browser (lane 7)'],
+  ['E23', 'BLE HR straps', 'live', 'Web Bluetooth GATT 0x180D'],
   ['E24', 'Apple Watch live HR', 'later', 'HealthKit, Phase 3'],
   ['E25', 'WHOOP/Garmin cross-check', 'later', 'cloud verification, Phase 3'],
   ['F', 'Referee review', 'idea', 'crew verdicts on flagged sets'],
   ['F', 'Physical champion belt', 'idea', 'real trophies, zero crypto'],
   ['F', 'Radio mode', 'idea', "Ben's drumming as rep-cadence cues"],
   ['F', 'Charity championship', 'idea', 'annual inter-crew, sponsored'],
+  // G — second wave. Must stay in step with apps/systempage/system.js.
+  ['G26', 'Rematch button', 'live', 'one tap → next match'],
+  ['G27', 'Monday digest', 'live', 'AI weekly recap to the chat'],
+  ['G28', 'Nemesis system', 'live', 'auto rival detection'],
+  ['G29', 'Personal records', 'idea', 'PR celebration cards'],
+  ['G30', 'Photo finish', 'live', 'special card when top two within 5%'],
+  ['G31', 'Ghost race', 'idea', 'solo vs your past self'],
+  ['G32', 'Guest slot', 'idea', 'account-less one-match visitor'],
+  ['G33', 'Charity all-time ladder', 'idea', 'giving is competitive too'],
+  ['G34', 'Roast-tier setting', 'idea', 'banter intensity control'],
+  ['G35', 'Adaptive equivalents', 'idea', 'seated/low-impact variants'],
+  ['G36', 'Warm-up predictions', 'idea', 'pre-match pick the winner'],
 ];
 const ST = { live: ['st-live', 'LIVE'], next: ['st-next', 'NEXT'], idea: ['st-idea', 'IDEA'], later: ['st-later', 'LATER'] };
 $('elementGrid').innerHTML = ELEMENTS.map(([id, name, st, desc]) => {

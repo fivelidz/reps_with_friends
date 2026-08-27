@@ -138,12 +138,22 @@ export function renderMatch(root: HTMLElement, matchId: string): () => void {
   // the real LOG button once that button scrolls out of view — while it IS on
   // screen, showing both puts two identical lime CTAs in front of the user.
   // So the bar hides itself whenever logBtn is actually visible.
+  // Keep toasts clear of the floating bar: while the bar is up, lift the toast
+  // stack by its height (+ gap) so confirmations never cover SEND IT.
+  const setToastLift = (barVisible: boolean): void => {
+    const h = barVisible ? Math.round(stickyBar.getBoundingClientRect().height) + 10 : 0;
+    document.documentElement.style.setProperty("--toast-lift", `${h}px`);
+  };
+
   let stickyObserver: IntersectionObserver | undefined;
   if (typeof IntersectionObserver !== "undefined") {
     stickyObserver = new IntersectionObserver(
       (entries) => {
         const e = entries[0];
-        if (e) stickyBar.classList.toggle("is-hidden", e.isIntersecting);
+        if (e) {
+          stickyBar.classList.toggle("is-hidden", e.isIntersecting);
+          setToastLift(!e.isIntersecting);
+        }
       },
       { root: document.getElementById("app"), threshold: 0.4 }
     );
@@ -456,5 +466,8 @@ export function renderMatch(root: HTMLElement, matchId: string): () => void {
   return () => {
     if (handle !== undefined) clearInterval(handle);
     stickyObserver?.disconnect();
+    // The lift is global (set on :root) — clear it so other screens, which have
+    // no floating bar, don't render their toasts hovering in mid-air.
+    document.documentElement.style.removeProperty("--toast-lift");
   };
 }

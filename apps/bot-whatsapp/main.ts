@@ -114,11 +114,11 @@ async function sim(): Promise<void> {
         dave("pot 300"),         // seed the fresh pot
         ben("pot 400"),
         ben("start"),            // roster carried over — no join step needed
-        dave("log pushups 90"),  // couch 90 raw → 135 adjusted
-        nico("log squats 120"),  // fit 120 raw → 120 adjusted
-        dave("log sit-ups 95"),  // dave 185 raw → 277.5 adjusted
-        ben("log pushups 300"),  // athlete closes at 300 raw → 255 + 15 = 270…
-        nico("result"),          // …Dave by 7.5 (2.7%) → 📸 PHOTO FINISH + coral card
+        dave("log pushups 90"),  // couch 90 raw → 135 adjusted (first log — no boost)
+        nico("log squats 120"),  // fit 120 raw → 144 adjusted (⚡ comeback ×1.2)
+        dave("log sit-ups 125"), // dave 215 raw → 322.5 adjusted (25% behind — no boost)
+        ben("log pushups 300"),  // athlete closes at 300 raw → 306 (⚡ comeback) + 15 = 321…
+        nico("result"),          // …Dave by 1.5 (0.5%) → 📸 PHOTO FINISH + coral card
         ben("nemesis"),          // Ben's nemesis is Dave — beaten 2 of 2
         dave("nemesis"),         // Dave: no nemesis yet (graceful)
         nico("digest"),          // 📋 Monday digest (+ AI line if the app server is up)

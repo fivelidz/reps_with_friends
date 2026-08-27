@@ -498,7 +498,16 @@ export async function flush(): Promise<void> {
       // No twin yet → try to ensure one from the stashed hint, then proceed.
       if (!meta.crewCode) {
         if (meta.crewHint) {
-          const r = await ensureCrewRemote(meta.crewHint, meta.crewHint.players);
+          // FIX 2026-08-27: always PROBE on the retry path. The create path
+          // stashes probe:false (a freshly-minted local code can't have a twin
+          // yet, and probing would log a 404 in the console). But by the time we
+          // get here the crew may well exist remotely — e.g. the create POST
+          // actually succeeded and only the *response* was lost, or another
+          // device already mirrored this crew. Re-running with probe:false would
+          // blindly POST a SECOND crew, splitting the roster across two codes
+          // and stranding every queued op on the wrong one. A probe costs one
+          // GET and makes the ensure idempotent.
+          const r = await ensureCrewRemote(meta.crewHint, meta.crewHint.players, { probe: true });
           if (!r.ok) break; // still offline — retry tick will come back
         } else break;
       }

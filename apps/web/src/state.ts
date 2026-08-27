@@ -51,7 +51,12 @@ const KEY = "rwf.state.v1";
 export interface AppState {
   v: 1;
   me: Player | null;
-  crew: { name: string; code: string } | null;
+  /** `origin` records where the code came from: "local" = minted on this device
+   *  by createCrew (no remote twin can exist yet), "joined" = typed in from
+   *  someone else (a twin probably DOES exist). It decides whether arming sync
+   *  probes GET /crews/:code first — see syncCrewNow. Optional: states written
+   *  before Aug 2026 lack it and are treated as "joined" (the safe probe). */
+  crew: { name: string; code: string; origin?: "local" | "joined" } | null;
   matches: MatchState[]; // chronological; render reversed
   pots: Record<string, CharityPot>;
   /** Active 4-week season (optional — added Aug 2026, older states lack it). */
@@ -134,9 +139,11 @@ function rid(prefix: string): string {
 
 const CODE_ALPHABET = "ABCDEFGHJKMNPQRSTUVWXYZ23456789"; // no I/L/O/0/1
 
+/** 5 chars per the product spec (doc 13 §705 "Crew code block") — same shape
+ *  as the API's newCrewCode, so a local code and its remote twin match. */
 export function newCrewCode(): string {
   let c = "";
-  for (let i = 0; i < 6; i++) c += CODE_ALPHABET[Math.floor(Math.random() * CODE_ALPHABET.length)];
+  for (let i = 0; i < 5; i++) c += CODE_ALPHABET[Math.floor(Math.random() * CODE_ALPHABET.length)];
   return c;
 }
 
@@ -175,9 +182,16 @@ async function kickOffCrewSync(arm: boolean, probe: boolean): Promise<void> {
   }
 }
 
-/** Crew-screen button: opt in + mirror this crew to the server. */
+/** Crew-screen button: opt in + mirror this crew to the server.
+ *  FIX 2026-08-27: only PROBE for an existing twin when the code came from
+ *  somewhere else ("joined"). A code this device minted itself ("local") cannot
+ *  have a twin yet, so probing it always 404s — which the browser logs as a
+ *  console error on the primary happy path (create crew → arm sync). Skipping
+ *  the probe there goes straight to POST /crews and adopts the minted code. */
 export function syncCrewNow(): void {
-  void kickOffCrewSync(true, true);
+  const origin = getState().crew?.origin;
+  // Unknown origin (states written before this field existed) → probe: safe default.
+  void kickOffCrewSync(true, origin !== "local");
 }
 
 /** Pull the remote twin and merge (phones + bots converge here). */
@@ -210,16 +224,19 @@ export function completeOnboard(name: string, tier: FitnessTier): void {
 
 export function createCrew(name: string): void {
   update((s) => {
-    s.crew = { name: name.trim().slice(0, 24) || "The Crew", code: newCrewCode() };
+    s.crew = { name: name.trim().slice(0, 24) || "The Crew", code: newCrewCode(), origin: "local" };
   });
   if (syncEnabled()) void kickOffCrewSync(false, false);
 }
 
 export function joinCrew(code: string): void {
-  const c = code.trim().toUpperCase().replace(/[^A-Z0-9]/g, "").slice(0, 6);
-  if (c.length < 4) return;
+  // Crew codes are exactly 5 chars (doc 13 §705) — same shape the API mints.
+  // Anything else is a typo: bail rather than persist an unjoinable crew that
+  // can never find its remote twin. The crew screen validates before calling.
+  const c = code.trim().toUpperCase().replace(/[^A-Z0-9]/g, "");
+  if (!/^[A-Z0-9]{5}$/.test(c)) return;
   update((s) => {
-    s.crew = { name: `Crew ${c}`, code: c };
+    s.crew = { name: `Crew ${c}`, code: c, origin: "joined" };
   });
   if (syncEnabled()) void kickOffCrewSync(false, true);
 }

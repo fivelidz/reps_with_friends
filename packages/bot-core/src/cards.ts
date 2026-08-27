@@ -1,7 +1,7 @@
 // @rwf/bot-core — card formatters (WhatsApp + Slack compatible: *bold*, emoji)
 
 import type { MatchState, StandingRow } from "../../game-core/src/index.ts";
-import { standings } from "../../game-core/src/index.ts";
+import { finalStandings, standings } from "../../game-core/src/index.ts";
 import type { StoredMatch } from "./store.ts";
 
 const money = (cents: number) => `$${(cents / 100).toFixed(2)}`;
@@ -167,7 +167,9 @@ export function resultCard(
     `${banner}🏁 *MATCH RESULT*`,
     `🏆 *${winnerName}* takes it — adjusted score *${adjusted}*`,
     "",
-    ...standings(m.state).map((r, i) => `${i + 1}. ${r.player.name} — ${r.adjustedScore} (${r.rawReps} raw)`),
+    // finalStandings = definitive finishing order (closure bonus applied) —
+    // the rows must never contradict the crowned winner (bonus can decide it).
+    ...finalStandings(m.state).map((r, i) => `${i + 1}. ${r.player.name} — ${r.adjustedScore} (${r.rawReps} raw)`),
     pot,
   ].join("\n");
 }

@@ -155,7 +155,11 @@ export function renderSeason(root: HTMLElement): () => void {
   const championId = season.championId ?? (!ended ? undefined : ladder[0]?.playerId);
 
   // header card: name, week, progress
-  const weekPct = Math.min(100, Math.round((elapsed / weekMs) * 100));
+  // FIX 2026-08-27: the bar tracks elapsed TIME, so a season ended early (the
+  // "END SEASON NOW" button) sat at ~0% under the words "Season complete" —
+  // it read as a broken/stalled progress bar. A finished season is 100% done
+  // regardless of how much of the 4 weeks actually elapsed.
+  const weekPct = ended ? 100 : Math.min(100, Math.round((elapsed / weekMs) * 100));
   const header = el(
     "div",
     { class: "rwf-card card-pad stack-sm season-head" },
@@ -178,17 +182,35 @@ export function renderSeason(root: HTMLElement): () => void {
   );
 
   // champion belt (ended seasons) — gold→lime gradient border moment
+  // FIX 2026-08-27: a season that ended with NO matches played was still
+  // rendered as a full crowning — trophy, "SEASON CHAMPION", and the phrase
+  // "No matches played" set in 34px celebratory amber, as if that were the
+  // winner's name. It read like the app was mocking the crew. An unplayed
+  // season is a non-event: drop the trophy/【champion】framing, state it plainly,
+  // and keep the CTA to go again.
   const belt = ended
     ? el(
         "div",
-        { class: "rwf-card card-pad beltcard" },
-        el("div", { class: "belt-emoji", text: "🏆" }),
-        el("div", { class: "seclabel seclabel--lime", text: "Season champion" }),
-        el("div", { class: "h-display beltname", text: championId ? nameOf(championId) : "No matches played" }),
+        { class: `rwf-card card-pad beltcard${championId ? "" : " beltcard--empty"}` },
+        championId ? el("div", { class: "belt-emoji", text: "🏆" }) : null,
+        el("div", {
+          class: championId ? "seclabel seclabel--lime" : "seclabel",
+          text: championId ? "Season champion" : "Season over",
+        }),
+        el("div", {
+          class: "h-display beltname",
+          text: championId ? nameOf(championId) : "No matches played",
+        }),
+        el(
+          "div",
+          { class: "beltstats muted small" },
+          championId
+            ? el("span", { text: `${ladder[0]?.points ?? 0} pts · ${ladder[0]?.wins ?? 0} wins · ${ladder[0]?.mvps ?? 0} MVPs` })
+            : el("span", { text: "Nobody logged a match this season — no belt awarded. Next one's wide open." })
+        ),
         championId
-          ? el("div", { class: "beltstats muted small", text: `${ladder[0]?.points ?? 0} pts · ${ladder[0]?.wins ?? 0} wins · ${ladder[0]?.mvps ?? 0} MVPs` })
+          ? el("div", { class: "potdone", html: icon("check", 16) }, el("span", { text: `Belt + ${money(season.potCents)} streak pot directed to charity` }))
           : null,
-        el("div", { class: "potdone", html: icon("check", 16) }, el("span", { text: `Belt + ${money(season.potCents)} streak pot directed to charity` })),
         el("button", {
           class: "rwf-btn rwf-btn--primary btn-block",
           text: "START NEXT SEASON",

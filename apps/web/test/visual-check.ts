@@ -68,7 +68,12 @@ ok("tier card selected → lime border + glow",
   await evalJs(`(() => { const c = document.querySelector(".tiercard.on"); if (!c) return "no .on card"; const s = getComputedStyle(c); return (s.borderColor === "rgb(198, 243, 46)" && s.boxShadow.includes("198, 243, 46")) === true; })()`),
   await evalJs(`document.querySelector(".tiercard.on") ? getComputedStyle(document.querySelector(".tiercard.on")).borderColor : "no card"`));
 const multText = await evalJs(`[...document.querySelectorAll(".tiercard-mult")].map(c => c.textContent).join("|")`);
-ok("tier mult chips carry the plain-language copy", multText === "×1.5 — reps count more|×1.25|×1.0|×0.85 — reps count less", multText);
+// TEST UPDATED 2026-08-27 (intentional product change): the chip copy was
+// shortened. The long "— reps count more/less" form wrapped to a second line in
+// a 172px tier card, leaving couch/athlete chips 38px tall vs 23px for
+// casual/fit so no two chips shared a baseline. The plain-language intent is
+// kept ("counts more"/"counts less"), now on a single line.
+ok("tier mult chips carry the plain-language copy", multText === "×1.5 counts more|×1.25|×1.0|×0.85 counts less", multText);
 ok("selected card shows the check pip", await evalJs(`!!document.querySelector(".tiercard.on .tiercard-check") && getComputedStyle(document.querySelector(".tiercard.on .tiercard-check")).opacity === "1"`));
 ok("name input is the big friendly one", await evalJs(`parseFloat(getComputedStyle(document.querySelector(".input--xl")).fontSize) >= 19`));
 await evalJs(`document.querySelector(".screen--onboard .rwf-btn--primary").click()`);

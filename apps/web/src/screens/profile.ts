@@ -20,8 +20,16 @@ export function renderProfile(root: HTMLElement): () => void {
   const totalReps = mine.reduce((sum, m) => sum + playerRawReps(me.id, m.entries), 0);
   const winRate = done.length ? Math.round((wins / done.length) * 100) : 0;
 
-  const stat = (label: string, value: string): HTMLElement =>
-    el("div", { class: "stat" }, el("b", { text: value }), el("span", { text: label }));
+  /** `hero` marks the celebratory tile (wins). It only lights up once there is
+   *  something to celebrate — a glowing lime "0" reads as a taunt to a new
+   *  player, not an achievement. */
+  const stat = (label: string, value: string, hero?: boolean): HTMLElement =>
+    el(
+      "div",
+      { class: `stat${hero == null ? "" : hero ? " stat--hero" : " stat--zero"}` },
+      el("b", { text: value }),
+      el("span", { text: label })
+    );
 
   const history = [...mine].reverse().map((m) => {
     const win = m.status === "complete" ? winner(m) : null;
@@ -87,7 +95,15 @@ export function renderProfile(root: HTMLElement): () => void {
         el("div", { class: "champbadges" }, tierBadge(me.tier), el("span", { class: "tier tier--mult", text: `×${info.mult} multiplier` })),
         el("p", { class: "muted small", text: st.crew ? `${st.crew.name} · ${st.crew.code}` : "No crew yet" })
       ),
-      el("div", { class: "statgrid" }, stat("Matches", String(played)), stat("Wins", String(wins)), stat("Total reps", String(totalReps)), stat("Win rate", `${winRate}%`)),
+      el(
+        "div",
+        { class: "statgrid" },
+        stat("Matches", String(played)),
+        stat("Wins", String(wins), wins > 0),
+        stat("Total reps", String(totalReps)),
+        // No completed matches yet → "0%" is meaningless, say so plainly.
+        stat("Win rate", done.length ? `${winRate}%` : "—")
+      ),
       el("div", { class: "seclabel", text: "History" }),
       history.length
         ? el("div", { class: "stack" }, ...history)

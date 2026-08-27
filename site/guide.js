@@ -148,9 +148,15 @@ function init() {
     setPanel(false, { focus: false });
   });
 
-  // restore open state across reloads (no focus steal, no greeting re-roll)
+  // Restore open state across reloads (no focus steal, no greeting re-roll).
+  // DESKTOP ONLY: on mobile the panel is a bottom sheet covering ~78svh, so
+  // restoring it on every navigation drops a full-screen overlay over content
+  // the visitor didn't ask to cover here (and swallows taps meant for the
+  // page). Mobile keeps the launcher — same rule as the 5s auto-intro.
   try {
-    if (sessionStorage.getItem(OPEN_KEY) === '1') {
+    const isSheet = window.matchMedia('(max-width: 620px)').matches;
+    if (isSheet) sessionStorage.removeItem(OPEN_KEY);
+    if (!isSheet && sessionStorage.getItem(OPEN_KEY) === '1') {
       panel.classList.add('open');
       panel.setAttribute('aria-hidden', 'false');
       launcher.setAttribute('aria-expanded', 'true');
@@ -314,11 +320,15 @@ function init() {
     return div;
   }
 
-  function addError(text) {
+  function addError(text, kind = 'generic') {
     const div = document.createElement('div');
     div.className = 'msg msg--error';
     const span = document.createElement('span');
-    span.textContent = 'Guide is catching its breath — try again.';
+    // A provider quota/rate limit is not a broken guide — say so honestly, and
+    // point at the starter chips, which still answer instantly with no network.
+    span.textContent = kind === 'ratelimit'
+      ? 'Hit the AI usage limit for now — the starter chips below still answer instantly.'
+      : 'Guide is catching its breath — try again.';
     const btn = document.createElement('button');
     btn.type = 'button';
     btn.className = 'guide-retry';
@@ -351,7 +361,13 @@ function init() {
       const ctype = res.headers.get('content-type') || '';
       if (!ctype.includes('application/json')) throw new Error('non-json response');
       const data = await res.json(); // throws on garbage body
-      if (!res.ok) throw new Error('http ' + res.status); // 429 / 502 / 503 …
+      if (!res.ok) {
+        // 429 (ours or the provider's) → a "come back later", surfaced as a
+        // distinct, non-alarming message rather than a generic failure.
+        const err = new Error('http ' + res.status);
+        err.kind = res.status === 429 ? 'ratelimit' : 'generic';
+        throw err;
+      }
       const reply = typeof data?.text === 'string' ? data.text.trim() : '';
       if (!reply) throw new Error('empty reply');
       return reply;
@@ -372,9 +388,9 @@ function init() {
       history.push({ role: 'user', content: text }, { role: 'assistant', content: reply });
       addMsg('bot', reply);
       // chips stay visible — prebaked starters are instant and re-tappable
-    } catch {
+    } catch (err) {
       // history stays clean (user turn only lands on success) — retry re-sends.
-      addError(text);
+      addError(text, err && err.kind === 'ratelimit' ? 'ratelimit' : 'generic');
     } finally {
       if (loading._stopThinking) loading._stopThinking();
       loading.remove();

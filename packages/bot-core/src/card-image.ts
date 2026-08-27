@@ -10,7 +10,7 @@
 import { mkdirSync, writeFileSync } from "node:fs";
 import { join } from "node:path";
 import type { StoredMatch } from "./store.ts";
-import { standings, winner } from "../../game-core/src/index.ts";
+import { finalStandings, winner } from "../../game-core/src/index.ts";
 
 export const CARD_WIDTH = 1200;
 export const CARD_HEIGHT = 675;
@@ -68,8 +68,11 @@ export function generateResultCardSvg(
   winnerName: string,
   opts: ResultCardOpts = {}
 ): string {
-  const rows = standings(match.state).slice(0, 5);
-  const more = standings(match.state).length - rows.length;
+  // finalStandings = definitive finishing order (closure bonus applied) so the
+  // rows never contradict the crowned winner — the bonus can decide the match.
+  const allRows = finalStandings(match.state);
+  const rows = allRows.slice(0, 5);
+  const more = allRows.length - rows.length;
   const w = winner(match.state);
   const target = match.state.config.targetReps;
   const winnerAdjusted = w ? w.adjustedScore.toFixed(1) : "—";

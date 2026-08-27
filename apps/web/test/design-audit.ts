@@ -98,8 +98,28 @@ const PROBE = `(() => {
     const r = el.getBoundingClientRect();
     if (r.width === 0 && r.height === 0) continue;
     const label = (el.getAttribute('aria-label') || el.textContent || el.value || '').trim().slice(0, 34);
-    if (r.height < 44 || r.width < 44) {
-      out.tapTargets.push({ tag: el.tagName.toLowerCase(), cls: (typeof el.className === 'string' ? el.className : '').slice(0,44), label, w: Math.round(r.width), h: Math.round(r.height) });
+    // A checkbox/radio wrapped in a <label> is activated by the whole label, so
+    // the LABEL is the real tap target — measure that instead of the glyph.
+    // (Stretching a native checkbox to 44px just renders a grey slab.)
+    let tr = r;
+    if ((el.type === 'checkbox' || el.type === 'radio')) {
+      const lab = el.closest('label');
+      if (lab) {
+        const lr = lab.getBoundingClientRect();
+        if (lr.width >= r.width && lr.height >= r.height) tr = lr;
+      }
+    }
+    // WCAG 2.5.8 "inline" exception: a link inside a sentence is sized by the
+    // text around it, so it is exempt from the 44px floor. Forcing a min-width
+    // on these injects gaps into running prose. Height is still checked.
+    const inlineInProse = el.tagName === 'A' &&
+      getComputedStyle(el).display.startsWith('inline') &&
+      !!el.closest('p, li, span, td');
+    const tooSmall = inlineInProse
+      ? tr.height < 44                       // inline: height only
+      : (tr.height < 44 || tr.width < 44);   // everything else: both axes
+    if (tooSmall) {
+      out.tapTargets.push({ tag: inlineInProse ? 'a(inline)' : el.tagName.toLowerCase(), cls: (typeof el.className === 'string' ? el.className : '').slice(0,44), label, w: Math.round(tr.width), h: Math.round(tr.height) });
     }
     // accessible name check for icon-only controls
     if (!label && !el.getAttribute('aria-labelledby') && !el.querySelector('img[alt]:not([alt=""])') && !el.getAttribute('title')) {

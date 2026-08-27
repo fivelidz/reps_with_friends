@@ -231,6 +231,9 @@ export class MatchStore {
 
   contributePot(chatId: string, playerId: string, cents: number): number {
     const m = this.must(chatId);
+    // Legacy/hand-edited store entries may predate potContributors — never
+    // let a missing map eat the contribution.
+    if (!m.potContributors) m.potContributors = {};
     m.potCents += cents;
     m.potContributors[playerId] = (m.potContributors[playerId] ?? 0) + cents;
     this.persist();
@@ -260,6 +263,15 @@ export class MatchStore {
 
   /** Register a chatId as watching a crew code. Returns the spectator count. */
   watchCrew(chatId: string, crewCode: string): number {
+    // A chat watches exactly one crew — `watch <other>` re-binds, so drop the
+    // chat from any previous crew first (otherwise `s` keeps showing the old
+    // crew and the old crew keeps counting it as a spectator).
+    for (const code of Object.keys(this.spectators)) {
+      if (code === crewCode) continue;
+      const kept = this.spectators[code].filter((c) => c !== chatId);
+      if (kept.length === 0) delete this.spectators[code];
+      else if (kept.length !== this.spectators[code].length) this.spectators[code] = kept;
+    }
     const list = (this.spectators[crewCode] ?? []).filter((c) => c !== chatId);
     list.push(chatId);
     this.spectators[crewCode] = list;

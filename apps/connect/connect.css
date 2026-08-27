@@ -9,7 +9,17 @@ body { margin: 0; background: var(--bg); color: var(--text); font-family: var(--
 .step-body { flex: 1; min-width: 0; }
 .step-body h2 { margin: 2px 0 10px; font-size: 17px; letter-spacing: -0.01em; }
 .step-body p { color: var(--muted); font-size: 14px; margin: 0 0 12px; }
-.step-body a { color: var(--lime); }
+/* Inline prose links sit INSIDE a sentence, so WCAG 2.5.8 exempts them from
+   the 44px target floor (forcing a min-width here injects ugly gaps into the
+   running text). Still enlarge the hit area vertically — negative margin keeps
+   the surrounding line rhythm intact — and keep the underline affordance. */
+.step-body a {
+  color: var(--lime);
+  display: inline-block; padding: 14px 3px; margin: -14px -3px;
+  border-radius: var(--radius-sm);
+  text-underline-offset: 3px;
+}
+.step-body a:hover { color: var(--text); }
 .hint { font-size: 12.5px !important; color: var(--faint) !important; }
 .hint code, .step-body code, .tok code { font-family: var(--font-mono); color: var(--lime); background: rgba(198,243,46,0.08); padding: 1px 5px; border-radius: 4px; font-size: 0.92em; }
 .cid-form { display: flex; gap: 10px; flex-wrap: wrap; }

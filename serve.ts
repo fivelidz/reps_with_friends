@@ -65,7 +65,16 @@ async function aiChat(body: any): Promise<Response> {
     });
     if (!r.ok) {
       const errText = await r.text().catch(() => "");
-      return Response.json({ error: `upstream ${r.status}`, detail: errText.slice(0, 300) }, { status: 502 });
+      // Preserve the *class* of upstream failure instead of flattening
+      // everything to 502: a provider quota/rate-limit (429) is a "come back
+      // later", not a broken gateway, and 503 means temporarily unavailable.
+      // The guide widget surfaces a friendlier retry for these.
+      const status = r.status === 429 ? 429 : r.status === 503 ? 503 : 502;
+      const retryAfter = r.headers.get("retry-after");
+      return Response.json(
+        { error: `upstream ${r.status}`, detail: errText.slice(0, 300), retryable: status !== 502 },
+        { status, headers: retryAfter ? { "retry-after": retryAfter } : undefined },
+      );
     }
     const data = await r.json();
     const text = data?.content?.filter((c: any) => c?.type === "text").map((c: any) => c.text).join("\n") ?? "";
@@ -189,8 +198,12 @@ const server = Bun.serve({
         const body = await req.json();
         const text = String(body?.text ?? "").slice(0, 300);
         if (!text.trim()) return Response.json({ ok: false, error: "text required" }, { status: 400 });
+        // chatId is overridable so automated runs can use an isolated chat:
+        // matches are stored per chat, and a leftover open match would turn
+        // `new` into a no-op for the next run. The debug page keeps the
+        // default, so its console stays a single continuous session.
         const reply = simBus.handle({
-          chatId: "debug-console",
+          chatId: String(body?.chatId ?? "debug-console").slice(0, 80),
           playerId: String(body?.userId ?? "debugger"),
           playerName: String(body?.user ?? "Debugger"),
           text,

@@ -24,7 +24,12 @@ const msg = (playerId: string, playerName: string, text: string) => ({
 const ben = (text: string) => msg("u-ben", "Ben", text);
 const dave = (text: string) => msg("u-dave", "Dave", text);
 
-/** Play a quick 2-player match to completion. Dave=couch, Ben=athlete. */
+/**
+ * Play a quick 2-player match to completion. Dave=couch, Ben=athlete.
+ * Comeback rules (bus applies them): dave logs first with nobody ahead → no
+ * boost → daveRaw×1.5. Ben closes from 0 raw (>30% behind) → his one and only
+ * entry gets ×1.2 → 100×0.85×1.2 = 102, +15 closure bonus = 117.
+ */
 function playMatch(daveRaw: number, benRaw: number) {
   bus.handle(ben("start"));
   if (daveRaw > 0) bus.handle(dave(`log pushups ${daveRaw}`));
@@ -47,7 +52,7 @@ describe("rematch", () => {
     bus.handle(dave("join couch"));
     bus.handle(ben("link CREW-G1"));
     bus.handle(dave("pot 500"));
-    playMatch(68, 100); // dave 102 vs ben 100 — dave wins, pot $5
+    playMatch(80, 100); // dave 120 vs ben 117 (comeback ×1.2 + bonus) — dave wins, pot $5
     expect(store.get(CHAT)?.state.status).toBe("complete");
 
     const card = bus.handle(ben("rematch"));
@@ -69,7 +74,7 @@ describe("rematch", () => {
     expect(next.history![0].potCents).toBe(500);
 
     // roster is pre-joined → start works with no join step
-    playMatch(40, 100); // ben 100 vs dave 60 — ben takes the rematch
+    playMatch(40, 100); // ben 117 vs dave 60 — ben takes the rematch
     expect(store.get(CHAT)?.state.status).toBe("complete");
     expect(store.historyFor(CHAT)).toHaveLength(2);
     expect(store.historyFor(CHAT)[1].winnerId).toBe("u-ben");
@@ -114,26 +119,26 @@ describe("photo finish", () => {
     bus.handle(ben("new 100"));
     bus.handle(ben("join athlete"));
     bus.handle(dave("join couch"));
-    playMatch(68, 100); // dave 102 vs ben 100 → 2% gap
+    playMatch(80, 100); // dave 120 vs ben 117 → 2.5% gap
 
     const result = bus.handle(dave("result"));
-    expect(result).toContain("📸 *PHOTO FINISH — top two separated by 2%*");
+    expect(result).toContain("📸 *PHOTO FINISH — top two separated by 2.5%*");
     expect(result).toContain("MATCH RESULT"); // standard card still intact
-    expect(result).toContain("*Dave* takes it — adjusted score *102*");
+    expect(result).toContain("*Dave* takes it — adjusted score *120*");
 
     const m = store.get(CHAT)!;
     const path = join(dir, "cards", `${m.state.config.id.replace(/[^a-zA-Z0-9_-]/g, "-")}.svg`);
     expect(existsSync(path)).toBe(true);
     const svg = readFileSync(path, "utf8");
     expect(svg).toContain(CORAL); // coral accent border variant
-    expect(svg).toContain("PHOTO FINISH · TOP TWO SEPARATED BY 2%");
+    expect(svg).toContain("PHOTO FINISH · TOP TWO SEPARATED BY 2.5%");
   });
 
   test("blowout: standard card, lime SVG (no coral)", () => {
     bus.handle(ben("new 100"));
     bus.handle(ben("join athlete"));
     bus.handle(dave("join couch"));
-    playMatch(60, 100); // ben 100 vs dave 90 → 10% gap
+    playMatch(60, 100); // ben 117 vs dave 90 → 23.1% gap
 
     const result = bus.handle(dave("result"));
     expect(result).not.toContain("PHOTO FINISH");
@@ -157,9 +162,9 @@ describe("nemesis", () => {
     bus.handle(ben("new 100"));
     bus.handle(ben("join athlete"));
     bus.handle(dave("join couch"));
-    playMatch(68, 100); // dave wins match 1
+    playMatch(80, 100); // dave 120 vs ben 117 — dave wins match 1
     bus.handle(ben("rematch"));
-    playMatch(40, 100); // ben wins match 2
+    playMatch(40, 100); // ben 117 vs dave 60 — ben wins match 2
 
     expect(bus.handle(dave("nemesis"))).toBe(
       "⚔️ *Dave*'s nemesis is *Ben* — beaten 1 of 2 times they've played."
@@ -177,9 +182,9 @@ describe("nemesis", () => {
     bus.handle(ben("new 100"));
     bus.handle(ben("join athlete"));
     bus.handle(dave("join couch"));
-    playMatch(68, 100); // dave wins
+    playMatch(80, 100); // dave 120 vs ben 117 — dave wins
     bus.handle(ben("rematch"));
-    playMatch(68, 100); // dave wins again — ben never stood a chance
+    playMatch(80, 100); // dave wins again — ben never stood a chance
     expect(bus.handle(dave("nemesis"))).toContain("*Dave* has no nemesis yet");
     expect(bus.handle(dave("nemesis"))).toContain("nobody's beaten them twice");
   });
@@ -198,17 +203,17 @@ describe("digest", () => {
     bus.handle(ben("join athlete"));
     bus.handle(dave("join couch"));
     bus.handle(dave("pot 500"));
-    playMatch(68, 100); // dave 102 vs ben 100 — photo-finish win
+    playMatch(80, 100); // dave 120 vs ben 117 — photo-finish win (2.5%)
     bus.handle(ben("rematch"));
     bus.handle(dave("pot 300"));
-    playMatch(40, 100); // ben 100 vs dave 60 — statement win
+    playMatch(40, 100); // ben 117 vs dave 60 — statement win
 
     const digest = bus.handle(ben("digest"));
     expect(digest).toContain("📋 *MONDAY DIGEST — week in review*");
     expect(digest).toContain("2 matches played in this chat");
-    expect(digest).toContain("Biggest win: *Ben* over *Dave* by 40 adjusted (100 vs 60)");
+    expect(digest).toContain("Biggest win: *Ben* over *Dave* by 57 adjusted (117 vs 60)");
     expect(digest).toContain("Most closures: *Ben* ×2");
-    expect(digest).toContain("Photo finish of the week: *Dave* held off *Ben* by just 2%");
+    expect(digest).toContain("Photo finish of the week: *Dave* held off *Ben* by just 2.5%");
     expect(digest).toContain("Charity pot this week: *$8.00*");
     expect(digest).toContain("Rivalry watch:");
     expect(digest).toContain("🏁 Preseason: *");

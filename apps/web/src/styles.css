@@ -240,7 +240,10 @@ body::before {
 }
 .tiercard:active { transform: scale(0.98); }
 .tiercard-name { font-size: 15px; }
-.tiercard-blurb { color: var(--muted); font-size: 12px; min-height: 32px; }
+/* Reserve two lines: "Getting up IS the workout" wraps while the other blurbs
+   don't, which left the two grid ROWS at different heights (122 vs 119px).
+   Holding two lines everywhere squares the whole 2×2 grid (FIX 2026-08-27). */
+.tiercard-blurb { color: var(--muted); font-size: 12px; min-height: 35px; }
 /* Multiplier chip — spells out what the tier does to reps. */
 .tiercard-mult {
   display: inline-flex; align-items: center;
@@ -251,6 +254,11 @@ body::before {
   border: 1px solid var(--line-bright);
   border-radius: var(--pill);
   padding: 3px 9px;
+  /* Chips sit on ONE line and share a baseline across the 2×2 grid: blurbs
+     differ in length, so without margin-top:auto each chip floated at its own
+     height and the grid looked ragged (FIX 2026-08-27). */
+  margin-top: auto;
+  white-space: nowrap;
 }
 /* Selected check — lime circle, top-right. */
 .tiercard-check {
@@ -497,7 +505,14 @@ body::before {
   background: linear-gradient(90deg, var(--lime-dim), var(--lime));
   box-shadow: 0 0 12px var(--lime-glow);
   transition: width 700ms cubic-bezier(0.2, 0.7, 0.2, 1);
+  /* A just-started season / a player on 0 reps computes to ~0% and rendered as
+     an empty trough that looks like a BROKEN bar rather than "at the start".
+     A small floor keeps the fill legible as a real, if early, value.
+     (width:0 is still honoured — see the :not() below.) */
+  min-width: 3px;
 }
+/* Genuinely zero stays genuinely empty: only inline width:0% opts out. */
+.bar > i[style*="width:0%"], .bar > i[style*="width: 0%"] { min-width: 0; }
 
 /* ── tier badges ──────────────────────────────────────────────────────────── */
 
@@ -759,8 +774,13 @@ body::before {
 .stat:hover { border-color: rgba(198, 243, 46, 0.35); transform: translateY(-1px); }
 .stat b { font-family: var(--font-display); font-size: 21px; line-height: 1; }
 .stat span { font-size: 9px; font-weight: 700; letter-spacing: 0.12em; text-transform: uppercase; color: var(--faint); }
-/* Wins pop in lime. */
-.stat:nth-child(2) b { color: var(--lime); text-shadow: 0 0 16px var(--lime-glow); }
+/* Wins pop in lime — but only when there ARE wins. FIX 2026-08-27: this was an
+   unconditional :nth-child(2) rule, so a brand-new player saw a "0" glowing in
+   celebratory lime right next to "0% win rate". Zero is not an achievement —
+   lit up like that it reads as a taunt. profile.ts now tags the tile .stat--hero
+   once wins > 0, and .stat--zero while it's still nil. */
+.stat--hero b { color: var(--lime); text-shadow: 0 0 16px var(--lime-glow); }
+.stat--zero b { color: var(--muted); }
 
 .histcard {
   display: flex; flex-direction: column; gap: 8px;
@@ -782,7 +802,13 @@ body::before {
 #toasts {
   position: absolute;
   left: 0; right: 0;
-  bottom: calc(74px + env(safe-area-inset-bottom, 0px));
+  /* FIX 2026-08-27: toasts sat at a fixed 74px — exactly where the match
+     screen's floating log bar lives, so "+50 Push-ups logged" landed ON TOP of
+     the SEND IT bar, covering the one control you're using while logging.
+     --toast-lift is raised by the match screen while that bar is visible and
+     reset to 0 otherwise, so toasts always clear it. */
+  bottom: calc(74px + var(--toast-lift, 0px) + env(safe-area-inset-bottom, 0px));
+  transition: bottom var(--ease);
   display: flex; flex-direction: column; align-items: center; gap: 8px;
   padding: 0 16px;
   z-index: 60;
@@ -955,6 +981,21 @@ body::before {
 }
 .beltname { font-size: 34px; letter-spacing: 0.04em; color: var(--amber); text-shadow: 0 0 26px rgba(255, 176, 32, 0.3); }
 .beltstats { text-align: center; }
+/* A season that ended with nobody playing is a non-event, not a coronation:
+   strip the gold glow and gradient border, and size the line as a statement
+   rather than a champion's name (see season.ts, FIX 2026-08-27). */
+.beltcard--empty {
+  border-color: var(--line);
+  background: var(--surface);
+  box-shadow: none;
+  padding: 24px 18px;
+}
+.beltcard--empty .beltname {
+  font-size: 22px;
+  color: var(--text);
+  text-shadow: none;
+}
+.beltcard--empty .beltstats { max-width: 30ch; }
 
 .ladderlist { display: flex; flex-direction: column; gap: 4px; }
 .ladderrow {
