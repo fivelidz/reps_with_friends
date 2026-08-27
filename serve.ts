@@ -91,6 +91,8 @@ const MIME: Record<string, string> = {
   ".css": "text/css; charset=utf-8",
   ".json": "application/json; charset=utf-8",
   ".woff2": "font/woff2",
+  ".glb": "model/gltf-binary",
+  ".gltf": "model/gltf+json",
   ".svg": "image/svg+xml",
   ".png": "image/png",
   ".ico": "image/x-icon",
@@ -238,6 +240,12 @@ const server = Bun.serve({
       r = dirRoute("apps/connect", url) ?? new Response("connect not found", { status: 404 });
     } else if (p.startsWith("/demo")) {
       r = dirRoute("apps/demo", url) ?? new Response("demo not found", { status: 404 });
+    } else if (p.startsWith("/models/")) {
+      // GLB character models live in site/models/ — dirRoute would strip the
+      // /models prefix and look for site/Soldier.glb (the bug that blanked
+      // the model gallery). Map explicitly, and refuse path traversal.
+      const rel = decodeURIComponent(p.replace(/^\/models\//, "")).replace(/\.\./g, "");
+      r = file(`site/models/${rel}`, p) ?? new Response("model not found", { status: 404 });
     } else if (p.startsWith("/avatars")) {
       // Local-only avatar playground — tune the customisation system live.
       r = dirRoute("apps/avatars", url) ?? new Response("avatars playground not found", { status: 404 });
