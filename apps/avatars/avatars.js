@@ -501,23 +501,26 @@ window.__rwfStudio = {
 };
 
 // ─────────────────────────────────────────────────────────────────────────────
-// MODEL CHARACTERS — real rigged GLBs (Soldier / Xbot / orc), posed by the
-// same exercise selector that drives the procedural gallery.
+// MODEL CHARACTERS — real rigged GLBs (the game orcs + palette-treated
+// Soldier), posed by the same exercise selector that drives the procedural
+// gallery. Orc colourways come from the palette-remap system.
 // ─────────────────────────────────────────────────────────────────────────────
 const modelGrid = $('modelGrid');
 if (modelGrid) {
   const { MODELS, loadModel, ModelAvatar } = await import('/site/model-avatars.js');
+  const { applyColorway, applySoldierPalette, COLORWAYS } = await import('/site/model-recolor.js');
 
   const modelCards = [];
 
   for (const M of MODELS) {
     const card = document.createElement('article');
     card.className = 'style-card style-card--model';
+    const way = M.colorway ? COLORWAYS[M.colorway] : null;
     card.innerHTML = `
       <div class="style-stage"></div>
       <div class="style-meta">
         <h3>${M.name}</h3>
-        <p class="style-blurb">${M.rig} rig · ${M.native.length ? 'native anims: ' + M.native.join(', ') : 'no anims — posed live'}</p>
+        <p class="style-blurb">${M.rig} rig · ${M.native.length ? 'native anims: ' + M.native.join(', ') : 'no anims — posed live'}${way ? ' · palette remap' : ''}${M.palette ? ' · flat-colour treatment' : ''}</p>
         <div class="model-btns">
           ${M.native.map((n) => `<button class="rwf-btn btn--xs" data-native="${n}">${n}</button>`).join('')}
           <button class="rwf-btn btn--xs" data-native="">exercise</button>
@@ -533,9 +536,12 @@ if (modelGrid) {
     const W = 240, H = 300;
     const scene = new THREE.Scene();
     const cam = new THREE.PerspectiveCamera(38, W / H, 0.01, 60);
-    const key = new THREE.DirectionalLight(0xffffff, 2.4); key.position.set(1.5, 3, 2); scene.add(key);
-    const fill = new THREE.HemisphereLight(0x8fb6ff, 0x1a1d23, 1.1); scene.add(fill);
+    const key = new THREE.DirectionalLight(0xffffff, M.dark ? 3.6 : 2.4); key.position.set(1.5, 3, 2); scene.add(key);
+    const fill = new THREE.HemisphereLight(0x8fb6ff, 0x1a1d23, M.dark ? 1.7 : 1.1); scene.add(fill);
     const rim = new THREE.PointLight(0xc6f32e, 4, 8); rim.position.set(-2, 1.4, -2); scene.add(rim);
+    if (M.dark) { // dark-armoured models (marauder) need a lift to read on the dark stage
+      const warm = new THREE.PointLight(0xffd9a0, 2.2, 8); warm.position.set(1.8, 0.8, -1.5); scene.add(warm);
+    }
     const ground = new THREE.Mesh(
       new THREE.CircleGeometry(0.5, 40).rotateX(-Math.PI / 2),
       new THREE.MeshStandardMaterial({ color: 0x14171c, roughness: 0.95 })
@@ -574,16 +580,24 @@ if (modelGrid) {
     }, { threshold: 0 }).observe(card);
 
     loadModel(M.file).then((gltfScene) => {
+      // colourway / palette treatment BEFORE the avatar is posed & framed
+      if (M.colorway) applyColorway(gltfScene, M.colorway);
+      if (M.palette === 'soldier') applySoldierPalette(gltfScene);
       const av = new ModelAvatar(gltfScene, M.rig);
-      // normalise scale to ~1.5 units tall so all three share a camera
+      // normalise scale to ~1.5 units tall so all cards share a camera
       const s = 1.5 / av.H;
       av.root.scale.setScalar(s);
       scene.add(av.root);
       av.pose(galState.exercise, 0.5);
+      // frame by bounding sphere — the push-up pose is wide, not tall
       const box = new THREE.Box3().setFromObject(av.root);
-      const h = box.max.y - box.min.y;
-      cam.position.set(0, h * 0.52, h * 1.9);
-      cam.lookAt(0, h * 0.47, 0);
+      const sphere = box.getBoundingSphere(new THREE.Sphere());
+      const radius = Math.max(sphere.radius, 0.55);
+      const vFov = THREE.MathUtils.degToRad(cam.fov);
+      const hFov = 2 * Math.atan(Math.tan(vFov / 2) * (W / H));
+      const dist = (radius * 1.05) / Math.sin(Math.min(vFov, hFov) / 2);
+      cam.position.set(0, sphere.center.y + radius * 0.18, dist);
+      cam.lookAt(sphere.center.x, sphere.center.y, sphere.center.z);
       entry.avatar = av;
       entry.ok = true;
       // native animation buttons
@@ -628,5 +642,307 @@ if (modelGrid) {
   const galExerciseEl = $('galExercise');
   if (galExerciseEl) galExerciseEl.addEventListener('change', () => {
     for (const e of modelCards) if (e.avatar && !e.mixer) e.avatar.pose(galState.exercise, 0.5);
+  });
+}
+
+// ─────────────────────────────────────────────────────────────────────────────
+// CREATURES — the dragon, take two, on the dedicated creature rig.
+//
+// Self-contained block (append-only by contract): builds its own game-context
+// scenes — textured-ish tile floor, warm sun + cool ambient + soft shadows,
+// 52°-down / 45°-yaw / FOV-60 camera — because the post-mortem's #1 rule is
+// "evaluate in a game context, never in a void". WebGL contexts are LAZY
+// (created on intersection, released 3s off-screen), same as the model cards:
+// browsers cap ~16 live contexts and this page already runs many.
+// ─────────────────────────────────────────────────────────────────────────────
+{
+  const grid = $('creatureGrid');
+  if (grid) import('/site/avatar-styles/dragon2.js').then(({ createDragon, DRAGON_STAGES }) => {
+
+  const W = 240, H = 300;
+  const cards = [];   // { stage, card, dragon, scene, cam, renderer, releaseTimer }
+  let playing = true;
+  let currentAnim = 'flap';
+
+  // ── the game-context world (per card) ───────────────────────────────────
+  // One merged vertex-coloured mesh for the whole tile patch — 121 boxes as
+  // one draw call, not 700. Top faces full colour, sides darkened to ~62%,
+  // exactly the game's tile recipe (investigation §1.1).
+  function buildTilePatch(size = 11) {
+    const box = new THREE.BoxGeometry(0.97, 0.18, 0.97).toNonIndexed();
+    const bp = box.attributes.position.array;
+    const bn = box.attributes.normal.array;
+    const positions = [], normals = [], colors = [];
+    const c = new THREE.Color();
+    // albedo darkened ~×0.75 from the game's raw palette: our sun (3.6) is
+    // hotter than the game's (0.9 legacy), and pixel-verification showed the
+    // brighter tiles dragging membrane-vs-floor contrast under the 3:1 bar.
+    // Rendered result (#294716 avg) matches the game's DARK moss world census.
+    const MOSS = 0x2f5420, MOSS_D = 0x294a19, DIRT = 0x5c3c24;
+    for (let x = -(size - 1) / 2; x <= (size - 1) / 2; x++) {
+      for (let z = -(size - 1) / 2; z <= (size - 1) / 2; z++) {
+        const dirt = (Math.abs(x * x * 3 + z * z * 7) % 11) === 0;
+        const base = dirt ? DIRT : ((x + z) % 2 === 0 ? MOSS : MOSS_D);
+        const jitter = 0.94 + ((x * 31 + z * 17) % 7) / 100; // ±3% tile-to-tile
+        for (let v = 0; v < bp.length; v += 3) {
+          positions.push(bp[v] + x, bp[v + 1] - 0.09, bp[v + 2] + z);
+          normals.push(bn[v], bn[v + 1], bn[v + 2]);
+          const top = bn[v + 1] > 0.5;
+          const side = Math.abs(bn[v + 1]) < 0.5;
+          const m = top ? jitter : side ? 0.62 : 0.4;
+          c.setHex(base).multiplyScalar(m);
+          colors.push(c.r, c.g, c.b);
+        }
+      }
+    }
+    const g = new THREE.BufferGeometry();
+    g.setAttribute('position', new THREE.Float32BufferAttribute(positions, 3));
+    g.setAttribute('normal', new THREE.Float32BufferAttribute(normals, 3));
+    g.setAttribute('color', new THREE.Float32BufferAttribute(colors, 3));
+    const mesh = new THREE.Mesh(g, new THREE.MeshLambertMaterial({ vertexColors: true }));
+    mesh.receiveShadow = true;
+    return mesh;
+  }
+
+  function makeGameScene() {
+    const scene = new THREE.Scene();
+    scene.background = new THREE.Color(0x26301c);
+    // light haze only at the patch edges — an earlier 0.11 density was eating
+    // 26-40% of the pixel at card distance and fogged the elder's membrane
+    // down to #7e3d23 (pixel-verified). 0.035 keeps the warm depth cue.
+    scene.fog = new THREE.FogExp2(0x26301c, 0.035);
+
+    scene.add(buildTilePatch());
+    const under = new THREE.Mesh(
+      new THREE.PlaneGeometry(40, 40).rotateX(-Math.PI / 2),
+      new THREE.MeshLambertMaterial({ color: 0x1c2412 })
+    );
+    under.position.y = -0.181;
+    under.receiveShadow = true;
+    scene.add(under);
+
+    // the game's rig: one warm sun, one cool ambient, soft shadows.
+    // Sun 3.6 (light-probe-verified: 2.4 left the body at #285b14, murkier
+    // than the game's #3a911b reference; 3.6 lands the body in that family).
+    // Sky/ground hemisphere replaces a plain AmbientLight that measured as
+    // contributing ~nothing.
+    const sun = new THREE.DirectionalLight(0xfff0d0, 3.6);
+    sun.position.set(4, 8, 3);
+    sun.castShadow = true;
+    sun.shadow.mapSize.set(1024, 1024);
+    sun.shadow.camera.left = sun.shadow.camera.bottom = -3.5;
+    sun.shadow.camera.right = sun.shadow.camera.top = 3.5;
+    sun.shadow.camera.near = 0.5;
+    sun.shadow.camera.far = 25;
+    sun.shadow.bias = -0.0004;
+    sun.shadow.normalBias = 0.02;
+    scene.add(sun);
+    scene.add(new THREE.HemisphereLight(0x9090a0, 0x3a4030, 0.9));
+
+    // game camera: 52° down, 45° yaw, FOV 60
+    const cam = new THREE.PerspectiveCamera(60, W / H, 0.05, 60);
+    return { scene, cam };
+  }
+
+  function frameCamera(cam, dragon) {
+    dragon.poseAt('flap', 0.5); // spread pose for honest extents
+    const box = new THREE.Box3().setFromObject(dragon.root);
+    const center = box.getCenter(new THREE.Vector3());
+    const el = THREE.MathUtils.degToRad(52), az = THREE.MathUtils.degToRad(45);
+    const dir = new THREE.Vector3(Math.sin(az) * Math.cos(el), Math.sin(el), Math.cos(az) * Math.cos(el));
+    // Fit by PROJECTING the box corners + anatomical extremes and ITERATING:
+    // NDC does not scale exactly as 1/dist for points nearer the camera than
+    // the fit centre (the elder's head kept clipping ~26px off-card through
+    // two closed-form attempts), so converge instead of solving once.
+    const rig = dragon.rig;
+    const R = rig.dims.headR;
+    const crit = [
+      rig.head.getWorldPosition(new THREE.Vector3()),
+      rig.head.localToWorld(new THREE.Vector3(0, -R * 0.1, R * 0.55 + R * 1.35)), // snout tip
+      rig.tailTip.getWorldPosition(new THREE.Vector3()),
+      rig.wings.L.marks.T[0].getWorldPosition(new THREE.Vector3()),
+      rig.wings.R.marks.T[0].getWorldPosition(new THREE.Vector3()),
+    ];
+    const corners = [];
+    for (let i = 0; i < 8; i++) {
+      corners.push(new THREE.Vector3(
+        i & 1 ? box.max.x : box.min.x, i & 2 ? box.max.y : box.min.y, i & 4 ? box.max.z : box.min.z));
+    }
+    const v = new THREE.Vector3();
+    const FIT = 0.9; // target max |NDC| (10% margin)
+    let dist = box.getSize(v).length() / (2 * Math.tan(THREE.MathUtils.degToRad(30)) * (W / H)) + 1;
+    for (let it = 0; it < 12; it++) {
+      cam.position.copy(center).addScaledVector(dir, dist);
+      cam.lookAt(center);
+      cam.updateMatrixWorld(true);
+      let m = 0;
+      for (const p of [...corners, ...crit]) {
+        v.copy(p).project(cam);
+        m = Math.max(m, Math.abs(v.x), Math.abs(v.y));
+      }
+      if (m <= FIT) break;
+      dist *= Math.max(1.02, Math.min(m / FIT, 1.6)); // converge, capped per step
+    }
+    cam.position.copy(center).addScaledVector(dir, dist);
+    cam.lookAt(center);
+  }
+
+  // ── one card per evolution stage ────────────────────────────────────────
+  for (const id of ['hatchling', 'fledgling', 'elder']) {
+    const st = DRAGON_STAGES[id];
+    const card = document.createElement('article');
+    card.className = 'style-card';
+    card.dataset.stage = id;
+    card.innerHTML = `
+      <div class="style-stage"></div>
+      <div class="style-meta">
+        <h3>${st.label}</h3>
+        <p class="style-blurb">${st.blurb}</p>
+        <dl class="style-facts">
+          <div><dt>Wings : body</dt><dd class="js-wing">—</dd></div>
+          <div><dt>Neck : torso</dt><dd class="js-neck">—</dd></div>
+          <div><dt>Tail : body</dt><dd class="js-tail">—</dd></div>
+        </dl>
+        <p class="style-ratio">membrane <b style="color:${st.membrane}">${st.membrane}</b> on ${st.body}</p>
+      </div>`;
+    grid.appendChild(card);
+    const stage = card.querySelector('.style-stage');
+
+    const { scene, cam } = makeGameScene();
+    const dragon = createDragon({ stage: id });
+    scene.add(dragon.root);
+    dragon.setAnimation(currentAnim);
+    frameCamera(cam, dragon);
+
+    // measured off the LIVE rig — labels can't disagree with the render
+    const m = dragon.measure();
+    card.querySelector('.js-wing').textContent = `${m.wingRatio.toFixed(1)}×`;
+    card.querySelector('.js-neck').textContent = `${m.neckTorso.toFixed(2)}×`;
+    card.querySelector('.js-tail').textContent = `${m.tailBody.toFixed(2)}×`;
+
+    const entry = { stage: id, card, dragon, scene, cam, renderer: null, releaseTimer: 0 };
+    cards.push(entry);
+
+    // LAZY WebGL context — create on intersection, release 3s off-screen
+    const ensureRenderer = () => {
+      if (entry.renderer) return;
+      try {
+        const r = new THREE.WebGLRenderer({ antialias: true });
+        r.setPixelRatio(Math.min(devicePixelRatio, 2));
+        r.setSize(W, H);
+        r.outputColorSpace = THREE.SRGBColorSpace;
+        r.shadowMap.enabled = true;
+        r.shadowMap.type = THREE.PCFSoftShadowMap;
+        stage.appendChild(r.domElement);
+        entry.renderer = r;
+      } catch {
+        stage.innerHTML = '<p class="stage-fallback">WebGL unavailable</p>';
+      }
+    };
+    const releaseRenderer = () => {
+      if (!entry.renderer) return;
+      entry.renderer.dispose();
+      entry.renderer.forceContextLoss?.();
+      entry.renderer.domElement.remove();
+      entry.renderer = null;
+    };
+    new IntersectionObserver((es) => {
+      const vis = es[0].isIntersecting;
+      clearTimeout(entry.releaseTimer);
+      if (vis) ensureRenderer();
+      else entry.releaseTimer = setTimeout(releaseRenderer, 3000);
+    }, { threshold: 0 }).observe(card);
+  }
+
+  // ── shared tick ─────────────────────────────────────────────────────────
+  let last = performance.now(), ema = 0;
+  (function tick(now) {
+    requestAnimationFrame(tick);
+    const dt = Math.min(0.05, (now - last) / 1000); last = now;
+    const t0 = performance.now();
+    let drew = 0;
+    for (const e of cards) {
+      if (!e.renderer) continue;   // lazy — may be released off-screen
+      if (playing) e.dragon.update(dt);
+      e.renderer.render(e.scene, e.cam);
+      drew++;
+    }
+    if (drew) {
+      ema = ema * 0.9 + (performance.now() - t0) / drew * 0.1;
+      const el = $('creaturePerf');
+      if (el) el.textContent = `${ema.toFixed(1)} ms/frame`;
+    }
+  })(last);
+
+  // ── controls ────────────────────────────────────────────────────────────
+  const setAnim = (name) => {
+    currentAnim = name;
+    for (const e of cards) e.dragon.setAnimation(name);
+  };
+  $('creatureAnim').addEventListener('change', (e) => setAnim(e.target.value));
+  $('creaturePlay').addEventListener('change', (e) => { playing = e.target.checked; });
+  $('creatureFreeze').addEventListener('click', () => {
+    playing = false;
+    $('creaturePlay').checked = false;
+    // mid-downstroke for flap (wings spread & lit), mid-stride for walk
+    const phase = currentAnim === 'flap' ? 0.62 : 0.5;
+    for (const e of cards) e.dragon.poseAt(currentAnim, phase);
+  });
+
+  // debug/verification handle for the screenshot tooling (test/creature-shot.ts)
+  window.__creatures = {
+    setAnim, freeze: (ph) => { playing = false; for (const e of cards) e.dragon.poseAt(currentAnim, ph ?? 0.62); },
+    get playing() { return playing; },
+    set playing(v) { playing = v; $('creaturePlay').checked = v; },
+    canvasCount: () => grid.querySelectorAll('canvas').length,
+    cards: cards.map((e) => ({
+      stage: e.stage,
+      dragon: e.dragon,
+      scene: e.scene,
+      cam: e.cam,
+      // project a world point through this card's camera → page pixels
+      // (the investigation's raycast-locate technique, inverted)
+      project: (x, y, z) => {
+        const v = new THREE.Vector3(x, y, z).project(e.cam);
+        const r = e.card.querySelector('.style-stage').getBoundingClientRect();
+        return { x: r.left + scrollX + (v.x * 0.5 + 0.5) * r.width, y: r.top + scrollY + (-v.y * 0.5 + 0.5) * r.height };
+      },
+      rect: () => { const r = e.card.getBoundingClientRect(); return { x: r.left + scrollX, y: r.top + scrollY, w: r.width, h: r.height }; },
+      // named landmark world positions for pixel verification
+      landmarks: () => {
+        e.dragon.root.updateMatrixWorld(true);
+        const rig = e.dragon.rig;
+        const R = rig.dims.headR;
+        const hornLen = R * (0.5 + e.dragon.stage.horn * 1.1);
+        const wp = (o) => { const p = o.getWorldPosition(new THREE.Vector3()); return [p.x, p.y, p.z]; };
+        const hp = (x, y, z) => { const p = rig.head.localToWorld(new THREE.Vector3(x, y, z)); return [p.x, p.y, p.z]; };
+        const avg = (...os) => {
+          const v = new THREE.Vector3();
+          os.forEach((o) => v.add(o.getWorldPosition(new THREE.Vector3())));
+          v.divideScalar(os.length);
+          return [v.x, v.y, v.z];
+        };
+        return {
+          headCenter: wp(rig.head),
+          snoutTip: hp(0, -R * 0.1, R * 0.55 + R * 1.35),
+          jawTip: hp(0, -R * 0.38, R * 0.12 + R * 1.35 * 0.95),
+          eyeL: hp(R * 0.66, R * 0.23, R * 0.79),
+          eyeR: hp(-R * 0.66, R * 0.23, R * 0.79),
+          hornTipL: e.dragon.hornTips?.L ? wp(e.dragon.hornTips.L) : null,
+          hips: wp(rig.hips),
+          chest: wp(rig.chest),
+          tailTip: wp(rig.tailTip),
+          wingTipL: wp(rig.wings.L.marks.T[0]),
+          wingTipR: wp(rig.wings.R.marks.T[0]),
+          membraneL: avg(rig.wings.L.marks.S, rig.wings.L.marks.W, rig.wings.L.marks.T[1], rig.wings.L.marks.B),
+          membraneR: avg(rig.wings.R.marks.S, rig.wings.R.marks.W, rig.wings.R.marks.T[1], rig.wings.R.marks.B),
+        };
+      },
+    })),
+  };
+
+  }).catch((err) => {
+    grid.innerHTML = `<p class="gallery-note" style="color:#ff7a5c">creature module failed: ${err.message}</p>`;
+    console.error('[creatures]', err);
   });
 }

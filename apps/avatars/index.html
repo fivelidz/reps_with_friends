@@ -70,18 +70,54 @@
   <!-- ── MODEL CHARACTERS — real rigged GLB models ──────────────────────── -->
   <section class="studio-section" id="modelSection">
     <div class="section-head">
-      <h2>Model characters — rigged GLBs</h2>
+      <h2>Model characters — the game orcs, done properly</h2>
       <p class="section-sub">
-        Real game characters, not procedural geometry. Same exercise selector as
-        the procedural gallery drives their skeletons. Soldier/Xbot are three.js
-        example models (realistic / stylised robot); the orc is the goblin-village
-        game art. Poses are hand-tuned per rig — expect some jank, judge the ART.
+        The goblin-fort orcs (rigged Rigify humanoids, flat palette art) are the
+        avatar base — original, four tier colourways re-inked from the palette
+        texture, a human-palette variant, and the armoured Marauder. The
+        palette-treated Soldier shows the same treatment on realistic
+        proportions. Feet and hands stay planted — poses are IK-solved, not
+        hand-tuned.
       </p>
     </div>
     <div class="style-grid" id="modelGrid"></div>
     <p class="gallery-foot">
       <span class="hud-chip hud-chip--dim" id="modelPerf">— ms/frame</span>
-      <span class="gallery-note">Loading is async — cards appear as each model arrives. Native animations (Idle/Run) available on Soldier &amp; Xbot via the card buttons.</span>
+      <span class="gallery-note">Colourways remap the orc's own palette-texture swatches (skin → tier colour, kit untouched) — the game's colour-is-identity treatment. Loading is async; native animations (Idle/Run) available on the Soldier via its card buttons.</span>
+    </p>
+  </section>
+
+  <!-- ── CREATURES — dragons on the dedicated creature rig ───────────────── -->
+  <section class="studio-section" id="creatureSection">
+    <div class="section-head">
+      <h2>Creatures — dragon, take two</h2>
+      <p class="section-sub">
+        Built on the dedicated creature rig (horizontal body axis, neck ≥ torso,
+        tail ≥ body, wing sails ≥ 1.5× body area in bright coral) — not the
+        humanoid exercise rig that produced "person in a dragon suit". Evaluated
+        in a game context: tile floor, warm sun, cool ambient, 52°-down camera.
+        The three evolution stages ride the founder's tamagotchi concept.
+      </p>
+      <div class="gallery-controls">
+        <label class="ctl ctl--inline">
+          <span class="ctl-label">Animation</span>
+          <select id="creatureAnim" class="ctl-input">
+            <option value="idle">Idle</option>
+            <option value="flap" selected>Flap</option>
+            <option value="walk">Walk</option>
+          </select>
+        </label>
+        <label class="ctl ctl--check">
+          <input type="checkbox" id="creaturePlay" checked />
+          <span>Animate</span>
+        </label>
+        <button class="rwf-btn" id="creatureFreeze" type="button" title="Freeze every stage mid-animation for a comparable screenshot">⏸ Mid-frame</button>
+      </div>
+    </div>
+    <div class="style-grid" id="creatureGrid"></div>
+    <p class="gallery-foot">
+      <span class="hud-chip hud-chip--dim" id="creaturePerf">— ms/frame</span>
+      <span class="gallery-note">Wing : body area, neck : torso and tail : body are measured off each live rig — the labels cannot disagree with the render.</span>
     </p>
   </section>
 
