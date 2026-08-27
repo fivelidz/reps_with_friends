@@ -196,164 +196,6 @@ a { color: var(--lime); }
 
 .copy-note { font-family: var(--font-mono); font-size: 11px; color: var(--lime); }
 
-/* ── style gallery ────────────────────────────────────────────────────────── */
-/* The comparison view. Cards are a fixed-min grid so all five sit in one row on
-   a desktop viewport — seeing them side by side IS the feature; a wrapped grid
-   makes styles impossible to compare. */
-.gallery { margin: 0 0 40px; }
-.gallery-head {
-  display: flex;
-  flex-wrap: wrap;
-  gap: 16px;
-  align-items: flex-end;
-  justify-content: space-between;
-  margin-bottom: 14px;
-}
-.gallery-head h2 {
-  margin: 0 0 4px;
-  font-family: var(--font-display);
-  font-size: 22px;
-  letter-spacing: -0.01em;
-}
-.gallery-sub { margin: 0; color: var(--muted); font-size: 14px; }
-
-.gallery-controls {
-  display: flex;
-  gap: 12px;
-  align-items: flex-end;
-  flex-wrap: wrap;
-}
-.ctl--inline { min-width: 132px; }
-.ctl--inline .ctl-input { min-height: 34px; padding: 6px 9px; font-size: 12px; }
-.ctl.is-disabled { opacity: 0.42; }
-
-.style-grid {
-  display: grid;
-  grid-template-columns: repeat(5, minmax(0, 1fr));
-  gap: 12px;
-}
-
-.style-card {
-  border: 1px solid var(--line);
-  border-radius: var(--radius);
-  background: var(--surface);
-  overflow: hidden;
-  display: flex;
-  flex-direction: column;
-  transition: border-color var(--ease), box-shadow var(--ease);
-}
-.style-card.is-active {
-  border-color: var(--lime);
-  box-shadow: 0 0 0 1px var(--lime), 0 10px 30px rgba(0, 0, 0, 0.45);
-}
-.style-stage {
-  height: 300px;
-  position: relative;
-  background:
-    radial-gradient(120% 90% at 50% 6%, rgba(198, 243, 46, 0.06), transparent 60%),
-    var(--surface-2);
-}
-.style-stage canvas { width: 100%; height: 100%; display: block; }
-.stage-fallback {
-  position: absolute; inset: 0;
-  display: grid; place-items: center;
-  margin: 0; font-size: 12px; color: var(--faint);
-}
-
-.style-meta { padding: 10px 12px 12px; display: flex; flex-direction: column; gap: 6px; flex: 1; }
-.style-meta h3 {
-  margin: 0;
-  font-family: var(--font-display);
-  font-size: 15px;
-  font-weight: 700;
-}
-.style-ratio {
-  margin: 0;
-  font-family: var(--font-mono);
-  font-size: 11px;
-  color: var(--muted);
-}
-.style-ratio b { color: var(--lime); font-weight: 500; }
-.style-blurb { margin: 0; font-size: 11px; line-height: 1.5; color: var(--faint); flex: 1; }
-
-.style-facts {
-  margin: 2px 0 0;
-  display: grid;
-  grid-template-columns: repeat(3, 1fr);
-  gap: 4px;
-  border-top: 1px solid var(--line);
-  padding-top: 7px;
-}
-.style-facts div { display: flex; flex-direction: column; gap: 1px; }
-.style-facts dt {
-  font-family: var(--font-mono);
-  font-size: 8.5px;
-  letter-spacing: 0.08em;
-  text-transform: uppercase;
-  color: var(--faint);
-}
-.style-facts dd { margin: 0; font-family: var(--font-mono); font-size: 11px; color: var(--text); }
-
-.style-audit { margin: 0; font-family: var(--font-mono); font-size: 9.5px; color: var(--lime); }
-.style-audit.is-bad { color: var(--coral, #ff5c38); }
-
-.rwf-btn--sm { padding: 6px 10px; font-size: 11px; width: 100%; }
-
-.gallery-foot {
-  display: flex;
-  gap: 12px;
-  align-items: center;
-  flex-wrap: wrap;
-  margin: 12px 0 0;
-}
-.gallery-note { font-size: 11px; color: var(--faint); }
-
-/* ── style pills (studio panel) ───────────────────────────────────────────── */
-.style-pills { display: flex; flex-wrap: wrap; gap: 6px; }
-.style-pill {
-  font-family: var(--font-body);
-  font-size: 11.5px;
-  padding: 6px 10px;
-  border-radius: var(--pill);
-  border: 1px solid var(--line-bright);
-  background: var(--surface);
-  color: var(--muted);
-  cursor: pointer;
-  transition: border-color var(--ease), color var(--ease), background var(--ease);
-}
-.style-pill:hover { border-color: var(--lime); color: var(--text); }
-.style-pill.is-active { border-color: var(--lime); background: rgba(198, 243, 46, 0.12); color: var(--lime); }
-.style-pill:focus-visible { outline: 2px solid var(--lime); outline-offset: 2px; }
-
-/* measured proportions, printed over the viewer */
-.viewer-ratios {
-  position: absolute;
-  bottom: 10px; left: 12px;
-  display: flex; flex-wrap: wrap; gap: 6px;
-  pointer-events: none;
-}
-.viewer-ratios span {
-  font-family: var(--font-mono);
-  font-size: 10px;
-  padding: 3px 8px;
-  border-radius: var(--pill);
-  border: 1px solid var(--line);
-  background: rgba(10, 11, 13, 0.72);
-  color: var(--muted);
-}
-.viewer-ratios .is-ok { color: var(--lime); border-color: var(--line-bright); }
-.viewer-ratios .is-bad { color: var(--coral, #ff5c38); border-color: var(--coral, #ff5c38); }
-
-/* ── section headings ─────────────────────────────────────────────────────── */
-.studio-section { margin-top: 8px; }
-.section-head h2 {
-  margin: 0 0 4px;
-  font-family: var(--font-display);
-  font-size: 22px;
-  letter-spacing: -0.01em;
-}
-.section-head p { margin: 0 0 14px; color: var(--muted); font-size: 14px; }
-
 /* ── presets ──────────────────────────────────────────────────────────────── */
 .presets { margin-top: 34px; }
 .presets-head h2 {
@@ -409,22 +251,14 @@ a { color: var(--lime); }
 .studio-foot p { margin: 0; font-size: 12px; color: var(--faint); }
 
 /* ── responsive ───────────────────────────────────────────────────────────── */
-@media (max-width: 1240px) {
-  .style-grid { grid-template-columns: repeat(3, minmax(0, 1fr)); }
-  .style-stage { height: 260px; }
-}
 @media (max-width: 1040px) {
   .studio-main { grid-template-columns: 1fr; }
   .viewer-stage { height: 440px; }
   .panel { max-height: none; }
 }
-@media (max-width: 720px) {
-  .style-grid { grid-template-columns: repeat(2, minmax(0, 1fr)); }
-}
 @media (max-width: 560px) {
   .studio { padding: 20px 14px 48px; }
   .viewer-stage { height: 340px; }
-  .style-grid { grid-template-columns: 1fr; }
 }
 
 /* Reduced motion: the scenes already hold a static pose (avatars.js checks the

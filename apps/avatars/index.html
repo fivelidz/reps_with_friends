@@ -3,7 +3,7 @@
 <head>
 <meta charset="utf-8" />
 <meta name="viewport" content="width=device-width, initial-scale=1.0" />
-<title>RWF · Avatar studio</title>
+<title>RWF · Avatar style exploration</title>
 <link rel="stylesheet" href="/design/tokens.css" />
 <link rel="stylesheet" href="/design/fonts/fonts.css" />
 <link rel="stylesheet" href="/avatars/avatars.css" />
@@ -21,114 +21,173 @@
 <main class="studio">
 
   <header class="studio-head">
-    <p class="studio-kicker">REPS WITH FRIENDS · INTERNAL</p>
-    <h1>Avatar studio</h1>
-    <p class="studio-sub">Every knob on the avatar system, live. Tune a character, copy its JSON, drop it into a player record.</p>
+    <p class="studio-kicker">REPS WITH FRIENDS · INTERNAL · NOT DEPLOYED</p>
+    <h1>Avatar style exploration</h1>
+    <p class="studio-sub">
+      Five directions, one rig. Every style below runs the same skeleton, the same
+      proportion solver and the same animation code — only the shape language differs.
+      Pick a direction; the tuning studio underneath drives whichever you select.
+    </p>
   </header>
 
-  <section class="studio-main">
-
-    <!-- viewer -->
-    <div class="viewer rwf-card">
-      <div class="viewer-stage" id="stage" role="img" aria-label="Large 3D preview of the avatar being customised"></div>
-      <div class="viewer-hud">
-        <span class="hud-chip" id="hudReps">0 reps</span>
-        <span class="hud-chip hud-chip--dim" id="hudPerf">— ms/frame</span>
+  <!-- ── GALLERY ─────────────────────────────────────────────────────────── -->
+  <section class="gallery" id="gallery">
+    <div class="gallery-head">
+      <div>
+        <h2>Styles side by side</h2>
+        <p class="gallery-sub">All five doing the same exercise at the same build, so they're directly comparable.</p>
       </div>
-      <p class="viewer-hint">Drag to orbit · scroll to zoom</p>
-    </div>
-
-    <!-- controls -->
-    <div class="panel rwf-card">
-
-      <div class="panel-row panel-row--actions">
-        <button class="rwf-btn rwf-btn--primary" id="btnRandom" type="button">🎲 Randomise</button>
-        <button class="rwf-btn" id="btnReset" type="button">↺ Reset</button>
-      </div>
-
-      <fieldset class="group">
-        <legend>Motion</legend>
-        <label class="ctl">
+      <div class="gallery-controls">
+        <label class="ctl ctl--inline">
           <span class="ctl-label">Exercise</span>
-          <select id="selExercise" class="ctl-input"></select>
+          <select id="galExercise" class="ctl-input"></select>
         </label>
-        <label class="ctl">
-          <span class="ctl-label">Speed <b id="valSpeed">1.00×</b></span>
-          <input type="range" id="rngSpeed" class="ctl-range" min="0.2" max="2.5" step="0.05" value="1" />
+        <label class="ctl ctl--inline">
+          <span class="ctl-label">Build</span>
+          <select id="galBuild" class="ctl-input"></select>
+        </label>
+        <label class="ctl ctl--inline">
+          <span class="ctl-label">Height <b id="galHeightVal">1.00×</b></span>
+          <input type="range" id="galHeight" class="ctl-range" min="0.72" max="1.35" step="0.01" value="1" />
         </label>
         <label class="ctl ctl--check">
-          <input type="checkbox" id="chkPlay" checked />
+          <input type="checkbox" id="galPlay" checked />
           <span>Animate</span>
         </label>
-      </fieldset>
-
-      <fieldset class="group">
-        <legend>Body</legend>
-        <label class="ctl">
-          <span class="ctl-label">Build</span>
-          <select id="selBuild" class="ctl-input"></select>
-        </label>
-        <label class="ctl">
-          <span class="ctl-label">Height <b id="valHeight">1.00×</b></span>
-          <input type="range" id="rngHeight" class="ctl-range" min="0.72" max="1.35" step="0.01" value="1" />
-        </label>
-        <label class="ctl">
-          <span class="ctl-label">Hair</span>
-          <select id="selHair" class="ctl-input"></select>
-        </label>
-        <label class="ctl">
-          <span class="ctl-label">Accessory</span>
-          <select id="selAccessory" class="ctl-input"></select>
-        </label>
-      </fieldset>
-
-      <fieldset class="group">
-        <legend>Colour</legend>
-        <label class="ctl ctl--color">
-          <span class="ctl-label">Skin tone</span>
-          <input type="color" id="colSkin" class="ctl-swatch" value="#e9c49b" />
-        </label>
-        <div class="swatches" id="swatchSkin"></div>
-
-        <label class="ctl ctl--color">
-          <span class="ctl-label">Outfit</span>
-          <input type="color" id="colOutfit" class="ctl-swatch" value="#c6f32e" />
-        </label>
-        <div class="swatches" id="swatchOutfit"></div>
-
-        <label class="ctl ctl--color">
-          <span class="ctl-label">Accent</span>
-          <input type="color" id="colAccent" class="ctl-swatch" value="#ff5c38" />
-        </label>
-        <label class="ctl ctl--color">
-          <span class="ctl-label">Hair colour</span>
-          <input type="color" id="colHair" class="ctl-swatch" value="#2b2118" />
-        </label>
-        <label class="ctl">
-          <span class="ctl-label">Tier (sets default outfit + accent)</span>
-          <select id="selTier" class="ctl-input"></select>
-        </label>
-      </fieldset>
-
-      <fieldset class="group">
-        <legend>Config JSON</legend>
-        <p class="group-note">Round-trips: this is exactly what <code>createAvatar()</code> accepts.</p>
-        <textarea id="jsonOut" class="json-out" rows="14" spellcheck="false" aria-label="Avatar configuration as JSON"></textarea>
-        <div class="panel-row">
-          <button class="rwf-btn" id="btnCopy" type="button">⧉ Copy</button>
-          <button class="rwf-btn" id="btnApply" type="button">↧ Apply edits</button>
-          <span class="copy-note" id="copyNote" aria-live="polite"></span>
-        </div>
-      </fieldset>
-
+        <button class="rwf-btn" id="btnFreezeMid" type="button" title="Freeze every style at the hardest part of the rep">⏸ Mid-rep</button>
+      </div>
     </div>
+
+    <!-- one card per style; filled by JS -->
+    <div class="style-grid" id="styleGrid"></div>
+
+    <p class="gallery-foot">
+      <span class="hud-chip hud-chip--dim" id="galPerf">— ms/frame</span>
+      <span class="gallery-note">Head-count is measured from the live rig, not hand-written — a label can't disagree with its render.</span>
+    </p>
   </section>
 
-  <!-- presets -->
+  <!-- ── TUNING STUDIO ───────────────────────────────────────────────────── -->
+  <section class="studio-section">
+    <div class="section-head">
+      <h2>Tuning studio</h2>
+      <p>Every knob on the avatar system, live, on the selected style. Copy the JSON straight into a player record.</p>
+    </div>
+
+    <section class="studio-main">
+
+      <div class="viewer rwf-card">
+        <div class="viewer-stage" id="stage" role="img" aria-label="Large 3D preview of the avatar being customised"></div>
+        <div class="viewer-hud">
+          <span class="hud-chip" id="hudStyle">—</span>
+          <span class="hud-chip" id="hudReps">0 reps</span>
+          <span class="hud-chip hud-chip--dim" id="hudPerf">— ms/frame</span>
+        </div>
+        <div class="viewer-ratios" id="hudRatios"></div>
+        <p class="viewer-hint">Drag to orbit · scroll to zoom</p>
+      </div>
+
+      <div class="panel rwf-card">
+
+        <div class="panel-row panel-row--actions">
+          <button class="rwf-btn rwf-btn--primary" id="btnRandom" type="button">🎲 Randomise</button>
+          <button class="rwf-btn" id="btnReset" type="button">↺ Reset</button>
+        </div>
+
+        <fieldset class="group">
+          <legend>Style</legend>
+          <div class="style-pills" id="stylePills"></div>
+          <p class="group-note" id="styleBlurb"></p>
+        </fieldset>
+
+        <fieldset class="group">
+          <legend>Motion</legend>
+          <label class="ctl">
+            <span class="ctl-label">Exercise</span>
+            <select id="selExercise" class="ctl-input"></select>
+          </label>
+          <label class="ctl">
+            <span class="ctl-label">Speed <b id="valSpeed">1.00×</b></span>
+            <input type="range" id="rngSpeed" class="ctl-range" min="0.2" max="2.5" step="0.05" value="1" />
+          </label>
+          <label class="ctl">
+            <span class="ctl-label">Scrub rep <b id="valPhase">live</b></span>
+            <input type="range" id="rngPhase" class="ctl-range" min="0" max="1" step="0.01" value="0.5" />
+          </label>
+          <label class="ctl ctl--check">
+            <input type="checkbox" id="chkPlay" checked />
+            <span>Animate</span>
+          </label>
+        </fieldset>
+
+        <fieldset class="group">
+          <legend>Body</legend>
+          <label class="ctl">
+            <span class="ctl-label">Build</span>
+            <select id="selBuild" class="ctl-input"></select>
+          </label>
+          <label class="ctl">
+            <span class="ctl-label">Height <b id="valHeight">1.00×</b></span>
+            <input type="range" id="rngHeight" class="ctl-range" min="0.72" max="1.35" step="0.01" value="1" />
+          </label>
+          <label class="ctl">
+            <span class="ctl-label">Hair</span>
+            <select id="selHair" class="ctl-input"></select>
+          </label>
+          <label class="ctl">
+            <span class="ctl-label">Accessory</span>
+            <select id="selAccessory" class="ctl-input"></select>
+          </label>
+        </fieldset>
+
+        <fieldset class="group">
+          <legend>Colour</legend>
+          <label class="ctl ctl--color">
+            <span class="ctl-label">Skin tone</span>
+            <input type="color" id="colSkin" class="ctl-swatch" value="#e9c49b" />
+          </label>
+          <div class="swatches" id="swatchSkin"></div>
+
+          <label class="ctl ctl--color">
+            <span class="ctl-label">Outfit</span>
+            <input type="color" id="colOutfit" class="ctl-swatch" value="#c6f32e" />
+          </label>
+          <div class="swatches" id="swatchOutfit"></div>
+
+          <label class="ctl ctl--color">
+            <span class="ctl-label">Accent</span>
+            <input type="color" id="colAccent" class="ctl-swatch" value="#ff5c38" />
+          </label>
+          <label class="ctl ctl--color">
+            <span class="ctl-label">Hair colour</span>
+            <input type="color" id="colHair" class="ctl-swatch" value="#2b2118" />
+          </label>
+          <label class="ctl">
+            <span class="ctl-label">Tier (sets default outfit + accent)</span>
+            <select id="selTier" class="ctl-input"></select>
+          </label>
+        </fieldset>
+
+        <fieldset class="group">
+          <legend>Config JSON</legend>
+          <p class="group-note">Round-trips: this is exactly what <code>createAvatar()</code> accepts.</p>
+          <textarea id="jsonOut" class="json-out" rows="14" spellcheck="false" aria-label="Avatar configuration as JSON"></textarea>
+          <div class="panel-row">
+            <button class="rwf-btn" id="btnCopy" type="button">⧉ Copy</button>
+            <button class="rwf-btn" id="btnApply" type="button">↧ Apply edits</button>
+            <span class="copy-note" id="copyNote" aria-live="polite"></span>
+          </div>
+        </fieldset>
+
+      </div>
+    </section>
+  </section>
+
+  <!-- ── PRESETS ─────────────────────────────────────────────────────────── -->
   <section class="presets">
     <div class="presets-head">
       <h2>Presets</h2>
-      <p>Six characters built from the same system — click one to load it into the viewer.</p>
+      <p>Six characters from the same system, in the selected style — click one to load it into the viewer.</p>
     </div>
     <div class="preset-grid" id="presetGrid"></div>
   </section>

@@ -1,957 +1,96 @@
-// RWF avatars — stylised, customisable mini athletes, fully procedural.
-//
-// Rebuilt 2026-08-27 (previous capsule-stack version archived at
-// site/archive/avatars_20260827.js). What changed:
-//   • Toon shading — MeshToonMaterial + an in-canvas 5-band gradient ramp, lit
-//     by a key + two coloured rims. Flat bands read far better at 90px than
-//     MeshStandard's plastic specular did.
-//   • Tapered forms — LatheGeometry profiles instead of capsules, so limbs
-//     swell at the muscle belly and taper at the joint, and the torso has an
-//     actual chest / waist / hip silhouette.
-//   • A face (eyes, pupils, brows, mouth), mitten hands and chunky trainers.
-//   • A per-figure contact shadow that tracks hip height.
-//   • A customisation layer: skin / outfit / accent colours, build, height,
-//     hair and accessory — serialisable to a plain JSON descriptor.
-//   • Animation: asymmetric rep easing, joint lag, damped follow-through and
-//     squash/stretch at the rep extremes.
-//
-// No deps beyond three, no model files, no textures on disk. Works offline.
-import * as THREE from 'three';
-
-const REDUCED = window.matchMedia('(prefers-reduced-motion: reduce)').matches;
-
-// ── palette ──────────────────────────────────────────────────────────────────
-// Tier identity colours (match design/tokens.css).
-export const TIER_COLORS = {
-  couch: 0xffb020,   // amber
-  casual: 0x6ec1ff,  // sky
-  fit: 0xc6f32e,     // lime
-  athlete: 0xff5c38, // coral
-};
-
-// Accent (shoes / headband / wristband) per tier — deliberately NOT the outfit
-// colour, so each figure carries two hues and reads as a designed character
-// rather than a monochrome silhouette.
-export const TIER_ACCENTS = {
-  couch: '#6ec1ff',
-  casual: '#c6f32e',
-  fit: '#ff5c38',
-  athlete: '#ffb020',
-};
-
-export const SKIN_TONES = [
-  '#f7ddc3', '#e9c49b', '#d9a273', '#b97e4f', '#8f5a30', '#5f3a1f',
-];
-
-export const OUTFIT_COLORS = [
-  '#c6f32e', '#ff5c38', '#ffb020', '#6ec1ff', '#e8eaed',
-  '#8b5cf6', '#22d3a6', '#f26fb3', '#2f3540',
-];
-
-export const HAIR_STYLES = ['none', 'short', 'bun', 'cap'];
-export const ACCESSORIES = ['none', 'headband', 'wristbands', 'belt'];
-export const BUILDS = ['slim', 'average', 'heavy'];
-
-// Hair colour is picked from its own small palette so "randomise" doesn't
-// produce lime-green hair on every third avatar.
-const HAIR_COLORS = ['#2b2118', '#4a3524', '#7a4a22', '#c8a24a', '#8c8f96', '#1a1c20'];
-
-// ── easing / motion helpers ──────────────────────────────────────────────────
-const clamp = (v, lo, hi) => Math.min(hi, Math.max(lo, v));
-const lerp = (a, b, t) => a + (b - a) * t;
-const easeInOut = (p) => (p < 0.5 ? 2 * p * p : 1 - Math.pow(-2 * p + 2, 2) / 2);
-const easeOutCubic = (p) => 1 - Math.pow(1 - p, 3);
-
-// One rep as an asymmetric 0→1→0 curve. `dn` is the fraction of the cycle spent
-// on the eccentric (lowering) half — real lifting is slow down, fast up, and
-// that asymmetry is most of what stops the loop looking like a metronome.
-function rep(p, dn = 0.55) {
-  return p < dn ? easeInOut(p / dn) : 1 - easeOutCubic((p - dn) / (1 - dn));
-}
-
-// Wrap a phase into [0,1) so a joint can be driven from a *delayed* copy of the
-// same curve — that lag is what makes forearms trail upper arms.
-const wrap = (p) => ((p % 1) + 1) % 1;
-
-// Damped follow-through over the tail of the cycle. Returns exactly 0 at both
-// `from` and 1, so the loop stays seamless no matter the amplitude.
-function bounce(p, from = 0.72) {
-  if (p < from) return 0;
-  const q = (p - from) / (1 - from);
-  return Math.sin(q * Math.PI * 2.4) * (1 - q) * (1 - q);
-}
-
-// ── proportions ──────────────────────────────────────────────────────────────
-// Base figure stands ~0.40 tall (metres-ish; the camera fits to the row, so the
-// unit only matters for internal consistency).
-const BUILD_MODS = {
-  slim:    { limb: 0.80, torso: 0.87, belly: 0.78, shoulder: 0.95, headScale: 1.02 },
-  average: { limb: 1.00, torso: 1.00, belly: 1.00, shoulder: 1.00, headScale: 1.00 },
-  heavy:   { limb: 1.26, torso: 1.20, belly: 1.48, shoulder: 1.08, headScale: 0.97 },
-};
-
-// Height stretches limbs and torso but leaves the head nearly alone, so a short
-// figure reads chibi and a tall one reads adult — rather than everything just
-// scaling uniformly, which changes nothing about the silhouette.
-function makeDims(build, height) {
-  const b = BUILD_MODS[build] ?? BUILD_MODS.average;
-  const h = clamp(height, 0.72, 1.35);
-  const hl = lerp(1, h, 0.85);   // limb-length response to height
-  const hh = lerp(1, h, 0.18);   // head response — deliberately weak
-
-  const legUp = 0.086 * hl, legLo = 0.078 * hl;
-  const torsoLen = 0.112 * lerp(1, h, 0.45);
-  const headR = 0.055 * hh * b.headScale;
-  const footLen = 0.052 * lerp(1, b.limb, 0.5);
-
-  // Where the sole actually bottoms out below the ankle. The shoe is a sphere
-  // of radius footLen/2 scaled 0.50 in Y and dropped footLen*0.14, so its
-  // lowest point is footLen*(0.14 + 0.25). Deriving it (rather than eyeballing
-  // a constant) is what keeps every build/height standing ON the floor instead
-  // of sinking into it — heavy/tall figures have bigger shoes and were the
-  // worst offenders.
-  const footDrop = footLen * 0.39;
-  const hipDrop = 0.010;                  // hip joints hang below the pelvis
-
-  return {
-    build: b,
-    legUp, legLo, footDrop, hipDrop,
-    legUpR: 0.031 * b.limb, legLoR: 0.026 * b.limb,
-    hipX: 0.033 * b.torso,
-    // Pelvis pivot height = everything stacked below it. Sole lands exactly on
-    // y=0, so the contact shadow reads as contact.
-    hipY: hipDrop + legUp + legLo + footDrop,
-    torsoLen, torsoR: 0.053 * b.torso,
-    shoulderY: torsoLen * 0.90,
-    shoulderX: 0.053 * b.torso * b.shoulder + 0.013,
-    armUp: 0.076 * hl, armLo: 0.070 * hl,
-    armUpR: 0.022 * b.limb, armLoR: 0.019 * b.limb,
-    handR: 0.024 * b.limb,
-    headR, headY: torsoLen + headR * 0.86 + 0.014,
-    footLen,
-  };
-}
-
-// ── toon material stack ──────────────────────────────────────────────────────
-// A 5-step grayscale ramp sampled with NearestFilter gives MeshToonMaterial its
-// hard bands. One texture is shared by every material in every scene.
-let _gradient = null;
-function toonGradient() {
-  if (_gradient) return _gradient;
-  const steps = [0.30, 0.50, 0.68, 0.85, 1.0];
-  const c = document.createElement('canvas');
-  c.width = steps.length; c.height = 1;
-  const ctx = c.getContext('2d');
-  steps.forEach((v, i) => {
-    const n = Math.round(v * 255);
-    ctx.fillStyle = `rgb(${n},${n},${n})`;
-    ctx.fillRect(i, 0, 1, 1);
-  });
-  const tex = new THREE.CanvasTexture(c);
-  tex.minFilter = tex.magFilter = THREE.NearestFilter;
-  tex.generateMipmaps = false;
-  _gradient = tex;
-  return tex;
-}
-
-function toonMat(color, emissiveMix = 0.10) {
-  const c = new THREE.Color(color);
-  const e = c.clone().multiplyScalar(emissiveMix);
-  return new THREE.MeshToonMaterial({
-    color: c,
-    emissive: e,
-    gradientMap: toonGradient(),
-  });
-}
-
-// ── geometry builders ────────────────────────────────────────────────────────
-// A limb: revolve a profile that closes at both ends (so it's watertight like a
-// capsule) but whose mid-section radius follows top → belly → bottom. `belly`
-// sits at `bellyAt` along the length; that single control is the whole reason
-// these read as arms and legs rather than as tubes.
-function limbGeo(len, rTop, rBelly, rBot, bellyAt = 0.38, radial = 14) {
-  const pts = [];
-  const capSeg = 4;
-  // domed top cap
-  for (let i = 0; i <= capSeg; i++) {
-    const a = (i / capSeg) * (Math.PI / 2);
-    pts.push(new THREE.Vector2(rTop * Math.sin(a), rTop * Math.cos(a) * 0.75));
-  }
-  // shaft — smoothstep from top radius through the belly to the bottom radius
-  const shaft = 9;
-  for (let i = 1; i <= shaft; i++) {
-    const t = i / shaft;
-    const r = t < bellyAt
-      ? lerp(rTop, rBelly, easeInOut(t / bellyAt))
-      : lerp(rBelly, rBot, easeInOut((t - bellyAt) / (1 - bellyAt)));
-    pts.push(new THREE.Vector2(r, -len * t));
-  }
-  // domed bottom cap
-  for (let i = 1; i <= capSeg; i++) {
-    const a = (i / capSeg) * (Math.PI / 2);
-    pts.push(new THREE.Vector2(rBot * Math.cos(a), -len - rBot * Math.sin(a) * 0.75));
-  }
-  return new THREE.LatheGeometry(pts, radial);
-}
-
-// The torso profile, hand-tuned. y runs 0 (hip) → 1 (neck); x is a fraction of
-// torsoR. `belly` pushes the waist band outward for the heavy build.
-function torsoGeo(D, belly) {
-  const R = D.torsoR, H = D.torsoLen;
-  // Waist radius as a fraction of chest. slim → 0.65 (a clear V-taper),
-  // average → 0.83 (slight taper), heavy → 1.23 (waist wider than chest).
-  // This one number is most of what separates the three builds by silhouette.
-  const w = 0.83 * belly;
-  const raw = [
-    [0.00, -0.02], [0.62, -0.01], [0.94, 0.05], [0.97, 0.17],
-    [w, 0.38], [lerp(w, 0.90, 0.5), 0.55], [1.00, 0.74],
-    [0.97, 0.86], [0.74, 0.96], [0.36, 1.00], [0.00, 1.02],
-  ];
-  return new THREE.LatheGeometry(raw.map(([x, y]) => new THREE.Vector2(x * R, y * H)), 18);
-}
-
-// A short flared sleeve that hangs off a hip joint — i.e. a shorts leg. Being
-// parented to the hip (not the pelvis) means it swings with the thigh, which is
-// what shorts actually do.
-function shortsGeo(D) {
-  const r = D.legUpR;
-  const pts = [
-    new THREE.Vector2(0, 0.012),
-    new THREE.Vector2(r * 1.28, 0.010),
-    new THREE.Vector2(r * 1.34, -D.legUp * 0.20),
-    new THREE.Vector2(r * 1.46, -D.legUp * 0.46),
-    new THREE.Vector2(r * 1.44, -D.legUp * 0.50),
-    new THREE.Vector2(r * 0.98, -D.legUp * 0.48),
-    new THREE.Vector2(0, -D.legUp * 0.44),
-  ];
-  return new THREE.LatheGeometry(pts, 14);
-}
-
-// ── the rig ──────────────────────────────────────────────────────────────────
-// root → shadow + orient (whole-body pose) → pelvis → torso / hips.
-// Every joint is a Group at the pivot with its mesh hung below, so rotating the
-// Group rotates the limb about the joint.
-function buildRig(cfg) {
-  const D = makeDims(cfg.build, cfg.height);
-  const geoms = new Set();
-  const mats = [];
-  const keep = (g) => { geoms.add(g); return g; };
-  const mat = (c, e) => { const m = toonMat(c, e); mats.push(m); return m; };
-
-  const skin = mat(cfg.skinTone, 0.07);
-  const outfit = mat(cfg.outfitColor, 0.14);
-  const accent = mat(cfg.accentColor, 0.20);
-  const hairMat = mat(cfg.hairColor, 0.05);
-  const dark = mat('#14161b', 0.02);
-  const white = mat('#f3f5f8', 0.30);
-
-  const root = new THREE.Group();
-  const orient = new THREE.Group();       // whole-body orientation (stand/prone)
-  orient.position.y = D.hipY;
-  root.add(orient);
-  const pelvis = new THREE.Group();
-  orient.add(pelvis);
-
-  // pelvis block, in outfit colour so the shorts read as one garment
-  const pelvisMesh = new THREE.Mesh(
-    keep(limbGeo(0.020, D.torsoR * 0.80, D.torsoR * 0.90, D.torsoR * 0.82, 0.5, 16)),
-    outfit
-  );
-  pelvisMesh.position.y = 0.010;
-  pelvis.add(pelvisMesh);
-
-  // ---- torso ----
-  const torso = new THREE.Group();
-  pelvis.add(torso);
-  const torsoMesh = new THREE.Mesh(keep(torsoGeo(D, D.build.belly)), outfit);
-  torso.add(torsoMesh);
-
-  // neck — a sliver of skin between collar and jaw; without it the head looks
-  // stuck straight onto the shirt.
-  const neck = new THREE.Mesh(
-    keep(limbGeo(0.016, D.headR * 0.42, D.headR * 0.40, D.headR * 0.44, 0.5, 12)), skin
-  );
-  neck.position.y = D.torsoLen + 0.014;
-  torso.add(neck);
-
-  // ---- head ----
-  const head = new THREE.Group();
-  head.position.y = D.headY;
-  torso.add(head);
-  const skull = new THREE.Mesh(keep(new THREE.SphereGeometry(D.headR, 24, 18)), skin);
-  skull.scale.set(1.0, 0.98, 0.94);   // barely squashed — friendlier than a ball
-  head.add(skull);
-
-  // face — eyes sit slightly proud of the skull so they catch the key light and
-  // survive at thumbnail size.
-  const eyeR = D.headR * 0.27;
-  const pupR = D.headR * 0.145;
-  const eyeGeo = keep(new THREE.SphereGeometry(eyeR, 14, 12));
-  const pupGeo = keep(new THREE.SphereGeometry(pupR, 12, 10));
-  const browGeo = keep(new THREE.BoxGeometry(D.headR * 0.42, D.headR * 0.10, D.headR * 0.12));
-  const eyes = [];
-  for (const s of [-1, 1]) {
-    const dir = new THREE.Vector3(s * 0.36, 0.07, 0.86).normalize();
-    const eye = new THREE.Mesh(eyeGeo, white);
-    eye.position.copy(dir).multiplyScalar(D.headR * 0.90);
-    eye.scale.set(1, 1.06, 0.66);
-    eye.lookAt(dir.clone().multiplyScalar(3));
-    head.add(eye);
-    const pup = new THREE.Mesh(pupGeo, dark);
-    pup.position.copy(dir).multiplyScalar(D.headR * 1.02);
-    pup.scale.set(1, 1.1, 0.6);
-    head.add(pup);
-    const brow = new THREE.Mesh(browGeo, hairMat);
-    brow.position.copy(dir).multiplyScalar(D.headR * 0.96);
-    brow.position.y += D.headR * 0.30;
-    brow.rotation.z = s * -0.20;        // angled in = focused, not blank
-    head.add(brow);
-    eyes.push(eye, pup);
-  }
-  const mouth = new THREE.Mesh(
-    keep(new THREE.BoxGeometry(D.headR * 0.30, D.headR * 0.075, D.headR * 0.10)), dark
-  );
-  mouth.position.set(0, -D.headR * 0.36, D.headR * 0.86);
-  head.add(mouth);
-
-  // ---- hair / headwear ----
-  if (cfg.hair === 'short' || cfg.hair === 'bun') {
-    // a skull-cap shell: top half of a sphere, nudged back so a forehead shows
-    const capG = keep(new THREE.SphereGeometry(D.headR * 1.045, 20, 14, 0, Math.PI * 2, 0, Math.PI * 0.56));
-    const capM = new THREE.Mesh(capG, hairMat);
-    capM.position.z = -D.headR * 0.09;
-    capM.rotation.x = -0.14;
-    head.add(capM);
-  }
-  if (cfg.hair === 'bun') {
-    const bun = new THREE.Mesh(keep(new THREE.SphereGeometry(D.headR * 0.40, 14, 12)), hairMat);
-    bun.position.set(0, D.headR * 0.72, -D.headR * 0.80);
-    head.add(bun);
-  }
-  if (cfg.hair === 'cap') {
-    const crown = new THREE.Mesh(
-      keep(new THREE.SphereGeometry(D.headR * 1.06, 20, 14, 0, Math.PI * 2, 0, Math.PI * 0.52)), accent
-    );
-    crown.position.y = D.headR * 0.02;
-    head.add(crown);
-    // brim: a half-sphere squashed flat, sticking forward
-    const brim = new THREE.Mesh(
-      keep(new THREE.SphereGeometry(D.headR * 1.02, 18, 8, 0, Math.PI)), accent
-    );
-    brim.scale.set(1.02, 0.14, 1.30);
-    brim.position.set(0, D.headR * 0.40, D.headR * 0.10);
-    brim.rotation.y = Math.PI / 2;   // flat side faces forward (+Z)
-    brim.rotation.x = -0.10;
-    head.add(brim);
-  }
-  if (cfg.accessory === 'headband') {
-    const band = new THREE.Mesh(
-      keep(new THREE.TorusGeometry(D.headR * 0.965, D.headR * 0.105, 8, 22)), accent
-    );
-    band.rotation.x = Math.PI / 2;
-    band.position.y = D.headR * 0.40;
-    head.add(band);
-  }
-
-  // ---- arms ----
-  function arm(side) {
-    const shoulder = new THREE.Group();
-    shoulder.position.set(side * D.shoulderX, D.shoulderY, 0);
-    torso.add(shoulder);
-
-    // deltoid cap — the single detail that gives the figure shoulders
-    const delt = new THREE.Mesh(keep(new THREE.SphereGeometry(D.armUpR * 1.42, 14, 12)), skin);
-    delt.scale.set(1, 0.88, 1);
-    shoulder.add(delt);
-
-    const upper = new THREE.Mesh(
-      keep(limbGeo(D.armUp, D.armUpR * 1.06, D.armUpR * 1.20, D.armUpR * 0.82, 0.34)), skin
-    );
-    shoulder.add(upper);
-
-    const elbow = new THREE.Group();
-    elbow.position.y = -D.armUp;
-    shoulder.add(elbow);
-    const lower = new THREE.Mesh(
-      keep(limbGeo(D.armLo, D.armLoR * 0.94, D.armLoR * 1.10, D.armLoR * 0.70, 0.26)), skin
-    );
-    elbow.add(lower);
-
-    const hand = new THREE.Mesh(keep(new THREE.SphereGeometry(D.handR, 14, 12)), skin);
-    hand.scale.set(0.86, 1.12, 0.72);   // mitten, not a ball
-    hand.position.y = -D.armLo - D.handR * 0.35;
-    elbow.add(hand);
-
-    if (cfg.accessory === 'wristbands') {
-      const wb = new THREE.Mesh(
-        keep(new THREE.TorusGeometry(D.armLoR * 1.05, D.armLoR * 0.42, 8, 16)), accent
-      );
-      wb.rotation.x = Math.PI / 2;
-      wb.position.y = -D.armLo + D.armLoR * 0.5;
-      elbow.add(wb);
-    }
-    return { shoulder, elbow, hand };
-  }
-  const armL = arm(+1);   // figure's left (+X)
-  const armR = arm(-1);
-
-  // ---- legs ----
-  const shortsG = keep(shortsGeo(D));
-  function leg(side) {
-    const hip = new THREE.Group();
-    hip.position.set(side * D.hipX, -0.010, 0);
-    pelvis.add(hip);
-
-    const upper = new THREE.Mesh(
-      keep(limbGeo(D.legUp, D.legUpR * 1.05, D.legUpR * 1.18, D.legUpR * 0.80, 0.30)), skin
-    );
-    hip.add(upper);
-    hip.add(new THREE.Mesh(shortsG, outfit));
-
-    const knee = new THREE.Group();
-    knee.position.y = -D.legUp;
-    hip.add(knee);
-    const lower = new THREE.Mesh(
-      keep(limbGeo(D.legLo, D.legLoR * 0.96, D.legLoR * 1.16, D.legLoR * 0.62, 0.24)), skin
-    );
-    knee.add(lower);
-
-    // Ankle: a real joint, so the foot can be counter-rotated to stay FLAT on
-    // the floor while the shin swings. Without it the shoe is welded to the
-    // shin and its toe drives through the ground every time the knee bends.
-    const ankle = new THREE.Group();
-    ankle.position.y = -D.legLo;
-    knee.add(ankle);
-
-    // trainer: elongated dome + a darker sole slab
-    const shoe = new THREE.Mesh(keep(new THREE.SphereGeometry(D.footLen * 0.5, 14, 12)), accent);
-    shoe.scale.set(0.62, 0.50, 1.05);
-    shoe.position.set(0, -D.footLen * 0.14, D.footLen * 0.22);
-    ankle.add(shoe);
-    const sole = new THREE.Mesh(keep(new THREE.SphereGeometry(D.footLen * 0.5, 14, 10)), dark);
-    sole.scale.set(0.64, 0.22, 1.07);
-    sole.position.set(0, -D.footLen * 0.26, D.footLen * 0.22);
-    ankle.add(sole);
-
-    return { hip, knee, ankle };
-  }
-  const legL = leg(+1);
-  const legR = leg(-1);
-
-  if (cfg.accessory === 'belt') {
-    const belt = new THREE.Mesh(
-      keep(new THREE.TorusGeometry(D.torsoR * 0.84, D.torsoR * 0.15, 8, 24)), accent
-    );
-    belt.rotation.x = Math.PI / 2;
-    belt.position.y = D.torsoLen * 0.10;
-    belt.scale.set(1, 1, 0.72);
-    torso.add(belt);
-  }
-
-  // ---- contact shadow ----
-  // A radial-gradient sprite on the floor. Not a real shadow map (way too
-  // expensive for a row of these) but it's what actually sells "standing on
-  // something" — and it can react to hip height for free.
-  const shCanvas = document.createElement('canvas');
-  shCanvas.width = shCanvas.height = 64;
-  const sg = shCanvas.getContext('2d');
-  const grad = sg.createRadialGradient(32, 32, 0, 32, 32, 32);
-  grad.addColorStop(0, 'rgba(0,0,0,0.62)');
-  grad.addColorStop(0.55, 'rgba(0,0,0,0.26)');
-  grad.addColorStop(1, 'rgba(0,0,0,0)');
-  sg.fillStyle = grad;
-  sg.fillRect(0, 0, 64, 64);
-  const shTex = new THREE.CanvasTexture(shCanvas);
-  const shMat = new THREE.MeshBasicMaterial({
-    map: shTex, transparent: true, depthWrite: false, opacity: 0.85,
-  });
-  mats.push(shMat);
-  const shadow = new THREE.Mesh(keep(new THREE.PlaneGeometry(D.torsoR * 6.2, D.torsoR * 6.2)), shMat);
-  shadow.rotation.x = -Math.PI / 2;
-  shadow.position.y = 0.0015;
-  root.add(shadow);
-
-  return {
-    D, root, orient, pelvis, torso, head, shadow,
-    shoulderL: armL.shoulder, elbowL: armL.elbow,
-    shoulderR: armR.shoulder, elbowR: armR.elbow,
-    hipL: legL.hip, kneeL: legL.knee, ankleL: legL.ankle,
-    hipR: legR.hip, kneeR: legR.knee, ankleR: legR.ankle,
-    mats, geoms,
-    palette: { skin, outfit, accent, hair: hairMat },
-    // per-frame shadow hints, reset by neutral() and overridden by exercises
-    sh: { w: 1, l: 1, o: 1 },
-  };
-}
-
-// Reset every joint (and every squash scale) to the neutral standing pose.
-function neutral(rig) {
-  const D = rig.D;
-  rig.orient.rotation.set(0, 0, 0);
-  rig.orient.position.set(0, D.hipY, 0);
-  rig.orient.scale.set(1, 1, 1);
-  rig.pelvis.rotation.set(0, 0, 0);
-  rig.torso.rotation.set(0, 0, 0);
-  rig.torso.scale.set(1, 1, 1);
-  rig.head.rotation.set(0, 0, 0);
-  rig.head.scale.set(1, 1, 1);
-  for (const s of [rig.shoulderL, rig.shoulderR]) s.rotation.set(0, 0, 0);
-  for (const e of [rig.elbowL, rig.elbowR]) e.rotation.set(0, 0, 0);
-  for (const h of [rig.hipL, rig.hipR]) h.rotation.set(0, 0, 0);
-  for (const k of [rig.kneeL, rig.kneeR]) k.rotation.set(0, 0, 0);
-  for (const a of [rig.ankleL, rig.ankleR]) a.rotation.set(0, 0, 0);
-  rig.sh.w = rig.sh.l = rig.sh.o = 1;
-}
-
-// ── flat-foot solver ─────────────────────────────────────────────────────────
-// Rotations don't commute, so cancelling hip splay and knee bend with separate
-// Euler terms on the ankle leaves the sole slightly tilted — and a tilted sole
-// digs a corner into the floor. Instead, compose the parent chain's actual
-// rotation and set the ankle to its exact inverse. Scratch objects are
-// module-level so this allocates nothing per frame.
-const _qHip = new THREE.Quaternion();
-const _qKnee = new THREE.Quaternion();
-const _eul = new THREE.Euler();
-function flattenFoot(ankleJoint, hipX, splay, kneeX) {
-  _qHip.setFromEuler(_eul.set(hipX, 0, splay, 'XYZ'));
-  _qKnee.setFromEuler(_eul.set(kneeX, 0, 0, 'XYZ'));
-  ankleJoint.quaternion.copy(_qHip.multiply(_qKnee)).invert();
-}
-
-// Squash/stretch helper: `v` > 0 squashes (wider, shorter), < 0 stretches.
-function squash(rig, v) {
-  rig.torso.scale.set(1 + v * 0.5, 1 - v, 1 + v * 0.5);
-  rig.head.scale.set(1 + v * 0.35, 1 - v * 0.7, 1 + v * 0.35);
-}
-
-// ── exercises ────────────────────────────────────────────────────────────────
-// Each fn(rig, p, t) writes joint angles for phase p ∈ [0,1). `t` is absolute
-// seconds, used only for the always-on idle breath so two avatars on the same
-// cycle don't breathe in lockstep with their own rep.
-export const EXERCISES = {
-  squat: {
-    label: 'Squat',
-    cycle: 1.5,
-    fn(rig, p, t) {
-      const D = rig.D;
-      neutral(rig);
-      const d = rep(p, 0.56);
-      const lag = rep(wrap(p - 0.04), 0.56);   // torso trails the hips slightly
-      const bnc = bounce(p, 0.70);
-
-      // Two-link kinematics rather than a fudge factor: with thigh angle -a
-      // from vertical and knee flexed by k, the ankle sits legUp·cos(a) +
-      // legLo·cos(k-a) below the hip. Driving hip height from THAT keeps the
-      // soles planted on y=0 through the whole descent — a hardcoded ratio
-      // sank the feet through the floor at the bottom of the rep.
-      const a = d * 1.42;                       // thigh swing forward
-      const k = d * 1.72;                       // knee flexion
-      rig.hipL.rotation.x = rig.hipR.rotation.x = -a;
-      rig.kneeL.rotation.x = rig.kneeR.rotation.x = k;
-      const ankleY = D.legUp * Math.cos(a) + D.legLo * Math.cos(k - a);
-      rig.orient.position.y = D.hipDrop + ankleY + D.footDrop + bnc * 0.006;
-      // The shin's world angle is (k - a); cancelling it at the ankle keeps the
-      // sole parallel to the floor, the way a real squat keeps feet flat.
-      rig.ankleL.rotation.x = rig.ankleR.rotation.x = -(k - a);
-      // knees track out over the toes rather than collapsing inward
-      rig.hipL.rotation.z = d * 0.16;
-      rig.hipR.rotation.z = -d * 0.16;
-
-      rig.torso.rotation.x = lag * 0.34 - bnc * 0.06;
-      // head counter-rotates ~70% of the torso lean — eyes stay on the horizon
-      rig.head.rotation.x = -lag * 0.24 + bnc * 0.05;
-      rig.head.rotation.y = Math.sin(t * 0.9) * 0.05;
-
-      // arms swing forward as a counterweight, forearms trailing
-      rig.shoulderL.rotation.x = rig.shoulderR.rotation.x = -lag * 1.46;
-      rig.shoulderL.rotation.z = 0.11 + d * 0.13;
-      rig.shoulderR.rotation.z = -0.11 - d * 0.13;
-      const fore = rep(wrap(p - 0.07), 0.56);
-      rig.elbowL.rotation.x = rig.elbowR.rotation.x = -0.10 - fore * 0.30;
-
-      squash(rig, d * 0.09 - bnc * 0.05);
-      rig.sh.w = rig.sh.l = 1 + d * 0.16;
-      rig.sh.o = 1 + d * 0.22;
-    },
-  },
-
-  pushup: {
-    label: 'Push-up',
-    cycle: 1.4,
-    fn(rig, p, t) {
-      const D = rig.D;
-      neutral(rig);
-      const d = rep(p, 0.52);
-      const bnc = bounce(p, 0.74);
-
-      // prone: X=π/2 then Z=-π/2 puts the head at +X and the chest facing down
-      rig.orient.rotation.set(Math.PI / 2, 0, -Math.PI / 2);
-      // body height = actual arm reach, so the hands stay planted on the floor
-      const bend = 0.42 + d * 1.12;
-      const reach = D.armUp + (D.armLo + D.handR) * Math.cos(bend);
-      rig.orient.position.set(-(D.legUp + D.legLo) * 0.30, reach + bnc * 0.004, 0);
-
-      rig.shoulderL.rotation.x = rig.shoulderR.rotation.x = -Math.PI / 2 + d * 0.34;
-      // elbows flare out as they bend — that's what makes it look like effort
-      rig.shoulderL.rotation.z = 0.10 + d * 0.26;
-      rig.shoulderR.rotation.z = -0.10 - d * 0.26;
-      rig.elbowL.rotation.x = rig.elbowR.rotation.x = bend;
-
-      // the plank isn't rigid: a slow hip sag independent of the rep
-      const sag = Math.sin(t * 1.3) * 0.022;
-      rig.torso.rotation.x = -0.05 + sag;
-      rig.pelvis.rotation.x = sag * 0.6;
-      rig.head.rotation.x = 0.48 + d * 0.18;   // chin tucks on the way down
-      rig.hipL.rotation.z = 0.11; rig.hipR.rotation.z = -0.11;
-      rig.kneeL.rotation.x = rig.kneeR.rotation.x = -0.06;
-      // toes tucked under, taking the weight — the body is horizontal here, so
-      // "down" for the foot is along the body's -X, i.e. a big ankle flex
-      rig.ankleL.rotation.x = rig.ankleR.rotation.x = -1.15;
-
-      squash(rig, d * 0.05);
-      rig.sh.w = 2.4; rig.sh.l = 1.1;          // long thin shadow under the body
-      rig.sh.o = 1 - d * 0.10;
-    },
-  },
-
-  jumpingjack: {
-    label: 'Jumping jack',
-    cycle: 1.3,
-    fn(rig, p, t) {
-      const D = rig.D;
-      neutral(rig);
-      const d = rep(p, 0.5);
-      // a real hop arc rather than a sine wobble: airborne for the middle of
-      // each half-cycle, hard landing at the extremes
-      const air = Math.pow(Math.abs(Math.sin(p * Math.PI * 2)), 0.7);
-      const land = 1 - air;                    // 1 at the two ground contacts
-      const hop = air * (D.legUp + D.legLo) * 0.16;
-
-      // arms lead, forearms and wrists trail — the classic overlapping action
-      const armD = rep(wrap(p - 0.03), 0.5);
-      rig.shoulderL.rotation.z = 0.10 + armD * 2.78;
-      rig.shoulderR.rotation.z = -0.10 - armD * 2.78;
-      rig.shoulderL.rotation.x = rig.shoulderR.rotation.x = -0.14 * air;
-      const foreD = rep(wrap(p - 0.09), 0.5);
-      rig.elbowL.rotation.z = (1 - foreD) * 0.20;
-      rig.elbowR.rotation.z = -(1 - foreD) * 0.20;
-      rig.elbowL.rotation.x = rig.elbowR.rotation.x = -0.10 - (1 - foreD) * 0.14;
-
-      // Legs splay sideways (z) and the knees soften on landing (x). Both
-      // shorten the hip→ankle distance, so hip height is derived from them the
-      // same way the squat does it — otherwise the landing crouch drives the
-      // shoes through the floor.
-      const splay = d * 0.44;
-      const kneeX = 0.05 + land * 0.34;
-      const hipX = -land * 0.16;
-      rig.hipL.rotation.z = splay;
-      rig.hipR.rotation.z = -splay;
-      rig.kneeL.rotation.x = rig.kneeR.rotation.x = kneeX;
-      rig.hipL.rotation.x = rig.hipR.rotation.x = hipX;
-      const ankleY = (D.legUp * Math.cos(hipX) + D.legLo * Math.cos(kneeX - hipX)) * Math.cos(splay);
-      rig.orient.position.y = D.hipDrop + ankleY + D.footDrop + hop;
-      // exact inverse of hip⊗knee, so the sole is parallel to the floor even
-      // with splay and knee bend applied together
-      flattenFoot(rig.ankleL, hipX, splay, kneeX);
-      flattenFoot(rig.ankleR, hipX, -splay, kneeX);
-
-      rig.torso.rotation.x = land * 0.14 - air * 0.04;
-      rig.head.rotation.x = -land * 0.10;
-      rig.head.rotation.z = Math.sin(t * 1.1) * 0.04;
-
-      // stretch in the air, squash on contact — the whole point of the exercise
-      squash(rig, land * 0.11 - air * 0.06);
-      rig.sh.w = rig.sh.l = 1.25 - air * 0.34;
-      rig.sh.o = 1.05 - air * 0.45;
-    },
-  },
-
-  curl: {
-    label: 'Bicep curl',
-    cycle: 1.6,
-    fn(rig, p, t) {
-      neutral(rig);
-      // alternating arms — half a cycle apart. Far more watchable than both
-      // forearms moving as one, and it gives the torso something to counter.
-      const a = rep(p, 0.42);
-      const b = rep(wrap(p + 0.5), 0.42);
-
-      rig.elbowL.rotation.x = -0.14 - a * 2.05;
-      rig.elbowR.rotation.x = -0.14 - b * 2.05;
-      rig.shoulderL.rotation.x = -a * 0.20;
-      rig.shoulderR.rotation.x = -b * 0.20;
-      rig.shoulderL.rotation.z = 0.14 + a * 0.10;
-      rig.shoulderR.rotation.z = -0.14 - b * 0.10;
-
-      // torso counter-rotates toward the working arm, hips resist
-      const twist = (a - b) * 0.13;
-      rig.torso.rotation.y = twist;
-      rig.pelvis.rotation.y = -twist * 0.35;
-      rig.torso.rotation.z = -twist * 0.30;
-      rig.torso.rotation.x = -Math.max(a, b) * 0.06;
-      rig.head.rotation.y = -twist * 0.55;
-      rig.head.rotation.x = Math.max(a, b) * 0.08 + Math.sin(t * 1.6) * 0.02;
-
-      // soft knees taking the load, and a tiny dip per curl — hip height again
-      // derived from the actual joint angles so the shoes stay on the floor
-      const D = rig.D;
-      const dip = Math.max(a, b);
-      const kneeX = 0.09 + dip * 0.06;
-      const hipX = -0.05 - dip * 0.03;
-      rig.kneeL.rotation.x = rig.kneeR.rotation.x = kneeX;
-      rig.hipL.rotation.x = rig.hipR.rotation.x = hipX;
-      rig.orient.position.y = D.hipDrop
-        + D.legUp * Math.cos(hipX) + D.legLo * Math.cos(kneeX - hipX) + D.footDrop;
-      rig.ankleL.rotation.x = rig.ankleR.rotation.x = -(kneeX - hipX);
-
-      squash(rig, dip * 0.035);
-      rig.sh.o = 1 + dip * 0.06;
-    },
-  },
-};
-
-export const EXERCISE_NAMES = Object.keys(EXERCISES);
-
-// ── configuration ────────────────────────────────────────────────────────────
-export const AVATAR_DEFAULTS = {
-  tier: 'fit',
-  skinTone: '#e9c49b',
-  outfitColor: null,     // null → tier colour
-  accentColor: null,     // null → tier accent
-  hairColor: '#2b2118',
-  build: 'average',      // slim | average | heavy
-  height: 1,             // 0.72 … 1.35
-  hair: 'short',         // none | short | bun | cap
-  accessory: 'none',     // none | headband | wristbands | belt
-  exercise: 'squat',
-  cycle: null,           // null → the exercise's own cycle
-  scale: 1,
-};
-
-function hex(v, fallback) {
-  if (typeof v === 'number') return '#' + v.toString(16).padStart(6, '0');
-  if (typeof v === 'string' && /^#?[0-9a-f]{6}$/i.test(v.trim())) {
-    const s = v.trim();
-    return s[0] === '#' ? s.toLowerCase() : '#' + s.toLowerCase();
-  }
-  return fallback;
-}
-
-const oneOf = (v, list, fallback) => (list.includes(v) ? v : fallback);
-
 /**
- * Fold any partial options object into a complete, plain, serialisable avatar
- * descriptor. This is the contract: whatever this returns round-trips through
- * JSON.stringify → JSON.parse → createAvatar and produces the same figure.
- */
-export function normalizeAvatarConfig(opts = {}) {
-  const tier = oneOf(opts.tier, Object.keys(TIER_COLORS), AVATAR_DEFAULTS.tier);
-  const tierHex = hex(TIER_COLORS[tier], '#c6f32e');
-  // `color` is the legacy single-colour option — still honoured as the outfit.
-  const legacy = opts.color != null ? hex(opts.color, tierHex) : null;
-  return {
-    tier,
-    skinTone: hex(opts.skinTone, AVATAR_DEFAULTS.skinTone),
-    outfitColor: hex(opts.outfitColor ?? legacy, tierHex),
-    accentColor: hex(opts.accentColor, TIER_ACCENTS[tier] ?? '#e8eaed'),
-    hairColor: hex(opts.hairColor, AVATAR_DEFAULTS.hairColor),
-    build: oneOf(opts.build, BUILDS, AVATAR_DEFAULTS.build),
-    height: Math.round(clamp(Number(opts.height ?? 1) || 1, 0.72, 1.35) * 1000) / 1000,
-    hair: oneOf(opts.hair, HAIR_STYLES, AVATAR_DEFAULTS.hair),
-    accessory: oneOf(opts.accessory, ACCESSORIES, AVATAR_DEFAULTS.accessory),
-    exercise: oneOf(opts.exercise, EXERCISE_NAMES, AVATAR_DEFAULTS.exercise),
-    cycle: opts.cycle == null ? null : Math.round(clamp(Number(opts.cycle) || 1.5, 0.4, 6) * 100) / 100,
-    scale: Math.round(clamp(Number(opts.scale ?? 1) || 1, 0.2, 4) * 1000) / 1000,
-  };
-}
-
-// mulberry32 — tiny, fast, deterministic. Same seed ⇒ same avatar, forever.
-function mulberry32(a) {
-  return function () {
-    a |= 0; a = (a + 0x6d2b79f5) | 0;
-    let t = Math.imul(a ^ (a >>> 15), 1 | a);
-    t = (t + Math.imul(t ^ (t >>> 7), 61 | t)) ^ t;
-    return ((t ^ (t >>> 14)) >>> 0) / 4294967296;
-  };
-}
-
-function hashSeed(seed) {
-  if (typeof seed === 'number' && Number.isFinite(seed)) return seed >>> 0;
-  const s = String(seed ?? '');
-  let h = 2166136261 >>> 0;
-  for (let i = 0; i < s.length; i++) {
-    h ^= s.charCodeAt(i);
-    h = Math.imul(h, 16777619) >>> 0;
-  }
-  return h >>> 0;
-}
-
-/**
- * Deterministic avatar from any player id / name / number. Same input always
- * produces the same character, so a crew looks stable across sessions without
- * anything being persisted.
+ * avatars.js — public avatar API.
  *
- *   avatarConfigFromSeed('alexei')                     → a full descriptor
- *   avatarConfigFromSeed('alexei', { tier: 'casual' }) → same, tier pinned
+ * As of the style exploration this file is a THIN FACADE. All the real work
+ * moved to:
+ *   site/avatar-styles/rig-core.js   skeleton, proportion solver, IK, exercises
+ *   site/avatar-styles/<style>.js    per-style proportion ratios + meshes
+ *   site/avatar-styles/index.js      the registry
+ *
+ * The exported surface is unchanged, so /, /demo and the studio keep working
+ * without edits: createAvatar(cfg) returns the same object shape it always did,
+ * and AvatarScene stages a row of them on one renderer exactly as before.
+ *
+ * The one addition is `style`: any config may now carry a style id
+ * ('athletic' | 'lowpoly' | 'blocky' | 'chibi' | 'minimal'). Omit it and you
+ * get DEFAULT_STYLE.
+ *
+ * The previous monolithic implementation is preserved at
+ * site/archive/avatars_20260827_prestyles.js.
  */
-export function avatarConfigFromSeed(seed, overrides = {}) {
-  const rnd = mulberry32(hashSeed(seed));
-  const pick = (arr) => arr[Math.floor(rnd() * arr.length) % arr.length];
-  const tier = overrides.tier ?? pick(Object.keys(TIER_COLORS));
-  const cfg = {
-    tier,
-    skinTone: pick(SKIN_TONES),
-    outfitColor: hex(TIER_COLORS[tier], '#c6f32e'),
-    accentColor: pick(OUTFIT_COLORS),
-    hairColor: pick(HAIR_COLORS),
-    build: pick(BUILDS),
-    height: Math.round((0.86 + rnd() * 0.36) * 100) / 100,
-    hair: pick(HAIR_STYLES),
-    accessory: pick(ACCESSORIES),
-    exercise: pick(EXERCISE_NAMES),
-  };
-  // never let the accent land on the outfit colour — the two-hue read is the
-  // point, and a same-on-same avatar looks like a bug
-  if (cfg.accentColor === cfg.outfitColor) {
-    cfg.accentColor = OUTFIT_COLORS[(OUTFIT_COLORS.indexOf(cfg.accentColor) + 3) % OUTFIT_COLORS.length];
-  }
-  return normalizeAvatarConfig({ ...cfg, ...overrides });
-}
 
-/** A fresh random descriptor (non-deterministic — used by the "randomise" button). */
+import * as THREE from 'three';
+import { STYLES, STYLE_IDS, STYLE_LIST, getStyle, styleSummary } from './avatar-styles/index.js';
+import {
+  makeAvatar, normalizeAvatarConfig as _normalize, avatarConfigFromSeed as _fromSeed,
+  EXERCISES, EXERCISE_NAMES, AVATAR_DEFAULTS, BUILDS, HAIR_STYLES, ACCESSORIES,
+  SKIN_TONES, OUTFIT_COLORS, HAIR_COLORS, TIER_COLORS, TIER_ACCENTS,
+  REDUCED, clamp,
+} from './avatar-styles/rig-core.js';
+
+export {
+  EXERCISES, EXERCISE_NAMES, AVATAR_DEFAULTS, BUILDS, HAIR_STYLES, ACCESSORIES,
+  SKIN_TONES, OUTFIT_COLORS, HAIR_COLORS, TIER_COLORS, TIER_ACCENTS,
+  STYLES, STYLE_IDS, STYLE_LIST, getStyle, styleSummary,
+};
+
+/**
+ * Which style the shipping surfaces (site squad strip, /demo) use.
+ *
+ * Currently ATHLETIC: it's the only one that can sit next to the product's
+ * "real workouts, real people" copy without undercutting it, and it's the style
+ * the proportion rules were written against. Change this one constant to
+ * re-skin the whole product once the founder picks a direction.
+ */
+export const DEFAULT_STYLE = 'athletic';
+
+export function normalizeAvatarConfig(opts = {}) {
+  return _normalize({ style: DEFAULT_STYLE, ...opts }, STYLE_IDS);
+}
+export function avatarConfigFromSeed(seed, overrides = {}) {
+  return _fromSeed(seed, { style: DEFAULT_STYLE, ...overrides }, STYLE_IDS);
+}
 export function randomAvatarConfig(overrides = {}) {
   return avatarConfigFromSeed(Math.floor(Math.random() * 0xffffffff), overrides);
 }
 
-// ── createAvatar ─────────────────────────────────────────────────────────────
 /**
  * Build one avatar.
  *
- * @param {object} opts — any subset of AVATAR_DEFAULTS, plus `onRep(reps, api)`.
+ * @param {object} opts — any subset of AVATAR_DEFAULTS (plus `style`), and
+ *                        `onRep(reps, api)`.
  * @returns {{
- *   group: THREE.Group, config: object, dims: object,
- *   setExercise(name, cycle?): boolean,
- *   setColors(partial): void,   // live, no rebuild — for colour pickers
+ *   group: THREE.Group, config: object, dims: object, styleId: string,
+ *   setExercise(name, cycle?): boolean, setColors(partial): void,
  *   update(dt): void, pose(p?): void, reset(): void, dispose(): void,
  *   toJSON(): object,
  * }}
  */
 export function createAvatar(opts = {}) {
-  const config = normalizeAvatarConfig(opts);
-  const rig = buildRig(config);
-  if (config.scale !== 1) rig.root.scale.setScalar(config.scale);
-
-  let exercise = EXERCISES[config.exercise] ?? EXERCISES.squat;
-  let cycle = config.cycle ?? exercise.cycle;
-  let phase = 0;
-  let clockT = 0;
-  let reps = 0;
-
-  const baseShadow = { w: rig.shadow.scale.x, l: rig.shadow.scale.y };
-
-  function applyPose(p) {
-    exercise.fn(rig, p, clockT);
-    // shadow follows whatever hint the exercise left behind
-    rig.shadow.scale.set(baseShadow.w * rig.sh.w, baseShadow.l * rig.sh.l, 1);
-    rig.shadow.material.opacity = clamp(0.85 * rig.sh.o, 0, 1);
-  }
-
-  const api = {
-    group: rig.root,
-    config,
-    dims: rig.D,
-    get exercise() { return exercise; },
-    get exerciseName() { return config.exercise; },
-    get cycle() { return cycle; },
-    get reps() { return reps; },
-
-    setExercise(name, cycleOverride) {
-      const ex = EXERCISES[name];
-      if (!ex) return false;
-      exercise = ex;
-      config.exercise = name;
-      cycle = cycleOverride ?? config.cycle ?? ex.cycle;
-      phase = 0;
-      applyPose(0);
-      return true;
-    },
-
-    setCycle(v) {
-      cycle = clamp(Number(v) || exercise.cycle, 0.3, 8);
-      config.cycle = Math.round(cycle * 100) / 100;
-    },
-
-    // Colour-only updates don't touch geometry, so the playground's colour
-    // pickers can be live-dragged without rebuilding the rig every frame.
-    setColors(partial = {}) {
-      const map = {
-        skinTone: rig.palette.skin, outfitColor: rig.palette.outfit,
-        accentColor: rig.palette.accent, hairColor: rig.palette.hair,
-      };
-      for (const [key, mat] of Object.entries(map)) {
-        if (partial[key] == null) continue;
-        const h = hex(partial[key], config[key]);
-        config[key] = h;
-        mat.color.set(h);
-        mat.emissive.set(h).multiplyScalar(mat === rig.palette.accent ? 0.20 : 0.10);
-        mat.needsUpdate = true;
-      }
-    },
-
-    update(dt) {
-      clockT += dt;
-      phase += dt;
-      if (phase >= cycle) {
-        phase %= cycle;
-        reps++;
-        if (typeof opts.onRep === 'function') opts.onRep(reps, api);
-      }
-      applyPose(phase / cycle);
-    },
-
-    // Hold a static phase (reduced motion / frozen previews). 0.34 lands inside
-    // the eccentric, which is the most legible frame of every one of these.
-    pose(p = 0.34) {
-      phase = p * cycle;
-      applyPose(p);
-    },
-
-    reset() { reps = 0; phase = 0; applyPose(0); },
-
-    toJSON() { return { ...config }; },
-
-    dispose() {
-      for (const g of rig.geoms) g.dispose();
-      for (const m of rig.mats) { if (m.map) m.map.dispose(); m.dispose(); }
-      rig.geoms.clear();
-      rig.mats.length = 0;
-    },
-  };
-
-  applyPose(0);
-  return api;
+  const style = getStyle(opts.style ?? DEFAULT_STYLE);
+  return makeAvatar(style, opts, STYLE_IDS);
 }
 
 // ── AvatarScene ──────────────────────────────────────────────────────────────
 /**
- * Stage a row of avatars on one shared renderer.
+ * Stage a row of avatars on ONE shared renderer — the gallery puts five styles
+ * side by side this way, and it's why five characters cost roughly one
+ * character's worth of GL state.
  *
  * opts: {
  *   mount, avatars: [config…],
  *   spacing = 0.62, fov = 33, ground = true, alpha = true, bg,
  *   camY = 0.46, targetY = 0.19, zMin = 0.9, zMax = 4.4,
- *   orbit = false,       // OrbitControls (the /avatars playground uses this)
- *   speed = 1,
+ *   orbit = false, speed = 1,
+ *   frameAll = false,   // fit the camera to the row's real bounds (gallery)
  * }
- *
- * Frozen keeps the last composited frame on screen — that's the demo's pause.
  */
 export class AvatarScene {
   constructor(opts) {
     const o = {
       spacing: 0.62, fov: 33, ground: true, alpha: true,
       camY: 0.46, targetY: 0.19, zMin: 0.9, zMax: 4.4,
-      orbit: false, speed: 1, ...opts,
+      orbit: false, speed: 1, frameAll: false, ...opts,
     };
     this.mount = o.mount;
     this.opts = o;
@@ -974,8 +113,9 @@ export class AvatarScene {
     renderer.setPixelRatio(Math.min(window.devicePixelRatio || 1, 2));
     renderer.setSize(this.mount.clientWidth || 300, this.mount.clientHeight || 200);
     if (o.alpha) renderer.setClearColor(0x000000, 0);
-    // Toon banding is the whole look — ACES would smear the steps back into a
-    // gradient, so tone mapping is off and exposure lives in the light rig.
+    // Toon banding is the whole look for two of the styles — ACES would smear
+    // the steps back into a gradient, so tone mapping is off and exposure lives
+    // in the light rig.
     renderer.toneMapping = THREE.NoToneMapping;
     this.mount.appendChild(renderer.domElement);
     renderer.domElement.style.touchAction = 'pan-y';
@@ -990,9 +130,10 @@ export class AvatarScene {
       o.fov, (this.mount.clientWidth || 1) / Math.max(this.mount.clientHeight || 1, 1), 0.05, 40
     );
 
-    // Toon light rig: a cool fill that keeps shadowed sides on band 2 (never
-    // crushed to black), one warm key for the band break, and two coloured rims
-    // from behind so the silhouette separates from a dark card.
+    // Toon/standard light rig: a cool hemisphere fill that keeps shadowed sides
+    // off black, one warm key for the band break, two coloured rims from behind
+    // so the silhouette separates from a dark card. The low-poly and minimal
+    // styles use MeshStandardMaterial, which needs the same rig to read.
     this.scene.add(new THREE.HemisphereLight(0x9fb4d0, 0x1b1f26, 1.15));
     const key = new THREE.DirectionalLight(0xfff3e2, 2.05);
     key.position.set(2.4, 3.6, 2.8);
@@ -1004,7 +145,6 @@ export class AvatarScene {
     rimB.position.set(3.0, 0.9, -2.6);
     this.scene.add(rimB);
 
-    // avatars in a centred row
     this.avatars = [];
     this.configs = [];
     const list = o.avatars || [];
@@ -1013,10 +153,9 @@ export class AvatarScene {
     list.forEach((cfg, i) => this._mountAvatar(cfg, i, n));
 
     if (o.ground && n) this._buildGround(this.rowHalf + 0.42);
-
     if (o.orbit) this._initOrbit();
 
-    // render-gating: only draw while on screen (hero-scene pattern)
+    // render-gating: only draw while on screen
     this._io = new IntersectionObserver((entries) => {
       this.visible = entries[0].isIntersecting;
       if (this.visible && !this.frozen) this._renderOnce();
@@ -1045,8 +184,7 @@ export class AvatarScene {
 
   _buildGround(gr) {
     const disc = new THREE.Mesh(
-      new THREE.CircleGeometry(gr, 48),
-      new THREE.MeshBasicMaterial({ color: 0x14171d })
+      new THREE.CircleGeometry(gr, 48), new THREE.MeshBasicMaterial({ color: 0x14171d })
     );
     disc.rotation.x = -Math.PI / 2;
     this.scene.add(disc);
@@ -1076,7 +214,7 @@ export class AvatarScene {
     this.scene.add(glow);
   }
 
-  // Orbit is opt-in and loaded lazily so the site/demo bundles never pay for it.
+  // Orbit is opt-in and lazy so the site/demo bundles never pay for it.
   _initOrbit() {
     import('three/addons/controls/OrbitControls.js').then(({ OrbitControls }) => {
       if (this.disposed || this.dead) return;
@@ -1084,10 +222,13 @@ export class AvatarScene {
       c.enableDamping = true;
       c.dampingFactor = 0.08;
       c.enablePan = false;
-      c.minDistance = 0.35;
+      c.minDistance = 0.20;
       c.maxDistance = 3.0;
       c.maxPolarAngle = Math.PI * 0.52;
-      c.target.set(0, this.opts.targetY, 0);
+      // Seat on the measured framing if _fit() already computed one.
+      const p = this._pendingOrbit;
+      c.target.set(p ? p.targetX : 0, p ? p.targetY : this.opts.targetY, 0);
+      if (p) { this.camera.position.set(p.targetX, p.camY, p.z); this._orbitAppliedZ = p.z; }
       c.update();
       this.controls = c;
       this._renderOnce();
@@ -1095,20 +236,24 @@ export class AvatarScene {
   }
 
   /**
-   * Swap one avatar for a new configuration. Geometry depends on build/height/
-   * hair/accessory, so anything structural means a rebuild — but pure colour
-   * changes are routed to setColors() and skip it entirely.
+   * Swap one avatar's configuration. Geometry depends on style/build/height/
+   * hair/accessory, so anything structural rebuilds — but pure colour changes
+   * route to setColors() and skip it entirely, which is what lets the studio's
+   * colour pickers be live-dragged.
    */
   setAvatarConfig(i, cfg) {
     if (this.dead || this.disposed) return null;
     const old = this.avatars[i];
     if (!old) return null;
     const next = normalizeAvatarConfig({ ...old.config, ...cfg });
-    const structural = ['build', 'height', 'hair', 'accessory', 'scale'];
+    const structural = ['style', 'build', 'height', 'hair', 'accessory', 'scale'];
     if (structural.every((k) => next[k] === old.config[k])) {
       old.setColors(next);
-      if (next.exercise !== old.config.exercise) old.setExercise(next.exercise, next.cycle ?? undefined);
-      else if (next.cycle != null && next.cycle !== old.cycle) old.setCycle(next.cycle);
+      if (next.exercise !== old.config.exercise) {
+        old.setExercise(next.exercise, next.cycle ?? undefined);
+        // A push-up's bounding box is nothing like a squat's — re-measure.
+        this._frame = null; this._orbitAppliedZ = null; this._fit();
+      } else if (next.cycle != null && next.cycle !== old.cycle) old.setCycle(next.cycle);
       if (this.frozen || REDUCED) { old.pose(0.34); this._renderOnce(); }
       return old;
     }
@@ -1116,29 +261,195 @@ export class AvatarScene {
     this.scene.remove(old.group);
     old.dispose();
     const av = this._mountAvatar(next, i, n);
+    // Geometry changed, so the cached framing box is stale — drop it and re-fit
+    // rather than letting a taller/shorter figure drift out of frame.
+    this._frame = null;
+    this._fit();
     this._renderOnce();
     return av;
   }
 
-  setExercise(i, name) { this.avatars[i]?.setExercise(name); }
-  setExerciseAll(name) { for (const a of this.avatars) a.setExercise(name); }
+  setExercise(i, name) {
+    this.avatars[i]?.setExercise(name);
+    this._frame = null; this._orbitAppliedZ = null; this._fit();
+  }
+  setExerciseAll(name) {
+    for (const a of this.avatars) a.setExercise(name);
+    this._frame = null; this._orbitAppliedZ = null; this._fit();
+  }
   setSpeed(x) { this.speed = clamp(Number(x) || 1, 0.1, 4); }
+
+  /** Freeze every avatar at one phase — used to screenshot a mid-rep frame. */
+  poseAll(p = 0.5) {
+    for (const a of this.avatars) a.pose(p);
+    this._renderOnce();
+  }
+
+  /**
+   * Measure the framing box ONCE, from the standing pose.
+   *
+   * Hardcoded camera distances were cropping the blocky and chibi heads while
+   * leaving the taller styles small and adrift — a per-style magic number can't
+   * track five different silhouettes plus hair plus a cap peak. So instead we
+   * measure the real world-space bounds.
+   *
+   * Two deliberate choices:
+   *  • Measured while STANDING, then cached. A push-up's bounding box is short
+   *    and wide; re-fitting per pose would make the camera lurch every time the
+   *    exercise changed, which destroys the comparison.
+   *  • The extent is squared off — max(width, height) on both axes — because a
+   *    push-up rotates the figure through 90°, so the standing HEIGHT becomes
+   *    the horizontal extent. Framing for the larger of the two means no pose
+   *    can escape the frame.
+   */
+  /**
+   * Measure the framing box by SAMPLING THE WHOLE REP, then cache it.
+   *
+   * Three things this has to get right, each learned from a broken render:
+   *  • Sample several phases, not just pose(0). A squat's lowest frame and a
+   *    push-up's bottom are nowhere near the rest pose; framing on one phase
+   *    clipped the figure mid-rep.
+   *  • Hide the contact shadow first. It's a flat quad ≈7× the torso radius
+   *    across and completely dominates the width if you leave it in.
+   *  • Return a CENTRE on both axes. The push-up lays the body out along +X
+   *    from the toes, so a frame centred on x=0 pushes it off the right-hand
+   *    edge — which is exactly what the first screenshot showed.
+   *
+   * Cached, and invalidated whenever geometry or exercise changes, so the
+   * camera is stable during a rep instead of breathing with the animation.
+   */
+  _measureFrame() {
+    const box = new THREE.Box3();
+    const tmp = new THREE.Box3();
+    const PHASES = [0, 0.2, 0.35, 0.5, 0.65, 0.85];
+    const hidden = [];
+    for (const av of this.avatars) {
+      const shadow = av.rig?.shadow;
+      if (shadow) { hidden.push([shadow, shadow.visible]); shadow.visible = false; }
+    }
+    for (const av of this.avatars) {
+      for (const p of PHASES) {
+        av.pose(p);
+        av.group.updateMatrixWorld(true);
+        tmp.setFromObject(av.group);
+        box.union(tmp);
+      }
+    }
+    for (const [s, v] of hidden) s.visible = v;
+    if (box.isEmpty()) return null;
+
+    const size = new THREE.Vector3(), c = new THREE.Vector3();
+    box.getSize(size); box.getCenter(c);
+    // A prone pose is wide and flat, so its box is nothing like a standing
+    // one's. Fit the ACTUAL box on both axes rather than squaring it off — a
+    // squared frame left the push-up as a small strip with two-thirds of the
+    // card empty above it.
+    return {
+      halfW: Math.max(size.x, 1e-3) / 2,
+      halfH: Math.max(size.y, 1e-3) / 2,
+      centreX: c.x, centreY: c.y,
+      figH: Math.max(size.y, 1e-3),
+      // Ground plane sits at y=0; keep it in shot so contact still reads.
+      minY: box.min.y,
+    };
+  }
+
+  /**
+   * Shift each avatar so its POSE sits centred on its column slot.
+   *
+   * A standing figure is centred on its own origin, but the push-up lays the
+   * body out along +X from the toes, so it drifted right and the last avatar in
+   * a row got clipped. Measuring the pose's own centre and subtracting it fixes
+   * every current and future asymmetric pose without special-casing any of them.
+   * Column centres are untouched, so HTML overlays stay aligned.
+   */
+  _centreInColumns() {
+    const n = this.avatars.length;
+    const box = new THREE.Box3();
+    for (let i = 0; i < n; i++) {
+      const av = this.avatars[i];
+      const slot = (i - (n - 1) / 2) * this.opts.spacing;
+      const key = `${av.config.exercise}|${av.config.style}|${av.config.build}|${av.config.height}`;
+      if (av._colKey !== key) {
+        const shadow = av.rig?.shadow;
+        const vis = shadow ? shadow.visible : false;
+        if (shadow) shadow.visible = false;
+        av.group.position.x = 0;
+        let lo = Infinity, hi = -Infinity;
+        for (const p of [0, 0.25, 0.5, 0.75]) {
+          av.pose(p);
+          av.group.updateMatrixWorld(true);
+          box.setFromObject(av.group);
+          lo = Math.min(lo, box.min.x); hi = Math.max(hi, box.max.x);
+        }
+        if (shadow) shadow.visible = vis;
+        av._colOffset = Number.isFinite(lo) ? -(lo + hi) / 2 : 0;
+        av._colKey = key;
+      }
+      av.group.position.x = slot + (av._colOffset ?? 0);
+    }
+  }
 
   _fit() {
     if (this.dead || this.disposed) return;
     const w = this.mount.clientWidth, h = this.mount.clientHeight;
     if (!w || !h) return;
     this.camera.aspect = w / h;
-    // halfW = n·spacing/2 exactly: that places avatar i at horizontal fraction
-    // (i+0.5)/n — matching an n-column HTML overlay cell for cell.
-    const halfW = this.rowHalf;
-    const z = THREE.MathUtils.clamp(
-      halfW / (Math.tan(THREE.MathUtils.degToRad(this.opts.fov / 2)) * this.camera.aspect),
-      this.opts.zMin, this.opts.zMax
-    );
+    const tanHalf = Math.tan(THREE.MathUtils.degToRad(this.opts.fov / 2));
+
+    let z, targetY = this.opts.targetY, camY = this.opts.camY, targetX = 0;
+
+    if (this.opts.frameAll && this.avatars.length) {
+      if (!this._frame) this._frame = this._measureFrame();
+      const f = this._frame;
+      if (f) {
+        const margin = this.opts.frameMargin ?? 1.16;
+        // The camera looks slightly DOWN at the figure, so a prone pose's
+        // apparent height is more than its bounding-box height — foreshortening
+        // adds the body's depth along the view ray. Give a flat pose extra
+        // vertical allowance, or the push-up crops at the near edge.
+        const flatness = clamp(f.halfW / Math.max(f.halfH, 1e-4), 1, 4);
+        const vAllow = f.halfH * (1 + (flatness - 1) * 0.32);
+        // Distance that fits the box VERTICALLY, and the one that fits it
+        // HORIZONTALLY; take the larger so neither axis clips.
+        const zV = (vAllow * margin) / tanHalf;
+        const zH = (f.halfW * margin) / (tanHalf * this.camera.aspect);
+        z = Math.max(zV, zH);
+        targetX = f.centreX;
+        targetY = f.centreY;
+        // Lift the camera in proportion to the FRAMED size, not the figure's
+        // own height — on a prone pose the latter is tiny and the camera ends
+        // up at floor level, which reads as a worm's-eye view.
+        camY = f.centreY + Math.max(f.halfH, f.halfW * 0.22) * (this.opts.camLift ?? 0.55);
+      }
+    }
+
+    if (z == null) {
+      // Row path: halfW = n·spacing/2 exactly, which places avatar i at
+      // horizontal fraction (i+0.5)/n — matching an n-column HTML overlay cell
+      // for cell. The site's squad strip depends on that alignment, so the
+      // COLUMN geometry is never touched here.
+      //
+      // But a prone avatar (push-up) extends along +X well past its column and
+      // was being clipped at the row's edge. Nudge each avatar's own x so its
+      // pose is centred inside its column — the column centres, and therefore
+      // the overlay alignment, are unchanged.
+      this._centreInColumns();
+      z = THREE.MathUtils.clamp(this.rowHalf / (tanHalf * this.camera.aspect), this.opts.zMin, this.opts.zMax);
+    }
+
     if (!this.controls) {
-      this.camera.position.set(0, this.opts.camY, z);
-      this.camera.lookAt(0, this.opts.targetY, 0);
+      this.camera.position.set(targetX, camY, z);
+      this.camera.lookAt(targetX, targetY, 0);
+      this._pendingOrbit = { camY, targetY, targetX, z };
+    } else if (this._pendingOrbit && this._pendingOrbit.z !== this._orbitAppliedZ) {
+      // Orbit loads lazily and geometry can change under it (style swap).
+      // Re-seat on the newly measured framing, but ONLY when it actually
+      // changed — otherwise every resize would yank the user's view.
+      this.camera.position.set(targetX, camY, z);
+      this.controls.target.set(targetX, targetY, 0);
+      this.controls.update();
+      this._orbitAppliedZ = z;
     }
     this.camera.updateProjectionMatrix();
     this.renderer.setSize(w, h);
@@ -1149,8 +460,8 @@ export class AvatarScene {
     if (this.dead || this.disposed) return;
     const t0 = performance.now();
     this.renderer.render(this.scene, this.camera);
-    // exponential moving average — one slow first frame shouldn't dominate
     const ms = performance.now() - t0;
+    // exponential moving average — one slow first frame shouldn't dominate
     this.renderMs = this.renderMs ? this.renderMs * 0.9 + ms * 0.1 : ms;
   }
 
@@ -1174,7 +485,6 @@ export class AvatarScene {
   resume() { this.frozen = false; this._renderOnce(); }
   reset() { this.avatars.forEach((a) => a.reset()); this._renderOnce(); }
 
-  /** Current configs as plain JSON — persist to localStorage, ship over the wire. */
   toJSON() { return this.avatars.map((a) => a.toJSON()); }
 
   dispose() {
