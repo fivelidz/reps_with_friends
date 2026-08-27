@@ -1,0 +1,71 @@
+
+======================================================================
+NODE 11:131
+======================================================================
+COMPONENT_SET «Battle Card» [401x730] r=5
+  COMPONENT «Status=Active» [361x10] r=20 fill=['GRADIENT_LINEAR'] stroke=['#8B5CF6 @70% w1']     layout=VERTICAL gap=None pad=18,18,18,18 align=None/None
+    FRAME «Head» [325x20]       layout=HORIZONTAL gap=None pad=None,None,None,None align=SPACE_BETWEEN/CENTER
+      FRAME «StatusBadge» [44x20] r=999 fill=['#FFC821']         layout=HORIZONTAL gap=None pad=4,10,4,10 align=None/CENTER
+        TEXT «LIVE» [24x12] fill=['#07060D'] TEXT='LIVE'             font=Inter 600 10px lh=12.102272033691406 ls=0.6 case=None align=LEFT             color=#07060DFF
+      TEXT «5 mates · Day 3 of 7» [114x15] fill=['#8E8EA3'] TEXT='5 mates · Day 3 of 7'           font=Inter 400 12px lh=14.522727012634277 ls=0 case=None align=LEFT           color=#8E8EA3FF
+    TEXT «THE SUNDAY SHOWDOWN» [233x39] fill=['#FFFFFF'] TEXT='THE SUNDAY SHOWDOWN'         font=Anton 400 26px lh=39.1396484375 ls=0 case=None align=LEFT         color=#FFFFFFFF
+    FRAME «Crew» [104x32]       layout=HORIZONTAL gap=None pad=None,None,None,None align=None/None
+      INSTANCE «Avatar» [32x32]
+        ELLIPSE «Ellipse» [24x24] fill=['#2A1F4D'] stroke=['#FFC821 w2']
+        TEXT «BW» [24x11] fill=['#B79DFB'] TEXT='BW'             font=Inter 700 9px lh=10.892045021057129 ls=0 case=None align=CENTER             color=#B79DFBFF
+        ELLIPSE «Ellipse» [8x8] fill=['#34D399'] stroke=['#0B0A12 w2']
+      INSTANCE «Avatar» [32x32]
+        ELLIPSE «Ellipse» [24x24] fill=['#2A1F4D'] stroke=['#FFC821 w2']
+        TEXT «BW» [24x11] fill=['#B79DFB'] TEXT='BW'             font=Inter 700 9px lh=10.892045021057129 ls=0 case=None align=CENTER             color=#B79DFBFF
+        ELLIPSE «Ellipse» [8x8] fill=['#34D399'] stroke=['#0B0A12 w2']
+      INSTANCE «Avatar» [32x32]
+        ELLIPSE «Ellipse» [24x24] fill=['#2A1F4D'] stroke=['#3B3B52 w1']
+        TEXT «BW» [24x11] fill=['#B79DFB'] TEXT='BW'             font=Inter 700 9px lh=10.892045021057129 ls=0 case=None align=CENTER             color=#B79DFBFF
+      INSTANCE «Avatar» [32x32]
+        ELLIPSE «Ellipse» [24x24] fill=['#2A1F4D'] stroke=['#3B3B52 w1']
+        TEXT «BW» [24x11] fill=['#B79DFB'] TEXT='BW'             font=Inter 700 9px lh=10.892045021057129 ls=0 case=None align=CENTER             color=#B79DFBFF
+    FRAME «Frame» [325x8] r=4 fill=['#26263A']
+      RECTANGLE «Rectangle» [201x8] r=4 fill=['#FFC821']
+    TEXT «You're 2nd — 36 RUF behind Sam» [209x16] fill=['#C2C2D1'] TEXT='You're 2nd — 36 RUF behind Sam'         font=Inter 500 13px lh=15.732954025268555 ls=0 case=None align=LEFT         color=#C2C2D1FF
+  COMPONENT «Status=Upcoming» [361x10] r=20 fill=['GRADIENT_LINEAR'] stroke=['#26263A w1']     layout=VERTICAL gap=None pad=18,18,18,18 align=None/None
+    FRAME «Head» [325x20]       layout=HORIZONTAL gap=None pad=None,None,None,None align=SPACE_BETWEEN/CENTER
+      FRAME «StatusBadge» [98x20] r=999 fill=['#4DA3FF @18%']         layout=HORIZONTAL gap=None pad=4,10,4,10 align=None/CENTER
+        TEXT «STARTS IN 2 D» [78x12] fill=['#4DA3FF'] TEXT='STARTS IN 2 D'             font=Inter 600 10px lh=12.102272033691406 ls=0.6 case=None align=LEFT             color=#4DA3FFFF
+      TEXT «8 colleagues · starts Mon» [143x15] fill=['#8E8EA3'] TEXT='8 colleagues · starts Mon'           font=Inter 400 12px lh=14.522727012634277 ls=0 case=None align=LEFT           color=#8E8EA3FF
+    TEXT «THE SUNDAY SHOWDOWN» [233x39] fill=['#FFFFFF'] TEXT='THE SUNDAY SHOWDOWN'         font=Anton 400 26px lh=39.1396484375 ls=0 case=None align=LEFT         color=#FFFFFFFF
+    FRAME «Crew» [104x32]       layout=HORIZONTAL gap=None pad=None,None,None,None align=None/None
+      INSTANCE «Avatar» [32x32]
+        ELLIPSE «Ellipse» [24x24] fill=['#2A1F4D'] stroke=['#3B3B52 w1']
+        TEXT «BW» [24x11] fill=['#B79DFB'] TEXT='BW'             font=Inter 700 9px lh=10.892045021057129 ls=0 case=None align=CENTER             color=#B79DFBFF
+      INSTANCE «Avatar» [32x32]
+        ELLIPSE «Ellipse» [24x24] fill=['#2A1F4D'] stroke=['#3B3B52 w1']
+        TEXT «BW» [24x11] fill=['#B79DFB'] TEXT='BW'             font=Inter 700 9px lh=10.892045021057129 ls=0 case=None align=CENTER             color=#B79DFBFF
+      INSTANCE «Avatar» [32x32]
+        ELLIPSE «Ellipse» [24x24] fill=['#2A1F4D'] stroke=['#3B3B52 w1']
+        TEXT «BW» [24x11] fill=['#B79DFB'] TEXT='BW'             font=Inter 700 9px lh=10.892045021057129 ls=0 case=None align=CENTER             color=#B79DFBFF
+      INSTANCE «Avatar» [32x32]
+        ELLIPSE «Ellipse» [24x24] fill=['#2A1F4D'] stroke=['#3B3B52 w1']
+        TEXT «BW» [24x11] fill=['#B79DFB'] TEXT='BW'             font=Inter 700 9px lh=10.892045021057129 ls=0 case=None align=CENTER             color=#B79DFBFF
+    TEXT «Target: 100 RUF/day · Mon–Fri» [187x16] fill=['#C2C2D1'] TEXT='Target: 100 RUF/day · Mon–Fri'         font=Inter 500 13px lh=15.732954025268555 ls=0 case=None align=LEFT         color=#C2C2D1FF
+  COMPONENT «Status=Completed» [361x10] r=20 fill=['GRADIENT_LINEAR'] stroke=['#26263A w1']     layout=VERTICAL gap=None pad=18,18,18,18 align=None/None
+    FRAME «Head» [325x20]       layout=HORIZONTAL gap=None pad=None,None,None,None align=SPACE_BETWEEN/CENTER
+      FRAME «StatusBadge» [74x20] r=999 fill=['#8E8EA3 @18%']         layout=HORIZONTAL gap=None pad=4,10,4,10 align=None/CENTER
+        TEXT «SAM WON» [54x12] fill=['#8E8EA3'] TEXT='SAM WON'             font=Inter 600 10px lh=12.102272033691406 ls=0.6 case=None align=LEFT             color=#8E8EA3FF
+      TEXT «3 players · finished» [107x15] fill=['#8E8EA3'] TEXT='3 players · finished'           font=Inter 400 12px lh=14.522727012634277 ls=0 case=None align=LEFT           color=#8E8EA3FF
+    TEXT «THE SUNDAY SHOWDOWN» [233x39] fill=['#FFFFFF'] TEXT='THE SUNDAY SHOWDOWN'         font=Anton 400 26px lh=39.1396484375 ls=0 case=None align=LEFT         color=#FFFFFFFF
+    FRAME «Crew» [104x32]       layout=HORIZONTAL gap=None pad=None,None,None,None align=None/None
+      INSTANCE «Avatar» [32x32]
+        ELLIPSE «Ellipse» [24x24] fill=['#2A1F4D'] stroke=['#3B3B52 w1']
+        TEXT «BW» [24x11] fill=['#B79DFB'] TEXT='BW'             font=Inter 700 9px lh=10.892045021057129 ls=0 case=None align=CENTER             color=#B79DFBFF
+      INSTANCE «Avatar» [32x32]
+        ELLIPSE «Ellipse» [24x24] fill=['#2A1F4D'] stroke=['#3B3B52 w1']
+        TEXT «BW» [24x11] fill=['#B79DFB'] TEXT='BW'             font=Inter 700 9px lh=10.892045021057129 ls=0 case=None align=CENTER             color=#B79DFBFF
+      INSTANCE «Avatar» [32x32]
+        ELLIPSE «Ellipse» [24x24] fill=['#2A1F4D'] stroke=['#3B3B52 w1']
+        TEXT «BW» [24x11] fill=['#B79DFB'] TEXT='BW'             font=Inter 700 9px lh=10.892045021057129 ls=0 case=None align=CENTER             color=#B79DFBFF
+      INSTANCE «Avatar» [32x32]
+        ELLIPSE «Ellipse» [24x24] fill=['#2A1F4D'] stroke=['#3B3B52 w1']
+        TEXT «BW» [24x11] fill=['#B79DFB'] TEXT='BW'             font=Inter 700 9px lh=10.892045021057129 ls=0 case=None align=CENTER             color=#B79DFBFF
+    FRAME «Frame» [325x8] r=4 fill=['#26263A']
+      RECTANGLE «Rectangle» [325x8] r=4 fill=['#34D399']
+    TEXT «You won 2 of 7 days · Rematch?» [197x16] fill=['#C2C2D1'] TEXT='You won 2 of 7 days · Rematch?'         font=Inter 500 13px lh=15.732954025268555 ls=0 case=None align=LEFT         color=#C2C2D1FF

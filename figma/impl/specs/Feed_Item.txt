@@ -1,0 +1,55 @@
+
+======================================================================
+NODE 11:182
+======================================================================
+COMPONENT_SET «Feed Item» [401x430] r=5
+  COMPONENT «Type=Log» [361x60] r=14 fill=['#14121F']     layout=HORIZONTAL gap=None pad=12,14,12,14 align=None/CENTER
+    FRAME «IconBubble» [36x36] r=999 fill=['#34D399 @15%']       layout=VERTICAL gap=None pad=None,None,None,None align=CENTER/CENTER
+      INSTANCE «Icon/check» [18x18] fill=['#FFFFFF']
+        VECTOR «Vector» [10x8] stroke=['#34D399 w2']
+    FRAME «Content» [250x32]       layout=VERTICAL gap=None pad=None,None,None,None align=None/None
+      FRAME «Line» [162x17]         layout=HORIZONTAL gap=None pad=None,None,None,None align=None/None
+        TEXT «Sam K» [43x17] fill=['#FFFFFF'] TEXT='Sam K'             font=Inter 600 14px lh=16.94318199157715 ls=0 case=None align=LEFT             color=#FFFFFFFF
+        TEXT «logged 25 squats» [115x17] fill=['#C2C2D1'] TEXT='logged 25 squats'             font=Inter 400 14px lh=16.94318199157715 ls=0 case=None align=LEFT             color=#C2C2D1FF
+      TEXT «+25 RUF · 2 min ago» [106x13] fill=['#8E8EA3'] TEXT='+25 RUF · 2 min ago'           font=Inter 400 11px lh=13.3125 ls=0 case=None align=LEFT           color=#8E8EA3FF
+    TEXT «🔥 3» [23x15] fill=['#8E8EA3'] TEXT='🔥 3'         font=Inter 500 12px lh=14.522727012634277 ls=0 case=None align=LEFT         color=#8E8EA3FF
+  COMPONENT «Type=LeadChange» [361x60] r=14 fill=['#14121F']     layout=HORIZONTAL gap=None pad=12,14,12,14 align=None/CENTER
+    FRAME «IconBubble» [36x36] r=999 fill=['#FFC821 @15%']       layout=VERTICAL gap=None pad=None,None,None,None align=CENTER/CENTER
+      INSTANCE «Icon/trophy» [18x18] fill=['#FFFFFF']
+        VECTOR «Vector» [12x12] stroke=['#FFC821 w2']
+    FRAME «Content» [250x32]       layout=VERTICAL gap=None pad=None,None,None,None align=None/None
+      FRAME «Line» [138x17]         layout=HORIZONTAL gap=None pad=None,None,None,None align=None/None
+        TEXT «Alex T» [43x17] fill=['#FFFFFF'] TEXT='Alex T'             font=Inter 600 14px lh=16.94318199157715 ls=0 case=None align=LEFT             color=#FFFFFFFF
+        TEXT «took the lead!» [91x17] fill=['#C2C2D1'] TEXT='took the lead!'             font=Inter 400 14px lh=16.94318199157715 ls=0 case=None align=LEFT             color=#C2C2D1FF
+      TEXT «88% complete · just now» [127x13] fill=['#8E8EA3'] TEXT='88% complete · just now'           font=Inter 400 11px lh=13.3125 ls=0 case=None align=LEFT           color=#8E8EA3FF
+    TEXT «🔥 3» [23x15] fill=['#8E8EA3'] TEXT='🔥 3'         font=Inter 500 12px lh=14.522727012634277 ls=0 case=None align=LEFT         color=#8E8EA3FF
+  COMPONENT «Type=PowerUp» [361x60] r=14 fill=['#14121F']     layout=HORIZONTAL gap=None pad=12,14,12,14 align=None/CENTER
+    FRAME «IconBubble» [36x36] r=999 fill=['#8B5CF6 @15%']       layout=VERTICAL gap=None pad=None,None,None,None align=CENTER/CENTER
+      INSTANCE «Icon/bolt» [18x18] fill=['#FFFFFF']
+        VECTOR «Vector» [10x15] fill=['#8B5CF6']
+    FRAME «Content» [250x32]       layout=VERTICAL gap=None pad=None,None,None,None align=None/None
+      FRAME «Line» [237x17]         layout=HORIZONTAL gap=None pad=None,None,None,None align=None/None
+        TEXT «Jordan P» [60x17] fill=['#FFFFFF'] TEXT='Jordan P'             font=Inter 600 14px lh=16.94318199157715 ls=0 case=None align=LEFT             color=#FFFFFFFF
+        TEXT «activated Lightning Round» [173x17] fill=['#C2C2D1'] TEXT='activated Lightning Round'             font=Inter 400 14px lh=16.94318199157715 ls=0 case=None align=LEFT             color=#C2C2D1FF
+      TEXT «Triple reps for 10 min · 5 min ago» [170x13] fill=['#8E8EA3'] TEXT='Triple reps for 10 min · 5 min ago'           font=Inter 400 11px lh=13.3125 ls=0 case=None align=LEFT           color=#8E8EA3FF
+    TEXT «🔥 3» [23x15] fill=['#8E8EA3'] TEXT='🔥 3'         font=Inter 500 12px lh=14.522727012634277 ls=0 case=None align=LEFT         color=#8E8EA3FF
+  COMPONENT «Type=Milestone» [361x60] r=14 fill=['#14121F']     layout=HORIZONTAL gap=None pad=12,14,12,14 align=None/CENTER
+    FRAME «IconBubble» [36x36] r=999 fill=['#FF8A00 @15%']       layout=VERTICAL gap=None pad=None,None,None,None align=CENTER/CENTER
+      INSTANCE «Icon/flame» [18x18] fill=['#FFFFFF']
+        VECTOR «Vector» [7x12] fill=['#FF8A00']
+    FRAME «Content» [250x32]       layout=VERTICAL gap=None pad=None,None,None,None align=None/None
+      FRAME «Line» [146x17]         layout=HORIZONTAL gap=None pad=None,None,None,None align=None/None
+        TEXT «You» [26x17] fill=['#FFFFFF'] TEXT='You'             font=Inter 600 14px lh=16.94318199157715 ls=0 case=None align=LEFT             color=#FFFFFFFF
+        TEXT «hit a 7-day streak» [116x17] fill=['#C2C2D1'] TEXT='hit a 7-day streak'             font=Inter 400 14px lh=16.94318199157715 ls=0 case=None align=LEFT             color=#C2C2D1FF
+      TEXT «Streak reward unlocked · 1 h ago» [170x13] fill=['#8E8EA3'] TEXT='Streak reward unlocked · 1 h ago'           font=Inter 400 11px lh=13.3125 ls=0 case=None align=LEFT           color=#8E8EA3FF
+    TEXT «🔥 3» [23x15] fill=['#8E8EA3'] TEXT='🔥 3'         font=Inter 500 12px lh=14.522727012634277 ls=0 case=None align=LEFT         color=#8E8EA3FF
+  COMPONENT «Type=System» [361x60] r=14 fill=['#14121F']     layout=HORIZONTAL gap=None pad=12,14,12,14 align=None/CENTER
+    FRAME «IconBubble» [36x36] r=999 fill=['#4DA3FF @15%']       layout=VERTICAL gap=None pad=None,None,None,None align=CENTER/CENTER
+      INSTANCE «Icon/bell» [18x18] fill=['#FFFFFF']
+        VECTOR «Vector» [12x14] stroke=['#4DA3FF w2']
+    FRAME «Content» [250x32]       layout=VERTICAL gap=None pad=None,None,None,None align=None/None
+      FRAME «Line» [213x17]         layout=HORIZONTAL gap=None pad=None,None,None,None align=None/None
+        TEXT «Thunder Hour» [95x17] fill=['#FFFFFF'] TEXT='Thunder Hour'             font=Inter 600 14px lh=16.94318199157715 ls=0 case=None align=LEFT             color=#FFFFFFFF
+        TEXT «starts at 7:00 PM» [114x17] fill=['#C2C2D1'] TEXT='starts at 7:00 PM'             font=Inter 400 14px lh=16.94318199157715 ls=0 case=None align=LEFT             color=#C2C2D1FF
+      TEXT «All reps count double · today» [149x13] fill=['#8E8EA3'] TEXT='All reps count double · today'           font=Inter 400 11px lh=13.3125 ls=0 case=None align=LEFT           color=#8E8EA3FF
+    TEXT «🔥 3» [23x15] fill=['#8E8EA3'] TEXT='🔥 3'         font=Inter 500 12px lh=14.522727012634277 ls=0 case=None align=LEFT         color=#8E8EA3FF

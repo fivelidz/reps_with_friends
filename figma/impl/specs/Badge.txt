@@ -1,0 +1,26 @@
+
+======================================================================
+NODE 8:23
+======================================================================
+COMPONENT_SET «Badge» [240x260] r=5
+  COMPONENT «Type=Streak» [130x26] r=999 fill=['#2A1F4D']     layout=HORIZONTAL gap=None pad=6,12,6,12 align=None/CENTER
+    INSTANCE «Icon/flame» [14x14] fill=['#FFFFFF']
+      VECTOR «Vector» [5x9] fill=['#FF8A00']
+    TEXT «7 DAY STREAK» [86x13] fill=['#FFFFFF'] TEXT='7 DAY STREAK'         font=Inter 600 11px lh=13.3125 ls=0.6599999999999999 case=None align=LEFT         color=#FFFFFFFF
+  COMPONENT «Type=Live» [130x26] r=999 fill=['#FFC821']     layout=HORIZONTAL gap=None pad=6,12,6,12 align=None/CENTER
+    INSTANCE «Icon/bolt» [14x14] fill=['#FFFFFF']
+      VECTOR «Vector» [8x11] fill=['#07060D']
+    TEXT «7 DAY STREAK» [86x13] fill=['#07060D'] TEXT='7 DAY STREAK'         font=Inter 600 11px lh=13.3125 ls=0.6599999999999999 case=None align=LEFT         color=#07060DFF
+  COMPONENT «Type=Rank» [130x26] r=999 fill=['#1B1830']     layout=HORIZONTAL gap=None pad=6,12,6,12 align=None/CENTER
+    INSTANCE «Icon/trophy» [14x14] fill=['#FFFFFF']
+      VECTOR «Vector» [9x9] stroke=['#FFC821 w2']
+    TEXT «7 DAY STREAK» [86x13] fill=['#FFFFFF'] TEXT='7 DAY STREAK'         font=Inter 600 11px lh=13.3125 ls=0.6599999999999999 case=None align=LEFT         color=#FFFFFFFF
+  COMPONENT «Type=Premium» [130x26] r=999 fill=['#1C1533']     layout=HORIZONTAL gap=None pad=6,12,6,12 align=None/CENTER
+    INSTANCE «Icon/crown» [14x14] fill=['#FFFFFF']
+      VECTOR «Vector» [10x7] fill=['#8B5CF6']
+    TEXT «7 DAY STREAK» [86x13] fill=['#FFFFFF'] TEXT='7 DAY STREAK'         font=Inter 600 11px lh=13.3125 ls=0.6599999999999999 case=None align=LEFT         color=#FFFFFFFF
+  COMPONENT «Type=Danger» [130x26] r=999 fill=['#FF4D5E']     layout=HORIZONTAL gap=None pad=6,12,6,12 align=None/CENTER
+    INSTANCE «Icon/clock» [14x14] fill=['#FFFFFF']
+      VECTOR «Vector» [10x10] stroke=['#FFFFFF w2']
+      VECTOR «Vector» [2x4] stroke=['#FFFFFF w2']
+    TEXT «7 DAY STREAK» [86x13] fill=['#FFFFFF'] TEXT='7 DAY STREAK'         font=Inter 600 11px lh=13.3125 ls=0.6599999999999999 case=None align=LEFT         color=#FFFFFFFF

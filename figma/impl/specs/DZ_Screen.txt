@@ -1,0 +1,87 @@
+
+======================================================================
+NODE 19:640
+======================================================================
+FRAME «MOB-BATTLE-002 · Danger zone — 30 min» [393x852] r=24 fill=['#150810']
+  TEXT «9:41» [30x17] fill=['#FFFFFF'] TEXT='9:41'       font=Inter 600 14px lh=16.94318199157715 ls=0 case=None align=LEFT       color=#FFFFFFFF
+  INSTANCE «Top Bar» [393x56] fill=['#0B0A12']
+    FRAME «Bar» [393x56]       layout=HORIZONTAL gap=None pad=None,16,None,16 align=SPACE_BETWEEN/CENTER
+      FRAME «Left» [195x21]         layout=HORIZONTAL gap=None pad=None,None,None,None align=None/CENTER
+        TEXT «The Sunday Showdown» [195x21] fill=['#FFFFFF'] TEXT='The Sunday Showdown'             font=Inter 700 17px lh=20.573863983154297 ls=0 case=None align=LEFT             color=#FFFFFFFF
+      FRAME «Right» [70x32]         layout=HORIZONTAL gap=None pad=None,None,None,None align=None/CENTER
+        INSTANCE «Icon/bell» [22x22] fill=['#FFFFFF']
+          VECTOR «Vector» [14x17] stroke=['#C2C2D1 w2']
+        INSTANCE «Avatar» [32x32]
+          ELLIPSE «Ellipse» [24x24] fill=['#2A1F4D'] stroke=['#3B3B52 w1']
+          TEXT «BW» [24x11] fill=['#B79DFB'] TEXT='BW'               font=Inter 700 9px lh=10.892045021057129 ls=0 case=None align=CENTER               color=#B79DFBFF
+  FRAME «Content» [393x625]     layout=VERTICAL gap=None pad=None,16,None,16 align=None/None
+    FRAME «DZBanner» [361x48] r=14 fill=['#FF4D5E']       layout=HORIZONTAL gap=None pad=12,16,12,16 align=None/CENTER
+      TEXT «⚠» [17x19] fill=['#FFFFFF'] TEXT='⚠'           font=Inter 700 16px lh=19.363636016845703 ls=0 case=None align=LEFT           color=#FFFFFFFF
+      TEXT «DANGER ZONE — 24 MINUTES LEFT» [196x24] fill=['#FFFFFF'] TEXT='DANGER ZONE — 24 MINUTES LEFT'           font=Anton 400 16px lh=24.0859375 ls=0 case=None align=LEFT           color=#FFFFFFFF
+    INSTANCE «Countdown» [203x65] r=999 fill=['#2A1020'] stroke=['#FF4D5E @80% w1.5']       layout=HORIZONTAL gap=None pad=10,18,10,16 align=None/CENTER
+      INSTANCE «Icon/clock» [18x18] fill=['#FFFFFF']
+        VECTOR «Vector» [13x13] stroke=['#FF4D5E w2']
+        VECTOR «Vector» [2x5] stroke=['#FF4D5E w2']
+      FRAME «Time» [141x45]         layout=VERTICAL gap=None pad=None,None,None,None align=None/None
+        TEXT «6:12:44» [62x33] fill=['#FF4D5E'] TEXT='6:12:44'             font=Anton 400 22px lh=33.1181640625 ls=0 case=None align=LEFT             color=#FF4D5EFF
+        TEXT «30 min left — heartbeat pulse» [141x12] fill=['#8E8EA3'] TEXT='30 min left — heartbeat pulse'             font=Inter 400 10px lh=12.102272033691406 ls=0 case=None align=LEFT             color=#8E8EA3FF
+    FRAME «Hero» [361x254] r=20 fill=['GRADIENT_LINEAR'] stroke=['#FF4D5E @80% w1.5']       layout=VERTICAL gap=None pad=18,18,18,18 align=None/CENTER
+      INSTANCE «Progress Ring» [140x140]
+        ELLIPSE «Ellipse» [180x180] stroke=['#26263A w12']
+        ELLIPSE «Ellipse» [180x180] fill=['#FFC821']
+        FRAME «Center» [68x82]           layout=VERTICAL gap=None pad=None,None,None,None align=None/CENTER
+          TEXT «90» [44x66] fill=['#FFFFFF'] TEXT='90'               font=Anton 400 44px lh=66.236328125 ls=0 case=None align=LEFT               color=#FFFFFFFF
+          TEXT «of 120 RUF» [68x16] fill=['#8E8EA3'] TEXT='of 120 RUF'               font=Inter 500 13px lh=15.732954025268555 ls=0 case=None align=LEFT               color=#8E8EA3FF
+      TEXT «30 RUF IN 24 MIN — STILL DOABLE» [211x26] fill=['#FF4D5E'] TEXT='30 RUF IN 24 MIN — STILL DOABLE'           font=Anton 400 17px lh=25.59130859375 ls=0 case=None align=LEFT           color=#FF4D5EFF
+      TEXT «That's 2 quick sets of push-ups. Go. Now.» [258x16] fill=['#C2C2D1'] TEXT='That's 2 quick sets of push-ups. Go. Now.'           font=Inter 500 13px lh=15.732954025268555 ls=0 case=None align=LEFT           color=#C2C2D1FF
+    FRAME «FreezeSuggestion» [361x54] r=12 fill=['#131A2E'] stroke=['#4DA3FF @60% w1']       layout=HORIZONTAL gap=None pad=12,16,12,16 align=None/CENTER
+      TEXT «🧊» [16x16] fill=['#FFFFFF'] TEXT='🧊'           font=Inter 400 16px lh=19.363636016845703 ls=0 case=None align=LEFT           color=#FFFFFFFF
+      TEXT «You're holding a Time Freeze — +30 min for the whole crew» [250x30] fill=['#C2C2D1'] TEXT='You're holding a Time Freeze — +30 min for the whole crew'           font=Inter 500 12px lh=14.522727012634277 ls=0 case=None align=LEFT           color=#C2C2D1FF
+    INSTANCE «Leaderboard Row» [361x72] r=14 fill=['#14121F'] stroke=['#8B5CF6 w1.5']       layout=HORIZONTAL gap=None pad=12,14,12,14 align=None/CENTER
+      TEXT «2» [20x19] fill=['#8E8EA3'] TEXT='2'           font=Inter 700 16px lh=19.363636016845703 ls=0 case=None align=CENTER           color=#8E8EA3FF
+      INSTANCE «Avatar» [48x48]
+        ELLIPSE «Ellipse» [40x40] fill=['#2A1F4D'] stroke=['#3B3B52 w1']
+        TEXT «BW» [40x17] fill=['#B79DFB'] TEXT='BW'             font=Inter 700 14px lh=16.94318199157715 ls=0 case=None align=CENTER             color=#B79DFBFF
+      FRAME «Info» [162x30]         layout=VERTICAL gap=None pad=None,None,None,None align=None/None
+        FRAME «NameRow» [28x18]           layout=HORIZONTAL gap=None pad=None,None,None,None align=None/CENTER
+          TEXT «Alex T» [28x18] fill=['#FFFFFF'] TEXT='You'               font=Inter 600 15px lh=18.15340805053711 ls=0 case=None align=LEFT               color=#FFFFFFFF
+        FRAME «Frame» [180x6] r=3 fill=['#26263A']
+          RECTANGLE «Rectangle» [127x6] r=3 fill=['#8B5CF6']
+      FRAME «Score» [67x34]         layout=VERTICAL gap=None pad=None,None,None,None align=None/MAX
+        TEXT «71%» [32x19] fill=['#FFFFFF'] TEXT='71%'             font=Inter 700 16px lh=19.363636016845703 ls=0 case=None align=LEFT             color=#FFFFFFFF
+        TEXT «85 / 120 RUF» [67x13] fill=['#8E8EA3'] TEXT='85 / 120 RUF'             font=Inter 400 11px lh=13.3125 ls=0 case=None align=LEFT             color=#8E8EA3FF
+    INSTANCE «Leaderboard Row» [361x72] r=14 fill=['#14121F']       layout=HORIZONTAL gap=None pad=12,14,12,14 align=None/CENTER
+      TEXT «5» [20x19] fill=['#8E8EA3'] TEXT='5'           font=Inter 700 16px lh=19.363636016845703 ls=0 case=None align=CENTER           color=#8E8EA3FF
+      INSTANCE «Avatar» [48x48]
+        ELLIPSE «Ellipse» [40x40] fill=['#2A1F4D'] stroke=['#3B3B52 w1']
+        TEXT «BW» [40x17] fill=['#B79DFB'] TEXT='BW'             font=Inter 700 14px lh=16.94318199157715 ls=0 case=None align=CENTER             color=#B79DFBFF
+      FRAME «Info» [161x30]         layout=VERTICAL gap=None pad=None,None,None,None align=None/None
+        FRAME «NameRow» [64x18]           layout=HORIZONTAL gap=None pad=None,None,None,None align=None/CENTER
+          TEXT «Alex T» [64x18] fill=['#FFFFFF'] TEXT='Jordan P'               font=Inter 600 15px lh=18.15340805053711 ls=0 case=None align=LEFT               color=#FFFFFFFF
+        FRAME «Frame» [180x6] r=3 fill=['#26263A']
+          RECTANGLE «Rectangle» [43x6] r=3 fill=['#FF8A00']
+      FRAME «Score» [68x34]         layout=VERTICAL gap=None pad=None,None,None,None align=None/MAX
+        TEXT «24%» [35x19] fill=['#FFFFFF'] TEXT='24%'             font=Inter 700 16px lh=19.363636016845703 ls=0 case=None align=LEFT             color=#FFFFFFFF
+        TEXT «29 / 120 RUF» [68x13] fill=['#8E8EA3'] TEXT='29 / 120 RUF'             font=Inter 400 11px lh=13.3125 ls=0 case=None align=LEFT             color=#8E8EA3FF
+  INSTANCE «Bottom Nav» [393x84] fill=['#0B0A12'] stroke=['#26263A w1']
+    FRAME «Tabs» [393x84]       layout=HORIZONTAL gap=None pad=None,24,None,24 align=SPACE_BETWEEN/CENTER
+      FRAME «Tab/Battle» [29x40]         layout=VERTICAL gap=None pad=None,None,None,None align=None/CENTER
+        INSTANCE «Icon/trophy» [24x24] fill=['#FFFFFF']
+          VECTOR «Vector» [16x17] stroke=['#FFC821 w2']
+        TEXT «Battle» [29x12] fill=['#FFC821'] TEXT='Battle'             font=Inter 600 10px lh=12.102272033691406 ls=0 case=None align=LEFT             color=#FFC821FF
+      FRAME «Tab/Feed» [24x40]         layout=VERTICAL gap=None pad=None,None,None,None align=None/CENTER
+        INSTANCE «Icon/feed» [24x24] fill=['#FFFFFF']
+          VECTOR «Vector» [16x12] stroke=['#63637A w2']
+        TEXT «Feed» [24x12] fill=['#63637A'] TEXT='Feed'             font=Inter 500 10px lh=12.102272033691406 ls=0 case=None align=LEFT             color=#63637AFF
+      FRAME «LogButton» [64x64] r=999 fill=['#FFC821']         layout=VERTICAL gap=None pad=None,None,None,None align=CENTER/CENTER
+        INSTANCE «Icon/plus» [28x28] fill=['#FFFFFF']
+          VECTOR «Vector» [16x16] stroke=['#07060D w2']
+      FRAME «Tab/Power-Ups» [54x40]         layout=VERTICAL gap=None pad=None,None,None,None align=None/CENTER
+        INSTANCE «Icon/bolt» [24x24] fill=['#FFFFFF']
+          VECTOR «Vector» [14x20] fill=['#63637A']
+        TEXT «Power-Ups» [54x12] fill=['#63637A'] TEXT='Power-Ups'             font=Inter 500 10px lh=12.102272033691406 ls=0 case=None align=LEFT             color=#63637AFF
+      FRAME «Tab/Profile» [31x40]         layout=VERTICAL gap=None pad=None,None,None,None align=None/CENTER
+        INSTANCE «Icon/user» [24x24] fill=['#FFFFFF']
+          VECTOR «Vector» [8x8] stroke=['#63637A w2']
+          VECTOR «Vector» [16x6] stroke=['#63637A w2']
+        TEXT «Profile» [31x12] fill=['#63637A'] TEXT='Profile'             font=Inter 500 10px lh=12.102272033691406 ls=0 case=None align=LEFT             color=#63637AFF

@@ -1,0 +1,33 @@
+
+======================================================================
+NODE 9:165
+======================================================================
+COMPONENT_SET «Countdown» [360x320] r=5
+  COMPONENT «Level=Normal» [239x65] r=999 fill=['#14121F'] stroke=['#C2C2D1 @80% w1.5']     layout=HORIZONTAL gap=None pad=10,18,10,16 align=None/CENTER
+    INSTANCE «Icon/clock» [18x18] fill=['#FFFFFF']
+      VECTOR «Vector» [13x13] stroke=['#C2C2D1 w2']
+      VECTOR «Vector» [2x5] stroke=['#C2C2D1 w2']
+    FRAME «Time» [177x45]       layout=VERTICAL gap=None pad=None,None,None,None align=None/None
+      TEXT «6:12:44» [62x33] fill=['#C2C2D1'] TEXT='6:12:44'           font=Anton 400 22px lh=33.1181640625 ls=0 case=None align=LEFT           color=#C2C2D1FF
+      TEXT «ends 9:00 PM AEST · 7:00 PM for you» [177x12] fill=['#8E8EA3'] TEXT='ends 9:00 PM AEST · 7:00 PM for you'           font=Inter 400 10px lh=12.102272033691406 ls=0 case=None align=LEFT           color=#8E8EA3FF
+  COMPONENT «Level=DZ1» [177x65] r=999 fill=['#1B1830'] stroke=['#FFC821 @80% w1.5']     layout=HORIZONTAL gap=None pad=10,18,10,16 align=None/CENTER
+    INSTANCE «Icon/clock» [18x18] fill=['#FFFFFF']
+      VECTOR «Vector» [13x13] stroke=['#FFC821 w2']
+      VECTOR «Vector» [2x5] stroke=['#FFC821 w2']
+    FRAME «Time» [115x45]       layout=VERTICAL gap=None pad=None,None,None,None align=None/None
+      TEXT «6:12:44» [62x33] fill=['#FFC821'] TEXT='6:12:44'           font=Anton 400 22px lh=33.1181640625 ls=0 case=None align=LEFT           color=#FFC821FF
+      TEXT «3 hours left — gold alert» [115x12] fill=['#8E8EA3'] TEXT='3 hours left — gold alert'           font=Inter 400 10px lh=12.102272033691406 ls=0 case=None align=LEFT           color=#8E8EA3FF
+  COMPONENT «Level=DZ2» [183x65] r=999 fill=['#1B1830'] stroke=['#FF8A00 @80% w1.5']     layout=HORIZONTAL gap=None pad=10,18,10,16 align=None/CENTER
+    INSTANCE «Icon/clock» [18x18] fill=['#FFFFFF']
+      VECTOR «Vector» [13x13] stroke=['#FF8A00 w2']
+      VECTOR «Vector» [2x5] stroke=['#FF8A00 w2']
+    FRAME «Time» [121x45]       layout=VERTICAL gap=None pad=None,None,None,None align=None/None
+      TEXT «6:12:44» [62x33] fill=['#FF8A00'] TEXT='6:12:44'           font=Anton 400 22px lh=33.1181640625 ls=0 case=None align=LEFT           color=#FF8A00FF
+      TEXT «1 hour left — orange alert» [121x12] fill=['#8E8EA3'] TEXT='1 hour left — orange alert'           font=Inter 400 10px lh=12.102272033691406 ls=0 case=None align=LEFT           color=#8E8EA3FF
+  COMPONENT «Level=DZ3» [203x65] r=999 fill=['#2A1020'] stroke=['#FF4D5E @80% w1.5']     layout=HORIZONTAL gap=None pad=10,18,10,16 align=None/CENTER
+    INSTANCE «Icon/clock» [18x18] fill=['#FFFFFF']
+      VECTOR «Vector» [13x13] stroke=['#FF4D5E w2']
+      VECTOR «Vector» [2x5] stroke=['#FF4D5E w2']
+    FRAME «Time» [141x45]       layout=VERTICAL gap=None pad=None,None,None,None align=None/None
+      TEXT «6:12:44» [62x33] fill=['#FF4D5E'] TEXT='6:12:44'           font=Anton 400 22px lh=33.1181640625 ls=0 case=None align=LEFT           color=#FF4D5EFF
+      TEXT «30 min left — heartbeat pulse» [141x12] fill=['#8E8EA3'] TEXT='30 min left — heartbeat pulse'           font=Inter 400 10px lh=12.102272033691406 ls=0 case=None align=LEFT           color=#8E8EA3FF

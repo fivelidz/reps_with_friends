@@ -1,0 +1,9 @@
+
+======================================================================
+NODE 10:157
+======================================================================
+COMPONENT_SET «Preset Chip» [240x90] r=5
+  COMPONENT «State=Default» [63x45] r=999 fill=['#1B1830'] stroke=['#3B3B52 w1']     layout=HORIZONTAL gap=None pad=12,20,12,20 align=None/CENTER
+    TEXT «20» [23x21] fill=['#FFFFFF'] TEXT='20'         font=Inter 700 17px lh=20.573863983154297 ls=0 case=None align=LEFT         color=#FFFFFFFF
+  COMPONENT «State=Selected» [63x45] r=999 fill=['#FFC821']     layout=HORIZONTAL gap=None pad=12,20,12,20 align=None/CENTER
+    TEXT «20» [23x21] fill=['#07060D'] TEXT='20'         font=Inter 700 17px lh=20.573863983154297 ls=0 case=None align=LEFT         color=#07060DFF

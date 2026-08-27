@@ -1,0 +1,23 @@
+
+======================================================================
+NODE 12:194
+======================================================================
+COMPONENT_SET «Dialog» [369x760] r=5
+  COMPONENT «Type=Confirm» [329x10] r=20 fill=['#1B1830'] stroke=['#3B3B52 w1']     layout=VERTICAL gap=None pad=24,24,20,24 align=None/CENTER
+    TEXT «Use Lightning Round?» [281x22] fill=['#FFFFFF'] TEXT='Use Lightning Round?'         font=Inter 700 18px lh=21.784090042114258 ls=0 case=None align=CENTER         color=#FFFFFFFF
+    TEXT «Your next 10 minutes of reps count 3×. One per day — make it count.» [281x34] fill=['#C2C2D1'] TEXT='Your next 10 minutes of reps count 3×. One per day — make it count.'         font=Inter 400 14px lh=16.94318199157715 ls=0 case=None align=CENTER         color=#C2C2D1FF
+    FRAME «CTA» [281x46] r=999 fill=['#FFC821']       layout=HORIZONTAL gap=None pad=14,None,14,None align=CENTER/CENTER
+      TEXT «ACTIVATE» [74x18] fill=['#07060D'] TEXT='ACTIVATE'           font=Inter 600 15px lh=18.15340805053711 ls=0 case=None align=LEFT           color=#07060DFF
+    TEXT «Not yet» [49x17] fill=['#8E8EA3'] TEXT='Not yet'         font=Inter 500 14px lh=16.94318199157715 ls=0 case=None align=LEFT         color=#8E8EA3FF
+  COMPONENT «Type=Destructive» [329x10] r=20 fill=['#1B1830'] stroke=['#3B3B52 w1']     layout=VERTICAL gap=None pad=24,24,20,24 align=None/CENTER
+    TEXT «Delete this entry?» [281x22] fill=['#FFFFFF'] TEXT='Delete this entry?'         font=Inter 700 18px lh=21.784090042114258 ls=0 case=None align=CENTER         color=#FFFFFFFF
+    TEXT «25 squats (25 RUF) will be removed from today's total. This can't be undone after the edit window.» [281x51] fill=['#C2C2D1'] TEXT='25 squats (25 RUF) will be removed from today's total. This can't be undone after the edit window.'         font=Inter 400 14px lh=16.94318199157715 ls=0 case=None align=CENTER         color=#C2C2D1FF
+    FRAME «CTA» [281x46] r=999 fill=['#FF4D5E']       layout=HORIZONTAL gap=None pad=14,None,14,None align=CENTER/CENTER
+      TEXT «DELETE ENTRY» [111x18] fill=['#FFFFFF'] TEXT='DELETE ENTRY'           font=Inter 600 15px lh=18.15340805053711 ls=0 case=None align=LEFT           color=#FFFFFFFF
+    TEXT «Keep it» [47x17] fill=['#8E8EA3'] TEXT='Keep it'         font=Inter 500 14px lh=16.94318199157715 ls=0 case=None align=LEFT         color=#8E8EA3FF
+  COMPONENT «Type=Money» [329x10] r=20 fill=['#1B1830'] stroke=['#3B3B52 w1']     layout=VERTICAL gap=None pad=24,24,20,24 align=None/CENTER
+    TEXT «Join the pot — $10.00 AUD» [281x22] fill=['#FFFFFF'] TEXT='Join the pot — $10.00 AUD'         font=Inter 700 18px lh=21.784090042114258 ls=0 case=None align=CENTER         color=#FFFFFFFF
+    TEXT «Winner takes all (SAMPLE rule). Fees shown before payment. You can leave before the battle starts for a full refund.» [281x51] fill=['#C2C2D1'] TEXT='Winner takes all (SAMPLE rule). Fees shown before payment. You can leave before the battle starts for a full refund.'         font=Inter 400 14px lh=16.94318199157715 ls=0 case=None align=CENTER         color=#C2C2D1FF
+    FRAME «CTA» [281x46] r=999 fill=['#FFC821']       layout=HORIZONTAL gap=None pad=14,None,14,None align=CENTER/CENTER
+      TEXT «PAY $10.00» [83x18] fill=['#07060D'] TEXT='PAY $10.00'           font=Inter 600 15px lh=18.15340805053711 ls=0 case=None align=LEFT           color=#07060DFF
+    TEXT «Cancel» [47x17] fill=['#8E8EA3'] TEXT='Cancel'         font=Inter 500 14px lh=16.94318199157715 ls=0 case=None align=LEFT         color=#8E8EA3FF

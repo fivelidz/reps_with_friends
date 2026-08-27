@@ -1,0 +1,49 @@
+
+======================================================================
+NODE 12:140
+======================================================================
+COMPONENT_SET «Power-up Card» [610x500] r=5
+  COMPONENT «Rarity=Common, State=Ready» [170x10] r=16 fill=['GRADIENT_LINEAR'] stroke=['#8E8EA3 w1.5']     layout=VERTICAL gap=None pad=16,16,16,16 align=None/CENTER
+    TEXT «COMMON» [49x11] fill=['#8E8EA3'] TEXT='COMMON'         font=Inter 600 9px lh=10.892045021057129 ls=0.9 case=None align=LEFT         color=#8E8EA3FF
+    FRAME «Art» [64x64] r=999 fill=['#8E8EA3 @15%']       layout=VERTICAL gap=None pad=None,None,None,None align=CENTER/CENTER
+      INSTANCE «Icon/shield» [30x30] fill=['#FFFFFF']
+        VECTOR «Vector» [20x25] stroke=['#8E8EA3 w2']
+    TEXT «GROUP SHIELD» [138x24] fill=['#FFFFFF'] TEXT='GROUP SHIELD'         font=Anton 400 16px lh=24.0859375 ls=0 case=None align=CENTER         color=#FFFFFFFF
+    TEXT «Protects the crew from one failure consequence» [138x26] fill=['#8E8EA3'] TEXT='Protects the crew from one failure consequence'         font=Inter 400 11px lh=13.3125 ls=0 case=None align=CENTER         color=#8E8EA3FF
+  COMPONENT «Rarity=Rare, State=Ready» [170x10] r=16 fill=['GRADIENT_LINEAR'] stroke=['#4DA3FF w1.5']     layout=VERTICAL gap=None pad=16,16,16,16 align=None/CENTER
+    TEXT «RARE» [27x11] fill=['#4DA3FF'] TEXT='RARE'         font=Inter 600 9px lh=10.892045021057129 ls=0.9 case=None align=LEFT         color=#4DA3FFFF
+    FRAME «Art» [64x64] r=999 fill=['#4DA3FF @15%']       layout=VERTICAL gap=None pad=None,None,None,None align=CENTER/CENTER
+      INSTANCE «Icon/clock» [30x30] fill=['#FFFFFF']
+        VECTOR «Vector» [22x22] stroke=['#4DA3FF w2']
+        VECTOR «Vector» [4x8] stroke=['#4DA3FF w2']
+    TEXT «TIME FREEZE» [138x24] fill=['#FFFFFF'] TEXT='TIME FREEZE'         font=Anton 400 16px lh=24.0859375 ls=0 case=None align=CENTER         color=#FFFFFFFF
+    TEXT «Pauses the battle clock for 30 minutes» [138x26] fill=['#8E8EA3'] TEXT='Pauses the battle clock for 30 minutes'         font=Inter 400 11px lh=13.3125 ls=0 case=None align=CENTER         color=#8E8EA3FF
+  COMPONENT «Rarity=Epic, State=Ready» [170x10] r=16 fill=['GRADIENT_LINEAR'] stroke=['#8B5CF6 w1.5']     layout=VERTICAL gap=None pad=16,16,16,16 align=None/CENTER
+    TEXT «EPIC» [24x11] fill=['#8B5CF6'] TEXT='EPIC'         font=Inter 600 9px lh=10.892045021057129 ls=0.9 case=None align=LEFT         color=#8B5CF6FF
+    FRAME «Art» [64x64] r=999 fill=['#8B5CF6 @15%']       layout=VERTICAL gap=None pad=None,None,None,None align=CENTER/CENTER
+      INSTANCE «Icon/bolt» [30x30] fill=['#FFFFFF']
+        VECTOR «Vector» [17x25] fill=['#8B5CF6']
+    TEXT «REP STEAL» [138x24] fill=['#FFFFFF'] TEXT='REP STEAL'         font=Anton 400 16px lh=24.0859375 ls=0 case=None align=CENTER         color=#FFFFFFFF
+    TEXT «Take 10% of an opponent's total (SAMPLE cap)» [138x39] fill=['#8E8EA3'] TEXT='Take 10% of an opponent's total (SAMPLE cap)'         font=Inter 400 11px lh=13.3125 ls=0 case=None align=CENTER         color=#8E8EA3FF
+  COMPONENT «Rarity=Legendary, State=Ready» [170x10] r=16 fill=['GRADIENT_LINEAR'] stroke=['#FFC821 w1.5']     layout=VERTICAL gap=None pad=16,16,16,16 align=None/CENTER
+    TEXT «LEGENDARY» [62x11] fill=['#FFC821'] TEXT='LEGENDARY'         font=Inter 600 9px lh=10.892045021057129 ls=0.9 case=None align=LEFT         color=#FFC821FF
+    FRAME «Art» [64x64] r=999 fill=['#FFC821 @15%']       layout=VERTICAL gap=None pad=None,None,None,None align=CENTER/CENTER
+      INSTANCE «Icon/bolt» [30x30] fill=['#FFFFFF']
+        VECTOR «Vector» [17x25] fill=['#FFC821']
+    TEXT «LIGHTNING ROUND» [138x24] fill=['#FFFFFF'] TEXT='LIGHTNING ROUND'         font=Anton 400 16px lh=24.0859375 ls=0 case=None align=CENTER         color=#FFFFFFFF
+    TEXT «Reps count 3× for the next 10 minutes» [138x26] fill=['#8E8EA3'] TEXT='Reps count 3× for the next 10 minutes'         font=Inter 400 11px lh=13.3125 ls=0 case=None align=CENTER         color=#8E8EA3FF
+  COMPONENT «Rarity=Legendary, State=Active» [170x10] r=16 fill=['GRADIENT_LINEAR'] stroke=['#34D399 w1.5']     layout=VERTICAL gap=None pad=16,16,16,16 align=None/CENTER
+    TEXT «ACTIVE» [38x11] fill=['#34D399'] TEXT='ACTIVE'         font=Inter 600 9px lh=10.892045021057129 ls=0.9 case=None align=LEFT         color=#34D399FF
+    FRAME «Art» [64x64] r=999 fill=['#34D399 @15%']       layout=VERTICAL gap=None pad=None,None,None,None align=CENTER/CENTER
+      INSTANCE «Icon/bolt» [30x30] fill=['#FFFFFF']
+        VECTOR «Vector» [17x25] fill=['#34D399']
+    TEXT «LIGHTNING ROUND» [138x24] fill=['#FFFFFF'] TEXT='LIGHTNING ROUND'         font=Anton 400 16px lh=24.0859375 ls=0 case=None align=CENTER         color=#FFFFFFFF
+    TEXT «ACTIVE · 6:12 remaining» [138x13] fill=['#8E8EA3'] TEXT='ACTIVE · 6:12 remaining'         font=Inter 400 11px lh=13.3125 ls=0 case=None align=CENTER         color=#8E8EA3FF
+  COMPONENT «Rarity=Rare, State=Expired» [170x10] r=16 fill=['GRADIENT_LINEAR'] stroke=['#63637A w1.5']     layout=VERTICAL gap=None pad=16,16,16,16 align=None/CENTER
+    TEXT «EXPIRED» [44x11] fill=['#63637A'] TEXT='EXPIRED'         font=Inter 600 9px lh=10.892045021057129 ls=0.9 case=None align=LEFT         color=#63637AFF
+    FRAME «Art» [64x64] r=999 fill=['#63637A @15%']       layout=VERTICAL gap=None pad=None,None,None,None align=CENTER/CENTER
+      INSTANCE «Icon/clock» [30x30] fill=['#FFFFFF']
+        VECTOR «Vector» [22x22] stroke=['#63637A w2']
+        VECTOR «Vector» [4x8] stroke=['#63637A w2']
+    TEXT «TIME FREEZE» [138x24] fill=['#FFFFFF'] TEXT='TIME FREEZE'         font=Anton 400 16px lh=24.0859375 ls=0 case=None align=CENTER         color=#FFFFFFFF
+    TEXT «Expired yesterday» [138x13] fill=['#8E8EA3'] TEXT='Expired yesterday'         font=Inter 400 11px lh=13.3125 ls=0 case=None align=CENTER         color=#8E8EA3FF

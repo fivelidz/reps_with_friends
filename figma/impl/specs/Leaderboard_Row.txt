@@ -1,0 +1,60 @@
+
+======================================================================
+NODE 9:90
+======================================================================
+COMPONENT_SET «Leaderboard Row» [401x408] r=5
+  COMPONENT «State=Default» [361x72] r=14 fill=['#14121F']     layout=HORIZONTAL gap=None pad=12,14,12,14 align=None/CENTER
+    TEXT «3» [20x19] fill=['#8E8EA3'] TEXT='3'         font=Inter 700 16px lh=19.363636016845703 ls=0 case=None align=CENTER         color=#8E8EA3FF
+    INSTANCE «Avatar» [48x48]
+      ELLIPSE «Ellipse» [40x40] fill=['#2A1F4D'] stroke=['#3B3B52 w1']
+      TEXT «BW» [40x17] fill=['#B79DFB'] TEXT='BW'           font=Inter 700 14px lh=16.94318199157715 ls=0 case=None align=CENTER           color=#B79DFBFF
+    FRAME «Info» [162x30]       layout=VERTICAL gap=None pad=None,None,None,None align=None/None
+      FRAME «NameRow» [46x18]         layout=HORIZONTAL gap=None pad=None,None,None,None align=None/CENTER
+        TEXT «Alex T» [46x18] fill=['#FFFFFF'] TEXT='Alex T'             font=Inter 600 15px lh=18.15340805053711 ls=0 case=None align=LEFT             color=#FFFFFFFF
+      FRAME «Frame» [180x6] r=3 fill=['#26263A']
+        RECTANGLE «Rectangle» [111x6] r=3 fill=['#8B5CF6']
+    FRAME «Score» [67x34]       layout=VERTICAL gap=None pad=None,None,None,None align=None/MAX
+      TEXT «62%» [35x19] fill=['#FFFFFF'] TEXT='62%'           font=Inter 700 16px lh=19.363636016845703 ls=0 case=None align=LEFT           color=#FFFFFFFF
+      TEXT «74 / 120 RUF» [67x13] fill=['#8E8EA3'] TEXT='74 / 120 RUF'           font=Inter 400 11px lh=13.3125 ls=0 case=None align=LEFT           color=#8E8EA3FF
+  COMPONENT «State=Leader» [361x72] r=14 fill=['#1B1830'] stroke=['#FFC821 @70% w1.5']     layout=HORIZONTAL gap=None pad=12,14,12,14 align=None/CENTER
+    TEXT «1» [20x19] fill=['#FFC821'] TEXT='1'         font=Inter 700 16px lh=19.363636016845703 ls=0 case=None align=CENTER         color=#FFC821FF
+    INSTANCE «Avatar» [48x48]
+      ELLIPSE «Ellipse» [40x40] fill=['#2A1F4D'] stroke=['#FFC821 w2.5']
+      TEXT «BW» [40x17] fill=['#B79DFB'] TEXT='BW'           font=Inter 700 14px lh=16.94318199157715 ls=0 case=None align=CENTER           color=#B79DFBFF
+      ELLIPSE «Ellipse» [8x8] fill=['#34D399'] stroke=['#0B0A12 w2']
+    FRAME «Info» [156x30]       layout=VERTICAL gap=None pad=None,None,None,None align=None/None
+      FRAME «NameRow» [66x18]         layout=HORIZONTAL gap=None pad=None,None,None,None align=None/CENTER
+        TEXT «Alex T» [46x18] fill=['#FFFFFF'] TEXT='Alex T'             font=Inter 600 15px lh=18.15340805053711 ls=0 case=None align=LEFT             color=#FFFFFFFF
+        INSTANCE «Icon/crown» [14x14] fill=['#FFFFFF']
+          VECTOR «Vector» [10x7] fill=['#FFC821']
+      FRAME «Frame» [180x6] r=3 fill=['#26263A']
+        RECTANGLE «Rectangle» [158x6] r=3 fill=['#FFC821']
+    FRAME «Score» [73x34]       layout=VERTICAL gap=None pad=None,None,None,None align=None/MAX
+      TEXT «88%» [35x19] fill=['#FFC821'] TEXT='88%'           font=Inter 700 16px lh=19.363636016845703 ls=0 case=None align=LEFT           color=#FFC821FF
+      TEXT «106 / 120 RUF» [73x13] fill=['#8E8EA3'] TEXT='106 / 120 RUF'           font=Inter 400 11px lh=13.3125 ls=0 case=None align=LEFT           color=#8E8EA3FF
+  COMPONENT «State=You» [361x72] r=14 fill=['#14121F'] stroke=['#8B5CF6 w1.5']     layout=HORIZONTAL gap=None pad=12,14,12,14 align=None/CENTER
+    TEXT «2» [20x19] fill=['#8E8EA3'] TEXT='2'         font=Inter 700 16px lh=19.363636016845703 ls=0 case=None align=CENTER         color=#8E8EA3FF
+    INSTANCE «Avatar» [48x48]
+      ELLIPSE «Ellipse» [40x40] fill=['#2A1F4D'] stroke=['#3B3B52 w1']
+      TEXT «BW» [40x17] fill=['#B79DFB'] TEXT='BW'           font=Inter 700 14px lh=16.94318199157715 ls=0 case=None align=CENTER           color=#B79DFBFF
+    FRAME «Info» [162x30]       layout=VERTICAL gap=None pad=None,None,None,None align=None/None
+      FRAME «NameRow» [46x18]         layout=HORIZONTAL gap=None pad=None,None,None,None align=None/CENTER
+        TEXT «Alex T» [46x18] fill=['#FFFFFF'] TEXT='Alex T'             font=Inter 600 15px lh=18.15340805053711 ls=0 case=None align=LEFT             color=#FFFFFFFF
+      FRAME «Frame» [180x6] r=3 fill=['#26263A']
+        RECTANGLE «Rectangle» [127x6] r=3 fill=['#8B5CF6']
+    FRAME «Score» [67x34]       layout=VERTICAL gap=None pad=None,None,None,None align=None/MAX
+      TEXT «71%» [32x19] fill=['#FFFFFF'] TEXT='71%'           font=Inter 700 16px lh=19.363636016845703 ls=0 case=None align=LEFT           color=#FFFFFFFF
+      TEXT «85 / 120 RUF» [67x13] fill=['#8E8EA3'] TEXT='85 / 120 RUF'           font=Inter 400 11px lh=13.3125 ls=0 case=None align=LEFT           color=#8E8EA3FF
+  COMPONENT «State=Behind» [361x72] r=14 fill=['#14121F']     layout=HORIZONTAL gap=None pad=12,14,12,14 align=None/CENTER
+    TEXT «5» [20x19] fill=['#8E8EA3'] TEXT='5'         font=Inter 700 16px lh=19.363636016845703 ls=0 case=None align=CENTER         color=#8E8EA3FF
+    INSTANCE «Avatar» [48x48]
+      ELLIPSE «Ellipse» [40x40] fill=['#2A1F4D'] stroke=['#3B3B52 w1']
+      TEXT «BW» [40x17] fill=['#B79DFB'] TEXT='BW'           font=Inter 700 14px lh=16.94318199157715 ls=0 case=None align=CENTER           color=#B79DFBFF
+    FRAME «Info» [161x30]       layout=VERTICAL gap=None pad=None,None,None,None align=None/None
+      FRAME «NameRow» [46x18]         layout=HORIZONTAL gap=None pad=None,None,None,None align=None/CENTER
+        TEXT «Alex T» [46x18] fill=['#FFFFFF'] TEXT='Alex T'             font=Inter 600 15px lh=18.15340805053711 ls=0 case=None align=LEFT             color=#FFFFFFFF
+      FRAME «Frame» [180x6] r=3 fill=['#26263A']
+        RECTANGLE «Rectangle» [43x6] r=3 fill=['#FF8A00']
+    FRAME «Score» [68x34]       layout=VERTICAL gap=None pad=None,None,None,None align=None/MAX
+      TEXT «24%» [35x19] fill=['#FFFFFF'] TEXT='24%'           font=Inter 700 16px lh=19.363636016845703 ls=0 case=None align=LEFT           color=#FFFFFFFF
+      TEXT «29 / 120 RUF» [68x13] fill=['#8E8EA3'] TEXT='29 / 120 RUF'           font=Inter 400 11px lh=13.3125 ls=0 case=None align=LEFT           color=#8E8EA3FF

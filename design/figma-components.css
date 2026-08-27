@@ -1,0 +1,459 @@
+/* ═══════════════════════════════════════════════════════════════════════
+   RWF × FIGMA ADOPTION COMPONENTS — lane F3 (docs/13 §7)
+   Ben's component craft rebuilt on our tokens. Loaded by /system and the
+   figma/impl/components library page.
+
+   RULES
+   · No hex literals — every colour is a token from design/tokens.css;
+     alpha variants use color-mix() on tokens (his "@70%" strokes/fills).
+   · Dual-theme by construction: default = our lime/SG palette,
+     [data-theme="gold"] = Ben's gold+purple+Anton/Inter (founder call D5/D6).
+   · Radius mapping (his → ours): 8→--radius-sm · 12/14→--radius ·
+     16→--radius-lg · 20/24/28→--radius-xl · pills→--pill.
+   · Type mapping: Anton→--font-display · Inter→--font-body (both themes).
+   · Motion: --ease-spring 400ms row reposition, --dur-sheet 250ms,
+     DZ3 heartbeat on the TIMER ONLY — layout never changes (§7 row 16).
+   ═══════════════════════════════════════════════════════════════════════ */
+
+.fg {
+  font-family: var(--font-body);
+  color: var(--text);
+}
+
+/* Figma dimensions are frame totals (border+padding included) — match that
+   so spec numbers (nav 84, row 72, card 170) hold exactly. */
+[class^="fg-"], [class*=" fg-"] { box-sizing: border-box; }
+
+/* ── shared bits ────────────────────────────────────────────────────── */
+
+.fg-icon { display: inline-block; width: 24px; height: 24px; flex: none; }
+.fg-icon svg { display: block; width: 100%; height: 100%; }
+
+/* initials avatar — his Avatar component (photos are a ☎ call, §7 row 29;
+   initials disc is the MVP decision) */
+.fg-avatar {
+  position: relative;
+  width: 40px; height: 40px;
+  border-radius: 50%;
+  background: var(--energy-tint);
+  border: 1px solid var(--line-bright);
+  display: flex; align-items: center; justify-content: center;
+  color: var(--energy-light);
+  font-weight: 700; font-size: 14px;
+  flex: none;
+}
+.fg-avatar--sm { width: 24px; height: 24px; font-size: 9px; }
+.fg-avatar--online { border: 2px solid var(--lime); }
+.fg-avatar--leader { border: 2.5px solid var(--lime); }
+.fg-avatar__dot {
+  position: absolute; right: -1px; bottom: -1px;
+  width: 8px; height: 8px; border-radius: 50%;
+  background: var(--success);
+  border: 2px solid var(--bg);
+}
+
+/* ══ 1 · BOTTOM NAV — §7 row 4 (adopt) ════════════════════════════════
+   4 tabs + central raised LOG. 84px incl. safe area, LOG 64px pill.
+   Logging is the one daily action → central + thumb zone. */
+.fg-nav {
+  display: flex; align-items: center; justify-content: space-between;
+  max-width: 393px; height: 84px; padding: 0 24px;
+  background: var(--bg);
+  border-top: 1px solid var(--line);
+  border-radius: var(--radius-sm);
+}
+.fg-nav__tab {
+  display: flex; flex-direction: column; align-items: center; gap: 4px;
+  background: none; border: 0; padding: 0; cursor: pointer;
+  color: var(--faint);                    /* his #63637A → --faint for AA (divergence) */
+  font: 500 10px/1.2 var(--font-body);
+  transition: color var(--ease);
+}
+.fg-nav__tab .fg-icon { width: 24px; height: 24px; }
+.fg-nav__tab[aria-current="page"] { color: var(--lime); font-weight: 600; }
+.fg-nav__log {
+  width: 64px; height: 64px; border-radius: var(--pill);
+  background: var(--lime); color: var(--bg);
+  border: 0; cursor: pointer; flex: none;
+  display: flex; align-items: center; justify-content: center;
+  box-shadow: 0 -6px 24px var(--lime-glow);
+  transition: transform var(--ease), background var(--ease);
+}
+.fg-nav__log .fg-icon { width: 28px; height: 28px; }
+.fg-nav__log:active { transform: scale(0.94); background: var(--lime-dim); }
+
+/* ══ 2 · QUICK-LOG SHEET — §7 row 26 (adopt) ══════════════════════════
+   ≤3 taps: exercise (preselected) → preset → LOG. RUF preview pre-commit
+   (row 20). UNDO 30s. Stepper + camera stay inside the picker (F4). */
+.fg-sheet {
+  max-width: 393px;
+  background: var(--surface);
+  border: 1px solid var(--line);
+  border-radius: var(--radius-xl);
+  padding: 12px 20px 24px;
+  display: flex; flex-direction: column; gap: 14px;
+}
+.fg-sheet__grab { width: 40px; height: 4px; border-radius: 2px; background: var(--line-bright); margin: 0 auto; }
+.fg-sheet__title {
+  font: 400 22px/1.5 var(--font-display);
+  text-transform: uppercase; letter-spacing: 0.01em;
+  color: var(--text); margin: 4px 0 0;
+}
+.fg-sheet__row { display: flex; gap: 8px; flex-wrap: wrap; }
+.fg-sheet__conversion { font-size: 13px; color: var(--faint); }
+.fg-sheet__conversion b { color: var(--lime); font-weight: 600; font-size: 14px; }
+.fg-sheet__cta {
+  height: 51px; border-radius: var(--pill);
+  background: var(--lime); color: var(--bg);
+  border: 0; cursor: pointer;
+  font: 600 16px/1 var(--font-body); letter-spacing: 0.02em;
+  transition: background var(--ease), transform var(--ease);
+}
+.fg-sheet__cta:active { transform: scale(0.98); background: var(--lime-dim); }
+.fg-sheet__note { font-size: 11px; color: var(--faint-deco); text-align: center; margin: 0; }
+
+/* preset + exercise chips — his Preset Chip (10:157) */
+.fg-chip {
+  height: 45px; min-width: 56px; padding: 0 20px;
+  border-radius: var(--pill);
+  background: var(--surface-2);
+  border: 1px solid var(--line-bright);
+  color: var(--text);
+  font: 700 17px/1 var(--font-body);
+  cursor: pointer;
+  transition: background var(--ease), color var(--ease), border-color var(--ease);
+}
+.fg-chip--exercise { height: 42px; font-size: 15px; padding: 0 18px; }
+.fg-chip--lg { height: 56px; font-size: 20px; }
+.fg-chip[aria-pressed="true"], .fg-chip.is-selected {
+  background: var(--lime); border-color: var(--lime); color: var(--bg);
+}
+
+/* ══ 3 · BATTLE CARD — his 11:131 (terminology row 30: battle) ════════ */
+.fg-battle {
+  max-width: 361px; padding: 18px;
+  border-radius: var(--radius-xl);
+  background: linear-gradient(180deg, var(--energy-tint) 0%, var(--bg) 100%);
+  border: 1px solid color-mix(in srgb, var(--energy) 70%, transparent);
+  display: flex; flex-direction: column; gap: 12px;
+}
+.fg-battle--upcoming { background: linear-gradient(180deg, var(--ink-navy, var(--surface-2)) 0%, var(--bg) 100%); border-color: var(--line); }
+.fg-battle--done { background: linear-gradient(180deg, var(--surface-2) 0%, var(--bg) 100%); border-color: var(--line); }
+.fg-battle__head { display: flex; align-items: center; justify-content: space-between; }
+.fg-battle__meta { font-size: 12px; color: var(--faint); }
+.fg-battle__title {
+  font: 400 26px/1.5 var(--font-display);
+  text-transform: uppercase; color: var(--text); margin: 0;
+}
+.fg-battle__crew { display: flex; }
+.fg-battle__crew .fg-avatar { margin-left: -8px; }
+.fg-battle__crew .fg-avatar:first-child { margin-left: 0; }
+.fg-battle__bar { height: 8px; border-radius: 4px; background: var(--line); overflow: hidden; }
+.fg-battle__bar i { display: block; height: 100%; border-radius: 4px; background: var(--lime); }
+.fg-battle--done .fg-battle__bar i { background: var(--success); }
+.fg-battle__foot { font-size: 13px; font-weight: 500; color: var(--muted); }
+
+/* status badge — his StatusBadge (LIVE / STARTS IN / SAM WON) */
+.fg-status {
+  display: inline-flex; align-items: center;
+  border-radius: var(--pill); padding: 4px 10px;
+  font: 600 10px/1.2 var(--font-body); letter-spacing: 0.06em;
+  background: var(--lime); color: var(--bg);
+}
+.fg-status--info { background: color-mix(in srgb, var(--sky) 18%, transparent); color: var(--sky); }
+.fg-status--muted { background: color-mix(in srgb, var(--faint) 18%, transparent); color: var(--faint); }
+
+/* ══ 4 · LEADERBOARD ROW — his 9:90 · §7 row 8 (completion % primary) ═
+   400ms spring reposition (row 16). Never reorder rows while touched. */
+.fg-lbrow {
+  display: flex; align-items: center; gap: 12px;
+  max-width: 361px; min-height: 72px; padding: 12px 14px;
+  background: var(--surface);
+  border: 1px solid transparent;
+  border-radius: var(--radius);
+  transition: transform var(--ease-spring), background var(--ease-spring), border-color var(--ease-spring);
+}
+.fg-lbrow--leader { background: var(--surface-2); border-color: color-mix(in srgb, var(--lime) 70%, transparent); }
+.fg-lbrow--you { border-color: var(--energy); }
+.fg-lbrow__rank { width: 20px; text-align: center; font: 700 16px/1.2 var(--font-body); color: var(--faint); }
+.fg-lbrow--leader .fg-lbrow__rank { color: var(--lime); }
+.fg-lbrow__info { flex: 1; min-width: 0; display: flex; flex-direction: column; gap: 5px; }
+.fg-lbrow__name { display: flex; align-items: center; gap: 6px; font: 600 15px/1.2 var(--font-body); color: var(--text); }
+.fg-lbrow__name .fg-icon { width: 14px; height: 14px; color: var(--lime); }
+.fg-lbrow__bar { height: 6px; border-radius: 3px; background: var(--line); overflow: hidden; }
+.fg-lbrow__bar i { display: block; height: 100%; border-radius: 3px; background: var(--energy); }
+.fg-lbrow--leader .fg-lbrow__bar i { background: var(--lime); }
+.fg-lbrow--behind .fg-lbrow__bar i { background: var(--urgency); }
+.fg-lbrow__score { text-align: right; }
+.fg-lbrow__pct { font: 700 16px/1.2 var(--font-body); color: var(--text); }
+.fg-lbrow--leader .fg-lbrow__pct { color: var(--lime); }
+.fg-lbrow__ruf { font: 400 11px/1.2 var(--font-body); color: var(--faint); }
+
+/* ══ 5 · COUNTDOWN — his 9:165 · dual clock (§7 row 28, adopt) ════════ */
+.fg-count {
+  display: inline-flex; align-items: center; gap: 12px;
+  padding: 10px 18px 10px 16px;
+  border-radius: var(--pill);
+  background: var(--surface);
+  border: 1.5px solid color-mix(in srgb, var(--muted) 80%, transparent);
+}
+.fg-count .fg-icon { width: 18px; height: 18px; color: var(--muted); }
+.fg-count__time { font: 400 22px/1.5 var(--font-display); color: var(--muted); font-variant-numeric: tabular-nums; }
+.fg-count__sub { font: 400 10px/1.2 var(--font-body); color: var(--faint); }
+.fg-count--dz1 { background: var(--surface-2); border-color: color-mix(in srgb, var(--lime) 80%, transparent); }
+.fg-count--dz1 .fg-icon, .fg-count--dz1 .fg-count__time { color: var(--lime); }
+.fg-count--dz2 { background: var(--surface-2); border-color: color-mix(in srgb, var(--urgency) 80%, transparent); }
+.fg-count--dz2 .fg-icon, .fg-count--dz2 .fg-count__time { color: var(--urgency); }
+.fg-count--dz3 { background: var(--dz3-surface); border-color: color-mix(in srgb, var(--danger) 80%, transparent); }
+.fg-count--dz3 .fg-icon, .fg-count--dz3 .fg-count__time { color: var(--danger); }
+/* DZ3: 1s heartbeat on the TIMER ONLY — layout never changes. Reduced
+   motion is honoured globally in tokens.css. */
+.fg-count--dz3 .fg-count__time { animation: fg-heartbeat var(--dur-heartbeat) ease-in-out infinite; }
+@keyframes fg-heartbeat {
+  0%, 100% { transform: scale(1); }
+  12% { transform: scale(1.06); }
+  24% { transform: scale(1); }
+  36% { transform: scale(1.04); }
+  48% { transform: scale(1); }
+}
+
+/* ══ 6 · EVENT BANNER — his 12:175 · live events (N7, V1.x) ══════════ */
+.fg-event {
+  display: flex; align-items: center; gap: 12px;
+  max-width: 361px; padding: 14px 16px;
+  border-radius: var(--radius-lg);
+  background: linear-gradient(90deg, var(--energy-tint) 0%, var(--bg) 100%);
+  border: 1.5px solid color-mix(in srgb, var(--lime) 80%, transparent);
+}
+.fg-event .fg-icon { width: 28px; height: 28px; color: var(--lime); }
+.fg-event__copy { flex: 1; min-width: 0; }
+.fg-event__title { font: 400 18px/1.5 var(--font-display); text-transform: uppercase; color: var(--lime); }
+.fg-event__sub { font: 400 12px/1.2 var(--font-body); color: var(--muted); }
+.fg-event__tag {
+  border-radius: var(--pill); padding: 5px 10px;
+  background: var(--lime); color: var(--bg);
+  font: 700 11px/1.2 var(--font-body); flex: none;
+}
+.fg-event--storm { border-color: color-mix(in srgb, var(--energy) 80%, transparent); }
+.fg-event--storm .fg-icon, .fg-event--storm .fg-event__title { color: var(--energy); }
+.fg-event--storm .fg-event__tag { background: var(--energy); }
+.fg-event--close { border-color: color-mix(in srgb, var(--urgency) 80%, transparent); }
+.fg-event--close .fg-icon, .fg-event--close .fg-event__title { color: var(--urgency); }
+.fg-event--close .fg-event__tag { background: var(--urgency); }
+.fg-event--charity { border-color: color-mix(in srgb, var(--success) 80%, transparent); }
+.fg-event--charity .fg-icon, .fg-event--charity .fg-event__title { color: var(--success); }
+.fg-event--charity .fg-event__tag { background: var(--success); }
+
+/* ══ 7 · DIALOG — his 12:194 · confirm / destructive / money ══════════
+   Money screens drop all banter — plain language only (§7 row 15). */
+.fg-dialog {
+  max-width: 329px; padding: 24px 24px 20px;
+  background: var(--surface-2);
+  border: 1px solid var(--line-bright);
+  border-radius: var(--radius-xl);
+  display: flex; flex-direction: column; align-items: center; gap: 12px;
+  text-align: center;
+}
+.fg-dialog__title { font: 700 18px/1.2 var(--font-body); color: var(--text); margin: 0; }
+.fg-dialog__body { font: 400 14px/1.4 var(--font-body); color: var(--muted); margin: 0; }
+.fg-dialog__cta {
+  width: 100%; height: 46px; border-radius: var(--pill);
+  background: var(--lime); color: var(--bg); border: 0; cursor: pointer;
+  font: 600 15px/1 var(--font-body); letter-spacing: 0.02em;
+  transition: background var(--ease);
+}
+.fg-dialog__cta:active { background: var(--lime-dim); }
+.fg-dialog--destructive .fg-dialog__cta { background: var(--danger); color: var(--text); }
+.fg-dialog__dismiss {
+  background: none; border: 0; cursor: pointer; padding: 4px 8px;
+  font: 500 14px/1.2 var(--font-body); color: var(--faint);
+}
+.fg-dialog__dismiss:hover { color: var(--muted); }
+
+/* ══ 8 · FEED ITEM — his 11:182 · log/lead/power-up/milestone/system ══
+   Emoji reactions (§7 row 32 hybrid — bot taunts stay, reactions added). */
+.fg-feed {
+  display: flex; align-items: center; gap: 12px;
+  max-width: 361px; padding: 12px 14px;
+  background: var(--surface);
+  border-radius: var(--radius);
+}
+.fg-feed__bubble {
+  width: 36px; height: 36px; border-radius: var(--pill); flex: none;
+  background: color-mix(in srgb, var(--success) 15%, transparent);
+  color: var(--success);
+  display: flex; align-items: center; justify-content: center;
+}
+.fg-feed__bubble .fg-icon { width: 18px; height: 18px; }
+.fg-feed__content { flex: 1; min-width: 0; }
+.fg-feed__line { font-size: 14px; color: var(--muted); }
+.fg-feed__line b { font-weight: 600; color: var(--text); }
+.fg-feed__meta { font-size: 11px; color: var(--faint); margin-top: 3px; }
+.fg-feed__react { font: 500 12px/1.2 var(--font-body); color: var(--faint); flex: none; }
+.fg-feed--lead .fg-feed__bubble { background: color-mix(in srgb, var(--lime) 15%, transparent); color: var(--lime); }
+.fg-feed--power .fg-feed__bubble { background: color-mix(in srgb, var(--energy) 15%, transparent); color: var(--energy); }
+.fg-feed--milestone .fg-feed__bubble { background: color-mix(in srgb, var(--urgency) 15%, transparent); color: var(--urgency); }
+.fg-feed--system .fg-feed__bubble { background: color-mix(in srgb, var(--sky) 15%, transparent); color: var(--sky); }
+
+/* ══ 9 · POWER-UP CARD — his 12:140 · visual only, NO engine wiring ══
+   Rarity = colour-coded (grey/blue/purple/gold). §7 row 24 is a ☎ call. */
+.fg-pwr {
+  width: 170px; padding: 16px;
+  border-radius: var(--radius-lg);
+  background: linear-gradient(180deg, var(--surface-2) 0%, var(--bg) 100%);
+  border: 1.5px solid var(--faint);
+  display: flex; flex-direction: column; align-items: center; gap: 10px;
+  text-align: center;
+}
+.fg-pwr__rarity { align-self: flex-start; font: 600 9px/1.2 var(--font-body); letter-spacing: 0.09em; color: var(--faint); }
+.fg-pwr__art {
+  width: 64px; height: 64px; border-radius: var(--pill);
+  background: color-mix(in srgb, var(--faint) 15%, transparent);
+  color: var(--faint);
+  display: flex; align-items: center; justify-content: center;
+}
+.fg-pwr__art .fg-icon { width: 30px; height: 30px; }
+.fg-pwr__name { font: 400 16px/1.5 var(--font-display); text-transform: uppercase; color: var(--text); margin: 0; }
+.fg-pwr__desc { font: 400 11px/1.2 var(--font-body); color: var(--faint); margin: 0; }
+.fg-pwr--rare { border-color: var(--sky); }
+.fg-pwr--rare .fg-pwr__rarity, .fg-pwr--rare .fg-pwr__art { color: var(--sky); }
+.fg-pwr--rare .fg-pwr__art { background: color-mix(in srgb, var(--sky) 15%, transparent); }
+.fg-pwr--epic { border-color: var(--energy); }
+.fg-pwr--epic .fg-pwr__rarity, .fg-pwr--epic .fg-pwr__art { color: var(--energy); }
+.fg-pwr--epic .fg-pwr__art { background: color-mix(in srgb, var(--energy) 15%, transparent); }
+.fg-pwr--legendary { border-color: var(--lime); }
+.fg-pwr--legendary .fg-pwr__rarity, .fg-pwr--legendary .fg-pwr__art { color: var(--lime); }
+.fg-pwr--legendary .fg-pwr__art { background: color-mix(in srgb, var(--lime) 15%, transparent); }
+.fg-pwr--active { border-color: var(--success); }
+.fg-pwr--active .fg-pwr__rarity, .fg-pwr--active .fg-pwr__art { color: var(--success); }
+.fg-pwr--active .fg-pwr__art { background: color-mix(in srgb, var(--success) 15%, transparent); }
+.fg-pwr--expired { border-color: var(--faint-deco); }
+.fg-pwr--expired .fg-pwr__rarity, .fg-pwr--expired .fg-pwr__art { color: var(--faint-deco); }
+.fg-pwr--expired .fg-pwr__art { background: color-mix(in srgb, var(--faint-deco) 15%, transparent); }
+
+/* ══ 10 · DANGER-ZONE BANNER — §7 row 23 (adopt with row 22) ══════════
+   3-level escalation, icon + label at EVERY level (never colour-alone),
+   layout never changes. L3 adds heartbeat to the timer only. */
+.fg-dz {
+  display: flex; align-items: center; gap: 10px;
+  max-width: 361px; padding: 12px 16px;
+  border-radius: var(--radius);
+  background: var(--lime); color: var(--bg);
+}
+.fg-dz .fg-icon { width: 20px; height: 20px; }
+.fg-dz__label { font: 400 16px/1.5 var(--font-display); text-transform: uppercase; letter-spacing: 0.02em; }
+.fg-dz--l2 { background: var(--urgency); color: var(--text); animation: fg-dz-pulse 2s ease-in-out infinite; }
+.fg-dz--l3 { background: var(--danger); color: var(--text); animation: fg-dz-pulse 1s ease-in-out infinite; }
+@keyframes fg-dz-pulse {
+  0%, 100% { box-shadow: 0 0 0 0 color-mix(in srgb, currentColor 0%, transparent); }
+  50% { box-shadow: 0 0 24px 0 color-mix(in srgb, currentColor 35%, transparent); }
+}
+
+/* ══ 11 · SUBSCRIPTION CARD — his MOB-SET-005 · Reps Pro (N3) ═════════
+   Prices are SAMPLE. Money screens: plain language, no banter. */
+.fg-pro { max-width: 345px; display: flex; flex-direction: column; gap: 14px; }
+.fg-pro__title { font: 400 34px/1.5 var(--font-display); text-transform: uppercase; color: var(--lime); margin: 0; text-align: center; }
+.fg-pro__sub { font: 400 14px/1.4 var(--font-body); color: var(--muted); text-align: center; margin: 0; }
+.fg-pro__table {
+  border-radius: var(--radius-lg);
+  background: var(--surface); border: 1px solid var(--line);
+  overflow: hidden;
+}
+.fg-pro__row {
+  display: grid; grid-template-columns: 1fr 76px 84px;
+  padding: 10px 16px; align-items: center;
+  font-size: 13px;
+}
+.fg-pro__row--head { background: var(--surface-2); font-weight: 700; }
+.fg-pro__row--head :nth-child(2) { color: var(--faint); text-align: center; }
+.fg-pro__row--head :nth-child(3) { color: var(--lime); text-align: center; }
+.fg-pro__row:not(.fg-pro__row--head) :nth-child(1) { color: var(--text); }
+.fg-pro__row:not(.fg-pro__row--head) :nth-child(2) { color: var(--faint); text-align: center; }
+.fg-pro__row:not(.fg-pro__row--head) :nth-child(3) { color: var(--lime); font-weight: 600; text-align: center; }
+.fg-pro__plans { display: flex; gap: 8px; justify-content: center; }
+.fg-plan {
+  flex: 1; padding: 12px; border-radius: var(--radius);
+  background: var(--surface); border: 1px solid var(--line);
+  display: flex; flex-direction: column; gap: 3px; cursor: pointer;
+  text-align: left;
+}
+.fg-plan__flag { font: 700 8px/1.2 var(--font-body); color: var(--urgency); letter-spacing: 0.04em; }
+.fg-plan__name { font: 600 13px/1.2 var(--font-body); color: var(--text); }
+.fg-plan__price { font: 700 16px/1.2 var(--font-body); color: var(--muted); }
+.fg-plan--selected { background: var(--energy-tint); border: 2px solid var(--lime); }
+.fg-plan--selected .fg-plan__price { color: var(--lime); }
+.fg-pro__note { font: 400 10px/1.2 var(--font-body); color: var(--faint-deco); text-align: center; margin: 0; }
+.fg-pro__cta {
+  height: 48px; border-radius: var(--pill);
+  background: var(--lime); color: var(--bg); border: 0; cursor: pointer;
+  font: 600 15px/1 var(--font-body);
+}
+.fg-pro__link {
+  height: 48px; display: flex; align-items: center; justify-content: center;
+  background: none; border: 0; cursor: pointer;
+  font: 600 15px/1 var(--font-body); color: var(--lime);
+}
+
+/* ══ 12 · SYSTEM STATE — his 13:153 · §7 row 17 (adopt, superset) ═════
+   empty / error / offline / locked / restricted / loading. */
+.fg-state {
+  max-width: 361px; padding: 32px 24px;
+  background: var(--surface); border: 1px solid var(--line);
+  border-radius: var(--radius-xl);
+  display: flex; flex-direction: column; align-items: center; gap: 12px;
+  text-align: center;
+}
+.fg-state__icon {
+  width: 56px; height: 56px; border-radius: var(--pill);
+  background: color-mix(in srgb, var(--faint) 12%, transparent);
+  color: var(--faint);
+  display: flex; align-items: center; justify-content: center;
+}
+.fg-state__icon .fg-icon { width: 26px; height: 26px; }
+.fg-state__title { font: 700 17px/1.2 var(--font-body); color: var(--text); margin: 0; }
+.fg-state__body { font: 400 14px/1.4 var(--font-body); color: var(--faint); margin: 0; max-width: 40ch; }
+.fg-state__cta {
+  margin-top: 8px; height: 41px; padding: 0 24px;
+  border-radius: var(--pill); border: 0; cursor: pointer;
+  background: var(--lime); color: var(--bg);
+  font: 600 14px/1 var(--font-body);
+}
+.fg-state--error .fg-state__icon { background: color-mix(in srgb, var(--danger) 12%, transparent); color: var(--danger); }
+.fg-state--locked .fg-state__icon { background: color-mix(in srgb, var(--lime) 12%, transparent); color: var(--lime); }
+.fg-state--loading { gap: 8px; }
+.fg-skel { height: 14px; border-radius: 7px; background: var(--line); width: 100%; }
+.fg-skel--2, .fg-skel--3 { height: 12px; width: 86%; opacity: 0.7; }
+.fg-skel--3 { width: 64%; }
+.fg-skel { animation: fg-skel 1.4s ease-in-out infinite; }
+.fg-skel--2 { animation-delay: 0.15s; }
+.fg-skel--3 { animation-delay: 0.3s; }
+@keyframes fg-skel { 0%, 100% { opacity: 1; } 50% { opacity: 0.45; } }
+
+/* ══ 13 · BADGE / CHIP SYSTEM — his 8:23 · 5 semantic types ═══════════ */
+.fg-badge {
+  display: inline-flex; align-items: center; gap: 6px;
+  border-radius: var(--pill); padding: 6px 12px;
+  font: 600 11px/1.2 var(--font-body); letter-spacing: 0.066em;
+  background: var(--energy-tint); color: var(--text);
+}
+.fg-badge .fg-icon { width: 14px; height: 14px; color: var(--urgency); }
+.fg-badge--live { background: var(--lime); color: var(--bg); }
+.fg-badge--live .fg-icon { color: var(--bg); }
+.fg-badge--rank { background: var(--surface-2); }
+.fg-badge--rank .fg-icon { color: var(--lime); }
+.fg-badge--premium { background: var(--ink-brand-tint); }
+.fg-badge--premium .fg-icon { color: var(--energy); }
+.fg-badge--danger { background: var(--danger); }
+.fg-badge--danger .fg-icon { color: var(--text); }
+
+/* ── demo helpers (library page + /system cards) ────────────────────── */
+.fg-stack { display: flex; flex-direction: column; gap: 10px; align-items: flex-start; }
+.fg-row { display: flex; gap: 10px; align-items: center; flex-wrap: wrap; }
+.fg-frame {
+  width: 393px; max-width: 100%;
+  background: var(--bg);
+  border: 1px solid var(--line);
+  border-radius: var(--radius-xl);
+  padding: 16px;
+  display: flex; flex-direction: column; gap: 12px;
+}

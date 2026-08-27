@@ -261,6 +261,10 @@ const server = Bun.serve({
       r = dirRoute("apps/avatars", url) ?? new Response("avatars playground not found", { status: 404 });
     } else if (p.startsWith("/system")) {
       r = dirRoute("apps/systempage", url) ?? new Response("system page not found", { status: 404 });
+    } else if (p.startsWith("/figma")) {
+      // Lane F3 — adopted Figma component library (local working reference;
+      // not part of the public deploy bundle). /figma → figma/impl/components.
+      r = dirRoute("figma/impl/components", url) ?? new Response("figma library not found", { status: 404 });
     } else {
       r = dirRoute("site", url);
     }

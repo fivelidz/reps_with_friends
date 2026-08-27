@@ -1,0 +1,39 @@
+
+======================================================================
+NODE 12:175
+======================================================================
+COMPONENT_SET «Event Banner» [401x376] r=5
+  COMPONENT «Type=ThunderHour» [361x72] r=16 fill=['GRADIENT_LINEAR'] stroke=['#FFC821 @80% w1.5']     layout=HORIZONTAL gap=None pad=14,16,14,16 align=None/CENTER
+    INSTANCE «Icon/bolt» [28x28] fill=['#FFFFFF']
+      VECTOR «Vector» [16x23] fill=['#FFC821']
+    FRAME «Copy» [226x44]       layout=VERTICAL gap=None pad=None,None,None,None align=None/None
+      TEXT «THUNDER HOUR» [98x27] fill=['#FFC821'] TEXT='THUNDER HOUR'           font=Anton 400 18px lh=27.0966796875 ls=0 case=None align=LEFT           color=#FFC821FF
+      TEXT «All reps count DOUBLE until 8 PM» [190x15] fill=['#C2C2D1'] TEXT='All reps count DOUBLE until 8 PM'           font=Inter 400 12px lh=14.522727012634277 ls=0 case=None align=LEFT           color=#C2C2D1FF
+    FRAME «Tag» [51x23] r=999 fill=['#FFC821']       layout=HORIZONTAL gap=None pad=5,10,5,10 align=None/None
+      TEXT «23:41» [31x13] fill=['#07060D'] TEXT='23:41'           font=Inter 700 11px lh=13.3125 ls=0 case=None align=LEFT           color=#07060DFF
+  COMPONENT «Type=RepStorm» [361x72] r=16 fill=['GRADIENT_LINEAR'] stroke=['#8B5CF6 @80% w1.5']     layout=HORIZONTAL gap=None pad=14,16,14,16 align=None/CENTER
+    INSTANCE «Icon/flame» [28x28] fill=['#FFFFFF']
+      VECTOR «Vector» [11x19] fill=['#8B5CF6']
+    FRAME «Copy» [232x44]       layout=VERTICAL gap=None pad=None,None,None,None align=None/None
+      TEXT «REP STORM» [75x27] fill=['#8B5CF6'] TEXT='REP STORM'           font=Anton 400 18px lh=27.0966796875 ls=0 case=None align=LEFT           color=#8B5CF6FF
+      TEXT «4 crew members active — bonus unlocked» [242x15] fill=['#C2C2D1'] TEXT='4 crew members active — bonus unlocked'           font=Inter 400 12px lh=14.522727012634277 ls=0 case=None align=LEFT           color=#C2C2D1FF
+    FRAME «Tag» [45x23] r=999 fill=['#8B5CF6']       layout=HORIZONTAL gap=None pad=5,10,5,10 align=None/None
+      TEXT «LIVE» [25x13] fill=['#07060D'] TEXT='LIVE'           font=Inter 700 11px lh=13.3125 ls=0 case=None align=LEFT           color=#07060DFF
+  COMPONENT «Type=CloseCall» [361x72] r=16 fill=['GRADIENT_LINEAR'] stroke=['#FF8A00 @80% w1.5']     layout=HORIZONTAL gap=None pad=14,16,14,16 align=None/CENTER
+    INSTANCE «Icon/warning» [28x28] fill=['#FFFFFF']
+      VECTOR «Vector» [23x19] stroke=['#FF8A00 w2']
+      VECTOR «Vector» [0x9] stroke=['#FF8A00 w2']
+    FRAME «Copy» [190x44]       layout=VERTICAL gap=None pad=None,None,None,None align=None/None
+      TEXT «CLOSE CALL» [76x27] fill=['#FF8A00'] TEXT='CLOSE CALL'           font=Anton 400 18px lh=27.0966796875 ls=0 case=None align=LEFT           color=#FF8A00FF
+      TEXT «You and Sam are within 10 RUF» [177x15] fill=['#C2C2D1'] TEXT='You and Sam are within 10 RUF'           font=Inter 400 12px lh=14.522727012634277 ls=0 case=None align=LEFT           color=#C2C2D1FF
+    FRAME «Tag» [87x23] r=999 fill=['#FF8A00']       layout=HORIZONTAL gap=None pad=5,10,5,10 align=None/None
+      TEXT «FINAL HOUR» [67x13] fill=['#07060D'] TEXT='FINAL HOUR'           font=Inter 700 11px lh=13.3125 ls=0 case=None align=LEFT           color=#07060DFF
+  COMPONENT «Type=Charity» [361x72] r=16 fill=['GRADIENT_LINEAR'] stroke=['#34D399 @80% w1.5']     layout=HORIZONTAL gap=None pad=14,16,14,16 align=None/CENTER
+    INSTANCE «Icon/chest» [28x28] fill=['#FFFFFF']
+      VECTOR «Vector» [21x14] stroke=['#34D399 w2']
+      VECTOR «Vector» [21x14] stroke=['#34D399 w2']
+    FRAME «Copy» [216x44]       layout=VERTICAL gap=None pad=None,None,None,None align=None/None
+      TEXT «CHARITY BOMB» [98x27] fill=['#34D399'] TEXT='CHARITY BOMB'           font=Anton 400 18px lh=27.0966796875 ls=0 case=None align=LEFT           color=#34D399FF
+      TEXT «Missed targets donate to charity today» [220x15] fill=['#C2C2D1'] TEXT='Missed targets donate to charity today'           font=Inter 400 12px lh=14.522727012634277 ls=0 case=None align=LEFT           color=#C2C2D1FF
+    FRAME «Tag» [61x23] r=999 fill=['#34D399']       layout=HORIZONTAL gap=None pad=5,10,5,10 align=None/None
+      TEXT «ARMED» [41x13] fill=['#07060D'] TEXT='ARMED'           font=Inter 700 11px lh=13.3125 ls=0 case=None align=LEFT           color=#07060DFF

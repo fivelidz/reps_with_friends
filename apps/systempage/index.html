@@ -8,6 +8,7 @@
 <link rel="stylesheet" href="/design/fonts/fonts.css" />
 <link rel="stylesheet" href="/site/site.css" />
 <link rel="stylesheet" href="/system/system.css" />
+  <link rel="stylesheet" href="/design/figma-components.css" />
 <link rel="icon" href="data:image/svg+xml,<svg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 100 100'><text y='.9em' font-size='90'>📐</text></svg>">
 </head>
 <body id="top">
@@ -17,6 +18,7 @@
   <div class="sys-nav-links">
     <a href="#tokens">Tokens</a>
     <a href="#components">Components</a>
+    <a href="#figma">Figma</a>
     <a href="#families">Features</a>
     <a href="#progress">Progress</a>
     <a href="#map">Systems</a>
@@ -33,7 +35,8 @@
     <div class="stat-row">
       <div class="stat"><b data-count="90" data-suffix="+">90+</b><span>tests green</span></div>
       <div class="stat"><b data-count="36">36</b><span>elements catalogued</span></div>
-      <div class="stat"><b data-count="18">18</b><span>components</span></div>
+      <div class="stat"><b data-count="31">31</b><span>components</span></div>
+      <div class="stat"><b>2</b><span>brand themes</span></div>
       <div class="stat"><b data-count="9">9</b><span>public pages</span></div>
       <div class="stat"><b data-count="7">7</b><span>systems</span></div>
       <div class="stat"><b>CI/CD</b><span>push → live</span></div>
@@ -84,7 +87,7 @@
   <!-- ═══════════════ COMPONENTS ═══════════════ -->
   <section id="components" class="sys-sec reveal">
     <h2>02 · Component library</h2>
-    <p class="sys-note">18 primitives, rendered live. Every screen in the app, site, hub console and bot cards composes from these.</p>
+    <p class="sys-note">18 primitives, rendered live. Every screen in the app, site, hub console and bot cards composes from these. The 13 Figma-adopted families live in section 03 below.</p>
 
     <div class="comp-grid">
       <div class="comp"><p class="comp-name">Buttons</p>
@@ -190,16 +193,246 @@
     </div>
   </section>
 
+  <!-- ═══════════════ FROM FIGMA (lane F3) ═══════════════ -->
+  <section id="figma" class="sys-sec reveal">
+    <h2>03 · From Figma — adopted craft</h2>
+    <p class="sys-note">Ben's component language (<code>figma/assets/</code>, audited by lane F2) rebuilt on our tokens — every ✅-adopt component-level row from docs/13 §7. No hex literals: his values are token values, alpha variants are <code>color-mix()</code>. Structural decisions (fairness, platform, rhythm, power-ups-in-MVP) are founder calls — these are visual components only. Full variant matrix + spec citations: <code>/figma</code> (local).</p>
+
+    <!-- founder-call demo: D5 palette + D6 type, flipped together -->
+    <div class="figma-theme" role="group" aria-label="Brand theme — founder call D5/D6">
+      <span class="figma-theme-label">Brand theme:</span>
+      <div class="figma-seg">
+        <button type="button" data-theme-set="lime" aria-pressed="true">OURS · lime + Space Grotesk</button>
+        <button type="button" data-theme-set="gold" aria-pressed="false">BEN'S · gold + Anton/Inter</button>
+      </div>
+      <span class="figma-theme-note">re-points the core token slots — same components, two brands, zero forks. This is what decision #4 gets judged on.</span>
+    </div>
+
+    <div class="comp-grid">
+
+      <div class="comp"><p class="comp-name">Bottom nav + central LOG</p>
+        <div class="comp-demo">
+          <nav class="fg-nav" aria-label="Demo bottom navigation" style="width:100%">
+            <button class="fg-nav__tab" aria-current="page"><span class="fg-icon" data-fg-icon="trophy"></span>Battle</button>
+            <button class="fg-nav__tab"><span class="fg-icon" data-fg-icon="feed"></span>Feed</button>
+            <button class="fg-nav__log" aria-label="Log reps"><span class="fg-icon" data-fg-icon="plus"></span></button>
+            <button class="fg-nav__tab"><span class="fg-icon" data-fg-icon="bolt"></span>Power-Ups</button>
+            <button class="fg-nav__tab"><span class="fg-icon" data-fg-icon="user"></span>Profile</button>
+          </nav>
+        </div>
+        <p class="comp-use">from Figma — mapped #FFC821→--lime · #0B0A12→--bg · inactive #63637A→--faint (AA). §7/4 adopt: logging is the daily action → central 64px pill.</p></div>
+
+      <div class="comp"><p class="comp-name">Quick-log sheet — ≤3 taps</p>
+        <div class="comp-demo">
+          <div class="fg-sheet" data-fg-live style="width:100%">
+            <div class="fg-sheet__grab"></div>
+            <h3 class="fg-sheet__title">Log reps</h3>
+            <div class="fg-sheet__row">
+              <button class="fg-chip fg-chip--exercise" aria-pressed="true">Push-ups</button>
+              <button class="fg-chip fg-chip--exercise" aria-pressed="false">Squats</button>
+              <button class="fg-chip fg-chip--exercise" aria-pressed="false">More…</button>
+            </div>
+            <div class="fg-sheet__row">
+              <button class="fg-chip fg-chip--lg">5</button>
+              <button class="fg-chip fg-chip--lg">10</button>
+              <button class="fg-chip fg-chip--lg" aria-pressed="true">20</button>
+              <button class="fg-chip fg-chip--lg">30</button>
+              <button class="fg-chip fg-chip--lg">50</button>
+            </div>
+            <p class="fg-sheet__conversion"><b>20 push-ups = 20 RUF</b> · takes you to 92%</p>
+            <button class="fg-sheet__cta">LOG 20 PUSH-UPS</button>
+          </div>
+        </div>
+        <p class="comp-use">from Figma — mapped #14121F→--surface · r28→--radius-xl · RUF preview→--lime. §7/26 adopt: chips are live — conversion + CTA follow.</p></div>
+
+      <div class="comp"><p class="comp-name">Battle card</p>
+        <div class="comp-demo">
+          <div class="fg-battle" style="width:100%">
+            <div class="fg-battle__head"><span class="fg-status">LIVE</span><span class="fg-battle__meta">5 mates · Day 3 of 7</span></div>
+            <h3 class="fg-battle__title">The Sunday Showdown</h3>
+            <div class="fg-battle__crew">
+              <span class="fg-avatar fg-avatar--sm fg-avatar--online">BW<span class="fg-avatar__dot"></span></span>
+              <span class="fg-avatar fg-avatar--sm fg-avatar--online">SK<span class="fg-avatar__dot"></span></span>
+              <span class="fg-avatar fg-avatar--sm">JP</span>
+              <span class="fg-avatar fg-avatar--sm">AT</span>
+            </div>
+            <div class="fg-battle__bar"><i style="width:62%"></i></div>
+            <p class="fg-battle__foot">You're 2nd — 36 RUF behind Sam</p>
+          </div>
+        </div>
+        <p class="comp-use">from Figma — mapped gradient #2A1F4D→#0B0A12 = --energy-tint→--bg · avatars→--energy-tint/--energy-light · Anton 26→--font-display.</p></div>
+
+      <div class="comp"><p class="comp-name">Leaderboard row — 400ms spring</p>
+        <div class="comp-demo">
+          <div class="fg-stack" style="width:100%">
+            <div class="fg-lbrow fg-lbrow--leader">
+              <span class="fg-lbrow__rank">1</span>
+              <span class="fg-avatar fg-avatar--leader">SK<span class="fg-avatar__dot"></span></span>
+              <div class="fg-lbrow__info">
+                <span class="fg-lbrow__name">Sam K <span class="fg-icon" data-fg-icon="crown"></span></span>
+                <div class="fg-lbrow__bar"><i style="width:88%"></i></div>
+              </div>
+              <div class="fg-lbrow__score"><div class="fg-lbrow__pct">88%</div><div class="fg-lbrow__ruf">106 / 120 RUF</div></div>
+            </div>
+            <div class="fg-lbrow fg-lbrow--you">
+              <span class="fg-lbrow__rank">2</span>
+              <span class="fg-avatar">YT</span>
+              <div class="fg-lbrow__info">
+                <span class="fg-lbrow__name">You</span>
+                <div class="fg-lbrow__bar"><i style="width:71%"></i></div>
+              </div>
+              <div class="fg-lbrow__score"><div class="fg-lbrow__pct">71%</div><div class="fg-lbrow__ruf">85 / 120 RUF</div></div>
+            </div>
+          </div>
+          <button class="figma-mini-btn" type="button" data-fg-board>↻ shuffle — 400ms spring</button>
+        </div>
+        <p class="comp-use">from Figma — mapped leader stroke→color-mix(--lime 70%) · you-row #8B5CF6→--energy · completion % primary (rides the fairness call). §7/16 adopt.</p></div>
+
+      <div class="comp"><p class="comp-name">Countdown — dual clock</p>
+        <div class="comp-demo fg-stack" style="width:100%">
+          <div class="fg-count" data-fg-live>
+            <span class="fg-icon" data-fg-icon="clock"></span>
+            <div><div class="fg-count__time">6:12:44</div><div class="fg-count__sub">ends 9:00 PM AEST · 7:00 PM for you</div></div>
+          </div>
+          <div class="fg-count fg-count--dz3">
+            <span class="fg-icon" data-fg-icon="clock"></span>
+            <div><div class="fg-count__time">0:28:10</div><div class="fg-count__sub">30 min left — heartbeat pulse</div></div>
+          </div>
+        </div>
+        <p class="comp-use">from Figma — mapped DZ ramp→--lime/--urgency/--danger @80 · #2A1020→--dz3-surface. §7/28 adopt: group clock + local equivalent. Ticks live; DZ3 heartbeats the timer only.</p></div>
+
+      <div class="comp"><p class="comp-name">Danger-zone banner — 3 levels</p>
+        <div class="comp-demo">
+          <button class="fg-dz" data-fg-live type="button" style="width:100%">
+            <span class="fg-icon" data-fg-icon="warning"></span>
+            <span class="fg-dz__label">DANGER ZONE — 3 HOURS LEFT</span>
+          </button>
+        </div>
+        <p class="comp-use">from Figma — mapped #FF4D5E→--danger, levels→--lime/--urgency/--danger. Click to cycle: icon+label at every level, layout never changes. §7/23 adopt.</p></div>
+
+      <div class="comp"><p class="comp-name">Event banner</p>
+        <div class="comp-demo fg-stack" style="width:100%">
+          <div class="fg-event">
+            <span class="fg-icon" data-fg-icon="bolt"></span>
+            <div class="fg-event__copy"><div class="fg-event__title">Thunder Hour</div><div class="fg-event__sub">All reps count DOUBLE until 8 PM</div></div>
+            <span class="fg-event__tag">23:41</span>
+          </div>
+          <div class="fg-event fg-event--storm">
+            <span class="fg-icon" data-fg-icon="flame"></span>
+            <div class="fg-event__copy"><div class="fg-event__title">Rep Storm</div><div class="fg-event__sub">4 crew active — bonus unlocked</div></div>
+            <span class="fg-event__tag">LIVE</span>
+          </div>
+        </div>
+        <p class="comp-use">from Figma — mapped Thunder→--lime · Storm #8B5CF6→--energy · CloseCall→--urgency · Charity→--success. V1.x events, components now.</p></div>
+
+      <div class="comp"><p class="comp-name">Dialog — confirm / destructive / money</p>
+        <div class="comp-demo fg-stack" style="width:100%">
+          <div class="fg-dialog">
+            <h3 class="fg-dialog__title">Use Lightning Round?</h3>
+            <p class="fg-dialog__body">Your next 10 minutes of reps count 3×. One per day — make it count.</p>
+            <button class="fg-dialog__cta">ACTIVATE</button>
+            <button class="fg-dialog__dismiss">Not yet</button>
+          </div>
+          <div class="fg-dialog fg-dialog--destructive">
+            <h3 class="fg-dialog__title">Delete this entry?</h3>
+            <p class="fg-dialog__body">25 squats (25 RUF) will be removed from today's total. This can't be undone after the edit window.</p>
+            <button class="fg-dialog__cta">DELETE ENTRY</button>
+            <button class="fg-dialog__dismiss">Keep it</button>
+          </div>
+        </div>
+        <p class="comp-use">from Figma — mapped #1B1830→--surface-2 · destructive→--danger · r20→--radius-xl. Money variant drops all banter (§7/15).</p></div>
+
+      <div class="comp"><p class="comp-name">Feed item — reactions</p>
+        <div class="comp-demo fg-stack" style="width:100%">
+          <div class="fg-feed">
+            <span class="fg-feed__bubble"><span class="fg-icon" data-fg-icon="check"></span></span>
+            <div class="fg-feed__content"><div class="fg-feed__line"><b>Sam K</b> logged 25 squats</div><div class="fg-feed__meta">+25 RUF · 2 min ago</div></div>
+            <span class="fg-feed__react">🔥 3</span>
+          </div>
+          <div class="fg-feed fg-feed--power">
+            <span class="fg-feed__bubble"><span class="fg-icon" data-fg-icon="bolt"></span></span>
+            <div class="fg-feed__content"><div class="fg-feed__line"><b>Jordan P</b> activated Lightning Round</div><div class="fg-feed__meta">Triple reps for 10 min · 5 min ago</div></div>
+            <span class="fg-feed__react">⚡ 2</span>
+          </div>
+        </div>
+        <p class="comp-use">from Figma — mapped bubbles @15%→color-mix on --success/--lime/--energy/--urgency/--sky. §7/32 hybrid: bot taunts stay, reactions added.</p></div>
+
+      <div class="comp"><p class="comp-name">Power-up card — rarity <span class="figma-flag">visual only</span></p>
+        <div class="comp-demo fg-row" style="width:100%">
+          <div class="fg-pwr fg-pwr--legendary">
+            <span class="fg-pwr__rarity">LEGENDARY</span>
+            <span class="fg-pwr__art"><span class="fg-icon" data-fg-icon="bolt"></span></span>
+            <h3 class="fg-pwr__name">Lightning Round</h3>
+            <p class="fg-pwr__desc">Reps count 3× for the next 10 minutes</p>
+          </div>
+          <div class="fg-pwr fg-pwr--epic">
+            <span class="fg-pwr__rarity">EPIC</span>
+            <span class="fg-pwr__art"><span class="fg-icon" data-fg-icon="bolt"></span></span>
+            <h3 class="fg-pwr__name">Rep Steal</h3>
+            <p class="fg-pwr__desc">Take 10% of an opponent's total (SAMPLE cap)</p>
+          </div>
+        </div>
+        <p class="comp-use">from Figma — mapped rare #4DA3FF→--sky · epic→--energy · legendary→--lime · active→--success. §7/24 is a ☎ call — no engine wiring.</p></div>
+
+      <div class="comp"><p class="comp-name">Subscription card — Reps Pro</p>
+        <div class="comp-demo">
+          <div class="fg-pro" style="width:100%">
+            <h3 class="fg-pro__title">Reps Pro</h3>
+            <div class="fg-pro__table">
+              <div class="fg-pro__row fg-pro__row--head"><span>Feature</span><span>Free</span><span>Pro</span></div>
+              <div class="fg-pro__row"><span>Active battles</span><span>1</span><span>Unlimited</span></div>
+              <div class="fg-pro__row"><span>Power-up inventory</span><span>4 slots</span><span>12 slots</span></div>
+              <div class="fg-pro__row"><span>Streak Freeze / month</span><span>—</span><span>1 free</span></div>
+            </div>
+            <div class="fg-pro__plans">
+              <button class="fg-plan" type="button"><span class="fg-plan__name">Monthly</span><span class="fg-plan__price">$7.99</span></button>
+              <button class="fg-plan fg-plan--selected" type="button" aria-pressed="true"><span class="fg-plan__flag">SAVE 37%</span><span class="fg-plan__name">Annual</span><span class="fg-plan__price">$59.99</span></button>
+              <button class="fg-plan" type="button"><span class="fg-plan__flag">FOUNDERS · 214 LEFT</span><span class="fg-plan__name">Lifetime</span><span class="fg-plan__price">$149</span></button>
+            </div>
+            <button class="fg-pro__cta" type="button">START ANNUAL — $59.99/YR</button>
+          </div>
+        </div>
+        <p class="comp-use">from Figma — mapped selected plan→--energy-tint + --lime stroke · SAVE%→--urgency. Prices SAMPLE; paywall logic is F4/engine.</p></div>
+
+      <div class="comp"><p class="comp-name">System state — 6 states</p>
+        <div class="comp-demo fg-stack" style="width:100%">
+          <div class="fg-state">
+            <span class="fg-state__icon"><span class="fg-icon" data-fg-icon="trophy"></span></span>
+            <h3 class="fg-state__title">No battles yet</h3>
+            <p class="fg-state__body">Create your first battle or join a mate's with an invite code.</p>
+            <button class="fg-state__cta">CREATE A BATTLE</button>
+          </div>
+          <div class="fg-state fg-state--locked">
+            <span class="fg-state__icon"><span class="fg-icon" data-fg-icon="lock"></span></span>
+            <h3 class="fg-state__title">Pro feature</h3>
+            <p class="fg-state__body">Multiple battles need Reps Pro. Your first crew is always free.</p>
+          </div>
+        </div>
+        <p class="comp-use">from Figma — mapped error→--danger · locked→--lime · skeleton→--line. §7/17 adopt: superset — locked + restricted map to Pro + region gates.</p></div>
+
+      <div class="comp"><p class="comp-name">Badge system — 5 types</p>
+        <div class="comp-demo fg-row" style="width:100%">
+          <span class="fg-badge"><span class="fg-icon" data-fg-icon="flame"></span>7 DAY STREAK</span>
+          <span class="fg-badge fg-badge--live"><span class="fg-icon" data-fg-icon="bolt"></span>LIVE NOW</span>
+          <span class="fg-badge fg-badge--rank"><span class="fg-icon" data-fg-icon="trophy"></span>DAY 3 WINNER</span>
+          <span class="fg-badge fg-badge--premium"><span class="fg-icon" data-fg-icon="crown"></span>REPS PRO</span>
+          <span class="fg-badge fg-badge--danger"><span class="fg-icon" data-fg-icon="clock"></span>30 MIN LEFT</span>
+        </div>
+        <p class="comp-use">from Figma — mapped streak→--energy-tint + --urgency flame · premium→--ink-brand-tint + --energy crown · danger→--danger. Inter 600 11 kept.</p></div>
+
+    </div>
+  </section>
+
   <!-- ═══════════════ FEATURES ═══════════════ -->
   <section id="families" class="sys-sec reveal">
-    <h2>03 · Feature families — all 36 elements</h2>
+    <h2>04 · Feature families — all 36 elements</h2>
     <p class="sys-note">Full backlog with status. Families A–F approved and largely built; G is the proposed second wave.</p>
     <div id="famGrid" class="fam-grid"></div>
   </section>
 
   <!-- ═══════════════ PROGRESS ═══════════════ -->
   <section id="progress" class="sys-sec reveal">
-    <h2>04 · Progress &amp; roadmap</h2>
+    <h2>05 · Progress &amp; roadmap</h2>
 
     <div class="phase-track">
       <div class="phase done"><span class="p-node" aria-hidden="true"></span><div class="p-body"><b>Phase 0</b><span>due diligence · research · plan</span></div><i>✓ complete</i></div>
@@ -231,7 +464,7 @@
 
   <!-- ═══════════════ SYSTEMS ═══════════════ -->
   <section id="map" class="sys-sec reveal">
-    <h2>05 · Systems map</h2>
+    <h2>06 · Systems map</h2>
     <div class="sysmap">
       <div class="map-col">
         <p class="map-head">CLIENTS</p>
@@ -300,5 +533,6 @@
 <noscript><style>.reveal{opacity:1;transform:none}</style></noscript>
 <script type="module" src="/site/guide.js"></script>
 <script type="module" src="/system/system.js"></script>
+  <script type="module" src="/design/figma-components.js"></script>
 </body>
 </html>

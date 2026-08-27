@@ -1,1 +1,8 @@
 @font-face{font-family:'Space Grotesk';font-style:normal;font-weight:300 700;font-display:swap;src:url('sg-var.woff2') format('woff2');}
+/* Figma adoption (lane F3, docs/13 §7 rows 1/3): Ben's type pair, vendored the
+   same way as Space Grotesk — Google Fonts woff2, latin subset, no CDN.
+   Anton = display/scores (single weight 400, used uppercase); Inter = utility
+   (variable 100–900). They sit alongside SG; the [data-theme="gold"] block in
+   tokens.css points --font-display/--font-body at them. */
+@font-face{font-family:'Anton';font-style:normal;font-weight:400;font-display:swap;src:url('anton-regular.woff2') format('woff2');}
+@font-face{font-family:'Inter';font-style:normal;font-weight:100 900;font-display:swap;src:url('inter-var.woff2') format('woff2');}

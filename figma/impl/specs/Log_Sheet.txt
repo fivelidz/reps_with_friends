@@ -1,0 +1,36 @@
+
+======================================================================
+NODE 21:882
+======================================================================
+FRAME «MOB-LOG-001 · Quick log (bottom sheet)» [393x852] r=24 fill=['#0B0A12']
+  TEXT «9:41» [30x17] fill=['#FFFFFF'] TEXT='9:41'       font=Inter 600 14px lh=16.94318199157715 ls=0 case=None align=LEFT       color=#FFFFFFFF
+  RECTANGLE «Rectangle» [393x852] fill=['#000000 @72%']
+  FRAME «Sheet» [393x344] r=28 fill=['#14121F']     layout=VERTICAL gap=None pad=12,20,32,20 align=None/CENTER
+    RECTANGLE «Rectangle» [40x4] r=2 fill=['#3B3B52']
+    TEXT «LOG REPS» [76x33] fill=['#FFFFFF'] TEXT='LOG REPS'         font=Anton 400 22px lh=33.1181640625 ls=0 case=None align=LEFT         color=#FFFFFFFF
+    FRAME «ExerciseRecents» [383x42]       layout=HORIZONTAL gap=None pad=None,None,None,None align=None/None
+      FRAME «Chip/Push-ups» [108x42] r=999 fill=['#FFC821']         layout=HORIZONTAL gap=None pad=12,18,12,18 align=None/None
+        TEXT «Push-ups» [72x18] fill=['#07060D'] TEXT='Push-ups'             font=Inter 700 15px lh=18.15340805053711 ls=0 case=None align=LEFT             color=#07060DFF
+      FRAME «Chip/Squats» [88x42] r=999 fill=['#1B1830'] stroke=['#3B3B52 w1']         layout=HORIZONTAL gap=None pad=12,18,12,18 align=None/None
+        TEXT «Squats» [52x18] fill=['#FFFFFF'] TEXT='Squats'             font=Inter 700 15px lh=18.15340805053711 ls=0 case=None align=LEFT             color=#FFFFFFFF
+      FRAME «Chip/Plank» [77x42] r=999 fill=['#1B1830'] stroke=['#3B3B52 w1']         layout=HORIZONTAL gap=None pad=12,18,12,18 align=None/None
+        TEXT «Plank» [41x18] fill=['#FFFFFF'] TEXT='Plank'             font=Inter 700 15px lh=18.15340805053711 ls=0 case=None align=LEFT             color=#FFFFFFFF
+      FRAME «Chip/More…» [86x42] r=999 fill=['#1B1830'] stroke=['#3B3B52 w1']         layout=HORIZONTAL gap=None pad=12,18,12,18 align=None/None
+        TEXT «More…» [50x18] fill=['#FFFFFF'] TEXT='More…'             font=Inter 700 15px lh=18.15340805053711 ls=0 case=None align=LEFT             color=#FFFFFFFF
+    FRAME «Presets» [378x56]       layout=HORIZONTAL gap=None pad=None,None,None,None align=None/None
+      FRAME «Chip/5» [57x56] r=999 fill=['#1B1830'] stroke=['#3B3B52 w1']         layout=HORIZONTAL gap=None pad=16,22,16,22 align=None/None
+        TEXT «5» [13x24] fill=['#FFFFFF'] TEXT='5'             font=Inter 700 20px lh=24.204544067382812 ls=0 case=None align=LEFT             color=#FFFFFFFF
+      FRAME «Chip/10» [68x56] r=999 fill=['#1B1830'] stroke=['#3B3B52 w1']         layout=HORIZONTAL gap=None pad=16,22,16,22 align=None/None
+        TEXT «10» [24x24] fill=['#FFFFFF'] TEXT='10'             font=Inter 700 20px lh=24.204544067382812 ls=0 case=None align=LEFT             color=#FFFFFFFF
+      FRAME «Chip/20» [71x56] r=999 fill=['#FFC821']         layout=HORIZONTAL gap=None pad=16,22,16,22 align=None/None
+        TEXT «20» [27x24] fill=['#07060D'] TEXT='20'             font=Inter 700 20px lh=24.204544067382812 ls=0 case=None align=LEFT             color=#07060DFF
+      FRAME «Chip/30» [71x56] r=999 fill=['#1B1830'] stroke=['#3B3B52 w1']         layout=HORIZONTAL gap=None pad=16,22,16,22 align=None/None
+        TEXT «30» [27x24] fill=['#FFFFFF'] TEXT='30'             font=Inter 700 20px lh=24.204544067382812 ls=0 case=None align=LEFT             color=#FFFFFFFF
+      FRAME «Chip/50» [71x56] r=999 fill=['#1B1830'] stroke=['#3B3B52 w1']         layout=HORIZONTAL gap=None pad=16,22,16,22 align=None/None
+        TEXT «50» [27x24] fill=['#FFFFFF'] TEXT='50'             font=Inter 700 20px lh=24.204544067382812 ls=0 case=None align=LEFT             color=#FFFFFFFF
+    FRAME «Conversion» [271x17]       layout=HORIZONTAL gap=None pad=None,None,None,None align=None/CENTER
+      TEXT «20 push-ups = 20 RUF» [152x17] fill=['#FFC821'] TEXT='20 push-ups = 20 RUF'           font=Inter 600 14px lh=16.94318199157715 ls=0 case=None align=LEFT           color=#FFC821FF
+      TEXT «· takes you to 92%» [113x16] fill=['#8E8EA3'] TEXT='· takes you to 92%'           font=Inter 400 13px lh=15.732954025268555 ls=0 case=None align=LEFT           color=#8E8EA3FF
+    FRAME «Btn/LOG 20 PUSH-UPS» [353x51] r=999 fill=['#FFC821']       layout=HORIZONTAL gap=None pad=16,None,16,None align=CENTER/CENTER
+      TEXT «LOG 20 PUSH-UPS» [146x19] fill=['#07060D'] TEXT='LOG 20 PUSH-UPS'           font=Inter 600 16px lh=19.363636016845703 ls=0 case=None align=LEFT           color=#07060DFF
+    TEXT «3 taps, one thumb. Undo available for 30 s after logging.» [293x13] fill=['#63637A'] TEXT='3 taps, one thumb. Undo available for 30 s after logging.'         font=Inter 400 11px lh=13.3125 ls=0 case=None align=LEFT         color=#63637AFF
