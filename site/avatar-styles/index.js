@@ -9,12 +9,14 @@ import blocky from './blocky.js';
 import lowpoly from './lowpoly.js';
 import minimal from './minimal.js';
 import gamelow from './gamelow.js';
+import goblinfit from './goblinfit.js';
+import dragon from './dragon.js';
 import { solveDims, auditDims } from './rig-core.js';
 
-export const STYLES = { athletic, chibi, blocky, lowpoly, minimal, gamelow };
+export const STYLES = { athletic, chibi, blocky, lowpoly, minimal, gamelow, goblinfit, dragon };
 
 /** Gallery order: the game look first — it is the current direction. */
-export const STYLE_IDS = ['gamelow', 'athletic', 'lowpoly', 'blocky', 'chibi', 'minimal'];
+export const STYLE_IDS = ['goblinfit', 'dragon', 'gamelow', 'athletic', 'lowpoly', 'blocky', 'chibi', 'minimal'];
 
 export const STYLE_LIST = STYLE_IDS.map((id) => STYLES[id]);
 
