@@ -100,25 +100,12 @@ export class AvatarScene {
     this.disposed = false;
     this.renderMs = 0;
 
-    let renderer;
-    try {
-      renderer = new THREE.WebGLRenderer({ antialias: true, alpha: o.alpha });
-    } catch (err) {
-      console.warn('RWF avatars: WebGL unavailable, scene skipped —', err);
-      if (this.mount && this.mount.parentElement) this.mount.parentElement.style.minHeight = '0';
-      this.dead = true;
-      return;
-    }
-    this.renderer = renderer;
-    renderer.setPixelRatio(Math.min(window.devicePixelRatio || 1, 2));
-    renderer.setSize(this.mount.clientWidth || 300, this.mount.clientHeight || 200);
-    if (o.alpha) renderer.setClearColor(0x000000, 0);
-    // Toon banding is the whole look for two of the styles — ACES would smear
-    // the steps back into a gradient, so tone mapping is off and exposure lives
-    // in the light rig.
-    renderer.toneMapping = THREE.NoToneMapping;
-    this.mount.appendChild(renderer.domElement);
-    renderer.domElement.style.touchAction = 'pan-y';
+    // LAZY WebGL CONTEXT: browsers cap live contexts (~16). A gallery of 12+
+    // cards each creating a renderer eagerly evicts the oldest contexts —
+    // cards go blank. The renderer is created on first viewport intersection
+    // and released after 3s off-screen (see _ensureRenderer/_releaseRenderer).
+    this.renderer = null;
+    this._releaseTimer = 0;
 
     this.scene = new THREE.Scene();
     if (!o.alpha) {
@@ -155,10 +142,18 @@ export class AvatarScene {
     if (o.ground && n) this._buildGround(this.rowHalf + 0.42);
     if (o.orbit) this._initOrbit();
 
-    // render-gating: only draw while on screen
+    // render-gating + lazy context: create the GL context when the card first
+    // enters the viewport; release it after 3s off-screen.
     this._io = new IntersectionObserver((entries) => {
       this.visible = entries[0].isIntersecting;
-      if (this.visible && !this.frozen) this._renderOnce();
+      if (this.visible) {
+        clearTimeout(this._releaseTimer);
+        this._ensureRenderer();
+        if (!this.frozen) this._renderOnce();
+      } else {
+        clearTimeout(this._releaseTimer);
+        this._releaseTimer = setTimeout(() => this._releaseRenderer(), 3000);
+      }
     }, { threshold: 0 });
     this._io.observe(this.mount);
 
@@ -218,6 +213,7 @@ export class AvatarScene {
   _initOrbit() {
     import('three/addons/controls/OrbitControls.js').then(({ OrbitControls }) => {
       if (this.disposed || this.dead) return;
+      if (!this.renderer) return; // canvas not created yet — orbit inits on ensure
       const c = new OrbitControls(this.camera, this.renderer.domElement);
       c.enableDamping = true;
       c.dampingFactor = 0.08;
@@ -452,12 +448,43 @@ export class AvatarScene {
       this._orbitAppliedZ = z;
     }
     this.camera.updateProjectionMatrix();
-    this.renderer.setSize(w, h);
+    if (this.renderer) this.renderer.setSize(w, h);   // lazy: may not exist yet
     if (this.frozen || REDUCED) this._renderOnce();
   }
 
+  _ensureRenderer() {
+    if (this.renderer || this.dead || this.disposed) return;
+    try {
+      const renderer = new THREE.WebGLRenderer({ antialias: true, alpha: this.opts.alpha });
+      renderer.setPixelRatio(Math.min(window.devicePixelRatio || 1, 2));
+      renderer.setSize(this.mount.clientWidth || 300, this.mount.clientHeight || 200);
+      if (this.opts.alpha) renderer.setClearColor(0x000000, 0);
+      // Toon banding is the whole look for two of the styles — ACES would
+      // smear the steps into a gradient; exposure lives in the light rig.
+      renderer.toneMapping = THREE.NoToneMapping;
+      this.mount.appendChild(renderer.domElement);
+      renderer.domElement.style.touchAction = 'pan-y';
+      this.renderer = renderer;
+      this._fit();
+      if (this.opts.orbit && !this.controls) this._initOrbit(); // canvas now exists
+    } catch (err) {
+      console.warn('RWF avatars: WebGL unavailable, scene skipped —', err);
+      if (this.mount && this.mount.parentElement) this.mount.parentElement.style.minHeight = '0';
+      this.dead = true;
+    }
+  }
+
+  _releaseRenderer() {
+    if (!this.renderer || this.disposed) return;
+    // Full teardown so the browser reclaims the context slot.
+    this.renderer.dispose();
+    this.renderer.forceContextLoss?.();
+    this.renderer.domElement.remove();
+    this.renderer = null;
+  }
+
   _renderOnce() {
-    if (this.dead || this.disposed) return;
+    if (this.dead || this.disposed || !this.renderer) return;
     const t0 = performance.now();
     this.renderer.render(this.scene, this.camera);
     const ms = performance.now() - t0;
@@ -488,9 +515,10 @@ export class AvatarScene {
   toJSON() { return this.avatars.map((a) => a.toJSON()); }
 
   dispose() {
-    if (this.disposed || this.dead) { this.disposed = true; return; }
+    if (this.disposed) return;
     this.disposed = true;
     cancelAnimationFrame(this._raf);
+    clearTimeout(this._releaseTimer);
     this._io.disconnect();
     this._ro.disconnect();
     this.controls?.dispose();
@@ -502,7 +530,11 @@ export class AvatarScene {
         for (const m of ms) { if (m.map) m.map.dispose(); m.dispose(); }
       }
     });
-    this.renderer.dispose();
-    this.renderer.domElement.remove();
+    if (this.renderer) {
+      this.renderer.dispose();
+      this.renderer.forceContextLoss?.();
+      this.renderer.domElement.remove();
+      this.renderer = null;
+    }
   }
 }

@@ -526,13 +526,11 @@ if (modelGrid) {
     modelGrid.appendChild(card);
     const stage = card.querySelector('.style-stage');
 
-    // per-card three.js scene (same pattern as the procedural gallery cards)
+    // per-card three.js scene — LAZY WebGL context (browsers cap ~16 live
+    // contexts; 12+ eager cards evict the oldest and blank them). The renderer
+    // is created when the card scrolls into view and released 3s after it
+    // leaves, so live contexts ≈ visible cards.
     const W = 240, H = 300;
-    const renderer = new THREE.WebGLRenderer({ antialias: true, alpha: true });
-    renderer.setPixelRatio(Math.min(devicePixelRatio, 2));
-    renderer.setSize(W, H);
-    renderer.outputColorSpace = THREE.SRGBColorSpace;
-    stage.appendChild(renderer.domElement);
     const scene = new THREE.Scene();
     const cam = new THREE.PerspectiveCamera(38, W / H, 0.01, 60);
     const key = new THREE.DirectionalLight(0xffffff, 2.4); key.position.set(1.5, 3, 2); scene.add(key);
@@ -544,8 +542,36 @@ if (modelGrid) {
     );
     scene.add(ground);
 
-    const entry = { M, card, renderer, scene, cam, avatar: null, mixer: null, action: null, phase: Math.random(), ok: false };
+    const entry = { M, card, renderer: null, scene, cam, avatar: null, mixer: null, action: null, phase: Math.random(), ok: false };
     modelCards.push(entry);
+
+    let releaseTimer = 0;
+    const ensureRenderer = () => {
+      if (entry.renderer) return;
+      try {
+        const r = new THREE.WebGLRenderer({ antialias: true, alpha: true });
+        r.setPixelRatio(Math.min(devicePixelRatio, 2));
+        r.setSize(W, H);
+        r.outputColorSpace = THREE.SRGBColorSpace;
+        stage.appendChild(r.domElement);
+        entry.renderer = r;
+      } catch (e) {
+        card.querySelector('.style-blurb').textContent = 'WebGL unavailable';
+      }
+    };
+    const releaseRenderer = () => {
+      if (!entry.renderer) return;
+      entry.renderer.dispose();
+      entry.renderer.forceContextLoss?.();
+      entry.renderer.domElement.remove();
+      entry.renderer = null;
+    };
+    new IntersectionObserver((es) => {
+      const vis = es[0].isIntersecting;
+      clearTimeout(releaseTimer);
+      if (vis) ensureRenderer();
+      else releaseTimer = setTimeout(releaseRenderer, 3000);
+    }, { threshold: 0 }).observe(card);
 
     loadModel(M.file).then((gltfScene) => {
       const av = new ModelAvatar(gltfScene, M.rig);
@@ -587,7 +613,7 @@ if (modelGrid) {
     requestAnimationFrame(tick);
     const dt = Math.min(0.05, (now - last) / 1000); last = now;
     for (const e of modelCards) {
-      if (!e.ok) continue;
+      if (!e.ok || !e.renderer) continue;   // renderer is lazy — may be released
       if (e.mixer) {
         e.mixer.update(dt);
       } else if (e.avatar && galState.playing) {

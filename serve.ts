@@ -103,7 +103,17 @@ function file(path: string, urlPath: string): Response | null {
     const f = Bun.file(path);
     if (!f.exists?.()) return null;
     const ext = path.slice(path.lastIndexOf("."));
-    return new Response(f, { headers: { "content-type": MIME[ext] ?? "application/octet-stream" } });
+    // no-cache on text assets: browsers heuristically cache ES modules, and a
+    // stale avatars.js/index.js after a server-side fix = "still blank" for the
+    // user while fresh profiles render fine. GLBs/fonts can cache (content-
+    // addressed enough for a dev server; bump manually if a model changes).
+    const cacheable = ext === ".glb" || ext === ".woff2" || ext === ".png";
+    return new Response(f, {
+      headers: {
+        "content-type": MIME[ext] ?? "application/octet-stream",
+        "cache-control": cacheable ? "max-age=3600" : "no-cache, must-revalidate",
+      },
+    });
   } catch {
     return null;
   }

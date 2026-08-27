@@ -22,6 +22,7 @@ import { GLTFLoader } from './lib/GLTFLoader.js';
 export const MODELS = [
   { id: 'soldier', name: 'Soldier — realistic', file: '/models/Soldier.glb', rig: 'mixamo', native: ['Idle', 'Walk', 'Run'] },
   { id: 'xbot', name: 'Xbot — stylised robot', file: '/models/Xbot.glb', rig: 'mixamo', native: ['idle', 'run', 'sneak_pose'] },
+  { id: 'robot', name: 'Robot Expressive — character', file: '/models/RobotExpressive.glb', rig: 'none', native: ['Idle', 'Walking', 'Running', 'Dance', 'Jump', 'Wave', 'Punch'] },
   { id: 'orc', name: 'Orc — goblin game art', file: '/models/orc.glb', rig: 'rigify', native: [] },
 ];
 
