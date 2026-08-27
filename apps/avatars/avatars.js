@@ -498,3 +498,108 @@ window.__rwfStudio = {
     return galCards.map((g) => ({ style: g.style.id, ...styleSummary(g.style.id, galState.build, galState.height) }));
   },
 };
+
+// ─────────────────────────────────────────────────────────────────────────────
+// MODEL CHARACTERS — real rigged GLBs (Soldier / Xbot / orc), posed by the
+// same exercise selector that drives the procedural gallery.
+// ─────────────────────────────────────────────────────────────────────────────
+const modelGrid = $('modelGrid');
+if (modelGrid) {
+  const { MODELS, loadModel, ModelAvatar } = await import('/site/model-avatars.js');
+
+  const modelCards = [];
+
+  for (const M of MODELS) {
+    const card = document.createElement('article');
+    card.className = 'style-card style-card--model';
+    card.innerHTML = `
+      <div class="style-stage"></div>
+      <div class="style-meta">
+        <h3>${M.name}</h3>
+        <p class="style-blurb">${M.rig} rig · ${M.native.length ? 'native anims: ' + M.native.join(', ') : 'no anims — posed live'}</p>
+        <div class="model-btns">
+          ${M.native.map((n) => `<button class="rwf-btn btn--xs" data-native="${n}">${n}</button>`).join('')}
+          <button class="rwf-btn btn--xs" data-native="">exercise</button>
+        </div>
+      </div>`;
+    modelGrid.appendChild(card);
+    const stage = card.querySelector('.style-stage');
+
+    // per-card three.js scene (same pattern as the procedural gallery cards)
+    const W = 240, H = 300;
+    const renderer = new THREE.WebGLRenderer({ antialias: true, alpha: true });
+    renderer.setPixelRatio(Math.min(devicePixelRatio, 2));
+    renderer.setSize(W, H);
+    renderer.outputColorSpace = THREE.SRGBColorSpace;
+    stage.appendChild(renderer.domElement);
+    const scene = new THREE.Scene();
+    const cam = new THREE.PerspectiveCamera(38, W / H, 0.01, 60);
+    const key = new THREE.DirectionalLight(0xffffff, 2.4); key.position.set(1.5, 3, 2); scene.add(key);
+    const fill = new THREE.HemisphereLight(0x8fb6ff, 0x1a1d23, 1.1); scene.add(fill);
+    const rim = new THREE.PointLight(0xc6f32e, 4, 8); rim.position.set(-2, 1.4, -2); scene.add(rim);
+    const ground = new THREE.Mesh(
+      new THREE.CircleGeometry(0.5, 40).rotateX(-Math.PI / 2),
+      new THREE.MeshStandardMaterial({ color: 0x14171c, roughness: 0.95 })
+    );
+    scene.add(ground);
+
+    const entry = { M, card, renderer, scene, cam, avatar: null, mixer: null, action: null, phase: Math.random(), ok: false };
+    modelCards.push(entry);
+
+    loadModel(M.file).then((gltfScene) => {
+      const av = new ModelAvatar(gltfScene, M.rig);
+      // normalise scale to ~1.5 units tall so all three share a camera
+      const s = 1.5 / av.H;
+      av.root.scale.setScalar(s);
+      scene.add(av.root);
+      av.pose(galState.exercise, 0.5);
+      const box = new THREE.Box3().setFromObject(av.root);
+      const h = box.max.y - box.min.y;
+      cam.position.set(0, h * 0.52, h * 1.9);
+      cam.lookAt(0, h * 0.47, 0);
+      entry.avatar = av;
+      entry.ok = true;
+      // native animation buttons
+      card.querySelectorAll('[data-native]').forEach((btn) => {
+        btn.addEventListener('click', () => {
+          const name = btn.dataset.native;
+          if (entry.mixer) { entry.mixer.stopAllAction(); entry.mixer = null; entry.action = null; }
+          if (!name) return; // back to exercise posing
+          // reload the gltf for its AnimationClips (cache holds the scene only)
+          import('/site/lib/GLTFLoader.js').then(({ GLTFLoader }) =>
+            new GLTFLoader().loadAsync(M.file)
+          ).then((g) => {
+            entry.mixer = new THREE.AnimationMixer(entry.avatar.prone.children[0]);
+            const clip = THREE.AnimationClip.findByName(g.animations, name);
+            if (clip) { entry.action = entry.mixer.clipAction(clip); entry.action.play(); }
+          }).catch(() => {});
+        });
+      });
+    }).catch((e) => {
+      card.querySelector('.style-blurb').textContent = 'load failed: ' + e.message;
+    });
+  }
+
+  // shared animation loop for model cards
+  let last = performance.now();
+  (function tick(now) {
+    requestAnimationFrame(tick);
+    const dt = Math.min(0.05, (now - last) / 1000); last = now;
+    for (const e of modelCards) {
+      if (!e.ok) continue;
+      if (e.mixer) {
+        e.mixer.update(dt);
+      } else if (e.avatar && galState.playing) {
+        e.phase = (e.phase + dt / EXERCISES[galState.exercise].cycle) % 1;
+        e.avatar.pose(galState.exercise, e.phase);
+      }
+      e.renderer.render(e.scene, e.cam);
+    }
+  })(last);
+
+  // re-pose on exercise/build change (build doesn't apply to GLBs)
+  const galExerciseEl = $('galExercise');
+  if (galExerciseEl) galExerciseEl.addEventListener('change', () => {
+    for (const e of modelCards) if (e.avatar && !e.mixer) e.avatar.pose(galState.exercise, 0.5);
+  });
+}
