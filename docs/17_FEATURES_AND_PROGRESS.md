@@ -47,21 +47,24 @@ Hub console corporate tab: org leagues, employer-funded pots ("no employee
 money handled"), aggregate-only wellbeing dashboard with k≥5 suppression
 (Sahha-EAP playbook), renewal outlook. Awaiting real org data.
 
-### E · Verification — RESEARCHED, NEXT
-Full phasing mapped (docs/05): in-browser MoveNet camera counting + Web
-Bluetooth HR straps (P1) → HealthKit/Health Connect (P2) → WHOOP/Garmin cloud
-cross-check (P3). Engine already accepts `avgHrrPct` + `verified` flags.
-Camera module is the next lane activation.
+### E · Verification — P1 BUILT
+In-browser MoveNet camera counting (pushups/squats, angle-threshold state
+machine, on-device only) + Web Bluetooth HR straps (GATT 0x180D, Karvonen
+%HRR per-set) are LIVE in the app — entries log with `verified:true` and
+`avgHrrPct`, which the engine already scores. P2 HealthKit/Health Connect and
+P3 WHOOP/Garmin cloud cross-check remain phased (docs/05).
 
 ### F · Wilder cards — IDEAS
 Referee review · physical champion belts · radio mode (drum-track rep cues) ·
 annual charity championship.
 
-### G · Second wave — PROPOSED (27 Aug)
-Rematch button · Monday AI digest · nemesis system · personal records ·
-photo finish · ghost race · guest slot · charity all-time ladder ·
-roast-tier setting · adaptive exercise equivalents · warm-up predictions.
-Recommended first four: rematch, digest, photo finish, nemesis.
+### G · Second wave — FIRST FOUR BUILT (27 Aug)
+LIVE: rematch button (one-tap run-it-back, roster carried) · Monday digest
+(matches, margins, MVPs, pot, rivalry callout, AI one-liner) · photo finish
+(≤5% gap → dramatic card + coral SVG variant) · nemesis (head-to-head rival
+detection). Still proposed: personal records · ghost race · guest slot ·
+charity all-time ladder · roast-tier setting · adaptive equivalents ·
+warm-up predictions.
 
 ## Systems
 
