@@ -1,0 +1,29 @@
+<!doctype html>
+<!-- RWF × FIGMA TEST APP — every Ben screen, mock data, gold theme default.
+     Static + vendored: works offline after first load (sw.js). -->
+<html lang="en" data-theme="gold">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
+  <title>RWF Figma Test — Ben's design, every screen</title>
+  <meta name="description" content="Offline test app realising Ben's Figma design for Reps With Friends.">
+  <meta name="theme-color" content="#0b0a12">
+  <link rel="manifest" href="manifest.webmanifest">
+  <link rel="apple-touch-icon" href="icons/icon-192.png">
+  <link rel="icon" href="icons/icon-192.png">
+  <link rel="stylesheet" href="fonts.css">
+  <link rel="stylesheet" href="tokens.css">
+  <link rel="stylesheet" href="figma-components.css">
+  <link rel="stylesheet" href="app.css">
+  <script>
+    // Register the SW before anything heavy; ignore failures (file:// etc).
+    if ("serviceWorker" in navigator && location.protocol.startsWith("http")) {
+      addEventListener("load", () => navigator.serviceWorker.register("sw.js").catch(() => {}));
+    }
+  </script>
+</head>
+<body>
+  <div id="app" class="fx-app"></div>
+  <script type="module" src="app.js"></script>
+</body>
+</html>

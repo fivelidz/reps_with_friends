@@ -478,7 +478,9 @@ export class AvatarScene {
     if (!this.renderer || this.disposed) return;
     // Full teardown so the browser reclaims the context slot.
     this.renderer.dispose();
-    this.renderer.forceContextLoss?.();
+    // forceContextLoss warns via three's extension wrapper where the
+    // extension is missing (headless chromium); detached canvas frees on GC.
+    if (this.renderer.getContext().getExtension('WEBGL_lose_context')) this.renderer.forceContextLoss?.();
     this.renderer.domElement.remove();
     this.renderer = null;
   }
@@ -532,7 +534,9 @@ export class AvatarScene {
     });
     if (this.renderer) {
       this.renderer.dispose();
-      this.renderer.forceContextLoss?.();
+      // forceContextLoss warns via three's extension wrapper where the
+      // extension is missing (headless chromium); detached canvas frees on GC.
+      if (this.renderer.getContext().getExtension('WEBGL_lose_context')) this.renderer.forceContextLoss?.();
       this.renderer.domElement.remove();
       this.renderer = null;
     }

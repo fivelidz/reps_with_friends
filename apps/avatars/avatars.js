@@ -507,7 +507,7 @@ window.__rwfStudio = {
 // ─────────────────────────────────────────────────────────────────────────────
 const modelGrid = $('modelGrid');
 if (modelGrid) {
-  const { MODELS, loadModel, ModelAvatar } = await import('/site/model-avatars.js');
+  const { MODELS, loadModel, ModelAvatar, applyFlatTint, GENO_TINTS, BVH_FILES, loadBVH, BVHPlayer } = await import('/site/model-avatars.js');
   const { applyColorway, applySoldierPalette, COLORWAYS } = await import('/site/model-recolor.js');
 
   const modelCards = [];
@@ -520,9 +520,10 @@ if (modelGrid) {
       <div class="style-stage"></div>
       <div class="style-meta">
         <h3>${M.name}</h3>
-        <p class="style-blurb">${M.rig} rig · ${M.native.length ? 'native anims: ' + M.native.join(', ') : 'no anims — posed live'}${way ? ' · palette remap' : ''}${M.palette ? ' · flat-colour treatment' : ''}</p>
+        <p class="style-blurb">${M.rig} rig · ${M.native.length ? 'native anims: ' + M.native.join(', ') : 'no anims — posed live'}${M.bvh ? ' · BVH mocap: ' + M.bvh.join(', ') : ''}${way ? ' · palette remap' : ''}${M.palette ? ' · flat-colour treatment' : ''}${M.tint ? ' · flat tint' : ''}</p>
         <div class="model-btns">
           ${M.native.map((n) => `<button class="rwf-btn btn--xs" data-native="${n}">${n}</button>`).join('')}
+          ${(M.bvh ?? []).map((n) => `<button class="rwf-btn btn--xs" data-bvh="${n}">${n}</button>`).join('')}
           <button class="rwf-btn btn--xs" data-native="">exercise</button>
         </div>
       </div>`;
@@ -548,10 +549,11 @@ if (modelGrid) {
     );
     scene.add(ground);
 
-    const entry = { M, card, renderer: null, scene, cam, avatar: null, mixer: null, action: null, phase: Math.random(), ok: false };
+    const entry = { M, card, renderer: null, scene, cam, avatar: null, mixer: null, action: null, bvh: null, phase: Math.random(), ok: false };
     modelCards.push(entry);
 
     let releaseTimer = 0;
+    let cardVisible = false; // first-intersection gate for the auto-BVH fetch
     const ensureRenderer = () => {
       if (entry.renderer) return;
       try {
@@ -568,21 +570,24 @@ if (modelGrid) {
     const releaseRenderer = () => {
       if (!entry.renderer) return;
       entry.renderer.dispose();
-      entry.renderer.forceContextLoss?.();
+      // forceContextLoss warns where the extension is missing (headless
+      // chromium); the detached canvas frees the context on GC anyway.
+      if (entry.renderer.getContext().getExtension('WEBGL_lose_context')) entry.renderer.forceContextLoss?.();
       entry.renderer.domElement.remove();
       entry.renderer = null;
     };
     new IntersectionObserver((es) => {
       const vis = es[0].isIntersecting;
       clearTimeout(releaseTimer);
-      if (vis) ensureRenderer();
+      if (vis) { ensureRenderer(); cardVisible = true; entry.autoBvh?.(); }
       else releaseTimer = setTimeout(releaseRenderer, 3000);
     }, { threshold: 0 }).observe(card);
 
     loadModel(M.file).then((gltfScene) => {
-      // colourway / palette treatment BEFORE the avatar is posed & framed
+      // colourway / palette / flat-tint treatment BEFORE the avatar is posed & framed
       if (M.colorway) applyColorway(gltfScene, M.colorway);
       if (M.palette === 'soldier') applySoldierPalette(gltfScene);
+      if (M.tint) applyFlatTint(gltfScene, GENO_TINTS[M.tint] ?? M.tint);
 
       if (M.creature) {
         // ── anyCreature compiled GLB: creature skeleton, native anims only.
@@ -651,12 +656,37 @@ if (modelGrid) {
       cam.lookAt(sphere.center.x, sphere.center.y, sphere.center.z);
       entry.avatar = av;
       entry.ok = true;
+      // BVH mocap buttons (Geno): world-space retarget of the game's mocap
+      // captures onto this card's skeleton. Lazy-loaded on demand — the walk
+      // capture is 33 MB, so it is fetched only when the card is first
+      // scrolled into view (auto) or a clip button is clicked.
+      const startBVH = async (name) => {
+        entry.bvhRequested = true;
+        if (entry.mixer) { entry.mixer.stopAllAction(); entry.mixer = null; entry.action = null; }
+        if (entry.bvh) { entry.bvh.stop(); entry.bvh = null; }
+        if (!name) { av.pose(galState.exercise, 0.5); return; }
+        try {
+          const res = await loadBVH(BVH_FILES[name] ?? name);
+          if (entry.bvh) entry.bvh.stop();
+          entry.bvh = new BVHPlayer(av, res);
+        } catch (e) {
+          card.querySelector('.style-blurb').textContent = 'BVH failed: ' + e.message;
+        }
+      };
+      card.querySelectorAll('[data-bvh]').forEach((btn) => {
+        btn.addEventListener('click', () => startBVH(btn.dataset.bvh));
+      });
+      if (M.bvhAuto) {
+        if (cardVisible) startBVH(M.bvhAuto); // model loaded after first intersection
+        else entry.autoBvh = () => { entry.autoBvh = null; if (!entry.bvhRequested) startBVH(M.bvhAuto); };
+      }
       // native animation buttons
       card.querySelectorAll('[data-native]').forEach((btn) => {
         btn.addEventListener('click', () => {
           const name = btn.dataset.native;
           if (entry.mixer) { entry.mixer.stopAllAction(); entry.mixer = null; entry.action = null; }
-          if (!name) return; // back to exercise posing
+          if (entry.bvh) { entry.bvh.stop(); entry.bvh = null; }
+          if (!name) { av.pose(galState.exercise, 0.5); return; } // back to exercise posing
           // reload the gltf for its AnimationClips (cache holds the scene only)
           import('/site/lib/GLTFLoader.js').then(({ GLTFLoader }) =>
             new GLTFLoader().loadAsync(M.file)
@@ -681,6 +711,8 @@ if (modelGrid) {
       if (!e.ok || !e.renderer) continue;   // renderer is lazy — may be released
       if (e.mixer) {
         e.mixer.update(dt);
+      } else if (e.bvh) {
+        e.bvh.update(dt);                   // BVH mocap playback (Geno)
       } else if (e.avatar && galState.playing) {
         e.phase = (e.phase + dt / EXERCISES[galState.exercise].cycle) % 1;
         e.avatar.pose(galState.exercise, e.phase);
@@ -692,8 +724,12 @@ if (modelGrid) {
   // re-pose on exercise/build change (build doesn't apply to GLBs)
   const galExerciseEl = $('galExercise');
   if (galExerciseEl) galExerciseEl.addEventListener('change', () => {
-    for (const e of modelCards) if (e.avatar && !e.mixer) e.avatar.pose(galState.exercise, 0.5);
+    for (const e of modelCards) if (e.avatar && !e.mixer && !e.bvh) e.avatar.pose(galState.exercise, 0.5);
   });
+
+  // Test/automation hook (same pattern as __rwfStudio): lets the CDP verify
+  // suite read live joint positions, BVH player state and per-card entries.
+  window.__rwfModels = modelCards;
 }
 
 // ─────────────────────────────────────────────────────────────────────────────
@@ -893,7 +929,9 @@ if (modelGrid) {
     const releaseRenderer = () => {
       if (!entry.renderer) return;
       entry.renderer.dispose();
-      entry.renderer.forceContextLoss?.();
+      // forceContextLoss warns where the extension is missing (headless
+      // chromium); the detached canvas frees the context on GC anyway.
+      if (entry.renderer.getContext().getExtension('WEBGL_lose_context')) entry.renderer.forceContextLoss?.();
       entry.renderer.domElement.remove();
       entry.renderer = null;
     };

@@ -49,6 +49,7 @@
 
 import * as THREE from 'three';
 import { GLTFLoader } from './lib/GLTFLoader.js';
+import { BVHLoader } from './lib/BVHLoader.js';
 
 export const MODELS = [
   { id: 'orc', name: 'Orc — game art (original)', file: '/models/orc.glb', rig: 'rigify', native: [] },
@@ -59,6 +60,19 @@ export const MODELS = [
   { id: 'orc-human', name: 'Orc — human palette', file: '/models/orc.glb', rig: 'rigify', native: [], colorway: 'human' },
   { id: 'marauder', name: 'Orc Marauder — armoured', file: '/models/orc_marauder.glb', rig: 'rigify', native: [], dark: true },
   { id: 'soldier', name: 'Soldier — palette-treated', file: '/models/Soldier.glb', rig: 'mixamo', native: ['Idle', 'Walk', 'Run'], palette: 'soldier' },
+  // ── Geno (AI4Animation biped, from the founder's Unity game jam). 62-joint
+  // mixamo-style rig, single WHITE material, no embedded anims — driven by
+  // the game's BVH mocap captures (see BVHPlayer below) and tinted per
+  // character, exactly the approach the game's own docs settled on: same
+  // model, tint = race/tier.
+  { id: 'geno', name: 'Geno — AI4Animation biped', file: '/models/Geno.glb', rig: 'mixamo', native: [], tint: '#eceef1' },
+  { id: 'geno-couch', name: 'Geno — couch tier', file: '/models/Geno.glb', rig: 'mixamo', native: [], tint: 'couch' },
+  { id: 'geno-casual', name: 'Geno — casual tier', file: '/models/Geno.glb', rig: 'mixamo', native: [], tint: 'casual' },
+  { id: 'geno-fit', name: 'Geno — fit tier', file: '/models/Geno.glb', rig: 'mixamo', native: [], tint: 'fit' },
+  { id: 'geno-athlete', name: 'Geno — athlete tier', file: '/models/Geno.glb', rig: 'mixamo', native: [], tint: 'athlete' },
+  { id: 'geno-goblin', name: 'Geno — goblin green', file: '/models/Geno.glb', rig: 'mixamo', native: [], tint: 'goblin' },
+  { id: 'geno-human', name: 'Geno — human skin', file: '/models/Geno.glb', rig: 'mixamo', native: [], tint: 'human' },
+  { id: 'geno-bvh', name: 'Geno — BVH mocap', file: '/models/Geno.glb', rig: 'mixamo', native: [], bvh: ['walk', 'limp', 'drag', 'one_arm', 'combat'], bvhAuto: 'walk' },
   // ── anyCreature compiled (spec → skinned GLB, vertex-coloured + AO-baked).
   // creature: true → native-anim playback only, no exercise retarget (the rigs
   // are creature skeletons, not mixamo/rigify humanoids).
@@ -67,6 +81,9 @@ export const MODELS = [
   { id: 'ac-dragon-elder', name: 'Wyvern Elder — anyCreature', file: '/models/dragon_elder.glb', rig: 'anycreature', native: ['idle', 'move', 'flap', 'attack'], creature: true, dark: true },
   { id: 'ac-adventurer', name: 'Adventurer — anyCreature', file: '/models/humanoid_adventurer.glb', rig: 'anycreature', native: ['idle', 'walk', 'attack'], creature: true },
   { id: 'ac-brute', name: 'Brute — anyCreature', file: '/models/humanoid_brute.glb', rig: 'anycreature', native: ['idle', 'walk', 'attack'], creature: true },
+  // Cranberry: the AI4Animation detailed human (159 joints, b_* names — no
+  // name overlap with the BVHs, so display-only like the creature cards).
+  { id: 'cranberry', name: 'Cranberry — detailed human', file: '/models/Cranberry.glb', rig: 'anycreature', native: [], creature: true, tint: '#b9c2cc' },
 ];
 
 const loader = new GLTFLoader();
@@ -539,5 +556,287 @@ export class ModelAvatar {
       setProne(theta);
     }
     poseAim(rig, exercise, p); // shared aim/IK path (both rig families)
+  }
+}
+
+// ── Geno flat tint (the game's own approach: same model, tint = character) ──
+// Geno ships ONE white material, so material.color tints cleanly. A flat
+// Lambert response reads best on the dark card stage (no specular glow, the
+// tier colour reads as colour). Materials are created per call — loadModel()
+// clones share materials with the cached source scene, so each card needs
+// its own instance.
+export const GENO_TINTS = {
+  couch: '#ffb020',   // rookie→couch amber
+  casual: '#6ec1ff',  // casual sky
+  fit: '#c6f32e',     // fit lime
+  athlete: '#ff5c38', // athlete coral
+  goblin: '#598c1f',  // the game's goblin green (0.35, 0.55, 0.12)
+  human: '#d1a680',   // the game's warm human skin (0.82, 0.65, 0.50)
+};
+
+export function applyFlatTint(root, hex = '#ffffff') {
+  const color = new THREE.Color(hex);
+  root.traverse((o) => {
+    if (!o.isMesh || !o.material) return;
+    o.material = new THREE.MeshLambertMaterial({ color });
+  });
+}
+
+// ── BVH mocap playback (AI4Animation captures → Geno) ───────────────────────
+// The game's five goblin mocap captures. Joint names are mixamo-style and
+// Geno's 62 joints all exist in each file (62/62 match, per the game docs).
+export const BVH_FILES = {
+  walk: '/models/goblin_walk_stick.bvh',
+  limp: '/models/goblin_limp.bvh',
+  drag: '/models/goblin_drag.bvh',
+  one_arm: '/models/goblin_one_arm.bvh',
+  combat: '/models/goblin_combat.bvh',
+};
+
+const bvhLoader = new BVHLoader();
+const bvhCache = new Map();
+
+/** Fetch + parse a BVH once; returns { skeleton, clip } (see lib/BVHLoader.js). */
+export async function loadBVH(file) {
+  if (!bvhCache.has(file)) {
+    const text = await (await fetch(file)).text();
+    bvhCache.set(file, bvhLoader.parse(text));
+  }
+  return bvhCache.get(file);
+}
+
+/**
+ * BVHPlayer — drives a ModelAvatar from a BVH clip via WORLD-SPACE
+ * retargeting.
+ *
+ * Why not just copy local rotations (or run the clip through an
+ * AnimationMixer on Geno, which amounts to the same thing)? The BVH rest
+ * hierarchy has the arms straight UP while Geno binds arms-OUT, and the
+ * captures' frame-0 pose is arms HANGING — BVH locals are only meaningful
+ * inside the BVH's own rest frames. Instead each Geno bone tracks its BVH
+ * counterpart's WORLD orientation through a constant per-bone frame
+ * conversion E(b), derived from the two rigs' own geometry:
+ *
+ *      E(b)  = rot(ĉ_bvh(b) → ĉ_geno(b))     (primary-child offset dirs)
+ *      WQ_geno(t, b) = WQ_bvh(t, b) · E(b)⁻¹
+ *
+ * where ĉ(b) is the direction from bone b to its chain child, expressed in
+ * b's LOCAL frame (the child's local position). Because E converts local
+ * frames using the same offsets the world pose is built from, Geno's limb
+ * direction is EXACTLY parallel to the BVH's at every frame:
+ *
+ *      dir_geno(t) = WQ_bvh(t)·E⁻¹·ĉ_geno·L = WQ_bvh(t)·ĉ_bvh·L = dir_bvh(t)·L
+ *
+ * — the capture's stride, arm swing, spine lean and head look transfer at
+ * full amplitude, and the base pose IS the capture's own frame-0 pose
+ * (arms hanging), no reference-pose matching needed. (A pose-matched
+ * alignment A = P·B_ref⁻¹ was tried first and is WRONG here: Geno's bone
+ * frames are ~90° off the BVH's, so conjugating the motion through A turns
+ * forward leg swings into sideways ones.)
+ *
+ * Per frame, locals are solved top-down so each bone only needs its
+ * parent's already-solved world quaternion:
+ *
+ *      q_local(b) = WQ_parent⁻¹ · WQ_bvh(t, b) · E(b)⁻¹
+ *
+ * The hips additionally follow the BVH root's Y translation (scaled from
+ * capture cm to model units); X/Z travel is dropped so the figure walks in
+ * place inside a gallery card.
+ */
+// chain child for the frame conversion (both rigs share these names);
+// finger/segment bones fall through to the digit-increment rule
+const PRIMARY_CHILD = {
+  Hips: 'Spine', Spine: 'Spine1', Spine1: 'Spine2', Spine2: 'Spine3', Spine3: 'Neck',
+  Neck: 'Neck1', Neck1: 'Head',
+  LeftShoulder: 'LeftArm', LeftArm: 'LeftForeArm', LeftForeArm: 'LeftHand',
+  RightShoulder: 'RightArm', RightArm: 'RightForeArm', RightForeArm: 'RightHand',
+  LeftUpLeg: 'LeftLeg', LeftLeg: 'LeftFoot', LeftFoot: 'LeftToeBase',
+  RightUpLeg: 'RightLeg', RightLeg: 'RightFoot', RightFoot: 'RightToeBase',
+};
+
+export class BVHPlayer {
+  constructor(avatar, bvh) {
+    this.av = avatar;
+    this.clip = bvh.clip;
+    this.duration = Math.max(0.01, bvh.clip.duration);
+    this.dead = false;
+
+    // BVH rig: linked Bone hierarchy (bones[0] = Hips). The mixer binds the
+    // clip's `<name>.quaternion` / `<name>.position` tracks to these bones.
+    this.holder = new THREE.Object3D();
+    this.holder.add(bvh.skeleton.bones[0]);
+    this.mixer = new THREE.AnimationMixer(this.holder);
+    this.action = this.mixer.clipAction(bvh.clip);
+    this.action.play();
+
+    const byName = new Map();
+    bvh.skeleton.bones.forEach((b) => byName.set(b.name, b));
+    this.bvhHips = byName.get('Hips') ?? bvh.skeleton.bones[0];
+
+    // matched (geno bone, bvh bone) pairs in top-down hierarchy order
+    const scene = avatar.prone.children[0];
+    this.pairs = [];
+    this.pairIndex = new Map();
+    scene.traverse((o) => {
+      if (!o.isBone) return;
+      const b = byName.get(o.name);
+      if (b) { this.pairIndex.set(o, this.pairs.length); this.pairs.push([o, b]); }
+    });
+    if (!this.pairs.length) throw new Error('BVHPlayer: no joint-name overlap with the model');
+
+    // ── frame conversion E per bone ──
+    // For each Geno bone, find its chain child (the joint it "points at"),
+    // take the child's local position (the offset) in BOTH rigs, and build
+    // the rotation that maps the BVH-local offset direction onto Geno's.
+    // End bones (no child) inherit their parent's conversion.
+    const genoChild = new Map(); // geno bone -> geno chain-child bone
+    for (const [g] of this.pairs) {
+      const kids = g.children.filter((c) => this.pairIndex.has(c));
+      if (!kids.length) continue;
+      let pick = kids[0];
+      const m = g.name.match(/^(\D+)(\d+)$/);
+      if (m) {
+        const cont = kids.find((c) => c.name === m[1] + (Number(m[2]) + 1));
+        if (cont) pick = cont;
+      } else if (PRIMARY_CHILD[g.name]) {
+        const p = kids.find((c) => c.name === PRIMARY_CHILD[g.name]);
+        if (p) pick = p;
+      }
+      genoChild.set(g, pick);
+    }
+    const E = [];
+    for (let i = 0; i < this.pairs.length; i++) {
+      const g = this.pairs[i][0];
+      const child = genoChild.get(g);
+      if (!child) {
+        const p = g.parent && this.pairIndex.get(g.parent);
+        E.push((p != null && p < i) ? E[p].clone() : new THREE.Quaternion());
+        continue;
+      }
+      const bChild = byName.get(child.name);
+      const dg = child.position.clone().normalize();
+      const db = bChild.position.clone().normalize();
+      if (dg.lengthSq() < 0.5 || db.lengthSq() < 0.5) { E.push(new THREE.Quaternion()); continue; }
+      E.push(new THREE.Quaternion().setFromUnitVectors(db, dg));
+    }
+    this.E = E;
+    this.Einv = E.map((q) => q.clone().invert());
+
+    // ── bind-pose snapshot (for stop()) ──
+    // aimrig.reset() restores the logical bones; the rest were never posed.
+    avatar.aimrig.reset();
+    avatar.prone.rotation.set(0, 0, 0);
+    avatar.prone.position.set(0, 0, 0);
+    this.restQ = this.pairs.map(([g]) => g.quaternion.clone());
+    this._gworld = this.pairs.map(() => new THREE.Quaternion());
+    this._bq = new THREE.Quaternion();
+    this._tq = new THREE.Quaternion();
+    this._pq = new THREE.Quaternion();
+    this._hq = new THREE.Quaternion();
+    this._hp = new THREE.Vector3();
+
+    // hips translation: capture-cm → model-units, Y only (walk in place).
+    // The BVH rig is bare Bones (no geometry), so measure its height from
+    // JOINT world positions at frame 0, not Box3.setFromObject.
+    this.mixer.setTime(0);
+    this.holder.updateMatrixWorld(true);
+    let lo = Infinity, hi = -Infinity;
+    bvh.skeleton.bones.forEach((b) => {
+      const p = b.getWorldPosition(new THREE.Vector3());
+      if (p.y < lo) lo = p.y;
+      if (p.y > hi) hi = p.y;
+    });
+    this.scale = avatar.H / Math.max(1e-6, hi - lo);
+    this.hips = avatar.bones.hips;
+    this.hipsRest = this.hips.position.clone();   // bind (aimrig.reset above)
+    this.hipsRefY = this.bvhHips.getWorldPosition(new THREE.Vector3()).y;
+
+    // ── apply frame 0, then fit the figure to the card ──
+    const s0 = avatar.root.scale.x || 1;
+    const jointY = (b) => b.getWorldPosition(new THREE.Vector3()).y / s0;
+    const groundBind = Math.min(
+      ...[avatar.bones.toeL, avatar.bones.toeR, avatar.bones.footL, avatar.bones.footR]
+        .filter(Boolean).map(jointY));
+    this._solve();
+    avatar.root.updateMatrixWorld(true);
+    // ground correction: keep the stance foot at its bind height even though
+    // Geno's leg proportions differ slightly from the capture subject's.
+    // Applied as a constant world-Y offset riding the same parent-frame
+    // transform as the per-frame bob (below).
+    const groundRef = Math.min(
+      ...[avatar.bones.toeL, avatar.bones.toeR, avatar.bones.footL, avatar.bones.footR]
+        .filter(Boolean).map(jointY));
+    this.groundFix = groundBind - groundRef;
+    // orient the figure PROFILE to the camera (+X): the stride reads best
+    // side-on. Forward = hips → mid-toes, horizontal.
+    const fwd = new THREE.Vector3()
+      .add(avatar.bones.toeL.getWorldPosition(new THREE.Vector3()))
+      .add(avatar.bones.toeR.getWorldPosition(new THREE.Vector3()))
+      .multiplyScalar(0.5)
+      .sub(avatar.bones.hips.getWorldPosition(new THREE.Vector3()));
+    fwd.y = 0;
+    this.rootYaw = 0;
+    if (fwd.lengthSq() > 1e-6) {
+      this.rootYaw = Math.PI / 2 - Math.atan2(fwd.x, fwd.z);
+      avatar.root.rotation.y += this.rootYaw;
+    }
+
+    // Geno's skeleton frames are ~90° rotated from world (FBX-style bone
+    // convention: the Hips' local +Y is world +Z), so the world-space Y
+    // delta must be transformed into the hips' PARENT frame — the same
+    // decomposition AimRig.shift() uses. Captured once, AFTER the yaw above
+    // (it changes the parent's world orientation): the containers don't
+    // move during playback.
+    const par = this.hips.parent;
+    par.updateWorldMatrix(true, false);
+    this._pq0 = new THREE.Quaternion();
+    this._ps0 = new THREE.Vector3();
+    new THREE.Matrix4().copy(par.matrixWorld).decompose(new THREE.Vector3(), this._pq0, this._ps0);
+    this._invQ = new THREE.Quaternion();
+    this._dv = new THREE.Vector3();
+
+    this.time = 0;
+  }
+
+  /** solve Geno locals from the BVH rig's current world quaternions */
+  _solve() {
+    const { pairs, Einv, _gworld, _bq, _tq, _pq, _hq } = this;
+    for (let i = 0; i < pairs.length; i++) {
+      const g = pairs[i][0], b = pairs[i][1];
+      b.getWorldQuaternion(_bq);
+      _tq.copy(_bq).multiply(Einv[i]);              // target world quaternion
+      const parent = g.parent;
+      let pq;
+      if (parent && this.pairIndex.has(parent)) pq = _gworld[this.pairIndex.get(parent)];
+      else if (parent) pq = parent.getWorldQuaternion(_pq);
+      else pq = _hq.identity();
+      g.quaternion.copy(_hq.copy(pq).invert().multiply(_tq));
+      _gworld[i].copy(_tq);
+    }
+  }
+
+  stop() {
+    if (this.dead) return;
+    this.dead = true;
+    this.mixer.stopAllAction();
+    // restore the bind pose + facing so exercise posing resumes cleanly
+    this.pairs.forEach(([g], i) => g.quaternion.copy(this.restQ[i]));
+    if (this.hips) this.hips.position.copy(this.hipsRest);
+    if (this.rootYaw) this.av.root.rotation.y -= this.rootYaw;
+  }
+
+  update(dt) {
+    if (this.dead) return;
+    this.time = (this.time + dt) % this.duration;
+    this.mixer.setTime(this.time);
+    this.holder.updateMatrixWorld(true);
+    this._solve();
+    // hips Y bob + ground fix: world-space delta → hips-parent local
+    // (X/Z travel dropped so the figure walks in place inside a card)
+    const dy = (this.bvhHips.getWorldPosition(this._hp).y - this.hipsRefY) * this.scale + this.groundFix;
+    const s = this.av.root.scale.x || 1;
+    this._dv.set(0, (dy * s) / (this._ps0.y || s), 0)
+      .applyQuaternion(this._invQ.copy(this._pq0).invert());
+    this.hips.position.copy(this.hipsRest).add(this._dv);
   }
 }
