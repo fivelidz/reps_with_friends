@@ -526,6 +526,7 @@ if (modelGrid) {
           ${M.native.map((n) => `<button class="rwf-btn btn--xs" data-native="${n}">${n}</button>`).join('')}
           ${(M.bvh ?? []).map((n) => `<button class="rwf-btn btn--xs" data-bvh="${n}">${n}</button>`).join('')}
           ${M.wardrobeToggle ? WARDROBE_SLOTS.map((s) => `<button class="rwf-btn btn--xs is-on" data-slot="${s}" title="toggle ${s}">${SLOT_LABELS[s]}</button>`).join('') : ''}
+          ${M.wardrobe ? ['squat', 'pushup', 'jumpingjack', 'curl'].map((n) => `<button class="rwf-btn btn--xs" data-ex="${n}" title="pose ${n} — stress-test the clothes">${n === 'pushup' ? 'push-up' : n === 'jumpingjack' ? 'jack' : n}</button>`).join('') : ''}
           <button class="rwf-btn btn--xs" data-native="">exercise</button>
         </div>
       </div>`;
@@ -679,6 +680,26 @@ if (modelGrid) {
           });
         });
       }
+      // per-card exercise switcher (wardrobe cards): stop BVH/native playback
+      // and pose THIS card at the chosen exercise — the stress poses the
+      // clothes must survive (deep squat, prone push-up, arms-up jack, curl).
+      // The card keeps its own exercise until another is picked or the
+      // generic "exercise" button returns it to the global selector.
+      card.querySelectorAll('[data-ex]').forEach((btn) => {
+        btn.addEventListener('click', () => {
+          if (entry.mixer) { entry.mixer.stopAllAction(); entry.mixer = null; entry.action = null; }
+          if (entry.bvh) { entry.bvh.stop(); entry.bvh = null; }
+          entry.exercise = btn.dataset.ex;
+          entry.phase = 0.5;
+          av.pose(entry.exercise, 0.5);
+          card.querySelectorAll('[data-ex]').forEach((b) => b.classList.toggle('is-on', b === btn));
+          card.querySelector('[data-native=""]')?.classList.remove('is-on');
+        });
+      });
+      const clearCardExercise = () => {
+        entry.exercise = null;
+        card.querySelectorAll('[data-ex]').forEach((b) => b.classList.remove('is-on'));
+      };
       // BVH mocap buttons (Geno): world-space retarget of the game's mocap
       // captures onto this card's skeleton. Lazy-loaded on demand — the walk
       // capture is 33 MB, so it is fetched only when the card is first
@@ -687,6 +708,7 @@ if (modelGrid) {
         entry.bvhRequested = true;
         if (entry.mixer) { entry.mixer.stopAllAction(); entry.mixer = null; entry.action = null; }
         if (entry.bvh) { entry.bvh.stop(); entry.bvh = null; }
+        clearCardExercise();
         if (!name) { av.pose(galState.exercise, 0.5); return; }
         try {
           const res = await loadBVH(BVH_FILES[name] ?? name);
@@ -709,7 +731,8 @@ if (modelGrid) {
           const name = btn.dataset.native;
           if (entry.mixer) { entry.mixer.stopAllAction(); entry.mixer = null; entry.action = null; }
           if (entry.bvh) { entry.bvh.stop(); entry.bvh = null; }
-          if (!name) { av.pose(galState.exercise, 0.5); return; } // back to exercise posing
+          if (!name) { clearCardExercise(); av.pose(galState.exercise, 0.5); return; } // back to exercise posing
+          clearCardExercise();
           // reload the gltf for its AnimationClips (cache holds the scene only)
           import('/site/lib/GLTFLoader.js').then(({ GLTFLoader }) =>
             new GLTFLoader().loadAsync(M.file)
@@ -737,17 +760,19 @@ if (modelGrid) {
       } else if (e.bvh) {
         e.bvh.update(dt);                   // BVH mocap playback (Geno)
       } else if (e.avatar && galState.playing) {
-        e.phase = (e.phase + dt / EXERCISES[galState.exercise].cycle) % 1;
-        e.avatar.pose(galState.exercise, e.phase);
+        const ex = e.exercise ?? galState.exercise; // per-card switcher wins
+        e.phase = (e.phase + dt / EXERCISES[ex].cycle) % 1;
+        e.avatar.pose(ex, e.phase);
       }
       e.renderer.render(e.scene, e.cam);
     }
   })(last);
 
-  // re-pose on exercise/build change (build doesn't apply to GLBs)
+  // re-pose on exercise/build change (build doesn't apply to GLBs); a card
+  // with its own exercise picked keeps posing that one
   const galExerciseEl = $('galExercise');
   if (galExerciseEl) galExerciseEl.addEventListener('change', () => {
-    for (const e of modelCards) if (e.avatar && !e.mixer && !e.bvh) e.avatar.pose(galState.exercise, 0.5);
+    for (const e of modelCards) if (e.avatar && !e.mixer && !e.bvh) e.avatar.pose(e.exercise ?? galState.exercise, 0.5);
   });
 
   // Test/automation hook (same pattern as __rwfStudio): lets the CDP verify

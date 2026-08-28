@@ -73,14 +73,16 @@ export const MODELS = [
   { id: 'geno-goblin', name: 'Geno — goblin green', file: '/models/Geno.glb', rig: 'mixamo', native: [], tint: 'goblin' },
   { id: 'geno-human', name: 'Geno — human skin', file: '/models/Geno.glb', rig: 'mixamo', native: [], tint: 'human' },
   { id: 'geno-bvh', name: 'Geno — BVH mocap', file: '/models/Geno.glb', rig: 'mixamo', native: [], bvh: ['walk', 'limp', 'drag', 'one_arm', 'combat'], bvhAuto: 'walk' },
-  // ── Geno Wardrobe: attachable clothes + species heads (geno-wardrobe.js).
-  // Pieces are bone-parented at load, so BVH mocap and exercise poses just
-  // carry them along — the founder's "GENO with clothes and frog heads".
-  { id: 'geno-wardrobe', name: 'Geno Wardrobe — dressed', file: '/models/Geno.glb', rig: 'mixamo', native: [], tint: '#eceef1', wardrobe: 'full', wardrobeToggle: true },
+  // ── Geno Wardrobe: SKINNED clothes + species heads (geno-wardrobe.js).
+  // Tank/shorts are SkinnedMeshes bound to Geno's own skeleton (smooth weight
+  // ramps across the joint chains), so BVH mocap and exercise poses deform
+  // them like skin — no gapping at bent joints. Cards carry the FULL
+  // animation coverage: all 5 BVH captures + the 4 exercise poses.
+  { id: 'geno-wardrobe', name: 'Geno Wardrobe — dressed', file: '/models/Geno.glb', rig: 'mixamo', native: [], tint: '#eceef1', wardrobe: 'full', wardrobeToggle: true, bvh: ['walk', 'limp', 'drag', 'one_arm', 'combat'], bvhAuto: 'walk' },
   { id: 'geno-frog', name: 'Geno Frog — BVH mocap walk', file: '/models/Geno.glb', rig: 'mixamo', native: [], tint: '#86c05a', head: 'frog', bvh: ['walk', 'limp', 'drag', 'one_arm', 'combat'], bvhAuto: 'walk' },
   { id: 'geno-goblinhead', name: 'Geno Goblin — species head', file: '/models/Geno.glb', rig: 'mixamo', native: [], tint: 'goblin', head: 'goblin' },
   { id: 'geno-robot', name: 'Geno Robot — species head', file: '/models/Geno.glb', rig: 'mixamo', native: [], tint: '#c9ced4', head: 'robot' },
-  { id: 'geno-fullkit', name: 'Geno Full Kit — crowned frog, BVH', file: '/models/Geno.glb', rig: 'mixamo', native: [], tint: '#86c05a', head: 'frog-crown', wardrobe: 'full', bvh: ['walk', 'combat'], bvhAuto: 'walk' },
+  { id: 'geno-fullkit', name: 'Geno Full Kit — crowned frog, BVH', file: '/models/Geno.glb', rig: 'mixamo', native: [], tint: '#86c05a', head: 'frog-crown', wardrobe: 'full', bvh: ['walk', 'limp', 'drag', 'one_arm', 'combat'], bvhAuto: 'walk' },
   // ── anyCreature compiled (spec → skinned GLB, vertex-coloured + AO-baked).
   // creature: true → native-anim playback only, no exercise retarget (the rigs
   // are creature skeletons, not mixamo/rigify humanoids).

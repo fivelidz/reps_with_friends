@@ -1,22 +1,45 @@
-// site/models/geno-wardrobe.js — attachable wardrobe + species heads for Geno.
+// site/models/geno-wardrobe.js — GENO's clothes + species heads.
 //
-// The founder's ask: "GENO with clothes and frog heads". Everything here is
-// BONE-PARENTED: each piece is a Group added as a child of the bone it dresses
-// (shorts → UpLeg, tank → Spine chain, head → Head bone), oriented ONCE at
-// attach time from the rig's own bind geometry, then never touched again. BVH
-// mocap playback and the procedural exercise poses only write bone locals, so
-// the wardrobe just rides along — no per-frame coupling, nothing to break.
+// v2 — SKINNED CLOTHES (the founder's verdict on v1: "frog head looks cool but
+// clothes are not working properly on it at all"). v1 parented RIGID meshes to
+// individual bones (shorts → thighs + a hips sphere, tank → separate spine
+// tubes), and rigid segments on bending joints gap, tear and ride up through
+// the mocap — the same failure mode as the early avatar joins. Worse, the tank
+// chain referenced a spine3 key the bone map never exposed, so only ONE of
+// three torso segments ever built: Geno's chest was bare with a "belly band".
 //
-// Placement maths is done in intuitive world-aligned axes: frameOnBone() builds
-// a group whose local +Y matches a given world direction (usually bone→child)
-// and +Z a world forward, so pieces are authored as if in world space ("up the
-// limb", "toward the toes") regardless of Geno's FBX-rotated bone frames.
+// v2 rebuilds the soft garments as SkinnedMeshes bound to GENO'S OWN SKELETON:
 //
-// Proportions are fractions of avatar.H (measured live); the radii below come
-// from measuring Geno's skinned-mesh vertex extents per dominant bone weight
-// (head 0.163w×0.228h×0.206d, thigh r≈0.053H, waist semi-axes 0.075H/0.028H,
-// chest 0.092H/0.073H, foot 0.267 long — H≈1.71 units), so the clothes sit
-// OUTSIDE the body with a believable margin instead of floating or clipping.
+//   • TANK  — one continuous ring tube from just above the belt to a shoulder
+//     yoke, weights ramping smoothly Hips→Spine→Spine1→Spine2→Spine3 (zero
+//     slope at each joint = classic smooth-skin falloff), plus blended sleeve
+//     caps on the upper arms (top ring partly Spine3-weighted so the sleeve
+//     stays anchored at the shoulder while the arm swings — a raglan sleeve).
+//   • SHORTS — one continuous mesh: a pelvis shell (waistband → crotch, rides
+//     the Hips) whose leg tubes start INSIDE the shell and blend Hips→UpLeg
+//     across the upper-thigh rings, so the crotch deforms like fabric instead
+//     of splitting. Continuity is structural: a single skinned mesh cannot
+//     gap, tear, or leave its seam behind.
+//   • Radii are MEASURED live off Geno's own skinned body (per-ring extents of
+//     body vertices by dominant bone, plus a margin) — no more beach-ball
+//     pelvis: v1's sphere was ~1.7× the body's waist because its proportions
+//     were hand-guessed against the wrong reference height.
+//   • Headband / wristbands / sneakers / belt stay BONE-PARENTED (rigid): each
+//     sits across a single bone with no bend inside it, where rigid == 100%
+//     single-bone skinning but cheaper. The belt is re-measured to hug the
+//     waist. Species heads are unchanged (the founder approved those).
+//
+// BIND MATHS (the delicate part):
+//   Geometry is authored in the glTF scene's LOCAL space — the skeleton's bind
+//   space (boneInverses come from the loader at scene-identity; the body's own
+//   bindMatrix is identity, verified by dump). The cloth SkinnedMesh is added
+//   under that scene at identity and bound with an EXPLICIT identity
+//   bindMatrix — never call bind() without one: the undefined-bindMatrix path
+//   recalculates skeleton.boneInverses from the CURRENT pose and would corrupt
+//   the body's skinning. With bindMode 'attached' (three's default) the mesh's
+//   own transform cancels out every frame, so the bones' world matrices place
+//   the fabric exactly as they place the body — BVH mocap, exercise poses and
+//   the prone push-up tilt all carry it along with zero per-frame coupling.
 //
 // Colours are the design tokens (design/tokens.css): lime/coral/amber/sky.
 // Materials: flat MeshLambertMaterial — the same game-art treatment as the
@@ -45,6 +68,13 @@ const lam = (color, extra = {}) =>
 
 const UP = new THREE.Vector3(0, 1, 0);
 const FWD = new THREE.Vector3(0, 0, 1); // model forward — ModelAvatar faces toes +Z
+const XAX = new THREE.Vector3(1, 0, 0);
+const ZAX = new THREE.Vector3(0, 0, 1);
+
+const clamp01 = (t) => Math.min(1, Math.max(0, t));
+/** hermite smoothstep — C1 at both ends, so weight ramps have zero slope at
+ *  joints: the joint's own bone arrives at full weight exactly at the joint */
+const smooth = (t) => { t = clamp01(t); return t * t * (3 - 2 * t); };
 
 // ── rig measurement (all at bind, all live) ──────────────────────────────────
 const _wa = new THREE.Vector3(), _wb = new THREE.Vector3();
@@ -117,79 +147,365 @@ function stripInherited(root) {
   for (const o of doomed) o.parent?.remove(o);
 }
 
+// ── SKINNED-CLOTHING CORE ────────────────────────────────────────────────────
+
+/** Geno's own skin: the body SkinnedMesh's skeleton + a scene-local→bind
+ *  converter. All clothing geometry is authored in THIS space. */
+function genoSkin(av) {
+  const scene = av.prone.children[0];
+  let skeleton = null;
+  scene.traverse((o) => { if (!skeleton && o.isSkinnedMesh && o.skeleton) skeleton = o.skeleton; });
+  if (!skeleton) throw new Error('geno-wardrobe: model has no skinned body to bind clothes to');
+  scene.updateMatrixWorld(true);
+  const toBind = scene.matrixWorld.clone().invert();
+  return { scene, skeleton, toBind };
+}
+
+/** bone by raw glTF name (normBone-style), searched live — reaches joints the
+ *  logical bone map doesn't expose (Geno's Spine3) */
+function findBone(av, rawName) {
+  const norm = (n) => n.replace(/^mixamorig:/, '').replace(/^mixamorig/, '').replace(/[\[\].:/]/g, '');
+  let hit = null;
+  av.prone.children[0].traverse((o) => { if (!hit && o.isBone && norm(o.name) === rawName) hit = o; });
+  return hit;
+}
+
+/** joint position in BIND space (scene-local) */
+function bindPos(bone, toBind, out = new THREE.Vector3()) {
+  return bone.getWorldPosition(out).applyMatrix4(toBind);
+}
+
+/**
+ * Sampled body cloud: bind-space vertex positions tagged with the DOMINANT
+ * bone index AND the full 4-bone weight vector — the measured "how thick is
+ * the body here" oracle that clothing radii are offset from, AND the
+ * deformation profile the clothing INHERITS (ring weights = the average of
+ * the body weights it wraps, so fabric and skin can never disagree at a
+ * bend — the v2.1 stripe-down-the-spine bug was exactly that disagreement).
+ */
+function bodyCloud(skin) {
+  const pts = []; // {x,y,z, b, w: [[boneIndex, weight], …]}
+  skin.scene.traverse((o) => {
+    if (!o.isSkinnedMesh || !o.skeleton || !o.geometry.attributes.skinWeight) return;
+    const P = o.geometry.attributes.position;
+    const SI = o.geometry.attributes.skinIndex;
+    const SW = o.geometry.attributes.skinWeight;
+    const step = Math.max(1, Math.floor(P.count / 5000));
+    for (let i = 0; i < P.count; i += step) {
+      const ks = [
+        [SI.getX(i), SW.getX(i)], [SI.getY(i), SW.getY(i)],
+        [SI.getZ(i), SW.getZ(i)], [SI.getW(i), SW.getW(i)],
+      ];
+      let dom = ks[0];
+      for (const k of ks) if (k[1] > dom[1]) dom = k;
+      pts.push({ x: P.getX(i), y: P.getY(i), z: P.getZ(i), b: dom[0], w: ks });
+    }
+  });
+  return pts;
+}
+
+/** verts within `slab` of a ring plane (dominant bone ∈ boneSet, or all) —
+ *  the exact population a ring wraps, shared by the extent + weight queries */
+function slabVerts(cloud, boneSet, c, n, slab) {
+  const out = [];
+  for (const v of cloud) {
+    if (boneSet && !boneSet.has(v.b)) continue;
+    const dx = v.x - c.x, dy = v.y - c.y, dz = v.z - c.z;
+    if (Math.abs(dx * n.x + dy * n.y + dz * n.z) > slab) continue;
+    out.push(v);
+  }
+  return out;
+}
+
+/** average the body's own skin weights over a vert population → the ring's
+ *  weights. The fabric then deforms EXACTLY like the skin it wraps: at any
+ *  bone bend, ring and surface move together (hand-tuned ramps lag the
+ *  surface and let it poke through — the v2.1 mid-spine stripe). */
+function avgWeights(verts) {
+  const acc = new Map();
+  for (const v of verts) {
+    for (const [bi, w] of v.w) {
+      if (w <= 0.001) continue;
+      acc.set(bi, (acc.get(bi) ?? 0) + w);
+    }
+  }
+  let total = 0;
+  for (const w of acc.values()) total += w;
+  if (total <= 0) return [[0, 1]];
+  const sorted = [...acc.entries()].sort((a, b) => b[1] - a[1]).slice(0, 3);
+  const sum = sorted.reduce((a, [, w]) => a + w, 0);
+  return sorted.map(([bi, w]) => [bi, w / sum]);
+}
+
+/** max extent of cloud points (dominant bone ∈ boneSet, or ALL when null,
+ *  within `slab` of the ring plane) along the ring's e1/e2 axes — the
+ *  measured body semi-axes. All-bone mode is for garments that wrap the
+ *  WHOLE cross-section (shorts at the hips wrap pelvis + both thigh tops —
+ *  the hip saddle is thigh-dominant, so a torso-only query under-measures
+ *  by ~2× and buries the garment inside the body). */
+function ringExtent(cloud, boneSet, c, e1, e2, n, slab) {
+  let rx = 0, rz = 0;
+  for (const v of slabVerts(cloud, boneSet, c, n, slab)) {
+    const dx = v.x - c.x, dy = v.y - c.y, dz = v.z - c.z;
+    const a = Math.abs(dx * e1.x + dy * e1.y + dz * e1.z);
+    const b = Math.abs(dx * e2.x + dy * e2.y + dz * e2.z);
+    if (a > rx) rx = a;
+    if (b > rz) rz = b;
+  }
+  return { rx, rz };
+}
+
+/**
+ * Build one SkinnedMesh from ring strips and bind it to Geno's skeleton.
+ * rings: [{ c, e1, e2, n, rx, rz, w: [[boneIndex, weight], …] (sums to 1) }]
+ * strips: array of ring arrays (each strip is tube-connected internally).
+ */
+function skinnedTube(skin, mat, strips, radial = 18, tag = '') {
+  const pos = [], si = [], sw = [], idx = [];
+  let base = 0;
+  for (const rings of strips) {
+    if (rings.length < 2) continue;
+    for (const r of rings) {
+      for (let k = 0; k < radial; k++) {
+        const a = (k / radial) * Math.PI * 2;
+        const ca = Math.cos(a), sa = Math.sin(a);
+        pos.push(
+          r.c.x + r.rx * ca * r.e1.x + r.rz * sa * r.e2.x,
+          r.c.y + r.rx * ca * r.e1.y + r.rz * sa * r.e2.y,
+          r.c.z + r.rx * ca * r.e1.z + r.rz * sa * r.e2.z,
+        );
+        si.push(r.w[0]?.[0] ?? 0, r.w[1]?.[0] ?? 0, r.w[2]?.[0] ?? 0, 0);
+        sw.push(r.w[0]?.[1] ?? 0, r.w[1]?.[1] ?? 0, r.w[2]?.[1] ?? 0, 0);
+      }
+    }
+    for (let ri = 0; ri < rings.length - 1; ri++) {
+      for (let k = 0; k < radial; k++) {
+        const a = base + ri * radial + k;
+        const b = base + ri * radial + (k + 1) % radial;
+        idx.push(a, a + radial, b, b, a + radial, b + radial);
+      }
+    }
+    base += rings.length * radial;
+  }
+  const g = new THREE.BufferGeometry();
+  g.setAttribute('position', new THREE.Float32BufferAttribute(pos, 3));
+  g.setAttribute('skinIndex', new THREE.Uint16BufferAttribute(si, 4));
+  g.setAttribute('skinWeight', new THREE.Float32BufferAttribute(sw, 4));
+  g.setIndex(idx);
+  g.computeVertexNormals();
+  const m = new THREE.SkinnedMesh(g, mat);
+  m.userData.rwfWardrobe = tag;
+  m.frustumCulled = false; // bind-pose bounds would cull mid-animation
+  skin.scene.add(m);
+  // EXPLICIT identity bindMatrix — see the bind-maths note at the top. The
+  // undefined path would recalc boneInverses from the live pose and corrupt
+  // the body's own skinning.
+  m.bind(skin.skeleton, new THREE.Matrix4());
+  return m;
+}
+
 // ── CLOTHES ──────────────────────────────────────────────────────────────────
-// Each builder attaches piece groups DIRECTLY to their bones (a piece must
-// ride ITS bone through the mocap), and returns the list of attached roots.
-// The slot "container" is that list — a virtual group, NOT a scene node
-// (Object3D.add() reparents, so an outer container would yank pieces off
-// their bones and they'd never render).
 
 function buildShorts(av, colors) {
+  const skin = genoSkin(av);
   const H = av.H;
-  const mat = lam(colors.shorts);
-  const roots = [];
+  const B = av.bones;
+  const cloud = bodyCloud(skin);
+  const hips = B.hips, spine = B.spine;
+  const hipsP = bindPos(hips, skin.toBind), spineP = bindPos(spine, skin.toBind);
 
-  // pelvis shell — engulfs the hips joint so the seat/hip seam reads covered
-  const hips = av.bones.hips, spine = av.bones.spine;
-  const pf = frameOnBone(hips, wdir(hips, spine, new THREE.Vector3()).normalize(), FWD);
-  pf.userData.rwfWardrobe = 'shorts';
-  const pelvis = new THREE.Mesh(new THREE.SphereGeometry(1, 14, 10), mat);
-  pelvis.scale.set(0.125 * H, 0.098 * H, 0.088 * H);
-  pelvis.position.y = 0.028 * H;
-  pf.add(pelvis);
-  roots.push(pf);
+  // pelvis line: hips→spine, extended down past the hips for the seat
+  const line = (y) => {
+    const t = (y - hipsP.y) / Math.max(1e-6, spineP.y - hipsP.y);
+    return new THREE.Vector3().lerpVectors(hipsP, spineP, clamp01(t));
+  };
 
-  // leg tubes — tapered, parented to each thigh, hip → mid-thigh
-  for (const side of ['upLegL', 'upLegR']) {
-    const bone = av.bones[side];
-    if (!bone) continue;
-    const { g: lf, len } = limbFrame(bone);
-    lf.userData.rwfWardrobe = 'shorts';
-    const h = 0.46 * len;
-    const leg = tube(0.063 * H, 0.056 * H, 0.86, h, mat); // taper narrower toward the knee
-    leg.position.y = 0.02 * len + h / 2;
-    lf.add(leg);
-    roots.push(lf);
+  // ── pelvis shell: waistband → seat. The waistband rides UP past the belt
+  //    line to tuck under the tank's bottom ring (belt over shorts over
+  //    skin — no gap band at the waist). Extents AND weights come from ALL
+  //    body verts in each ring's slab: at hip height the cross-section is
+  //    pelvis + both thigh saddles (thigh-dominant — a torso-only query
+  //    under-measures ~2× and buries the shell), and the averaged body
+  //    weights make the shell ride the pelvis exactly like the skin does.
+  const yTop = spineP.y + 0.030 * H;         // tucks under the tank's hem
+  const ySeat = hipsP.y - 0.085 * H;         // full crotch depth — the shell
+  //  bridges the thighs so a wide stride can't open a gap between the legs
+  const margin = 0.018 * H;
+  const shell = [];
+  const N = 8;
+  for (let k = 0; k < N; k++) {
+    const y = yTop + (ySeat - yTop) * (k / (N - 1));
+    const c = line(y);
+    const verts = slabVerts(cloud, null, c, UP, 0.035 * H);
+    const rx = Math.max(...verts.map((v) => Math.abs(v.x - c.x)), 0.05);
+    const rz = Math.max(...verts.map((v) => Math.abs(v.z - c.z)), 0.05);
+    // seat rings (the last two) take the CROTCH SKIN's own weights — the
+    // Hips+both-UpLegs blend cancels a unilateral stride and stays centred
+    // through a bilateral spread (jumping jacks), so the crotch bridge
+    // follows the body instead of tearing open between the abducted thighs
+    const w = k >= N - 2
+      ? avgWeights(verts.filter((v) => Math.abs(v.x - c.x) < 0.055))
+      : avgWeights(verts);
+    shell.push({
+      c, e1: XAX, e2: ZAX, n: UP,
+      rx: rx + margin, rz: rz + margin,
+      w,
+    });
   }
-  return roots;
+
+  // ── leg tubes: top rings INSIDE the shell and wide enough that the pair
+  //    overlaps at the centre (the crotch closes between them). Weights are
+  //    the averaged weights of THIS thigh's verts in each ring's slab — the
+  //    tube follows its own leg exactly, and near the hip the natural
+  //    Hips↔UpLeg blend in Geno's own weights provides the stretch zone.
+  const legStrips = [];
+  for (const [upLegName, kneeName] of [['upLegL', 'legL'], ['upLegR', 'legR']]) {
+    const upLeg = B[upLegName], knee = B[kneeName];
+    if (!upLeg || !knee) continue;
+    const hip = bindPos(upLeg, skin.toBind), kn = bindPos(knee, skin.toBind);
+    const axis = new THREE.Vector3().subVectors(kn, hip);
+    const L = axis.length(); axis.normalize();
+    const n = axis.clone();
+    let e1 = new THREE.Vector3().crossVectors(UP, n);
+    if (e1.lengthSq() < 1e-6) e1 = XAX.clone();
+    e1.normalize();
+    const e2 = new THREE.Vector3().crossVectors(n, e1).normalize();
+    const legSet = new Set([skin.skeleton.bones.indexOf(upLeg)]);
+    const rings = [];
+    const ts = [0.10, 0.20, 0.32, 0.44, 0.56];   // along the thigh
+    for (let k = 0; k < ts.length; k++) {
+      const c = new THREE.Vector3().copy(hip).addScaledVector(axis, ts[k] * L);
+      const verts = slabVerts(cloud, legSet, c, n, 0.045 * H);
+      const rx = Math.max(...verts.map((v) => Math.abs((v.x - c.x) * e1.x + (v.y - c.y) * e1.y + (v.z - c.z) * e1.z)), 0.04);
+      const rz = Math.max(...verts.map((v) => Math.abs((v.x - c.x) * e2.x + (v.y - c.y) * e2.y + (v.z - c.z) * e2.z)), 0.04);
+      const m = 0.015 * H;
+      // top rings get a floor radius so the pair overlaps at the crotch
+      const floor = k <= 1 ? 0.085 * H : 0.05 * H;
+      rings.push({
+        c, e1, e2, n,
+        rx: Math.max(rx + m, floor),
+        rz: Math.max(rz + m, floor * 0.95),
+        w: avgWeights(verts),
+      });
+    }
+    legStrips.push(rings);
+  }
+
+  const mesh = skinnedTube(skin, lam(colors.shorts, { side: THREE.DoubleSide }), [shell, ...legStrips], 18, 'shorts');
+  return [mesh];
 }
 
 function buildTank(av, colors) {
+  const skin = genoSkin(av);
   const H = av.H;
-  const mat = lam(colors.tank);
-  const roots = [];
+  const B = av.bones;
+  const cloud = bodyCloud(skin);
+  const spine3 = findBone(av, 'Spine3') ?? B.spine2; // Geno has it; map doesn't
+  const chainBones = [B.hips, B.spine, B.spine1, B.spine2, spine3].filter(Boolean);
+  const torsoSet = new Set(chainBones.map((b) => skin.skeleton.bones.indexOf(b)));
+  const chain = chainBones.map((b) => {
+    const p = bindPos(b, skin.toBind);
+    return { bone: b, p, y: p.y };
+  });
+  const spineP = chain[1].p, spine3P = chain[chain.length - 1].p;
+  const neckP = bindPos(B.neck, skin.toBind);
+  const armL = B.armL, armR = B.armR;
+  const shoulderY = (armL && armR)
+    ? (bindPos(armL, skin.toBind).y + bindPos(armR, skin.toBind).y) / 2
+    : spine3P.y + 0.11 * H;
 
-  // stacked tubes on the spine chain — bends with Spine1/2/3 during squats
-  const chain = [
-    ['spine1', 'spine2', 0.089, 0.046, 0.098, 0.062], // waist → (semi-axes ×H)
-    ['spine2', 'spine3', 0.098, 0.068, 0.104, 0.082],
-    ['spine3', 'neck', 0.104, 0.082, 0.108, 0.09],    // chest, shoulder-width top
-  ];
-  for (const [aName, bName, rxB, rzB, rxT, rzT] of chain) {
-    const a = av.bones[aName], b = av.bones[bName];
-    if (!a || !b) continue;
-    const { g: sf } = limbFrame(a);
-    sf.userData.rwfWardrobe = 'tank';
-    const len = wdir(a, b, new THREE.Vector3()).length();
-    const h = len + 0.075 * H; // overlap the joints so no skin peeks through
-    const seg = tube(rxB * H, rzB * H, rxT / rxB, h, mat);
-    seg.position.y = -0.03 * H + h / 2;
-    sf.add(seg);
-    roots.push(sf);
+  // torso line: piecewise through the chain joints (x/z drift with the spine)
+  const line = (y) => {
+    if (y <= chain[0].y) return chain[0].p.clone();
+    for (let k = 0; k < chain.length - 1; k++) {
+      if (y >= chain[k].y && y <= chain[k + 1].y) {
+        const t = smooth((y - chain[k].y) / Math.max(1e-6, chain[k + 1].y - chain[k].y));
+        return new THREE.Vector3().lerpVectors(chain[k].p, chain[k + 1].p, t);
+      }
+    }
+    return chain[chain.length - 1].p.clone();
+  };
+
+  // ── torso tube: belt top → shoulder yoke. Radii measured from TORSO
+  //    verts (arms excluded — the tank must not follow them); weights are
+  //    the AVERAGED body weights of those same verts, so the tank bends
+  //    with the spine exactly as the skin does — no lag, no poke-through.
+  const y0 = spineP.y + 0.022 * H;                    // just above the belt
+  const y1 = Math.min(neckP.y - 0.030 * H, shoulderY + 0.012 * H); // yoke
+  const N = 18;
+  const slab = ((y1 - y0) / (N - 1)) * 1.4;
+  const torso = [];
+  const raw = [];
+  const wts = [];
+  for (let k = 0; k < N; k++) {
+    const y = y0 + (y1 - y0) * (k / (N - 1));
+    const c = line(y);
+    const verts = slabVerts(cloud, torsoSet, c, UP, slab);
+    raw.push({
+      rx: Math.max(...verts.map((v) => Math.abs(v.x - c.x)), 0.03),
+      rz: Math.max(...verts.map((v) => Math.abs(v.z - c.z)), 0.03),
+    });
+    wts.push(avgWeights(verts));
+  }
+  // 1-2-1 smooth the measured profile (sparse sampling noise → smooth fabric)
+  const sm = raw.map((_, k) => {
+    const a = raw[Math.max(0, k - 1)], b = raw[k], c = raw[Math.min(N - 1, k + 1)];
+    return { rx: (a.rx + 2 * b.rx + c.rx) / 4, rz: (a.rz + 2 * b.rz + c.rz) / 4 };
+  });
+  for (let k = 0; k < N; k++) {
+    const y = y0 + (y1 - y0) * (k / (N - 1));
+    const f = k / (N - 1);
+    const margin = (0.013 + 0.008 * f) * H; // a touch more room at the chest
+    const c = line(y);
+    let rx = sm[k].rx + margin;
+    let rz = sm[k].rz + margin;
+    // shoulder yoke: the last ring flares to clear the shoulder joints so the
+    // arm rotates INSIDE the tank wall (the sleeve covers the pierce point)
+    if (k === N - 1 && armL && armR) {
+      const sx = Math.max(Math.abs(bindPos(armL, skin.toBind).x - c.x), Math.abs(bindPos(armR, skin.toBind).x - c.x));
+      rx = Math.max(rx, sx + 0.012 * H);
+    }
+    torso.push({ c, e1: XAX, e2: ZAX, n: UP, rx, rz, w: wts[k] });
   }
 
-  // shoulder caps — short tubes on the upper arms so the shoulder seam reads
-  for (const side of ['armL', 'armR']) {
-    const bone = av.bones[side];
-    if (!bone) continue;
-    const { g: af, len } = limbFrame(bone);
-    af.userData.rwfWardrobe = 'tank';
-    const cap = tube(0.052 * H, 0.042 * H, 0.92, 0.34 * len, mat);
-    cap.position.y = 0.16 * len;
-    af.add(cap);
-    roots.push(af);
+  // ── sleeve caps: rings along each upper arm. Weights = averaged weights
+  //    of the arm verts in each ring's slab — Geno already blends the
+  //    shoulder-area arm verts with Spine3, so the sleeve anchors itself at
+  //    the shoulder and follows the arm exactly like the skin does.
+  const sleeves = [];
+  for (const armName of ['armL', 'armR']) {
+    const arm = B[armName];
+    const fore = B[armName === 'armL' ? 'foreL' : 'foreR'];
+    if (!arm || !fore) continue;
+    const sh = bindPos(arm, skin.toBind), el = bindPos(fore, skin.toBind);
+    const axis = new THREE.Vector3().subVectors(el, sh);
+    const L = axis.length(); axis.normalize();
+    const n = axis.clone();
+    let e1 = new THREE.Vector3().crossVectors(UP, n);
+    if (e1.lengthSq() < 1e-6) e1 = XAX.clone();
+    e1.normalize();
+    const e2 = new THREE.Vector3().crossVectors(n, e1).normalize();
+    const armSet = new Set([skin.skeleton.bones.indexOf(arm)]);
+    const ts = [0.05, 0.16, 0.30, 0.46];      // along the upper arm
+    const rings = [];
+    for (let k = 0; k < ts.length; k++) {
+      const c = new THREE.Vector3().copy(sh).addScaledVector(axis, ts[k] * L);
+      const verts = slabVerts(cloud, armSet, c, n, 0.05 * H);
+      const rx = Math.max(...verts.map((v) => Math.abs((v.x - c.x) * e1.x + (v.y - c.y) * e1.y + (v.z - c.z) * e1.z)), 0.03);
+      const rz = Math.max(...verts.map((v) => Math.abs((v.x - c.x) * e2.x + (v.y - c.y) * e2.y + (v.z - c.z) * e2.z)), 0.03);
+      const m = 0.014 * H;
+      rings.push({
+        c, e1, e2, n,
+        rx: rx * (1 - 0.08 * k) + m,
+        rz: rz * (1 - 0.08 * k) + m,
+        w: avgWeights(verts),
+      });
+    }
+    sleeves.push(rings);
   }
-  return roots;
+
+  const mesh = skinnedTube(skin, lam(colors.tank, { side: THREE.DoubleSide }), [torso, ...sleeves], 18, 'tank');
+  return [mesh];
 }
 
 function buildHeadband(av, colors) {
@@ -250,13 +566,30 @@ function buildSneakers(av, colors) {
 
 function buildBelt(av, colors) {
   const H = av.H;
+  const skin = genoSkin(av);
+  const cloud = bodyCloud(skin);
+  const idx = (bone) => skin.skeleton.bones.indexOf(bone);
   const hips = av.bones.hips, spine = av.bones.spine;
+  const hipsP = bindPos(hips, skin.toBind), spineP = bindPos(spine, skin.toBind);
+  // measure the waist where the belt sits: just above the Spine joint, where
+  // the shorts' waistband top ring is — the belt hugs the SAME measured body
+  const yB = spineP.y - 0.004 * H;
+  const c = new THREE.Vector3().lerpVectors(hipsP, spineP, (yB - hipsP.y) / Math.max(1e-6, spineP.y - hipsP.y));
+  const { rx, rz } = ringExtent(cloud, null, c, XAX, ZAX, UP, 0.03 * H);
+  const Rx = Math.max((rx || 0.07) + 0.014 * H, 0.08);
+  const Rz = Math.max((rz || 0.06) + 0.014 * H, 0.07);
+
   const g = frameOnBone(hips, wdir(hips, spine, new THREE.Vector3()).normalize(), FWD);
   g.userData.rwfWardrobe = 'belt';
-  const belt = new THREE.Mesh(new THREE.TorusGeometry(0.128 * H, 0.017 * H, 8, 20), lam(colors.belt));
+  const belt = new THREE.Mesh(new THREE.TorusGeometry(Rx, 0.016 * H, 8, 24), lam(colors.belt));
   belt.rotation.x = Math.PI / 2;
-  belt.scale.z = 0.72; // elliptical — the body is deeper than wide at the waist? no: narrower
-  belt.position.y = 0.075 * H;
+  belt.scale.z = Rz / Rx; // elliptical to the measured waist
+  // place along the hips→spine axis at the measured height
+  const up = wdir(hips, spine, new THREE.Vector3()).normalize();
+  const beltH = hipsP.distanceTo(spineP) > 1e-6
+    ? (yB - hipsP.y) / Math.max(1e-6, spineP.y - hipsP.y) * hipsP.distanceTo(spineP)
+    : 0.09 * H;
+  belt.position.y = beltH;
   g.add(belt);
   // charity-pot charm: a tiny amber pot hanging at the right-front hip
   const charm = new THREE.Group();
@@ -265,7 +598,7 @@ function buildBelt(av, colors) {
   pot.scale.y = 0.8;
   pot.position.y = -0.03 * H;
   charm.add(loop, pot);
-  charm.position.set(0.082 * H, 0.058 * H, 0.086 * H);
+  charm.position.set(Rx * 0.62, beltH + 0.004 * H, Rz * 0.72);
   g.add(charm);
   return g;
 }
