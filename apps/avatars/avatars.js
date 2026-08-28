@@ -25,6 +25,69 @@ const cap = (s) => s.charAt(0).toUpperCase() + s.slice(1);
 // "freeze mid-rep" affordance uses this, so screenshots are comparable.
 const MID_REP = 0.52;
 
+// ─────────────────────────────────────────────────────────────────────────────
+// PAGE-WIDE WEBGL CONTEXT BUDGET
+// Chrome hard-caps live WebGL contexts (~16) and force-LOSTS the oldest when a
+// new one pushes over — the evicted card's canvas renders black/blank forever:
+// its IntersectionObserver never refires while the card stays on screen, so
+// nothing ever recreates the context (verified headless: "Too many active
+// WebGL contexts. Oldest context will be lost" ×20+ during one browse, with
+// whole cards reading 0 drawn pixels). The per-section lazy release (3s
+// off-screen) is not enough on its own: while scrolling, everything you just
+// passed is still inside its 3s grace and stacks up with the sections above.
+// One page-wide pressure valve: before ANY renderer is created, release the
+// oldest OFF-SCREEN live renderers until the page is under budget; plus a
+// watchdog that cycles any visible card whose context died anyway.
+const CTX_BUDGET = 12; // headroom under Chrome's ~16 cap for transient overlap
+const ctxHolders = []; // { el, gl(), release(), ensure() }
+function ctxRegister(h) { ctxHolders.push(h); }
+/** live (non-lost) contexts among REGISTERED holders — never touches unknown
+ *  canvases (getContext on a context-less canvas would CREATE one) */
+function ctxCountLive() {
+  let n = 0;
+  for (const h of ctxHolders) { const gl = h.gl(); if (gl && !gl.isContextLost()) n++; }
+  return n;
+}
+function ctxOnScreen(el) {
+  const r = el.getBoundingClientRect();
+  return r.bottom > 0 && r.top < innerHeight && r.right > 0 && r.left < innerWidth;
+}
+/** release oldest off-screen holders until under budget (registration order ≈
+ *  document order, the same "oldest" the browser would evict — but only ones
+ *  the user can't see, whose 3s timer would have released them anyway) */
+function ctxMakeRoom() {
+  for (const h of ctxHolders) {
+    if (ctxCountLive() <= CTX_BUDGET) break;
+    const gl = h.gl();
+    if (!gl || gl.isContextLost() || ctxOnScreen(h.el)) continue;
+    h.release();
+  }
+}
+/** register + pre-create hook for an AvatarScene (style cards, presets, viewer).
+ *  Wraps the instance's own _ensureRenderer so the valve runs before ITS
+ *  context creation too — without touching site/avatars.js. */
+function ctxGuardScene(sc) {
+  if (!sc || sc.dead) return;
+  const orig = sc._ensureRenderer?.bind(sc);
+  if (orig) sc._ensureRenderer = () => { ctxMakeRoom(); orig(); };
+  ctxRegister({
+    el: sc.mount,
+    gl: () => sc.renderer?.getContext?.() ?? null,
+    release: () => sc._releaseRenderer?.(),
+    ensure: () => sc._ensureRenderer?.(),
+  });
+}
+// watchdog: a visible card with a lost context cycles its renderer and comes
+// back within ~2s instead of staying black until the user scrolls away.
+setInterval(() => {
+  for (const h of ctxHolders) {
+    const gl = h.gl();
+    if (!gl || !gl.isContextLost() || !ctxOnScreen(h.el)) continue;
+    h.release();
+    h.ensure();
+  }
+}, 2000);
+
 function fillSelect(el, values, labels) {
   el.innerHTML = values
     .map((v, i) => `<option value="${v}">${(labels && labels[i]) || cap(v)}</option>`)
@@ -88,6 +151,7 @@ for (const style of STYLE_LIST) {
 
   const entry = { style, card, scene, cfg };
   galCards.push(entry);
+  ctxGuardScene(scene);
 
   if (scene.dead) {
     card.querySelector('.style-stage').innerHTML =
@@ -193,6 +257,7 @@ const viewer = new AvatarScene({
   spacing: 0.62, fov: 30, orbit: true, ground: true,
   frameAll: true, frameMargin: 1.10,
 });
+ctxGuardScene(viewer);
 
 if (viewer.dead) {
   $('stage').innerHTML = '<p style="padding:24px;color:var(--muted)">WebGL unavailable — the studio needs it.</p>';
@@ -446,6 +511,7 @@ for (const p of PRESETS) {
     avatars: [cfg],
     fov: 32, ground: true, frameAll: true, frameMargin: 1.20,
   });
+  ctxGuardScene(scene);
   if (!scene.dead) { scene.start(); presetScenes.push(scene); }
 
   btn.addEventListener('click', () => {
@@ -559,6 +625,7 @@ if (modelGrid) {
     let cardVisible = false; // first-intersection gate for the auto-BVH fetch
     const ensureRenderer = () => {
       if (entry.renderer) return;
+      ctxMakeRoom(); // page-wide context budget — never push the browser over its cap
       try {
         const r = new THREE.WebGLRenderer({ antialias: true, alpha: true });
         r.setPixelRatio(Math.min(devicePixelRatio, 2));
@@ -579,6 +646,12 @@ if (modelGrid) {
       entry.renderer.domElement.remove();
       entry.renderer = null;
     };
+    ctxRegister({
+      el: card,
+      gl: () => entry.renderer?.getContext?.() ?? null,
+      release: releaseRenderer,
+      ensure: ensureRenderer,
+    });
     new IntersectionObserver((es) => {
       const vis = es[0].isIntersecting;
       clearTimeout(releaseTimer);
@@ -649,7 +722,9 @@ if (modelGrid) {
       // clearWardrobe once up front — attachHead must not strip a fresh wardrobe.
       if (M.wardrobe || M.head) {
         clearWardrobe(av);
-        if (M.wardrobe) entry.wardrobe = attachWardrobe(av, { slots: M.wardrobe });
+        // fabric secondary motion: verlet hems on the tank + shorts leg
+        // openings — disabled under prefers-reduced-motion (static drape)
+        if (M.wardrobe) entry.wardrobe = attachWardrobe(av, { slots: M.wardrobe, fabric: !REDUCED });
         if (M.head) entry.speciesHead = attachHead(av, M.head);
       }
       // normalise scale to ~1.5 units tall so all cards share a camera
@@ -755,6 +830,7 @@ if (modelGrid) {
     const dt = Math.min(0.05, (now - last) / 1000); last = now;
     for (const e of modelCards) {
       if (!e.ok || !e.renderer) continue;   // renderer is lazy — may be released
+      const t0 = performance.now();         // per-card frame cost (pose + fabric + render)
       if (e.mixer) {
         e.mixer.update(dt);
       } else if (e.bvh) {
@@ -764,7 +840,16 @@ if (modelGrid) {
         e.phase = (e.phase + dt / EXERCISES[ex].cycle) % 1;
         e.avatar.pose(ex, e.phase);
       }
+      // fabric secondary motion: step the hem sims AFTER the pose/mocap update
+      // (they pin to the freshly-skinned garment edges), BEFORE the render.
+      // Frozen when reduced-motion is set or the card has nothing animating
+      // (gallery paused + no BVH/native playback) — hems drape statically.
+      if (e.wardrobe) {
+        const animating = !!(e.mixer || e.bvh) || galState.playing;
+        e.wardrobe.updateFabric(dt, REDUCED || !animating);
+      }
       e.renderer.render(e.scene, e.cam);
+      e.renderMs = (e.renderMs ?? 0) * 0.9 + (performance.now() - t0) * 0.1; // EMA, for the perf harness
     }
   })(last);
 
@@ -961,6 +1046,7 @@ if (modelGrid) {
     // LAZY WebGL context — create on intersection, release 3s off-screen
     const ensureRenderer = () => {
       if (entry.renderer) return;
+      ctxMakeRoom(); // page-wide context budget — never push the browser over its cap
       try {
         const r = new THREE.WebGLRenderer({ antialias: true });
         r.setPixelRatio(Math.min(devicePixelRatio, 2));
@@ -983,6 +1069,12 @@ if (modelGrid) {
       entry.renderer.domElement.remove();
       entry.renderer = null;
     };
+    ctxRegister({
+      el: card,
+      gl: () => entry.renderer?.getContext?.() ?? null,
+      release: releaseRenderer,
+      ensure: ensureRenderer,
+    });
     new IntersectionObserver((es) => {
       const vis = es[0].isIntersecting;
       clearTimeout(entry.releaseTimer);

@@ -262,9 +262,11 @@ function ringExtent(cloud, boneSet, c, e1, e2, n, slab) {
  */
 function skinnedTube(skin, mat, strips, radial = 18, tag = '') {
   const pos = [], si = [], sw = [], idx = [];
+  const layout = [];   // per-strip vertex map — hem pinning needs ring vertices
   let base = 0;
   for (const rings of strips) {
-    if (rings.length < 2) continue;
+    if (rings.length < 2) { layout.push(null); continue; }
+    layout.push({ start: base, ringCount: rings.length });
     for (const r of rings) {
       for (let k = 0; k < radial; k++) {
         const a = (k / radial) * Math.PI * 2;
@@ -295,6 +297,7 @@ function skinnedTube(skin, mat, strips, radial = 18, tag = '') {
   g.computeVertexNormals();
   const m = new THREE.SkinnedMesh(g, mat);
   m.userData.rwfWardrobe = tag;
+  m.userData.rwfLayout = { radial, layout };
   m.frustumCulled = false; // bind-pose bounds would cull mid-animation
   skin.scene.add(m);
   // EXPLICIT identity bindMatrix — see the bind-maths note at the top. The
@@ -302,6 +305,270 @@ function skinnedTube(skin, mat, strips, radial = 18, tag = '') {
   // the body's own skinning.
   m.bind(skin.skeleton, new THREE.Matrix4());
   return m;
+}
+
+// ── FABRIC SECONDARY MOTION ──────────────────────────────────────────────────
+// The garments above are weight-inherited SkinnedMeshes — they follow the body
+// EXACTLY, which is correct but stiff: real fabric lags, flares and settles.
+// Each hem (the tank's hem, both shorts leg openings) additionally gets a
+// light verlet cloth strip:
+//
+//   • 12 particles around × 2 free rings = 24 simulated particles per hem
+//     (72 per fully-dressed card — deliberate "tiny", the gallery renders
+//     20+ cards from one rAF loop).
+//   • The TOP ring is pinned to the skinned garment's bottom edge, sampled by
+//     CPU-skinning the garment's own ring vertices each frame
+//     (SkinnedMesh.applyBoneTransform — the exact shader maths, so the pin
+//     follows BVH mocap / exercise poses / the prone tilt precisely).
+//   • Free rings integrate under scaled gravity with heavy damping (fabric
+//     that settles, not a flag), held by structural (vertical + ring
+//     circumference) and shear constraints, and pushed out of bone-segment
+//     capsules (thighs for the shorts hems; pelvis + thighs for the tank hem)
+//     approximated as distance constraints.
+//   • Motion reactivity comes free: the anchors ride the bones, so strides
+//     SWING the hems (they lag a frame behind the thigh), squats FLARE them
+//     (thigh capsules shove the fabric outward as they rotate up), and at
+//     rest everything hangs still. Amplitude is tuned subtle: ~2-4 cm of
+//     lag/settle at human scale, never billowing.
+//
+// The strip is a plain (non-skinned) Mesh whose position attribute is
+// rewritten every frame — world-space sim, written back through the mesh's
+// inverse world matrix so it inherits the prone/root transforms for free.
+
+const HEM_STEP = 1 / 90;   // fixed sim substep (s) — verlet hates varying dt
+const HEM_DAMP = 0.82;     // per-substep damping — low enough that strides swing
+                           // the hems, high enough that they settle in ~½ s
+const HEM_ITERS = 3;       // constraint relaxation iterations per substep
+const HEM_SHEAR = 0.35;    // shear stiffness < 1: the strip may skew (sway)
+                           // without changing circumference
+const HEM_STRUCT = 0.22;   // vertical structure stiffness: a FULL-strength
+                           // anchor constraint snaps the hem onto the bone
+                           // motion every substep — the sim reads rigid (measured:
+                           // ~0.5 cm flex). Soft verticals give the strip real
+                           // inertia: it lags the stride, then settles.
+
+class HemCloth {
+  /**
+   * spec: {
+   *   garment: SkinnedMesh (pins read its bottom ring),
+   *   ringStart: flat vertex index of the pin ring's column 0,
+   *   columns: hem particles around (12), rows: free rings (2),
+   *   gap: ring spacing in scene (bind) units,
+   *   capsules: [{ a: Bone, b: Bone, r: radius scene units }],
+   *   tag: wardrobe slot tag, scene: skin scene (parent), height: av.H,
+   * }
+   */
+  constructor(spec) {
+    const { garment, ringStart, radial, columns: C, rows: R, gap } = spec;
+    this.spec = spec;
+    this.C = C; this.R = R; this.gap = gap;
+    this.frozen = false; this.seeded = false; this.acc = 0; this.dead = false;
+
+    // ── pin ring sampling: bind positions + (j0, j1, blend) per column.
+    // The garment ring has `radial` verts; the hem wants C columns — sample
+    // the ring ellipse at C angles by blending the two nearest ring verts.
+    const posA = garment.geometry.attributes.position;
+    this.pinCols = [];
+    this.pinBind = [];
+    for (let k = 0; k < C; k++) {
+      const u = (k / C) * radial;
+      const j0 = Math.floor(u) % radial, j1 = (j0 + 1) % radial, f = u - Math.floor(u);
+      this.pinCols.push([ringStart + j0, ringStart + j1, f]);
+      const a = new THREE.Vector3().fromBufferAttribute(posA, ringStart + j0);
+      const b = new THREE.Vector3().fromBufferAttribute(posA, ringStart + j1);
+      this.pinBind.push(a.lerp(b, f)); // scene-space bind anchor
+    }
+
+    // ── constraints (rest lengths in scene units, scaled at solve time)
+    // flat particle index i = row*C + col; row 0 is the pin ring (immovable)
+    // By default the free rings keep the pin ring's circumference (a cylinder
+    // hem, e.g. the shorts legs). A skirt hem that drapes OVER something wider
+    // (the tank over the shorts waistband) passes restRadius instead, so the
+    // ring constraints and the collision capsule agree at rest.
+    let chordR = 0;
+    {
+      const ctr = new THREE.Vector3();
+      for (const v of this.pinBind) ctr.add(v);
+      ctr.multiplyScalar(1 / C);
+      for (const v of this.pinBind) chordR += v.distanceTo(ctr);
+      chordR /= C; // mean ring radius (ellipses: close enough for a chord rest)
+    }
+    const ringR = spec.restRadius ?? chordR;
+    const chord = 2 * ringR * Math.sin(Math.PI / C);
+    const diag = Math.hypot(chord, gap);
+    this.cons = []; // [i, j, restScene, stiffness]
+    for (let r = 0; r < R; r++) {
+      for (let k = 0; k < C; k++) {
+        const i = r * C + k;
+        this.cons.push([i, i + C, gap, HEM_STRUCT]);                  // vertical structure
+        this.cons.push([i, r * C + (k + 1) % C, chord, 1]);           // ring circumference
+        this.cons.push([i, (r + 1) * C + (k + 1) % C, diag, HEM_SHEAR]); // shear
+        this.cons.push([(r + 1) * C + k, r * C + (k + 1) % C, diag, HEM_SHEAR]); // shear′
+      }
+    }
+
+    // ── world-space state: rows 0..R × C. Row 0 mirrors the anchors.
+    const N = (R + 1) * C;
+    this.p = new Float32Array(N * 3);  // positions (world)
+    this.q = new Float32Array(N * 3);  // previous positions (velocity carry)
+
+    // ── the visible strip: plain Mesh, positions rewritten every frame
+    const g = new THREE.BufferGeometry();
+    this.gpos = new Float32Array(N * 3);
+    g.setAttribute('position', new THREE.BufferAttribute(this.gpos, 3).setUsage(THREE.DynamicDrawUsage));
+    const idx = [];
+    for (let r = 0; r < R; r++) {
+      for (let k = 0; k < C; k++) {
+        const a = r * C + k, b = r * C + (k + 1) % C;
+        const c = (r + 1) * C + k, d = (r + 1) * C + (k + 1) % C;
+        idx.push(a, c, b, b, c, d);
+      }
+    }
+    g.setIndex(idx);
+    g.computeVertexNormals();
+    this.mesh = new THREE.Mesh(g, garment.material); // shares the garment's colour
+    this.mesh.userData.rwfWardrobe = spec.tag;
+    this.mesh.frustumCulled = false; // bounds are stale until the first write
+    spec.scene.add(this.mesh);
+
+    // scratch
+    this._v = new THREE.Vector3();
+    this._a = new THREE.Vector3();
+    this._b = new THREE.Vector3();
+    this._inv = new THREE.Matrix4();
+    this._capA = new THREE.Vector3();
+    this._capB = new THREE.Vector3();
+  }
+
+  /** CPU-skin the garment's pin ring → world-space anchors into p[row 0] */
+  _updateAnchors() {
+    const { garment } = this.spec;
+    const mw = garment.matrixWorld;
+    const C = this.C;
+    for (let k = 0; k < C; k++) {
+      const [vi0, vi1, f] = this.pinCols[k];
+      this._a.fromBufferAttribute(garment.geometry.attributes.position, vi0);
+      garment.applyBoneTransform(vi0, this._a);
+      this._b.fromBufferAttribute(garment.geometry.attributes.position, vi1);
+      garment.applyBoneTransform(vi1, this._b);
+      this._a.lerp(this._b, f).applyMatrix4(mw);
+      const o = k * 3;
+      this.p[o] = this._a.x; this.p[o + 1] = this._a.y; this.p[o + 2] = this._a.z;
+    }
+  }
+
+  /** push free particles out of the bone capsules + off the floor */
+  _collide(scale) {
+    const { p, C, R } = this;
+    const caps = this.spec.capsules;
+    for (const cap of caps) {
+      cap.a.getWorldPosition(this._capA);
+      cap.b.getWorldPosition(this._capB);
+      const rad = cap.r * scale;
+      const abx = this._capB.x - this._capA.x, aby = this._capB.y - this._capA.y, abz = this._capB.z - this._capA.z;
+      const ab2 = abx * abx + aby * aby + abz * abz || 1e-9;
+      for (let i = C; i < (R + 1) * C; i++) {
+        const o = i * 3;
+        const px = p[o] - this._capA.x, py = p[o + 1] - this._capA.y, pz = p[o + 2] - this._capA.z;
+        let t = (px * abx + py * aby + pz * abz) / ab2;
+        t = t < 0 ? 0 : t > 1 ? 1 : t;
+        const qx = this._capA.x + abx * t, qy = this._capA.y + aby * t, qz = this._capA.z + abz * t;
+        let dx = p[o] - qx, dy = p[o + 1] - qy, dz = p[o + 2] - qz;
+        const d2 = dx * dx + dy * dy + dz * dz;
+        if (d2 < rad * rad) {
+          const d = Math.sqrt(d2) || 1e-6;
+          const push = (rad - d) / d;
+          p[o] += dx * push; p[o + 1] += dy * push; p[o + 2] += dz * push;
+        }
+      }
+    }
+    for (let i = C; i < (R + 1) * C; i++) { // floor (push-up prone drapes hems low)
+      const o = i * 3 + 1;
+      if (p[o] < 0.006) p[o] = 0.006;
+    }
+  }
+
+  _substep(g, scale) {
+    const { p, q, C, R } = this;
+    const h2 = HEM_STEP * HEM_STEP;
+    // integrate free rows (row 0 is anchors — never integrated)
+    for (let i = C; i < (R + 1) * C; i++) {
+      const o = i * 3;
+      for (let d = 0; d < 3; d++) {
+        const cur = p[o + d];
+        p[o + d] = cur + (cur - q[o + d]) * HEM_DAMP;
+        q[o + d] = cur;
+      }
+      p[o + 1] -= g * h2; // gravity (world)
+    }
+    // relax constraints (rest lengths scaled from scene to world units)
+    const cons = this.cons;
+    for (let it = 0; it < HEM_ITERS; it++) {
+      for (let c = 0; c < cons.length; c++) {
+        const [i, j, rest, stiff = 1] = cons[c];
+        const oi = i * 3, oj = j * 3;
+        const dx = p[oj] - p[oi], dy = p[oj + 1] - p[oi + 1], dz = p[oj + 2] - p[oi + 2];
+        const dist = Math.sqrt(dx * dx + dy * dy + dz * dz) || 1e-9;
+        const diff = (dist - rest * scale) / dist * stiff;
+        const iFree = i >= C, jFree = j >= C;
+        if (iFree && jFree) {
+          const half = diff * 0.5;
+          p[oi] += dx * half; p[oi + 1] += dy * half; p[oi + 2] += dz * half;
+          p[oj] -= dx * half; p[oj + 1] -= dy * half; p[oj + 2] -= dz * half;
+        } else if (jFree) { // i is the pinned anchor — j takes the full correction
+          p[oj] -= dx * diff; p[oj + 1] -= dy * diff; p[oj + 2] -= dz * diff;
+        } else if (iFree) {
+          p[oi] += dx * diff; p[oi + 1] += dy * diff; p[oi + 2] += dz * diff;
+        }
+      }
+    }
+    this._collide(scale);
+  }
+
+  /** hang the free rings straight down from the anchors (seed / frozen pose) */
+  _drape(scale) {
+    const { p, q, C, R, gap } = this;
+    for (let r = 1; r <= R; r++) {
+      for (let k = 0; k < C; k++) {
+        const o = (r * C + k) * 3, a = k * 3;
+        p[o] = p[a];
+        p[o + 1] = p[a + 1] - gap * r * scale;
+        p[o + 2] = p[a + 2];
+        q[o] = p[o]; q[o + 1] = p[o + 1]; q[o + 2] = p[o + 2]; // zero velocity
+      }
+    }
+    this._collide(scale);
+  }
+
+  /** world positions → mesh-local, then normals */
+  _write() {
+    this.mesh.updateWorldMatrix(true, false);
+    this._inv.copy(this.mesh.matrixWorld).invert();
+    const { p, gpos, C, R } = this;
+    const n = (R + 1) * C;
+    for (let i = 0; i < n; i++) {
+      const o = i * 3;
+      this._v.set(p[o], p[o + 1], p[o + 2]).applyMatrix4(this._inv);
+      gpos[o] = this._v.x; gpos[o + 1] = this._v.y; gpos[o + 2] = this._v.z;
+    }
+    const attr = this.mesh.geometry.attributes.position;
+    attr.needsUpdate = true;
+    this.mesh.geometry.computeVertexNormals();
+  }
+
+  /** call once per frame after the skeleton has been posed */
+  step(dt) {
+    this._updateAnchors();
+    const scale = this.mesh.getWorldScale(this._v).x || 1;
+    // gravity at the figure's world scale: a 1.5-unit card is a 1.75 m human
+    const g = 9.81 * (this.spec.height * scale) / 1.75;
+    if (!this.seeded) { this._drape(scale); this.seeded = true; this._write(); return; }
+    if (this.frozen) { this._drape(scale); this._write(); return; }
+    this.acc = Math.min(this.acc + dt, HEM_STEP * 4);
+    let steps = 0;
+    while (this.acc >= HEM_STEP && steps < 4) { this.acc -= HEM_STEP; this._substep(g, scale); steps++; }
+    this._write();
+  }
 }
 
 // ── CLOTHES ──────────────────────────────────────────────────────────────────
@@ -358,7 +625,11 @@ function buildShorts(av, colors) {
   //    the averaged weights of THIS thigh's verts in each ring's slab — the
   //    tube follows its own leg exactly, and near the hip the natural
   //    Hips↔UpLeg blend in Geno's own weights provides the stretch zone.
+  //    The tube stops at 0.44 of the thigh: the last 0.12 is FABRIC — the
+  //    verlet hem strip hangs from the final ring (see rwfHemSpecs below).
   const legStrips = [];
+  const hemSpecs = [];
+  const radial = 18, hemCols = 12, hemRows = 2;
   for (const [upLegName, kneeName] of [['upLegL', 'legL'], ['upLegR', 'legR']]) {
     const upLeg = B[upLegName], knee = B[kneeName];
     if (!upLeg || !knee) continue;
@@ -372,7 +643,7 @@ function buildShorts(av, colors) {
     const e2 = new THREE.Vector3().crossVectors(n, e1).normalize();
     const legSet = new Set([skin.skeleton.bones.indexOf(upLeg)]);
     const rings = [];
-    const ts = [0.10, 0.20, 0.32, 0.44, 0.56];   // along the thigh
+    const ts = [0.10, 0.20, 0.32, 0.44];   // along the thigh (hem covers 0.44→0.56)
     for (let k = 0; k < ts.length; k++) {
       const c = new THREE.Vector3().copy(hip).addScaledVector(axis, ts[k] * L);
       const verts = slabVerts(cloud, legSet, c, n, 0.045 * H);
@@ -385,13 +656,41 @@ function buildShorts(av, colors) {
         c, e1, e2, n,
         rx: Math.max(rx + m, floor),
         rz: Math.max(rz + m, floor * 0.95),
+        bodyRx: rx, // measured BODY semi-axis (before garment margin) — capsule radius source
         w: avgWeights(verts),
       });
     }
     legStrips.push(rings);
+    // Collision capsules = the BODY limbs + a few mm: at rest the hem (a ring
+    // at body + 1.5 cm garment margin) hangs CLEAR of them and swings free;
+    // contact happens only when a limb sweeps into the fabric — the thigh
+    // rotating up in a squat shoves it outward (flare), the shin brushes it
+    // mid-stride (sway). A capsule near the GARMENT radius glues the hem to
+    // the limb (measured: rides the capsule at every walk phase, reads rigid).
+    const lastBody = rings[rings.length - 1].bodyRx;
+    const capR = Math.max(lastBody + 0.004 * H, 0.030 * H);
+    hemSpecs.push({
+      capsules: [
+        { a: upLeg, b: knee, r: capR },                             // thigh
+        { a: knee, b: B[upLegName === 'upLegL' ? 'footL' : 'footR'], r: capR * 0.85 }, // shin sweeps the hem in squats
+      ],
+      gap: 0.075 * L,           // hem depth 0.15·thigh ≈ 5.5 cm at human scale —
+                                // deep enough that its swing READS at card scale
+      side: upLegName,
+    });
   }
 
-  const mesh = skinnedTube(skin, lam(colors.shorts, { side: THREE.DoubleSide }), [shell, ...legStrips], 18, 'shorts');
+  const mesh = skinnedTube(skin, lam(colors.shorts, { side: THREE.DoubleSide }), [shell, ...legStrips], radial, 'shorts');
+  // hem pin specs: garment + the bottom ring of each leg strip (layout gives
+  // the flat vertex starts). HemCloth instances are built by attachWardrobe.
+  const layout = mesh.userData.rwfLayout;
+  mesh.userData.rwfHemSpecs = hemSpecs.map((h, si) => ({
+    garment: mesh,
+    ringStart: layout.layout[si + 1].start + (legStrips[si].length - 1) * radial,
+    radial, columns: hemCols, rows: hemRows, gap: h.gap,
+    capsules: h.capsules,
+    tag: 'shorts', scene: skin.scene, height: H,
+  }));
   return [mesh];
 }
 
@@ -505,6 +804,36 @@ function buildTank(av, colors) {
   }
 
   const mesh = skinnedTube(skin, lam(colors.tank, { side: THREE.DoubleSide }), [torso, ...sleeves], 18, 'tank');
+
+  // ── hem spec: a flounced band hanging from the torso's bottom ring, draping
+  //    OVER the shorts' waistband like a real tank hem.
+  //    The waist is measured from TORSO-dominant verts only — an all-bone
+  //    query catches Geno's bind-pose arms crossing the waist slab and returns
+  //    a ~0.42H "waist" (a 77 cm pelvis capsule that explodes the hem into a
+  //    tutu — measured and rejected). The pelvis capsule sits just outside the
+  //    shorts shell so the resting hem forms a slight skirt-cone over the
+  //    waistband; the ring circumference rests at that same radius (restRadius)
+  //    so constraints and collision agree instead of fighting.
+  const waistC = line(chain[1].p.y);
+  const { rx: waistRx } = ringExtent(cloud, torsoSet, waistC, XAX, ZAX, UP, 0.03 * H);
+  const pelvisR = (waistRx || 0.07 * H) + 0.018 * H + 0.006 * H;
+  const capsules = [{ a: B.hips, b: B.spine, r: pelvisR }];
+  for (const [upLegName, kneeName] of [['upLegL', 'legL'], ['upLegR', 'legR']]) {
+    const upLeg = B[upLegName], knee = B[kneeName];
+    if (!upLeg || !knee) continue;
+    const hip = bindPos(upLeg, skin.toBind), kn = bindPos(knee, skin.toBind);
+    const c = new THREE.Vector3().lerpVectors(hip, kn, 0.3); // mid-thigh measure
+    const { rx: thighRx } = ringExtent(cloud, new Set([skin.skeleton.bones.indexOf(upLeg)]), c, XAX, ZAX, UP, 0.03 * H);
+    // body thigh + clearance: brushes the hem only at stride extremes
+    capsules.push({ a: upLeg, b: knee, r: (thighRx || 0.05 * H) + 0.006 * H });
+  }
+  mesh.userData.rwfHemSpecs = [{
+    garment: mesh,
+    ringStart: mesh.userData.rwfLayout.layout[0].start, // torso ring 0 = the hem edge
+    radial: 18, columns: 12, rows: 2, gap: 0.009 * H,    // ~3 cm flounce at human scale
+    restRadius: pelvisR + 0.005 * H,                     // skirt hangs ~1 cm clear of the capsule
+    capsules, tag: 'tank', scene: skin.scene, height: H,
+  }];
   return [mesh];
 }
 
@@ -802,7 +1131,10 @@ function buildRobotHead(av) {
  * Attach wardrobe pieces to a loaded ModelAvatar (Geno, mixamo rig).
  * opts.slots: array of WARDROBE_SLOTS, or 'full' (default: everything).
  * opts.colors: overrides keyed by slot (defaults: token colours).
- * Returns { slots, toggle(slot, on) } — toggle flips visibility per slot.
+ * opts.fabric: false → skip the verlet hem strips entirely (reduced motion).
+ * Returns { slots, toggle(slot, on), isVisible, hems, updateFabric(dt, frozen) }
+ * — toggle flips visibility per slot; updateFabric steps every hem's cloth sim
+ * once per frame (call after posing/animating, before rendering).
  */
 export function attachWardrobe(avatar, opts = {}) {
   const B = avatar.bones;
@@ -830,12 +1162,48 @@ export function attachWardrobe(avatar, opts = {}) {
     const built = builders[name](avatar, colors);
     slots[name] = Array.isArray(built) ? built : [built]; // roots, each on its bone
   }
+
+  // ── fabric secondary motion: collect the hem specs the skinned builders
+  //    recorded and build their verlet sims. Hems join their slot's toggle
+  //    group so slot visibility covers garment + hem together.
+  const hems = [];
+  if (opts.fabric !== false) {
+    for (const name of WARDROBE_SLOTS) {
+      for (const root of slots[name] ?? []) {
+        for (const spec of root.userData?.rwfHemSpecs ?? []) {
+          const hem = new HemCloth(spec);
+          hems.push(hem);
+          slots[name].push(hem.mesh);
+        }
+      }
+    }
+  }
+  const skinScene = avatar.prone.children[0];
+
   const isVisible = (slot) => slots[slot]?.every((g) => g.visible) ?? true;
   return {
     slots,
     isVisible,
+    hems,
     toggle(slot, on) {
       for (const g of slots[slot] ?? []) g.visible = !!on;
+    },
+    /** step every hem's cloth sim; frozen=true → drape statically (gallery
+     *  paused / prefers-reduced-motion) — anchors still track the body.
+     *  A throwing hem is isolated + logged once: the gallery renders 20+ cards
+     *  from one rAF loop, so one bad hem must not freeze the rest. */
+    updateFabric(dt, frozen = false) {
+      if (!hems.length) return;
+      skinScene.updateMatrixWorld(true); // bones + garments current before pinning
+      for (const hem of hems) {
+        hem.frozen = frozen;
+        try {
+          hem.step(dt);
+        } catch (e) {
+          if (!hem.dead) { console.error('rwf fabric hem failed:', e); hem.dead = true; }
+          hem.mesh.visible = false;
+        }
+      }
     },
   };
 }
