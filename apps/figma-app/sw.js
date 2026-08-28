@@ -2,12 +2,15 @@
    Cache-first for same-origin GETs. The app is fully static + vendored
    (fonts, icons, no CDNs), so after first load it works with the network
    off — the founder's "offline app" requirement, delivered literally. */
-const CACHE = "rwf-figma-app-v2";
+const CACHE = "rwf-figma-app-v3";
 const CORE = [
   "./",
   "./index.html",
   "./app.css",
   "./app.js",
+  "./engine.js",
+  "./state.js",
+  "./verify.js",
   "./fonts.css",
   "./manifest.webmanifest",
   "./fonts/anton-regular.woff2",

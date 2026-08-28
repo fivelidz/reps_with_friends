@@ -23,7 +23,14 @@ cp apps/connect/index.html apps/connect/connect.js apps/connect/connect.css apps
 cp apps/demo/index.html apps/demo/demo.js apps/demo/demo.css deploy/public/demo/
 cp apps/systempage/index.html apps/systempage/system.js apps/systempage/system.css deploy/public/system/
 # offline Figma test app (Ben's design, every screen — self-contained, SW-cached)
-cp -r apps/figma-app/. deploy/public/figma-app/
+# Ship the app, not the test scaffolding: shots/ (31 PNGs ~2MB), e2e/bots
+# scripts and engine tests stay local.
+find apps/figma-app -maxdepth 1 -type f \( -name "*.html" -o -name "*.js" -o -name "*.css" \
+  -o -name "*.json" -o -name "*.svg" -o -name "*.png" -o -name "*.webmanifest" \) \
+  -exec cp {} deploy/public/figma-app/ \;
+for d in apps/figma-app/*/; do
+  case "$(basename "$d")" in shots|test|node_modules) ;; *) cp -r "$d" deploy/public/figma-app/ ;; esac
+done
 # deploy/functions/api/{ai,state}.js are source-controlled as-is
 
 echo "▸ bundle ready:"

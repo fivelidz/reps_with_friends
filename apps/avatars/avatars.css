@@ -433,3 +433,10 @@ a { color: var(--lime); }
   .preset:hover { transform: none; }
   .swatch-btn:hover { transform: none; }
 }
+
+/* ── Geno Wardrobe slot toggles (model cards) ─────────────────────────────
+   Buttons carry data-slot; .is-on marks the piece as worn. Lime = active,
+   matching the token system's "primary/active" semantics. */
+.model-btns [data-slot].is-on { border-color: var(--lime); color: var(--lime); }
+.model-btns [data-slot] { opacity: 0.85; }
+.model-btns [data-slot].is-on { opacity: 1; }

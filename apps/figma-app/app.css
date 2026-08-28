@@ -678,3 +678,128 @@
 @media (prefers-reduced-motion: reduce) {
   .fx-confetti i, .fx-chest { animation: none !important; }
 }
+
+/* ═══ REAL-GAME ADDITIONS (engine wiring — same tokens, Ben's language) ═══ */
+
+/* DEMO chip — honest labelling of still-mock screens */
+.fx-demochip {
+  position: fixed; top: 14px; right: 12px; z-index: 60;
+  font: 700 10px/1 var(--font-body); letter-spacing: 0.1em;
+  color: var(--faint); border: 1px solid var(--ink-line-strong, var(--line-bright));
+  border-radius: var(--pill); padding: 5px 9px; background: color-mix(in srgb, var(--surface) 85%, transparent);
+  pointer-events: none;
+}
+
+/* real text input styled as Ben's field box */
+.fx-input {
+  width: 100%; min-height: 48px; border-radius: 12px; border: 1px solid var(--ink-line-strong, var(--line-bright));
+  background: var(--surface); color: var(--text); font: 600 15px/1.2 var(--font-body);
+  padding: 14px 16px; outline: none;
+}
+.fx-input:focus { border-color: var(--lime); }
+
+/* comeback ×1.2 tag on a leaderboard row */
+.fx-cb {
+  font: 700 9px/1 var(--font-body); color: var(--on-gold, var(--bg)); background: var(--energy);
+  border-radius: var(--pill); padding: 3px 6px; margin-left: 8px; vertical-align: 2px; letter-spacing: 0.06em;
+}
+
+/* comeback banner (battle screen) */
+.fx-cbbanner {
+  display: flex; align-items: center; gap: 8px; justify-content: center;
+  margin-top: 12px; padding: 10px 12px; border-radius: 12px;
+  font: 700 11px/1.3 var(--font-body); letter-spacing: 0.05em; color: var(--energy-light);
+  background: color-mix(in srgb, var(--energy) 14%, transparent);
+  border: 1px solid color-mix(in srgb, var(--energy) 45%, transparent);
+}
+.fx-cbbanner svg { width: 14px; height: 14px; flex: none; }
+
+/* simulate-mates helper (demo crew) */
+.fx-simbtn {
+  margin-top: 14px; align-self: center; background: none; border: 0; cursor: pointer;
+  font: 600 11px/1.2 var(--font-body); letter-spacing: 0.06em; color: var(--faint); padding: 8px;
+}
+.fx-simbtn span { color: var(--faint-deco); font-weight: 400; }
+.fx-simbtn:hover { color: var(--muted); }
+
+/* season ladder rows */
+.fx-ladderow {
+  display: flex; align-items: center; gap: 12px; border-radius: 14px;
+  background: var(--surface); border: 1px solid var(--line); padding: 10px 14px;
+}
+.fx-ladderow--you { border-color: color-mix(in srgb, var(--lime) 70%, transparent); }
+.fx-ladderow__rank { width: 26px; text-align: center; font: 400 18px/1 var(--font-display); color: var(--muted); flex: none; }
+.fx-ladderow__rank svg { width: 18px; height: 18px; color: var(--lime); }
+.fx-ladderow__info { min-width: 0; flex: 1; display: flex; flex-direction: column; gap: 2px; }
+.fx-ladderow__name { font: 700 14px/1.2 var(--font-body); color: var(--text); white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
+.fx-ladderow__sub { font: 400 11px/1.2 var(--font-body); color: var(--faint); }
+.fx-ladderow__pts { font: 400 24px/1 var(--font-display); color: var(--text); display: flex; align-items: baseline; gap: 4px; flex: none; }
+.fx-ladderow__pts i { font: 700 9px/1 var(--font-body); font-style: normal; color: var(--faint); letter-spacing: 0.08em; }
+
+/* charity pot picker (result screen) */
+.fx-pot__total { font: 400 30px/1.4 var(--font-display); color: var(--text); margin-top: 4px; }
+.fx-pot__row { display: flex; gap: 8px; justify-content: center; margin-top: 12px; flex-wrap: wrap; }
+.fx-pot__chip {
+  border-radius: var(--pill); border: 1px solid var(--success); background: none; cursor: pointer;
+  font: 700 13px/1 var(--font-body); color: var(--success); padding: 10px 16px;
+}
+.fx-pot__chip:active { transform: scale(0.97); }
+.fx-pot__charity {
+  border-radius: var(--pill); border: 1px solid var(--line); background: var(--surface); cursor: pointer;
+  font: 600 12px/1.2 var(--font-body); color: var(--muted); padding: 10px 14px;
+}
+.fx-pot__charity--on { border-color: var(--success); color: var(--success); }
+.fx-pot__charity:disabled { opacity: 0.45; cursor: not-allowed; }
+
+/* camera-verify button in the log sheet */
+.fx-cambtn {
+  margin-top: 10px; width: 100%; min-height: 44px; border-radius: var(--pill);
+  border: 1px dashed var(--ink-line-strong, var(--line-bright)); background: none; cursor: pointer;
+  font: 600 12px/1.2 var(--font-body); color: var(--muted);
+  display: flex; align-items: center; justify-content: center; gap: 8px;
+}
+.fx-cambtn svg { width: 15px; height: 15px; }
+.fx-cambtn span { color: var(--faint); font-weight: 400; font-size: 11px; }
+
+/* crew-code grammar chip */
+.fx-codegram {
+  font: 700 12px/1.2 ui-monospace, monospace; color: var(--lime);
+  background: color-mix(in srgb, var(--lime) 10%, transparent);
+  border-radius: 6px; padding: 2px 6px;
+}
+.fx-sharecard__a {
+  font: 600 12px/1 var(--font-body); color: var(--lime); text-decoration: none;
+  border: 0; background: none; padding: 8px 12px; cursor: pointer; align-self: center;
+}
+
+/* live toast */
+.fx-toast--live {
+  position: fixed; left: 50%; bottom: 90px; transform: translateX(-50%);
+  z-index: 80; max-width: 86%; white-space: nowrap; overflow: hidden; text-overflow: ellipsis;
+  display: flex; align-items: center; gap: 8px;
+  animation: fx-toast-in 0.18s ease-out;
+}
+.fx-toast--live svg { width: 14px; height: 14px; flex: none; }
+@keyframes fx-toast-in { from { opacity: 0; transform: translate(-50%, 8px); } to { opacity: 1; transform: translate(-50%, 0); } }
+
+/* camera note overlay */
+.fx-camnote__sheet { max-width: 340px; }
+.fx-camnote__stage {
+  position: relative; margin-top: 12px; border-radius: 14px; overflow: hidden;
+  aspect-ratio: 4 / 3; background: #000; border: 1px solid var(--line);
+}
+.fx-camnote__video { width: 100%; height: 100%; object-fit: cover; display: block; transform: scaleX(-1); }
+.fx-camnote__tag {
+  position: absolute; top: 8px; left: 8px; font: 700 9px/1 var(--font-body); letter-spacing: 0.1em;
+  color: #fff; background: rgba(0,0,0,0.55); border-radius: var(--pill); padding: 5px 8px;
+}
+.fx-camnote__off {
+  position: absolute; inset: 0; display: flex; align-items: center; justify-content: center;
+  text-align: center; font: 700 12px/1.6 var(--font-body); color: var(--faint); letter-spacing: 0.06em;
+}
+.fx-camnote__body { font: 400 12px/1.55 var(--font-body); color: var(--muted); margin: 12px 0 0; text-align: center; }
+.fx-camnote__body code { font: 600 11px/1 ui-monospace, monospace; color: var(--lime); }
+.fx-camnote__link {
+  display: block; text-align: center; margin-top: 10px; font: 700 13px/1.2 var(--font-body);
+  color: var(--lime); text-decoration: none;
+}

@@ -508,6 +508,7 @@ window.__rwfStudio = {
 const modelGrid = $('modelGrid');
 if (modelGrid) {
   const { MODELS, loadModel, ModelAvatar, applyFlatTint, GENO_TINTS, BVH_FILES, loadBVH, BVHPlayer } = await import('/site/model-avatars.js');
+  const { attachWardrobe, attachHead, clearWardrobe, WARDROBE_SLOTS, SLOT_LABELS } = await import('/site/models/geno-wardrobe.js');
   const { applyColorway, applySoldierPalette, COLORWAYS } = await import('/site/model-recolor.js');
 
   const modelCards = [];
@@ -520,10 +521,11 @@ if (modelGrid) {
       <div class="style-stage"></div>
       <div class="style-meta">
         <h3>${M.name}</h3>
-        <p class="style-blurb">${M.rig} rig · ${M.native.length ? 'native anims: ' + M.native.join(', ') : 'no anims — posed live'}${M.bvh ? ' · BVH mocap: ' + M.bvh.join(', ') : ''}${way ? ' · palette remap' : ''}${M.palette ? ' · flat-colour treatment' : ''}${M.tint ? ' · flat tint' : ''}</p>
+        <p class="style-blurb">${M.rig} rig · ${M.native.length ? 'native anims: ' + M.native.join(', ') : 'no anims — posed live'}${M.bvh ? ' · BVH mocap: ' + M.bvh.join(', ') : ''}${way ? ' · palette remap' : ''}${M.palette ? ' · flat-colour treatment' : ''}${M.tint ? ' · flat tint' : ''}${M.wardrobe ? ' · wardrobe: ' + (M.wardrobe === 'full' ? 'full outfit' : M.wardrobe.join(', ')) : ''}${M.head ? ' · ' + M.head.replace('-', ' ') + ' head' : ''}</p>
         <div class="model-btns">
           ${M.native.map((n) => `<button class="rwf-btn btn--xs" data-native="${n}">${n}</button>`).join('')}
           ${(M.bvh ?? []).map((n) => `<button class="rwf-btn btn--xs" data-bvh="${n}">${n}</button>`).join('')}
+          ${M.wardrobeToggle ? WARDROBE_SLOTS.map((s) => `<button class="rwf-btn btn--xs is-on" data-slot="${s}" title="toggle ${s}">${SLOT_LABELS[s]}</button>`).join('') : ''}
           <button class="rwf-btn btn--xs" data-native="">exercise</button>
         </div>
       </div>`;
@@ -583,7 +585,7 @@ if (modelGrid) {
       else releaseTimer = setTimeout(releaseRenderer, 3000);
     }, { threshold: 0 }).observe(card);
 
-    loadModel(M.file).then((gltfScene) => {
+    loadModel(M.file).then(async (gltfScene) => {
       // colourway / palette / flat-tint treatment BEFORE the avatar is posed & framed
       if (M.colorway) applyColorway(gltfScene, M.colorway);
       if (M.palette === 'soldier') applySoldierPalette(gltfScene);
@@ -640,6 +642,15 @@ if (modelGrid) {
       }
 
       const av = new ModelAvatar(gltfScene, M.rig);
+      // wardrobe / species heads: bone-parented attachments, measured + oriented
+      // from the bind pose BEFORE the first pose() call, so the framing box
+      // below includes them (a frog skull must not be cropped by the camera).
+      // clearWardrobe once up front — attachHead must not strip a fresh wardrobe.
+      if (M.wardrobe || M.head) {
+        clearWardrobe(av);
+        if (M.wardrobe) entry.wardrobe = attachWardrobe(av, { slots: M.wardrobe });
+        if (M.head) entry.speciesHead = attachHead(av, M.head);
+      }
       // normalise scale to ~1.5 units tall so all cards share a camera
       const s = 1.5 / av.H;
       av.root.scale.setScalar(s);
@@ -656,6 +667,18 @@ if (modelGrid) {
       cam.lookAt(sphere.center.x, sphere.center.y, sphere.center.z);
       entry.avatar = av;
       entry.ok = true;
+      // wardrobe slot toggles — flip each piece's visibility (bone parenting
+      // is untouched; a hidden group simply stops rendering)
+      if (entry.wardrobe) {
+        card.querySelectorAll('[data-slot]').forEach((btn) => {
+          btn.addEventListener('click', () => {
+            const slot = btn.dataset.slot;
+            const on = !entry.wardrobe.isVisible(slot);
+            entry.wardrobe.toggle(slot, on);
+            btn.classList.toggle('is-on', on);
+          });
+        });
+      }
       // BVH mocap buttons (Geno): world-space retarget of the game's mocap
       // captures onto this card's skeleton. Lazy-loaded on demand — the walk
       // capture is 33 MB, so it is fetched only when the card is first

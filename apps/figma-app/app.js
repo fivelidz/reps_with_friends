@@ -36,6 +36,68 @@ const ic = (name, cls = "fg-icon") => `<span class="${cls}" data-icon="${name}">
 const go = (id) => `data-go="${id}"`;
 const $ = (s, r = document) => r.querySelector(s);
 
+/* ── the real game: engine port + persistent state ───────────────────── */
+import * as S from "./state.js";
+import * as E from "./engine.js";
+import { openCameraNote } from "./verify.js";
+
+/* transient form drafts (persisted only on CONTINUE / CREATE) */
+const draft = { name: "Ben the Machine", tier: "casual", battle: { name: "The Sunday Showdown", days: [1, 3, 5], pack: "bodyweight", target: "solid" } };
+
+const ST = () => S.load();
+const ordinal = (n) => (n === 1 ? "1st" : n === 2 ? "2nd" : n === 3 ? "3rd" : `${n}th`);
+const you = (st = ST()) => st.player;
+/** current live/open match (null → empty states) */
+const liveMatch = (st = ST()) => {
+  const m = S.currentMatch(st);
+  return m && m.status !== "complete" ? m : null;
+};
+const lastDone = (st = ST()) => [...st.matches].filter((m) => m.status === "complete").pop() ?? null;
+
+/** real standings rows rendered with Ben's lbRow component */
+function realBoard(match, { max = null, youId = null } = {}) {
+  const st = ST();
+  const you_ = youId ?? st.player?.id;
+  const rows = E.standings(match);
+  const shown = max ? rows.slice(0, max) : rows;
+  const target = match.config.targetReps;
+  const eligible = (pid) => E.comebackEligible(match, pid);
+  return shown
+    .map((r, i) => lbRow({
+      rank: i + 1,
+      name: r.player.id === you_ ? "You" : r.player.name,
+      you: r.player.id === you_,
+      initials: r.player.id === you_
+        ? (st.player?.name ?? "BT").split(" ").map(w => w[0]).join("").slice(0, 2).toUpperCase()
+        : r.player.name.split(" ").map(w => w[0]).join("").slice(0, 2),
+      crown: i === 0,
+      pct: Math.round(r.progressPct),
+      ruf: Math.round(r.adjustedScore),
+      rufOf: target,
+      barPct: Math.round(r.progressPct),
+      barColor: i === 0 ? "gold" : r.progressPct < 30 ? "orange" : "purple",
+      online: r.player.id !== you_,
+      leader: i === 0,
+      comeback: eligible(r.player.id),
+    }))
+    .join("");
+}
+
+/** empty-state block when there's no battle to show */
+function noBattleState() {
+  return `
+  <div class="fx-statewrap">
+    <div class="fg-state">
+      <span class="fg-state__icon">${ic("trophy")}</span>
+      <h3 class="fg-state__title">No live battle</h3>
+      <p class="fg-state__body">Create a fast battle — exercises, target, days. Your crew joins with a code.</p>
+      <button class="fg-state__cta" ${go("create-002")}>CREATE A BATTLE</button>
+      <div class="fx-gap8"></div>
+      <button class="fx-btn fx-btn--ghost fx-btn--sm" ${go("home-003")}>SEE ALL BATTLES</button>
+    </div>
+  </div>`;
+}
+
 /* ── shared builders (all return HTML strings) ───────────────────────── */
 
 function statusBar() {
@@ -77,19 +139,20 @@ function nav(active = "") {
 }
 
 /* leaderboard row — his 9:90 (completion % primary, RUF secondary) */
-function lbRow({ rank, name, you = false, crown = false, pct, ruf, barPct, barColor = "purple", online = false, leader = false }) {
+function lbRow({ rank, name, you = false, initials = null, crown = false, pct, ruf, rufOf = 120, barPct, barColor = "purple", online = false, leader = false, comeback = false }) {
   const barFill = barColor === "gold" ? "var(--lime)" : barColor === "orange" ? "var(--urgency)" : "var(--energy)";
+  const av = initials ?? (you ? "BT" : name.split(" ").map(w => w[0]).join("").slice(0, 2));
   return `
   <div class="fg-lbrow ${leader ? "fg-lbrow--leader" : ""} ${you ? "fg-lbrow--you" : ""}">
     <span class="fg-lbrow__rank">${rank}</span>
-    <span class="fg-avatar ${leader ? "fg-avatar--leader" : ""}" style="width:48px;height:48px;font-size:14px">${you ? "BT" : name.split(" ").map(w => w[0]).join("")}${online ? '<i class="fg-avatar__dot"></i>' : ""}</span>
+    <span class="fg-avatar ${leader ? "fg-avatar--leader" : ""}" style="width:48px;height:48px;font-size:14px">${av}${online ? '<i class="fg-avatar__dot"></i>' : ""}</span>
     <div class="fg-lbrow__info">
-      <span class="fg-lbrow__name">${name}${crown ? ic("crown") : ""}</span>
+      <span class="fg-lbrow__name">${name}${crown ? ic("crown") : ""}${comeback ? '<b class="fx-cb" title="Comeback ×1.2 armed — log to claim">×1.2</b>' : ""}</span>
       <span class="fg-lbrow__bar"><i style="width:${barPct}%;background:${barFill}"></i></span>
     </div>
     <div class="fg-lbrow__score">
       <div class="fg-lbrow__pct">${pct}%</div>
-      <div class="fg-lbrow__ruf">${ruf} / 120 RUF</div>
+      <div class="fg-lbrow__ruf">${ruf} / ${rufOf} RUF</div>
     </div>
   </div>`;
 }
@@ -244,75 +307,146 @@ function sheetScreen(under, sheetHtml, dialog = false) {
   </div>`;
 }
 
-/* ── quick-log sheet (the global LOG action — ≤3 taps, RUF preview) ──── */
+/* ── quick-log sheet (the global LOG action — ≤3 taps, REAL logging) ─── */
 function quickLogSheet() {
-  return `
+  const st = ST();
+  const m = liveMatch(st);
+  if (!m) return `
   <div class="fx-sheet" id="quickLog">
     <div class="fx-sheet__grab"></div>
     <h2 class="fx-sheet__h">LOG REPS</h2>
+    <p class="fg-sheet__note">No live battle — create one and the sheet goes live.</p>
+    <button class="fg-sheet__cta" ${go("create-002")}>CREATE A BATTLE</button>
+  </div>`;
+  const exs = m.config.exercises;
+  const p = you(st);
+  const mult = E.TIER_MULTIPLIERS[p?.tier ?? "casual"];
+  const cb = E.comebackEligible(m, p?.id);
+  return `
+  <div class="fx-sheet" id="quickLog" data-match="${m.config.id}">
+    <div class="fx-sheet__grab"></div>
+    <h2 class="fx-sheet__h">LOG REPS</h2>
     <div class="fg-sheet__row" id="qlEx">
-      <button class="fg-chip fg-chip--exercise" aria-pressed="true">Push-ups</button>
-      <button class="fg-chip fg-chip--exercise" aria-pressed="false">Squats</button>
-      <button class="fg-chip fg-chip--exercise" aria-pressed="false">Plank</button>
+      ${exs.slice(0, 3).map((e, i) => `<button class="fg-chip fg-chip--exercise" aria-pressed="${i === 0}" data-ex="${e.id}">${e.name}</button>`).join("")}
       <button class="fg-chip fg-chip--exercise" aria-pressed="false" ${go("log-002")}>More…</button>
     </div>
     <div class="fg-sheet__row" id="qlPre">
-      <button class="fg-chip fg-chip--lg" aria-pressed="false">5</button>
-      <button class="fg-chip fg-chip--lg" aria-pressed="false">10</button>
-      <button class="fg-chip fg-chip--lg" aria-pressed="true">20</button>
-      <button class="fg-chip fg-chip--lg" aria-pressed="false">30</button>
-      <button class="fg-chip fg-chip--lg" aria-pressed="false">50</button>
+      ${[5, 10, 20, 30, 50].map((n, i) => `<button class="fg-chip fg-chip--lg" aria-pressed="${n === 20}" data-n="${n}">${n}</button>`).join("")}
     </div>
-    <p class="fg-sheet__conversion" id="qlConv"><b>20 push-ups = 20 RUF</b> · takes you to 92%</p>
-    <button class="fg-sheet__cta" id="qlCta" ${go("battle-001")}>LOG 20 PUSH-UPS</button>
-    <p class="fg-sheet__note">3 taps, one thumb. Undo available for 30 s after logging.</p>
+    <p class="fg-sheet__conversion" id="qlConv"></p>
+    ${cb ? `<p class="fg-sheet__conversion" style="color:var(--energy-light)">${ic("bolt")} COMEBACK ×1.2 ARMED — THIS LOG COUNTS EXTRA</p>` : ""}
+    <button class="fg-sheet__cta" id="qlCta">LOG</button>
+    <button class="fx-cambtn" id="camVerify" type="button">${ic("camera")} CAMERA VERIFY <span>— pose counting lives in the prototype app</span></button>
+    <p class="fg-sheet__note">3 taps, one thumb. Adjusted ×${mult} (${p?.tier ?? "casual"} tier).</p>
   </div>`;
 }
 
 function wireQuickLog(root) {
   const sheet = root.querySelector("#quickLog");
-  if (!sheet) return;
-  const RUF = { "Push-ups": 1, Squats: 1, Plank: 0.5 };
-  const st = { ex: "Push-ups", n: 20 };
+  if (!sheet || !sheet.dataset.match) return;
+  const st = ST();
+  const m = S.matchById(sheet.dataset.match, st);
+  if (!m || m.status !== "live") return;
+  const p = you(st);
+  const mult = E.TIER_MULTIPLIERS[p?.tier ?? "casual"];
+  const cbEligible = E.comebackEligible(m, p?.id);
+  const sel = { ex: m.config.exercises[0], n: 20 };
   const conv = sheet.querySelector("#qlConv"), cta = sheet.querySelector("#qlCta");
   const render = () => {
-    const ruf = Math.round(st.n * RUF[st.ex]);
-    const pct = Math.min(100, Math.round(((85 + ruf) / 120) * 100));
-    conv.innerHTML = `<b>${st.n} ${st.ex.toLowerCase()} = ${ruf} RUF</b> · takes you to ${pct}%`;
-    cta.textContent = `LOG ${st.n} ${st.ex.toUpperCase()}`;
-    sheet.querySelectorAll("#qlEx .fg-chip").forEach(c => c.setAttribute("aria-pressed", String(c.textContent.trim() === st.ex)));
-    sheet.querySelectorAll("#qlPre .fg-chip").forEach(c => c.setAttribute("aria-pressed", String(Number(c.textContent) === st.n)));
+    const pts = Math.round(sel.n * mult * (cbEligible ? E.COMEBACK_MULTIPLIER : 1) * 10) / 10;
+    const raw = E.playerRawReps(p.id, m.entries) + sel.n;
+    const pct = Math.min(100, Math.round((raw / m.config.targetReps) * 100));
+    conv.innerHTML = `<b>${sel.n} ${sel.ex.name.toLowerCase()} = ${pts} RUF</b> (×${mult}${cbEligible ? " ×1.2 comeback" : ""}) · takes you to ${pct}%`;
+    cta.textContent = `LOG ${sel.n} ${sel.ex.name.toUpperCase()}`;
+    sheet.querySelectorAll("#qlEx .fg-chip[data-ex]").forEach(c => c.setAttribute("aria-pressed", String(c.dataset.ex === sel.ex.id)));
+    sheet.querySelectorAll("#qlPre .fg-chip").forEach(c => c.setAttribute("aria-pressed", String(Number(c.dataset.n) === sel.n)));
   };
-  sheet.querySelectorAll("#qlEx .fg-chip").forEach(c => c.addEventListener("click", () => { st.ex = c.textContent.trim(); render(); }));
-  sheet.querySelectorAll("#qlPre .fg-chip").forEach(c => c.addEventListener("click", () => { st.n = Number(c.textContent); render(); }));
+  sheet.querySelectorAll("#qlEx .fg-chip[data-ex]").forEach(c => c.addEventListener("click", () => {
+    const e = m.config.exercises.find(x => x.id === c.dataset.ex);
+    if (e) { sel.ex = e; render(); }
+  }));
+  sheet.querySelectorAll("#qlPre .fg-chip").forEach(c => c.addEventListener("click", () => { sel.n = Number(c.dataset.n); render(); }));
+  cta.addEventListener("click", () => {
+    let res;
+    try {
+      res = S.logToMatch(m.config.id, { exerciseId: sel.ex.id, reps: sel.n });
+    } catch (err) {
+      toast(`⚠️ ${err.message}`);
+      return;
+    }
+    closeOverlay();
+    if (res.closed) {
+      location.hash = "#/result-005";
+    } else {
+      toast(`${ic("check")}+${sel.n} ${sel.ex.name.toLowerCase()} logged${res.comeback ? " · COMEBACK ×1.2 CLAIMED" : ""}`);
+      route(); // re-render current screen with fresh standings
+    }
+  });
   render();
+}
+
+/** transient toast (bottom of viewport, auto-dismiss) */
+let toastTimer = null;
+function toast(html) {
+  document.querySelectorAll(".fx-toast--live").forEach(n => n.remove());
+  const el = document.createElement("div");
+  el.className = "fx-toast fx-toast--live";
+  el.innerHTML = html;
+  document.body.appendChild(el);
+  clearTimeout(toastTimer);
+  toastTimer = setTimeout(() => el.remove(), 2600);
 }
 
 /* ═════════════════════════════ SCREENS ════════════════════════════════
    Registry: { id, figma, name, group, next?, render() } — copy verbatim
-   from the file.json extraction. 65 screens. */
+   from the file.json extraction. 65 screens (+ season-001).
+   Core-loop screens are WIRED to real state (rwf.figma.v1); everything
+   else keeps Ben's mock copy and carries a DEMO chip (see renderScreen). */
 
-const battleUnder = () => `
+/* the battle screen underlay — REAL: standings, ring, comeback, dual clock */
+const battleUnder = () => {
+  const st = ST();
+  const m = liveMatch(st);
+  if (!m) {
+    return `
+    ${statusBar()}
+    ${topBar({ title: "Reps With Friends" })}
+    <div class="fx-content">
+      ${h1("THE BATTLE BOARD", "fx-h1--26")}
+      ${noBattleState()}
+    </div>
+    ${nav("battle-001")}`;
+  }
+  const rows = E.standings(m);
+  const myId = st.player?.id;
+  const mine = rows.find((r) => r.player.id === myId) ?? rows[0];
+  const myRank = rows.findIndex((r) => r.player.id === myId) + 1;
+  const leader = rows[0];
+  const gap = leader.rawReps - mine.rawReps;
+  const clock = S.dualClock();
+  const streak = st.season?.streaks?.[myId]?.length ?? 0;
+  const cb = E.comebackEligible(m, myId);
+  return `
   ${statusBar()}
-  ${topBar({ title: "The Sunday Showdown" })}
+  ${topBar({ title: m.config.name ?? "Battle" })}
   <div class="fx-content">
     <div class="fx-statusrow">
-      ${badge({ icon: "bolt", text: "7 DAY STREAK" })}
-      ${countdown({})}
+      ${badge({ icon: "flame", text: `${streak} DAY STREAK` })}
+      ${countdown({ time: clock.time, sub: clock.sub })}
     </div>
-    <div class="fx-hero">${ring(75, "90", "of 120 RUF")}
-      <div class="fx-hero__line">30 RUF TO GO — SAM IS 12 AHEAD</div>
+    ${cb ? `<div class="fx-cbbanner">${ic("bolt")}COMEBACK ×1.2 ARMED — YOU'RE ${Math.round((gap / Math.max(leader.rawReps, 1)) * 100)}% BEHIND. NEXT LOG COUNTS 1.2×</div>` : ""}
+    <div class="fx-hero">${ring(mine.progressPct, String(mine.rawReps), `of ${m.config.targetReps} reps`)}
+      <div class="fx-hero__line">${mine.rawReps >= m.config.targetReps ? "TARGET HIT" : `${m.config.targetReps - mine.rawReps} REPS TO GO${gap > 0 && myRank > 1 ? ` — ${leader.player.id === myId ? "YOU" : leader.player.name} IS ${gap} AHEAD` : myRank === 1 ? " — YOU LEAD" : ""}`}</div>
     </div>
     <div class="fx-crewnow">
-      <span class="fg-avatar fg-avatar--sm fg-avatar--online" style="width:32px;height:32px;font-size:9px">BT</span>
-      <span class="fg-avatar fg-avatar--sm fg-avatar--online" style="width:32px;height:32px;font-size:9px">SK</span>
-      <span class="fg-avatar fg-avatar--sm fg-avatar--online" style="width:32px;height:32px;font-size:9px">AT</span>
-      <span class="fx-crewnow__text">3 mates moving right now</span>
+      ${m.players.slice(0, 5).map((p) => `<span class="fg-avatar fg-avatar--sm fg-avatar--online" style="width:32px;height:32px;font-size:9px">${p.id === myId ? (st.player.name.split(" ").map(w => w[0]).join("").slice(0, 2)) : p.name.split(" ").map(w => w[0]).join("").slice(0, 2)}</span>`).join("")}
+      <span class="fx-crewnow__text">${m.players.length} in the crew · ${m.entries.length} sets logged</span>
     </div>
-    <div class="fx-board">${board()}</div>
+    <div class="fx-board">${realBoard(m)}</div>
+    <button class="fx-simbtn" id="simMates" type="button">▸ SIMULATE MATES' REPS <span>(demo)</span></button>
   </div>
-  ${nav("battle-001")}
-`;
+  ${nav("battle-001")}`;
+};
 
 const SCREENS = [
   /* ── AUTH ×12 ─────────────────────────────────────────────────────── */
@@ -419,13 +553,19 @@ const SCREENS = [
       <div class="fx-content">
         ${h1("WHO'S JOINING THE BATTLE?")}
         <div class="fx-avatarpick">
-          <span class="fg-avatar fg-avatar--leader" style="width:96px;height:96px;font-size:23px">BT</span>
+          <span class="fg-avatar fg-avatar--leader" style="width:96px;height:96px;font-size:23px">${(draft.name || "BT").split(" ").map(w => w[0]).join("").slice(0, 2).toUpperCase()}</span>
           <button class="fx-avatarpick__add">Add photo</button>
         </div>
-        ${field("Display name", "Ben the Machine")}
-        ${field("Username", "@benwins")}
+        <div class="fx-field">
+          <span class="fx-field__label">Display name</span>
+          <input class="fx-input" id="obName" type="text" maxlength="40" value="${draft.name.replace(/"/g, "&quot;")}" autocomplete="off" spellcheck="false">
+        </div>
+        <div class="fx-field">
+          <span class="fx-field__label">Username</span>
+          <div class="fx-field__box fx-field__box--ph">@${(draft.name || "you").toLowerCase().replace(/[^a-z0-9]/g, "").slice(0, 12) || "you"}</div>
+        </div>
         <div class="fx-gap8"></div>
-        ${btn("CONTINUE", "fx-btn--primary", "auth-009")}
+        ${btn("CONTINUE", "fx-btn--primary", "auth-009", 'id="obNameNext"')}
       </div>`,
   },
   {
@@ -451,12 +591,15 @@ const SCREENS = [
       ${steps(3)}
       <div class="fx-content">
         ${h1("HOW DO YOU TRAIN?")}
-        ${sub("This just seeds fair targets. Nobody in your crew sees it.")}
-        ${option({ title: "Just starting out", sub: "Lower daily targets, bodyweight-first suggestions" })}
-        ${option({ title: "I train sometimes", sub: "Balanced targets that stretch you a bit", sel: true })}
-        ${option({ title: "I train seriously", sub: "Bigger targets, gym mode suggestions" })}
+        ${sub("This is your handicap — reps count ×1.5 as a couch starter, ×0.85 as an athlete. Effort competes, not raw fitness. Nobody outside the engine sees it.")}
+        <div id="tierOpts">
+          ${option({ title: "Couch — just starting out", sub: "Every rep ×1.5 · lower targets, bodyweight-first" })}
+          ${option({ title: "Casual — I train sometimes", sub: "Every rep ×1.25 · balanced targets", sel: true })}
+          ${option({ title: "Fit — I train seriously", sub: "Every rep ×1.0 · bigger targets" })}
+          ${option({ title: "Athlete — I'm a menace", sub: "Every rep ×0.85 · respect" })}
+        </div>
         <div class="fx-gap8"></div>
-        ${btn("CONTINUE", "fx-btn--primary", "auth-011")}
+        ${btn("CONTINUE", "fx-btn--primary", "auth-011", 'id="tierNext"')}
       </div>`,
   },
   {
@@ -506,8 +649,8 @@ const SCREENS = [
       ${statusBar()}
       <div class="fx-content">
         <div class="fx-gap96"></div>
-        ${h1("YOU'RE IN, BEN.", "fx-h1--36 fx-h1--gold")}
-        ${sub("Time to pick your first fight.", "fx-sub--16")}
+        ${h1(`YOU'RE IN, ${(you()?.name ?? "FRIEND").split(" ")[0].toUpperCase()}.`, "fx-h1--36 fx-h1--gold")}
+        ${sub(`Tier: ${(you()?.tier ?? "casual").toUpperCase()} — every rep ×${E.TIER_MULTIPLIERS[you()?.tier ?? "casual"]}. Time to pick your first fight.`, "fx-sub--16")}
         ${option({ title: "Create a battle", sub: "Set the rules, invite your crew, own the smack talk", sel: true, go: "create-002" })}
         ${option({ title: "Join with a code or link", sub: "Got an invite? Jump straight in", go: "join-001" })}
         ${option({ title: "Try a demo battle", sub: "Solo practice round to learn the ropes", go: "battle-001" })}
@@ -541,38 +684,90 @@ const SCREENS = [
   },
   {
     id: "home-002", figma: "MOB-HOME-002", name: "Home — active battle", group: "Home", next: "battle-001",
-    render: () => `
+    render: () => {
+      const st = ST();
+      const m = liveMatch(st);
+      if (!m) return `
+      ${statusBar()}
+      ${topBar({ logo: true })}
+      <div class="fx-content">
+        ${h1("READY WHEN YOU ARE", "fx-h1--30")}
+        ${noBattleState()}
+      </div>
+      ${nav("battle-001")}`;
+      const rows = E.standings(m);
+      const myId = st.player?.id;
+      const mine = rows.find((r) => r.player.id === myId) ?? rows[0];
+      const myRank = rows.findIndex((r) => r.player.id === myId) + 1;
+      const leader = rows[0];
+      const clock = S.dualClock();
+      return `
       ${statusBar()}
       ${topBar({ logo: true })}
       <div class="fx-content">
         <div class="fx-statusrow">
-          <span class="fg-badge">${ic("flame")}7 DAY STREAK</span>
-          ${countdown({})}
+          <span class="fg-badge">${ic("flame")}${st.season?.streaks?.[myId]?.length ?? 0} DAY STREAK</span>
+          ${countdown({ time: clock.time, sub: clock.sub })}
         </div>
-        ${battleCard({ meta: "5 mates · Day 3 of 7", title: "THE SUNDAY SHOWDOWN", crewN: 4, barPct: 62, foot: "You're 2nd — 36 RUF behind Sam" })}
+        ${battleCard({ meta: `${m.players.length} mates · ${S.fmtDays(m.config.playDays)}`, title: (m.config.name ?? "BATTLE").toUpperCase(), crewN: m.players.length, barPct: Math.round(mine.progressPct), foot: myRank === 1 ? "You lead — don't blink" : `You're ${ordinal(myRank)} — ${leader.rawReps - mine.rawReps} reps behind ${leader.player.id === myId ? "you" : leader.player.name}` })}
         <div class="fx-hero fx-hero--split">
-          ${ring(75, "90", "of 120 RUF", 120)}
+          ${ring(mine.progressPct, String(mine.rawReps), `of ${m.config.targetReps} reps`, 120)}
           <div>
-            <div class="fx-hero__line" style="font-size:22px;text-align:left">30 RUF TO GO</div>
-            <p class="fx-hero__aside" style="text-align:left">Sam's at 88% — don't let him take Tuesday too.</p>
+            <div class="fx-hero__line" style="font-size:22px;text-align:left">${Math.max(0, m.config.targetReps - mine.rawReps)} REPS TO GO</div>
+            <p class="fx-hero__aside" style="text-align:left">${leader.player.name} is at ${Math.round(leader.progressPct)}% — adjusted score ${Math.round(leader.adjustedScore)} RUF.</p>
           </div>
         </div>
-        <div class="fx-board">${board([BOARD[0], BOARD[1]])}</div>
+        <div class="fx-board">${realBoard(m, { max: 2 })}</div>
+        <div class="fx-gap8"></div>
+        ${btn("SEASON LADDER →", "fx-btn--dark", "season-001")}
       </div>
-      ${nav("battle-001")}`,
+      ${nav("battle-001")}`;
+    },
   },
   {
     id: "home-003", figma: "MOB-HOME-003", name: "Home — multiple battles", group: "Home", next: "battle-001",
-    render: () => `
+    render: () => {
+      const st = ST();
+      if (st.matches.length === 0) return `
       ${statusBar()}
       ${topBar({ logo: true })}
       <div class="fx-content">
         ${h1("YOUR BATTLES", "fx-h1--26")}
-        ${battleCard({ meta: "5 mates · Day 3 of 7", title: "THE SUNDAY SHOWDOWN", crewN: 4, barPct: 62, foot: "You're 2nd — 36 RUF behind Sam" })}
-        ${battleCard({ status: "STARTS IN 2 D", statusCls: "fg-status--info", meta: "8 colleagues · starts Mon", title: "ACME STEP-UP", crewN: 4, barPct: null, foot: "Target: 100 RUF/day · Mon–Fri", border: "line" })}
-        ${battleCard({ status: "SAM WON", statusCls: "fg-status--muted", meta: "3 players · finished", title: "LUNCHTIME LEGS", crewN: 3, barPct: 100, barColor: "var(--success)", foot: "You won 2 of 7 days · Rematch?", border: "line" })}
+        ${noBattleState()}
       </div>
-      ${nav("battle-001")}`,
+      ${nav("battle-001")}`;
+      const cards = [...st.matches].reverse().map((m) => {
+        const rows = E.standings(m);
+        const myId = st.player?.id;
+        const mine = rows.find((r) => r.player.id === myId);
+        const status = m.status === "live" ? "LIVE" : m.status === "open" ? "RECRUITING" : "COMPLETE";
+        const cls = m.status === "live" ? "" : "fg-status--muted";
+        const w = m.status === "complete" ? E.winner(m) : null;
+        return battleCard({
+          status: w ? (w.playerId === myId ? "YOU WON" : `${(m.players.find(p => p.id === w.playerId)?.name ?? "?").split(" ")[0].toUpperCase()} WON`) : status,
+          statusCls: cls,
+          meta: `${m.players.length} players · ${S.fmtDays(m.config.playDays)}`,
+          title: (m.config.name ?? "Battle").toUpperCase(),
+          crewN: m.players.length,
+          barPct: mine ? Math.round(mine.progressPct) : 0,
+          barColor: m.status === "complete" ? "var(--success)" : "var(--lime)",
+          foot: m.status === "complete"
+            ? `Winner: ${m.players.find(p => p.id === w?.playerId)?.name ?? "?"} · ${w?.adjustedScore} RUF (adjusted)`
+            : mine ? `You're at ${Math.round(mine.progressPct)}% · ${mine.rawReps}/${m.config.targetReps} reps` : "",
+          border: m.status === "live" ? "purple" : "line",
+        });
+      }).join("");
+      return `
+      ${statusBar()}
+      ${topBar({ logo: true })}
+      <div class="fx-content">
+        ${h1("YOUR BATTLES", "fx-h1--26")}
+        ${cards}
+        <div class="fx-gap8"></div>
+        ${btn("SEASON LADDER →", "fx-btn--dark", "season-001")}
+      </div>
+      ${nav("battle-001")}`;
+    },
   },
   {
     id: "home-007", figma: "MOB-HOME-007", name: "Notification centre", group: "Home", next: "battle-001",
@@ -619,7 +814,11 @@ const SCREENS = [
   /* ── CREATE ×6 ────────────────────────────────────────────────────── */
   {
     id: "create-002", figma: "MOB-CREATE-002", name: "Fast battle setup", group: "Create", next: "create-014",
-    render: () => `
+    render: () => {
+      const d = draft.battle;
+      const dayLetter = (i, L) => `<button class="fx-chip fx-chip--day ${d.days.includes(i) ? "fx-chip--on" : ""}" data-day="${i}">${L}</button>`;
+      const targetChip = (t) => `<button class="fx-chip fx-chip--target ${d.target === t.id ? "fx-chip--on" : ""}" data-target="${t.id}">${t.label} · ${t.reps} reps</button>`;
+      return `
       ${statusBar()}
       ${topBar({ title: "Create battle", back: true })}
       <div class="fx-content">
@@ -627,32 +826,31 @@ const SCREENS = [
           <button class="fx-seg__item fx-seg__item--on">Fast battle</button>
           <button class="fx-seg__item" ${go("create-005")}>Custom battle</button>
         </div>
-        ${field("Battle name", "The Sunday Showdown")}
+        <div class="fx-field">
+          <span class="fx-field__label">Battle name</span>
+          <input class="fx-input" id="cbName" type="text" maxlength="40" value="${d.name.replace(/"/g, "&quot;")}" autocomplete="off" spellcheck="false">
+        </div>
         <p class="fx-field__label" style="margin-top:14px">Battle days</p>
-        <div class="fx-chips">
-          <button class="fx-chip fx-chip--day fx-chip--on">M</button>
-          <button class="fx-chip fx-chip--day">T</button>
-          <button class="fx-chip fx-chip--day fx-chip--on">W</button>
-          <button class="fx-chip fx-chip--day">T</button>
-          <button class="fx-chip fx-chip--day fx-chip--on">F</button>
-          <button class="fx-chip fx-chip--day">S</button>
-          <button class="fx-chip fx-chip--day fx-chip--on">S</button>
+        <div class="fx-chips" id="cbDays">
+          ${dayLetter(1, "M")}${dayLetter(2, "T")}${dayLetter(3, "W")}${dayLetter(4, "T")}${dayLetter(5, "F")}${dayLetter(6, "S")}${dayLetter(0, "S")}
         </div>
         ${note("Rest days are free — no targets, no streak risk.")}
         <p class="fx-field__label" style="margin-top:14px">Exercise pack</p>
-        ${option({ title: "Bodyweight basics", sub: "Push-ups, squats, sit-ups, lunges, plank — no kit needed", sel: true })}
-        <p class="fx-field__label" style="margin-top:14px">Daily target (per person)</p>
-        <div class="fx-chips">
-          <button class="fx-chip fx-chip--target">Light · 60 RUF</button>
-          <button class="fx-chip fx-chip--target fx-chip--on">Solid · 120 RUF</button>
-          <button class="fx-chip fx-chip--target">Hero · 200 RUF</button>
+        <div id="cbPack">
+          ${option({ title: "Bodyweight basics", sub: "Push-ups, squats, sit-ups, lunges, plank — no kit needed", sel: d.pack === "bodyweight", go: "" })}
+          ${option({ title: "Full-body burner", sub: "Adds burpees. You've been warned", sel: d.pack === "fullbody", go: "" })}
         </div>
-        ${note("Targets auto-adjust per person if someone picks a different level when joining.")}
+        <p class="fx-field__label" style="margin-top:14px">Match target (total reps — first to hit it closes)</p>
+        <div class="fx-chips" id="cbTarget">
+          ${S.TARGETS.map(targetChip).join("")}
+        </div>
+        ${note("Handicaps apply: a couch player's reps count ×1.5, an athlete's ×0.85 — the closer doesn't always win.")}
         <div class="fx-gap8"></div>
-        ${btn("CREATE & INVITE", "fx-btn--primary", "create-014")}
+        ${btn("CREATE & INVITE", "fx-btn--primary", "create-014", 'id="cbCreate"')}
         <div class="fx-gap8"></div>
         ${btn("Switch to custom setup", "fx-btn--ghost", "create-005")}
-      </div>`,
+      </div>`;
+    },
   },
   {
     id: "create-005", figma: "MOB-CREATE-005", name: "Custom — schedule & clock", group: "Create", next: "create-008",
@@ -732,38 +930,53 @@ const SCREENS = [
   },
   {
     id: "create-014", figma: "MOB-CREATE-014", name: "Waiting room", group: "Create", next: "battle-001",
-    render: () => `
+    render: () => {
+      const st = ST();
+      const m = [...st.matches].reverse().find((x) => x.status === "open") ?? liveMatch(st);
+      const code = st.crewCode ?? "CREW-7Q2";
+      if (!m) return `
       ${statusBar()}
-      ${topBar({ title: "The Sunday Showdown" })}
+      ${topBar({ title: "Waiting room" })}
+      <div class="fx-content">${noBattleState()}</div>
+      ${nav("battle-001")}`;
+      const myId = st.player?.id;
+      const members = m.players.map((p, i) => member(
+        p.id === myId ? `${st.player.name} (you) · Captain` : `${p.name} · ${p.tier} ×${E.TIER_MULTIPLIERS[p.tier]}`,
+        i === 0 ? "Ready · creator" : `Joined · ${p.tier} handicap`, true
+      )).join("");
+      return `
+      ${statusBar()}
+      ${topBar({ title: m.config.name ?? "Battle" })}
       <div class="fx-content">
         ${h1("BATTLE CREATED. NOW RECRUIT.", "fx-h1--26 fx-h1--gold")}
         <div class="fx-sharecard">
-          <div class="fx-sharecard__link">reps.fit/join/SHOWDOWN</div>
-          <div class="fx-sharecard__sub">Share link · QR · or send straight to WhatsApp</div>
-          <div class="fx-sharecard__btns"><button>Copy link</button><button>QR code</button><button>Share</button></div>
+          <div class="fx-sharecard__link">reps.fit/join/${(m.config.name ?? "BATTLE").replace(/[^A-Za-z]/g, "").toUpperCase().slice(0, 10)}</div>
+          <div class="fx-sharecard__sub">Crew code <b>${code}</b> · in WhatsApp/Slack: <code class="fx-codegram">link ${code}</code></div>
+          <div class="fx-sharecard__btns"><button data-copy="${code}">Copy code</button><a class="fx-sharecard__a" href="/connect" target="_blank" rel="noopener">Connect a chat →</a><button ${go("join-001")}>Preview invite</button></div>
         </div>
-        <p class="fx-sub fx-sub--13" style="margin-top:20px;font-weight:700;color:var(--text)">CREW (3 of 8 joined)</p>
-        ${member("Ben (you) · Captain", "Ready", true)}
-        ${member("Sam K", "Joined · picked Solid level", true)}
-        ${member("Alex T", "Joined · picked Light level", true)}
-        ${member("Jordan P", "Invited · not joined yet")}
-        ${member("Casey M", "Invited · not joined yet")}
-        ${note("Battle starts Monday 9:00 AM whether everyone's joined or not. Latecomers join from the current day.")}
+        <p class="fx-sub fx-sub--13" style="margin-top:20px;font-weight:700;color:var(--text)">CREW (${m.players.length} IN · TARGET ${m.config.targetReps} REPS)</p>
+        ${members}
+        ${note(`Mates in this build are the demo crew (Sam, Alex, Jordan) — they log back when you tap "simulate mates" on the battle screen. Real friends join via ${code}.`)}
         <div class="fx-gap8"></div>
-        ${btn("START EARLY (CAPTAIN ONLY)", "fx-btn--dark", "battle-001")}
+        ${btn("START EARLY (CAPTAIN ONLY)", "fx-btn--dark", "battle-001", `id="startEarly" data-start="${m.config.id}"`)}
       </div>
-      ${nav("battle-001")}`,
+      ${nav("battle-001")}`;
+    },
   },
 
   /* ── JOIN ×2 ──────────────────────────────────────────────────────── */
   {
     id: "join-001", figma: "MOB-JOIN-001", name: "Invitation preview", group: "Join", next: "join-003",
-    render: () => `
+    render: () => {
+      const st = ST();
+      const m = [...st.matches].reverse().find((x) => x.status === "open" && !x.players.some((p) => p.id === st.player?.id)) ??
+                 [...st.matches].reverse().find((x) => x.status === "open");
+      if (!m) return `
       ${statusBar()}
       <div class="fx-content">
         <div class="fx-gap24"></div>
-        <p class="fx-overline">SAM INVITED YOU TO</p>
-        ${h1("THE SUNDAY SHOWDOWN", "fx-h1--34 fx-h1--gold")}
+        <p class="fx-overline">NO PENDING INVITES</p>
+        ${h1("THIS IS BEN'S MOCK PREVIEW", "fx-h1--30 fx-h1--gold")}
         <div class="fx-crewnow" style="margin-top:16px">
           ${["BT", "SK", "AT", "JP", "CM"].map(i => `<span class="fg-avatar" style="width:48px;height:48px;font-size:14px">${i}</span>`).join("")}
         </div>
@@ -775,25 +988,54 @@ const SCREENS = [
         ${rule("Clock", "Resets 9:00 PM AEST · 7:00 PM your time")}
         ${rule("Stakes", "Bragging rights only — no money")}
         <div class="fx-gap8"></div>
+        ${btn("CREATE A REAL BATTLE INSTEAD", "fx-btn--primary", "create-002")}
+      </div>`;
+      const code = st.crewCode ?? "CREW-7Q2";
+      return `
+      ${statusBar()}
+      <div class="fx-content">
+        <div class="fx-gap24"></div>
+        <p class="fx-overline">YOU'RE INVITED TO</p>
+        ${h1((m.config.name ?? "THE BATTLE").toUpperCase(), "fx-h1--34 fx-h1--gold")}
+        <div class="fx-crewnow" style="margin-top:16px">
+          ${m.players.slice(0, 5).map((p) => `<span class="fg-avatar" style="width:48px;height:48px;font-size:14px">${p.name.split(" ").map(w => w[0]).join("").slice(0, 2)}</span>`).join("")}
+        </div>
+        <p class="fx-sub fx-sub--13">${m.players.length} players in · crew code <b>${code}</b> (<code class="fx-codegram">link ${code}</code> in chat)</p>
+        <div class="fx-gap8"></div>
+        ${rule("Format", `First to ${m.config.targetReps} total reps closes · highest adjusted score wins`)}
+        ${rule("Your handicap", "Picked when you join — couch ×1.5 → athlete ×0.85")}
+        ${rule("Exercises", m.config.exercises.map((e) => e.name).join(", "))}
+        ${rule("Days", S.fmtDays(m.config.playDays))}
+        ${rule("Stakes", "Bragging rights + charity pot — no money to winner")}
+        <div class="fx-gap8"></div>
         ${btn("ACCEPT — PICK MY LEVEL", "fx-btn--primary", "join-003")}
         <div class="fx-gap8"></div>
-        ${btn("Decline", "fx-btn--ghost")}
-      </div>`,
+        ${btn("Decline", "fx-btn--ghost", "home-002")}
+      </div>`;
+    },
   },
   {
     id: "join-003", figma: "MOB-JOIN-003", name: "Pick your level", group: "Join", next: "battle-001",
-    render: () => `
+    render: () => {
+      const tiers = [
+        { id: "couch", title: "Couch — every rep ×1.5", sub: "Just starting out. The engine carries you" },
+        { id: "casual", title: "Casual — every rep ×1.25", sub: "I train sometimes", sel: true },
+        { id: "fit", title: "Fit — every rep ×1.0", sub: "I train seriously" },
+        { id: "athlete", title: "Athlete — every rep ×0.85", sub: "You're a menace. Respect." },
+      ];
+      return `
       ${statusBar()}
-      ${topBar({ title: "Create battle", back: true })}
+      ${topBar({ title: "Join battle", back: true })}
       <div class="fx-content">
-        ${h1("PICK YOUR LEVEL")}
-        ${sub("Everyone chases 100% of their own target, so every level can win the day. Only you and the captain see your choice.")}
-        ${option({ title: "Light — 60 RUF/day", sub: "≈ 40 push-ups + 2 min plank" })}
-        ${option({ title: "Solid — 120 RUF/day", sub: "≈ 60 push-ups + 30 burpees", sel: true })}
-        ${option({ title: "Hero — 200 RUF/day", sub: "You're a menace. Respect." })}
+        ${h1("PICK YOUR HANDICAP")}
+        ${sub("Effort competes, not raw fitness — every level can win the day. Only you and the engine see this.")}
+        <div id="joinTiers">
+          ${tiers.map((t) => option({ title: t.title, sub: t.sub, sel: draft.tier === t.id })).join("")}
+        </div>
         <div class="fx-gap8"></div>
-        ${btn("JOIN THE BATTLE", "fx-btn--primary", "battle-001")}
-      </div>`,
+        ${btn("JOIN THE BATTLE", "fx-btn--primary", "battle-001", 'id="joinGo"')}
+      </div>`;
+    },
   },
 
   /* ── BATTLE ×5 ────────────────────────────────────────────────────── */
@@ -848,24 +1090,32 @@ const SCREENS = [
   },
   {
     id: "battle-005", figma: "MOB-BATTLE-005", name: "Full leaderboard", group: "Battle", next: "battle-006",
-    render: () => `
+    render: () => {
+      const st = ST();
+      const m = liveMatch(st) ?? lastDone(st);
+      if (!m) return `${statusBar()}${topBar({ title: "Leaderboard" })}<div class="fx-content">${noBattleState()}</div>${nav("battle-001")}`;
+      const rows = E.standings(m);
+      const crewRaw = rows.reduce((s, r) => s + r.rawReps, 0);
+      const crewAdj = Math.round(rows.reduce((s, r) => s + r.adjustedScore, 0));
+      return `
       ${statusBar()}
-      ${topBar({ title: "The Sunday Showdown" })}
+      ${topBar({ title: m.config.name ?? "Battle" })}
       <div class="fx-content">
-        ${h1("TODAY'S LEADERBOARD", "fx-h1--24")}
+        ${h1("LEADERBOARD", "fx-h1--24")}
         <div class="fx-seg fx-seg--32">
-          <button class="fx-seg__item fx-seg__item--on">Today</button>
+          <button class="fx-seg__item fx-seg__item--on">${m.status === "complete" ? "FINAL (ADJUSTED)" : "LIVE (ADJUSTED)"}</button>
           <button class="fx-seg__item">This battle</button>
           <button class="fx-seg__item">All time</button>
         </div>
-        <div class="fx-board">${board()}</div>
+        <div class="fx-board">${realBoard(m)}</div>
         <div class="fx-card fx-card--r14" style="background:var(--energy-tint);border-color:transparent;display:flex;justify-content:space-between;align-items:center">
           <span style="font:700 12px/1.2 var(--font-body);color:var(--energy-light)">CREW TOTAL</span>
-          <span style="font:700 14px/1.2 var(--font-body);color:var(--text)">418 / 600 RUF today</span>
+          <span style="font:700 14px/1.2 var(--font-body);color:var(--text)">${crewRaw} / ${m.config.targetReps * m.players.length} reps · ${crewAdj} RUF</span>
         </div>
-        ${note("Tap any player for their battle detail · long-press to react or flag a log", "fx-note--11")}
+        ${note("Ranked by adjusted score (tier handicap × reps, comeback ×1.2, closure +15). Tap LOG to move.", "fx-note--11")}
       </div>
-      ${nav("battle-001")}`,
+      ${nav("battle-001")}`;
+    },
   },
   {
     id: "battle-006", figma: "MOB-BATTLE-006", name: "Activity feed", group: "Battle", next: "result-003",
@@ -896,41 +1146,26 @@ const SCREENS = [
   /* ── LOG ×7 ─────────────────────────────────────────────────────── */
   {
     id: "log-001", figma: "MOB-LOG-001", name: "Quick log (bottom sheet)", group: "Log", next: "battle-001",
-    render: () => sheetScreen(battleUnder(), `
-      <div class="fx-sheet__grab"></div>
-      <h2 class="fx-sheet__h">LOG REPS</h2>
-      <div class="fg-sheet__row" id="qlEx">
-        <button class="fg-chip fg-chip--exercise" aria-pressed="true">Push-ups</button>
-        <button class="fg-chip fg-chip--exercise" aria-pressed="false">Squats</button>
-        <button class="fg-chip fg-chip--exercise" aria-pressed="false">Plank</button>
-        <button class="fg-chip fg-chip--exercise" aria-pressed="false" ${go("log-002")}>More…</button>
-      </div>
-      <div class="fg-sheet__row" id="qlPre">
-        <button class="fg-chip fg-chip--lg" aria-pressed="false">5</button>
-        <button class="fg-chip fg-chip--lg" aria-pressed="false">10</button>
-        <button class="fg-chip fg-chip--lg" aria-pressed="true">20</button>
-        <button class="fg-chip fg-chip--lg" aria-pressed="false">30</button>
-        <button class="fg-chip fg-chip--lg" aria-pressed="false">50</button>
-      </div>
-      <p class="fg-sheet__conversion" id="qlConv"><b>20 push-ups = 20 RUF</b> · takes you to 92%</p>
-      <button class="fg-sheet__cta" id="qlCta" ${go("battle-001")}>LOG 20 PUSH-UPS</button>
-      <p class="fg-sheet__note">3 taps, one thumb. Undo available for 30 s after logging.</p>
-    `),
+    render: () => sheetScreen(battleUnder(), quickLogSheet()),
   },
   {
     id: "log-002", figma: "MOB-LOG-002", name: "Exercise picker", group: "Log", next: "log-003",
-    render: () => sheetScreen(battleUnder(), `
+    render: () => {
+      const m = liveMatch(ST());
+      const list = m
+        ? m.config.exercises.map((e) => exListRow(e.name, "In this battle", "tap to log")).join("")
+        : S.EXERCISES.slice(0, 3).map((e) => exListRow(e.name, "No live battle", e.conv)).join("");
+      return sheetScreen(battleUnder(), `
       <div class="fx-sheet__grab"></div>
       <h2 class="fx-sheet__h fx-sheet__h--20">PICK AN EXERCISE</h2>
-      <div class="fx-search"><span>${ic("search")}</span> Search 20 exercises…</div>
-      <p class="fx-overline" style="text-align:center;margin-top:8px">FAVOURITES</p>
-      <div class="fx-sheet__rows">
-        ${exListRow("Push-ups", "Upper body", "1 = 1 RUF")}
-        ${exListRow("Burpees", "Full body", "1 = 2 RUF")}
-        ${exListRow("Plank", "Core · timed", "10 s = 5 RUF")}
+      <div class="fx-search"><span>${ic("search")}</span> ${m ? `${m.config.exercises.length} in this battle` : "20 exercises…"}</div>
+      <p class="fx-overline" style="text-align:center;margin-top:8px">${m ? "THIS BATTLE'S SET" : "FAVOURITES"}</p>
+      <div class="fx-sheet__rows" id="exPick">
+        ${list}
       </div>
-      <p style="text-align:center;font:600 12px/1.2 var(--font-body);color:var(--lime);margin:6px 0 0" ${go("log-003")}>ALL EXERCISES A–Z ›</p>
-    `),
+      <p style="text-align:center;font:600 12px/1.2 var(--font-body);color:var(--lime);margin:6px 0 0" ${go("log-001")}>BACK TO QUICK LOG ›</p>
+    `);
+    },
   },
   {
     id: "log-003", figma: "MOB-LOG-003", name: "Timed exercise", group: "Log", next: "log-004",
@@ -1029,45 +1264,88 @@ const SCREENS = [
   /* ── RESULT ×5 ───────────────────────────────────────────────────── */
   {
     id: "result-001", figma: "MOB-RESULT-001", name: "Daily winner — you won", group: "Results", next: "result-003", tint: "tint",
-    render: () => `
+    render: () => {
+      const st = ST();
+      const m = lastDone(st);
+      const w = m ? E.winner(m) : null;
+      const myId = st.player?.id;
+      if (!m || !w || w.playerId !== myId) {
+        // not your win — show the honest state
+        return `
+        ${statusBar()}
+        <div class="fx-content">
+          <div class="fx-gap96"></div>
+          ${h1("NO WIN HERE YET", "fx-h1--36")}
+          ${sub(m ? "This screen lights up when YOU take a battle." : "Finish a battle first — this screen reads real results.", "fx-sub--15")}
+        <div class="fx-gap8"></div>
+        ${m ? btn("SEE THE REAL RESULT", "fx-btn--primary", "result-005") : btn("CREATE A BATTLE", "fx-btn--primary", "create-002")}
+      </div>`;
+      }
+      const rows = E.finalStandings(m);
+      const mine = rows.find((r) => r.player.id === myId);
+      const second = rows[1];
+      return `
       ${confetti()}
       ${statusBar()}
       <div class="fx-content">
         <div class="fx-gap96"></div>
-        ${h1("YOU WON TUESDAY", "fx-h1--42 fx-h1--gold")}
+        ${h1(`YOU WON ${(m.config.name ?? "THE BATTLE").toUpperCase()}`, "fx-h1--42 fx-h1--gold")}
         <div class="fx-trophy">${ic("trophy")}</div>
-        ${sub("124 RUF · finished at 8:12 PM · 103% of target", "fx-sub--15")}
-        ${sub("Sam finished 2nd — 4 RUF behind. Brutal.", "fx-sub--13")}
+        ${sub(`${mine.adjustedScore} RUF adjusted · ${mine.rawReps} raw reps · closed by ${m.players.find(p => p.id === m.closedBy)?.name ?? "?"}`, "fx-sub--15")}
+        ${second ? sub(`${second.player.name} finished 2nd — ${Math.round(mine.adjustedScore - second.adjustedScore)} RUF behind. Brutal.`, "fx-sub--13") : ""}
         <div class="fx-card fx-card--r14" style="background:var(--energy-tint);border-color:var(--energy);display:flex;gap:12px;align-items:center">
           <span style="font-size:20px">🎁</span>
-          <span style="font:600 14px/1.2 var(--font-body);color:var(--text)">Winner's loot: 1 Rare power-up card</span>
+          <span style="font:600 14px/1.2 var(--font-body);color:var(--text)">Winner directs the charity pot — pick on the final card</span>
         </div>
         <div class="fx-gap8"></div>
-        ${btn("SHARE THE WIN", "fx-btn--primary", "result-007")}
+        ${btn("SEE FINAL STANDINGS", "fx-btn--primary", "result-005")}
         <div class="fx-gap8"></div>
-        ${btn("See full recap", "fx-btn--ghost", "result-003")}
-      </div>`,
+        ${btn("Share the win", "fx-btn--ghost", "result-007")}
+      </div>`;
+    },
   },
   {
     id: "result-002", figma: "MOB-RESULT-002", name: "Daily result — Sam won", group: "Results", next: "result-003",
-    render: () => `
+    render: () => {
+      const st = ST();
+      const m = lastDone(st);
+      const w = m ? E.winner(m) : null;
+      const myId = st.player?.id;
+      if (!m || !w || w.playerId === myId) {
+        return `
+        ${statusBar()}
+        <div class="fx-content">
+          <div class="fx-gap96"></div>
+          ${h1("NO RESULT YET", "fx-h1--36")}
+          ${sub("This screen shows a real loss. Go take one on the chin.", "fx-sub--15")}
+          <div class="fx-gap8"></div>
+          ${btn(m ? "SEE THE REAL RESULT" : "CREATE A BATTLE", "fx-btn--primary", m ? "result-005" : "create-002")}
+        </div>`;
+      }
+      const rows = E.finalStandings(m);
+      const winnerP = m.players.find((p) => p.id === w.playerId);
+      const myRow = rows.find((r) => r.player.id === myId);
+      const myRank = rows.findIndex((r) => r.player.id === myId) + 1;
+      const myStats = S.stats(st);
+      return `
       ${statusBar()}
       <div class="fx-content">
         <div class="fx-gap96"></div>
-        ${h1("SAM TOOK TUESDAY", "fx-h1--36")}
-        <div style="display:flex;justify-content:center;margin-top:16px"><span class="fg-avatar" style="width:72px;height:72px;font-size:23px">SK</span></div>
-        ${sub("You finished 2nd at 92% — 10 RUF short.", "fx-sub--15")}
-        ${sub("You were ahead until 7 PM. Tomorrow, finish the job.", "fx-sub--13")}
+        ${h1(`${winnerP.name.split(" ")[0].toUpperCase()} TOOK IT`, "fx-h1--36")}
+        <div style="display:flex;justify-content:center;margin-top:16px"><span class="fg-avatar" style="width:72px;height:72px;font-size:23px">${winnerP.name.split(" ").map(x => x[0]).join("").slice(0, 2)}</span></div>
+        ${sub(`${w.adjustedScore} RUF adjusted${w.closedMatch ? " · closed the match" : " · never closed — out-scored the closer"}`, "fx-sub--15")}
+        ${myRow ? sub(`You finished ${ordinal(myRank)} on ${Math.round(myRow.adjustedScore)} RUF adjusted (${myRow.rawReps} raw).`, "fx-sub--13") : ""}
         <div class="fx-stats">
-          <div class="fx-stat"><div class="fx-stat__v">🔥 6</div><div class="fx-stat__k">day streak safe</div></div>
-          <div class="fx-stat"><div class="fx-stat__v">💪 110</div><div class="fx-stat__k">RUF today</div></div>
-          <div class="fx-stat"><div class="fx-stat__v">📈 +8%</div><div class="fx-stat__k">vs your avg</div></div>
+          <div class="fx-stat"><div class="fx-stat__v">🔥 ${myStats.streak}</div><div class="fx-stat__k">streak</div></div>
+          <div class="fx-stat"><div class="fx-stat__v">💪 ${myStats.wins}</div><div class="fx-stat__k">wins</div></div>
+          <div class="fx-stat"><div class="fx-stat__v">📈 ${myStats.lifetimeReps}</div><div class="fx-stat__k">lifetime reps</div></div>
         </div>
         <div class="fx-gap8"></div>
-        ${btn("SET A REVENGE REMINDER FOR 7 AM", "fx-btn--primary", "battle-001")}
+        ${btn("REMATCH — RUN IT BACK", "fx-btn--primary", "result-005")}
         <div class="fx-gap8"></div>
-        ${btn("Send Sam a taunt", "fx-btn--dark")}
-      </div>`,
+        ${btn("Send a taunt", "fx-btn--dark")}
+      </div>`;
+    },
   },
   {
     id: "result-003", figma: "MOB-RESULT-003", name: "Daily recap", group: "Results", next: "result-005",
@@ -1089,30 +1367,73 @@ const SCREENS = [
   },
   {
     id: "result-005", figma: "MOB-RESULT-005", name: "Final battle result", group: "Results", next: "set-005", tint: "tint",
-    render: () => `
+    render: () => {
+      const st = ST();
+      const m = lastDone(st);
+      if (!m) return `
+      ${statusBar()}
+      <div class="fx-content">
+        <div class="fx-gap48"></div><div class="fx-gap16"></div>
+        ${h1("NO FINISHED BATTLE", "fx-h1--34")}
+        ${sub("Close one out first — first player to the raw target ends it.", "fx-sub--15")}
+        <div class="fx-gap8"></div>
+        ${btn("GO TO BATTLE", "fx-btn--primary", "battle-001")}
+      </div>`;
+      const rows = E.finalStandings(m);
+      const w = E.winner(m);
+      const myId = st.player?.id;
+      const winnerP = m.players.find((p) => p.id === w.playerId);
+      const top3 = rows.slice(0, 3);
+      const maxAdj = Math.max(...rows.map((r) => r.adjustedScore), 1);
+      const podium = (r, hgt, color, rankTxt) => r ? `
+        <div class="fx-podium__col"><span class="fx-podium__name">${r.player.id === myId ? "You" : r.player.name.split(" ")[0]}</span>
+        <div class="fx-podium__bar" style="height:${hgt}px;background:${color}"></div>
+        <span class="fx-podium__rank" style="color:${color === "var(--lime)" ? "var(--lime)" : "var(--muted)"}">${rankTxt}</span></div>` : "";
+      // real awards from the entry log
+      const mostSets = [...m.players].map((p) => ({ p, n: m.entries.filter((e) => e.playerId === p.id).length })).sort((a, b) => b.n - a.n)[0];
+      const mostRaw = [...m.players].map((p) => ({ p, raw: E.playerRawReps(p.id, m.entries) })).sort((a, b) => b.raw - a.raw)[0];
+      const cbUser = m.entries.find((e) => e.comeback);
+      const cbP = cbUser ? m.players.find((p) => p.id === cbUser.playerId) : null;
+      const pot = S.potFor(m.config.id, st);
+      const potTotal = E.potTotalCents(pot);
+      const designated = pot.designatedCharityId;
+      const iWon = w.playerId === myId;
+      return `
       ${confetti()}
       ${statusBar()}
       <div class="fx-content">
         <div class="fx-gap48"></div><div class="fx-gap16"></div>
         <p class="fx-overline" style="color:var(--energy-light);text-align:center">BATTLE COMPLETE</p>
-        ${h1("SAM WINS<br>THE SHOWDOWN", "fx-h1--38 fx-h1--gold")}
-        ${sub("5 of 8 days won · 934 total RUF", "fx-sub--15")}
+        ${h1(`${(iWon ? "YOU WIN" : winnerP.name.split(" ")[0].toUpperCase() + " WINS")}<br>${(m.config.name ?? "THE BATTLE").toUpperCase()}`, "fx-h1--38 fx-h1--gold")}
+        ${sub(`${w.adjustedScore} RUF adjusted · closed by ${m.players.find(p => p.id === m.closedBy)?.name ?? "?"} (+15 closure bonus)`, "fx-sub--15")}
         <div class="fx-podium">
-          <div class="fx-podium__col"><span class="fx-podium__name">You</span><div class="fx-podium__bar" style="height:70px;background:color-mix(in srgb, var(--muted) 35%, transparent)"></div><span class="fx-podium__rank" style="color:var(--muted)">2nd</span></div>
-          <div class="fx-podium__col"><span class="fx-podium__name">Sam</span><div class="fx-podium__bar" style="height:100px;background:var(--lime)"></div><span class="fx-podium__rank" style="color:var(--lime)">1st</span></div>
-          <div class="fx-podium__col"><span class="fx-podium__name">Alex</span><div class="fx-podium__bar" style="height:50px;background:color-mix(in srgb, var(--urgency) 35%, transparent)"></div><span class="fx-podium__rank" style="color:var(--urgency)">3rd</span></div>
+          ${podium(top3[1], 70, "color-mix(in srgb, var(--muted) 35%, transparent)", "2nd")}
+          ${podium(top3[0], 100, "var(--lime)", "1st")}
+          ${podium(top3[2], 50, "color-mix(in srgb, var(--urgency) 35%, transparent)", "3rd")}
         </div>
         <div class="fx-card fx-card--r14">
-          <div class="fx-moments__row">🏅 Most consistent — You (logged every day)</div>
-          <div class="fx-moments__row">🚀 Best comeback — Alex (last-day surge)</div>
-          <div class="fx-moments__row">⚡ Most active — Sam (41 sets)</div>
-          <div class="fx-moments__row">💪 Personal best — You (124 RUF Tuesday)</div>
+          <div class="fx-moments__row">🏅 ${top3[0].player.id === myId ? "You" : top3[0].player.name} — ${top3[0].adjustedScore} RUF (winner)</div>
+          <div class="fx-moments__row">🚀 Best comeback — ${cbP ? (cbP.id === myId ? "you claimed ×1.2" : cbP.name.split(" ")[0] + " claimed ×1.2") : "nobody needed it"}</div>
+          <div class="fx-moments__row">⚡ Most active — ${mostRaw.p.id === myId ? "you" : mostRaw.p.name} (${mostRaw.raw} reps)</div>
+          <div class="fx-moments__row">💪 Most consistent — ${mostSets.p.id === myId ? "you" : mostSets.p.name} (${mostSets.n} sets)</div>
+        </div>
+        <div class="fx-pot">
+          <div class="fx-overline" style="text-align:center;margin-top:4px">CHARITY POT — WINNER DIRECTS, NO CASH TO WINNER</div>
+          <div class="fx-pot__total">$${(potTotal / 100).toFixed(2)} BANKED · ${pot.contributions.length} CONTRIBUTION${pot.contributions.length === 1 ? "" : "S"}</div>
+          <div class="fx-pot__row">
+            ${[200, 500, 1000].map((c) => `<button class="fx-pot__chip" data-pot-add="${c}">+$${c / 100}</button>`).join("")}
+          </div>
+          <div class="fx-pot__row" id="potCharities">
+            ${S.CHARITIES.map((c) => `<button class="fx-pot__charity ${designated === c.id ? "fx-pot__charity--on" : ""}" data-pot-pick="${c.id}" ${iWon ? "" : "disabled"}>${c.name}${designated === c.id ? " ✓" : ""}</button>`).join("")}
+          </div>
+          ${iWon ? note("You won — pick where the pot goes.") : note("Only the winner directs the pot. Chip in if you're feeling noble.")}
         </div>
         <div class="fx-gap8"></div>
-        ${btn("REMATCH — SAME RULES", "fx-btn--primary", "create-014")}
+        ${btn("REMATCH — SAME RULES", "fx-btn--primary", "battle-001", `id="rematchBtn" data-rematch="${m.config.id}"`)}
         <div class="fx-gap8"></div>
-        ${btn("Share battle poster", "fx-btn--dark", "result-007")}
-      </div>`,
+        ${btn("Season ladder", "fx-btn--dark", "season-001")}
+      </div>`;
+    },
   },
   {
     id: "result-007", figma: "MOB-RESULT-007", name: "Share card preview", group: "Results", next: "set-005",
@@ -1335,24 +1656,33 @@ TUESDAY</div>
   /* ── PROFILE & SETTINGS ×5 ───────────────────────────────────────── */
   {
     id: "profile-001", figma: "MOB-PROFILE-001", name: "Profile", group: "Profile & Settings", next: "set-001",
-    render: () => `
+    render: () => {
+      const st = ST();
+      const p = you(st);
+      const t = S.stats(st);
+      const initials = (p?.name ?? "You").split(" ").map(w => w[0]).join("").slice(0, 2).toUpperCase();
+      const ladder = S.ladder(st);
+      const myLadder = ladder.findIndex((r) => r.playerId === p?.id) + 1;
+      return `
       ${statusBar()}
       <div class="fx-content">
-        <div style="display:flex;justify-content:center;margin-top:12px"><span class="fg-avatar" style="width:72px;height:72px;font-size:23px">BT</span></div>
-        ${h1("BEN THE MACHINE", "fx-h1--26")} 
-        <p class="fx-sub fx-sub--13" style="text-align:center">@benwins · Sydney · battling since Jul 2026</p>
-        <div style="display:flex;gap:8px;justify-content:center;margin-top:12px">
-          <span class="fg-badge">${ic("flame")}7 DAY STREAK</span>
-          <span class="fg-badge fg-badge--premium">${ic("crown")}12 DAYS WON</span>
+        <div style="display:flex;justify-content:center;margin-top:12px"><span class="fg-avatar" style="width:72px;height:72px;font-size:23px">${initials}</span></div>
+        ${h1((p?.name ?? "SET UP YOUR PROFILE").toUpperCase(), "fx-h1--26")}
+        <p class="fx-sub fx-sub--13" style="text-align:center">${p ? `${p.tier} tier · every rep ×${E.TIER_MULTIPLIERS[p.tier]}` : "finish onboarding to create your player"}${ladder.length ? ` · season rank ${myLadder || "—"}` : ""}</p>
+        <div style="display:flex;gap:8px;justify-content:center;margin-top:12px;flex-wrap:wrap">
+          <span class="fg-badge">${ic("flame")}${t.streak} DAY STREAK</span>
+          <span class="fg-badge fg-badge--premium">${ic("crown")}${t.wins} WON</span>
+          ${t.comebacks > 0 ? `<span class="fg-badge">${ic("bolt")}${t.comebacks} COMEBACK${t.comebacks === 1 ? "" : "S"}</span>` : ""}
         </div>
         <div class="fx-pstats">
-          <div class="fx-pstat"><div class="fx-pstat__v">4,218</div><div class="fx-pstat__k">lifetime RUF</div></div>
-          <div class="fx-pstat"><div class="fx-pstat__v">12</div><div class="fx-pstat__k">days won</div></div>
-          <div class="fx-pstat"><div class="fx-pstat__v">3</div><div class="fx-pstat__k">battles</div></div>
-          <div class="fx-pstat"><div class="fx-pstat__v">7</div><div class="fx-pstat__k">best streak</div></div>
+          <div class="fx-pstat"><div class="fx-pstat__v">${t.lifetimeReps.toLocaleString()}</div><div class="fx-pstat__k">lifetime reps</div></div>
+          <div class="fx-pstat"><div class="fx-pstat__v">${t.lifetimeAdjusted.toLocaleString()}</div><div class="fx-pstat__k">lifetime RUF</div></div>
+          <div class="fx-pstat"><div class="fx-pstat__v">${t.played}</div><div class="fx-pstat__k">battles</div></div>
+          <div class="fx-pstat"><div class="fx-pstat__v">${t.sets}</div><div class="fx-pstat__k">sets logged</div></div>
         </div>
         <div class="fx-menu">
           ${menuRow("Battle history", "home-003")}
+          ${menuRow("Season ladder", "season-001")}
           ${menuRow("Achievements & streak calendar")}
           ${menuRow("Exercise stats & records")}
           ${menuRow("Friends", "social-001")}
@@ -1360,7 +1690,8 @@ TUESDAY</div>
           ${menuRow("Settings", "set-001")}
         </div>
       </div>
-      ${nav("profile-001")}`,
+      ${nav("profile-001")}`;
+    },
   },
   {
     id: "set-001", figma: "MOB-SET-001", name: "Settings", group: "Profile & Settings", next: "set-003",
@@ -1609,6 +1940,50 @@ TUESDAY</div>
       </div>
       ${nav("battle-001")}`,
   },
+
+  /* ── SEASON ×1 — real ladder from recorded match history ─────────── */
+  {
+    id: "season-001", figma: "RWF-SEASON-001", name: "Season ladder", group: "Season", next: "battle-001",
+    render: () => {
+      const st = ST();
+      const ladder = S.ladder(st);
+      const season = st.season;
+      if (!season || ladder.length === 0) return `
+      ${statusBar()}
+      ${topBar({ title: "Season", back: true })}
+      <div class="fx-content">
+        ${h1("SEASON 1", "fx-h1--26")}
+        ${noBattleState()}
+        ${note("The ladder fills as battles complete — 3/2/1 points for 1st/2nd/3rd, +1 MVP, 4-week series.")}
+      </div>
+      ${nav("battle-001")}`;
+      const myId = st.player?.id;
+      const champ = season.champion;
+      const rows = ladder.map((r, i) => `
+      <div class="fx-ladderow ${r.playerId === myId ? "fx-ladderow--you" : ""}">
+        <span class="fx-ladderow__rank">${i === 0 ? ic("crown") : i + 1}</span>
+        <span class="fg-avatar" style="width:40px;height:40px;font-size:12px">${(r.playerId === myId ? st.player.name : r.name).split(" ").map(w => w[0]).join("").slice(0, 2)}</span>
+        <div class="fx-ladderow__info">
+          <span class="fx-ladderow__name">${r.playerId === myId ? `${st.player.name} (you)` : r.name}${champ === r.playerId ? " 🏆" : ""}</span>
+          <span class="fx-ladderow__sub">${r.wins}W · ${r.played} played${r.mvpCount ? ` · ${r.mvpCount} MVP` : ""}</span>
+        </div>
+        <span class="fx-ladderow__pts">${r.points}<i>PTS</i></span>
+      </div>`).join("");
+      return `
+      ${statusBar()}
+      ${topBar({ title: season.config.name ?? "Season", back: true })}
+      <div class="fx-content">
+        ${h1(`${(season.config.name ?? "SEASON").toUpperCase()} LADDER`, "fx-h1--24")}
+        ${sub(`Week ${season.week} of ${season.config.weeks} · ${season.results.length} match${season.results.length === 1 ? "" : "es"} recorded · 3/2/1 points + MVP`, "fx-sub--12")}
+        ${champ ? `<div class="fx-cbbanner">${ic("crown")}${st.season.players.find(p => p.id === champ)?.name ?? champ} IS CHAMPION — SEASON COMPLETE</div>` : ""}
+        <div class="fx-board">${rows}</div>
+        ${note("Points come from real completed battles: 1st = 3, 2nd = 2, 3rd = 1, MVP (most raw reps) +1. Ties break on wins, then MVPs, then name.")}
+        <div class="fx-gap8"></div>
+        ${btn("BACK TO BATTLE", "fx-btn--dark", "battle-001")}
+      </div>
+      ${nav("battle-001")}`;
+    },
+  },
 ];
 
 /* ── small row builders used above ───────────────────────────────────── */
@@ -1704,6 +2079,7 @@ const GROUPS = [
   ["Battle", "Main screen, danger zone 30 min, team battle, full leaderboard, activity feed."],
   ["Log", "Quick sheet (≤3 taps), picker, timed, gym mode, large-log confirm, history, offline queue."],
   ["Results", "Daily winner, daily loss, recap + MOMENTS, final + awards, share card."],
+  ["Season", "The real ladder — 3/2/1 points + MVP from completed battles."],
   ["Power-Ups", "Inventory, card detail, Lightning active, store, daily loot."],
   ["Wagers (flagged)", "All feature-flagged: explainer, eligibility, region, payment, settlement, responsible play."],
   ["Profile & Settings", "Profile, settings, notifications, Reps Pro paywall, manage subscription."],
@@ -1736,9 +2112,9 @@ function renderIndex() {
     <div class="fx-index__hero">
       <div class="fx-wordmark fx-wordmark--sm" style="margin:0 auto">REPS<i>·</i>WF</div>
       <h1 class="fx-index__title">THE FIGMA TEST APP</h1>
-      <p class="fx-index__sub">Ben's complete design — all 65 mobile screens, mock data, gold theme on. Tap GOLD up top to compare our lime. Everything is offline-capable: install it, kill your wifi, it still works.</p>
+      <p class="fx-index__sub">Ben's complete design — all 65 screens — now with the REAL game engine: handicapped scoring, comeback ×1.2, closure bonus, charity pots and the season ladder, persisted in your browser. Screens still showing mock content carry a DEMO chip. Everything works offline.</p>
       <div class="fx-gap16"></div>
-      ${btn("▶  RUN THE PROTOTYPE FLOW", "fx-btn--primary", "auth-001")}
+      ${btn("▶  START THE REAL APP (ONBOARDING)", "fx-btn--primary", "auth-008")}
       <div class="fx-gap8"></div>
       ${btn("Jump straight into a live battle", "fx-btn--dark", "battle-001")}
     </div>
@@ -1753,9 +2129,169 @@ function renderScreen(id) {
   if (!s) { location.hash = ""; return; }
   app.className = "fx-app" + (s.tint === "tint" ? " fx-app--tint" : s.tint === "dz" ? " fx-app--dz" : "");
   app.innerHTML = s.render();
+  if (DEMO_SCREENS.has(id)) app.insertAdjacentHTML("afterbegin", demoChip());
   wireQuickLog(app);
   wireChest(app);
+  wireScreen(app, id);
   document.title = `${s.figma} · ${s.name} — RWF Figma Test`;
+}
+
+/* ── DEMO chip: honest labelling of screens that are still Ben's mock ── */
+const DEMO_SCREENS = new Set([
+  "auth-001", "auth-002", "auth-003", "auth-004", "auth-006", "auth-007", "auth-011", "auth-013",
+  "create-005", "create-008", "create-010", "create-012",
+  "battle-002", "battle-004", "battle-006", "feed-nav",
+  "log-003", "log-004", "log-007", "log-008", "log-009",
+  "result-003", "result-007",
+  "pwr-001", "pwr-002", "pwr-004", "pwr-006", "pwr-007",
+  "wager-001", "wager-002", "wager-003", "wager-005", "wager-011", "wager-016",
+  "set-005", "set-005b",
+  "social-001", "integ-001", "integ-003",
+  "edge-001", "edge-002", "edge-003",
+  "corp-002", "home-007", "home-009",
+]);
+function demoChip() {
+  return `<span class="fx-demochip" title="This screen is Ben's design with mock data — the core loop screens are real.">DEMO</span>`;
+}
+
+/* ── per-screen wiring for the REAL interactions ─────────────────────── */
+function wireScreen(root, id) {
+  /* onboarding: name */
+  const nameInput = root.querySelector("#obName");
+  if (nameInput) {
+    nameInput.addEventListener("input", () => {
+      draft.name = nameInput.value;
+      const av = root.querySelector(".fx-avatarpick .fg-avatar");
+      if (av) av.textContent = (draft.name || "BT").split(" ").map(w => w[0]).join("").slice(0, 2).toUpperCase();
+      const un = root.querySelector(".fx-field__box--ph");
+      if (un) un.textContent = `@${(draft.name || "you").toLowerCase().replace(/[^a-z0-9]/g, "").slice(0, 12) || "you"}`;
+    });
+    root.querySelector("#obNameNext")?.addEventListener("click", () => {
+      draft.name = nameInput.value.trim() || "Player One";
+    });
+  }
+
+  /* onboarding: tier options (auth-010) */
+  const tierOpts = root.querySelector("#tierOpts");
+  if (tierOpts) {
+    const TIERS = ["couch", "casual", "fit", "athlete"];
+    const opts = [...tierOpts.querySelectorAll(".fx-option")];
+    const paint = () => opts.forEach((o, i) => o.classList.toggle("fx-option--sel", TIERS[i] === draft.tier));
+    opts.forEach((o, i) => o.addEventListener("click", () => { draft.tier = TIERS[i]; paint(); }));
+    paint();
+    root.querySelector("#tierNext")?.addEventListener("click", () => {
+      S.setPlayer({ name: draft.name, tier: draft.tier });
+    });
+  }
+
+  /* join: tier options (join-003) */
+  const joinTiers = root.querySelector("#joinTiers");
+  if (joinTiers) {
+    const TIERS = ["couch", "casual", "fit", "athlete"];
+    const opts = [...joinTiers.querySelectorAll(".fx-option")];
+    const paint = () => opts.forEach((o, i) => o.classList.toggle("fx-option--sel", TIERS[i] === draft.tier));
+    opts.forEach((o, i) => o.addEventListener("click", () => { draft.tier = TIERS[i]; paint(); }));
+    paint();
+    root.querySelector("#joinGo")?.addEventListener("click", () => {
+      const st = ST();
+      S.setPlayer({ name: st.player?.name ?? draft.name, tier: draft.tier });
+      const open = [...st.matches].reverse().find((x) => x.status === "open" && !x.players.some((p) => p.id === st.player?.id));
+      if (open) {
+        S.mutate((s) => {
+          const mm = s.matches.find((x) => x.config.id === open.config.id);
+          mm.players.push(s.player);
+        });
+        toast(`${ic("check")}Joined ${(open.config.name ?? "battle")} as ${draft.tier} ×${E.TIER_MULTIPLIERS[draft.tier]}`);
+      }
+    });
+  }
+
+  /* create battle form */
+  const cbName = root.querySelector("#cbName");
+  if (cbName) {
+    cbName.addEventListener("input", () => { draft.battle.name = cbName.value; });
+    root.querySelector("#cbDays")?.addEventListener("click", (e) => {
+      const c = e.target.closest("[data-day]");
+      if (!c) return;
+      const d = Number(c.dataset.day);
+      const has = draft.battle.days.includes(d);
+      draft.battle.days = has ? draft.battle.days.filter(x => x !== d) : [...draft.battle.days, d];
+      c.classList.toggle("fx-chip--on", !has);
+    });
+    root.querySelector("#cbPack")?.addEventListener("click", (e) => {
+      const o = e.target.closest(".fx-option");
+      if (!o) return;
+      const idx = [...root.querySelectorAll("#cbPack .fx-option")].indexOf(o);
+      draft.battle.pack = idx === 1 ? "fullbody" : "bodyweight";
+      root.querySelectorAll("#cbPack .fx-option").forEach((x, i) => x.classList.toggle("fx-option--sel", i === idx));
+    });
+    root.querySelector("#cbTarget")?.addEventListener("click", (e) => {
+      const c = e.target.closest("[data-target]");
+      if (!c) return;
+      draft.battle.target = c.dataset.target;
+      root.querySelectorAll("#cbTarget .fx-chip").forEach(x => x.classList.toggle("fx-chip--on", x === c));
+    });
+    root.querySelector("#cbCreate")?.addEventListener("click", () => {
+      if (!you()) S.setPlayer({ name: draft.name, tier: draft.tier }); // safety: never create without a player
+      S.createFastBattle({
+        name: cbName.value.trim() || "The Sunday Showdown",
+        days: draft.battle.days.length ? draft.battle.days : [1, 3, 5],
+        pack: draft.battle.pack,
+        target: draft.battle.target,
+      });
+    });
+  }
+
+  /* waiting room: start early + copy code */
+  const startBtn = root.querySelector("#startEarly");
+  if (startBtn) {
+    startBtn.addEventListener("click", () => {
+      S.startById(startBtn.dataset.start);
+      toast(`${ic("bolt")}Battle is LIVE — first to target closes it`);
+    });
+  }
+  root.querySelector("[data-copy]")?.addEventListener("click", (e) => {
+    const code = e.currentTarget.dataset.copy;
+    try { navigator.clipboard?.writeText(code); } catch {}
+    toast(`${ic("check")}Crew code ${code} copied — paste \`link ${code}\` in your crew chat`);
+  });
+
+  /* battle: simulate mates */
+  root.querySelector("#simMates")?.addEventListener("click", () => {
+    const st = ST();
+    const m = liveMatch(st);
+    if (!m) return;
+    const r = S.simMates(m.config.id);
+    if (r.logged.length === 0) { toast("No mates logged (match state changed)"); return; }
+    const last = r.logged[r.logged.length - 1];
+    toast(`${r.logged.map(l => `${l.playerId === st.player?.id ? "you" : l.playerId} +${l.reps}`).join(" · ")}${last.closed ? " — MATCH CLOSED" : ""}`);
+    if (last.closed) location.hash = "#/result-005";
+    else route();
+  });
+
+  /* result: rematch + charity pot */
+  root.querySelector("#rematchBtn")?.addEventListener("click", (e) => {
+    S.rematch(e.currentTarget.dataset.rematch);
+    toast(`${ic("bolt")}REMATCH LIVE — same crew, fresh board. Run it back.`);
+  });
+  root.querySelectorAll("[data-pot-add]").forEach(b => b.addEventListener("click", () => {
+    const st = ST();
+    const m = lastDone(st);
+    if (!m) return;
+    S.addToPot(m.config.id, st.player?.id, Number(b.dataset.potAdd));
+    toast(`${ic("check")}Added $${Number(b.dataset.potAdd) / 100} to the charity pot`);
+    route();
+  }));
+  root.querySelectorAll("[data-pot-pick]").forEach(b => b.addEventListener("click", () => {
+    const st = ST();
+    const m = lastDone(st);
+    if (!m) return;
+    S.designatePot(m.config.id, b.dataset.potPick);
+    toast(`${ic("crown")}Pot directed to ${S.CHARITIES.find(c => c.id === b.dataset.potPick)?.name}`);
+    route();
+  }));
+
+  /* log sheet: camera verify is wired globally (the sheet lives outside #app) */
 }
 
 /* loot chest tap → reveal (his chest-tap reveal) */
@@ -1787,6 +2323,7 @@ document.addEventListener("click", (e) => {
     return;
   }
   if (e.target.closest("#logBtn")) { openOverlay(quickLogSheet()); return; }
+  if (e.target.closest("#camVerify")) { openCameraNote(); return; }
   if (e.target.classList?.contains("fx-scrim")) closeOverlay();
 });
 document.addEventListener("keydown", (e) => { if (e.key === "Escape") closeOverlay(); });
