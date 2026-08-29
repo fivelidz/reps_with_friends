@@ -9,7 +9,7 @@ echo "▸ building app bundle"
 bun build apps/web/src/main.ts --outdir apps/web/dist --minify >/dev/null
 
 echo "▸ assembling deploy/public (functions/ lives beside it — wrangler picks it up from cwd)"
-mkdir -p deploy/public/site deploy/public/design deploy/public/app deploy/public/hub deploy/public/debug deploy/public/slack deploy/public/connect deploy/public/demo deploy/public/system deploy/public/cards deploy/public/figma-app
+mkdir -p deploy/public/site deploy/public/design deploy/public/app deploy/public/hub deploy/public/debug deploy/public/slack deploy/public/connect deploy/public/demo deploy/public/system deploy/public/cards deploy/public/figma-app deploy/public/wiki
 
 cp site/index.html deploy/public/index.html
 cp site/*.css site/*.js deploy/public/site/
@@ -31,6 +31,11 @@ find apps/figma-app -maxdepth 1 -type f \( -name "*.html" -o -name "*.js" -o -na
 for d in apps/figma-app/*/; do
   case "$(basename "$d")" in shots|test|node_modules) ;; *) cp -r "$d" deploy/public/figma-app/ ;; esac
 done
+# wiki (living documentation — self-contained incl. shots; test/ scaffolding stays local)
+find apps/wiki -maxdepth 1 -type f \( -name "*.html" -o -name "*.css" -o -name "*.js" \) \
+  -exec cp {} deploy/public/wiki/ \;
+cp -r apps/wiki/shots deploy/public/wiki/shots
+
 # deploy/functions/api/{ai,state}.js are source-controlled as-is
 
 echo "▸ bundle ready:"

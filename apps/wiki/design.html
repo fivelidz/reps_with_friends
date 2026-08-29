@@ -1,0 +1,106 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>Design System — RWF Wiki</title>
+<link rel="stylesheet" href="/design/tokens.css">
+<link rel="stylesheet" href="tokens.css">
+<link rel="stylesheet" href="wiki.css">
+</head>
+<body>
+<nav class="wnav">
+  <a class="wnav__brand" href="index.html"><b>RWF&nbsp;WIKI</b><span>internal docs</span></a>
+  <a class="wnav__link" href="game.html">Game Rules</a>
+  <a class="wnav__link" href="app.html">App Screens</a>
+  <a class="wnav__link" href="bots.html">Bots</a>
+  <a class="wnav__link" href="verification.html">Verification</a>
+  <a class="wnav__link" href="avatars.html">Avatars</a>
+  <a class="wnav__link" href="ops.html">Ops &amp; Testing</a>
+  <a class="wnav__link" href="design.html">Design System</a>
+  <a class="wnav__link" href="status.html">Status</a>
+</nav>
+<div class="wrap">
+
+<header class="hero">
+  <p class="eyebrow">Chapter 7 · design</p>
+  <h1>Design System</h1>
+  <p class="lede">One token file — <span class="mono">design/tokens.css</span> — feeds every surface (site, app, hub, wiki). It began as a dark athletic system in lime/coral; Ben's Figma craft has been adopted <i>alongside</i> it as named tokens, with an opt-in gold theme that re-points the core slots. The open question is which palette ships by default.</p>
+</header>
+
+<!-- TOKENS -->
+<section class="feat">
+  <div class="feat__head"><h3>Tokens</h3><span class="badge badge--live">live</span></div>
+  <p class="feat__what">CSS custom properties on <span class="mono">:root</span> — colour, type, radius, motion. This very wiki consumes them (they're linked at the top of every page's head).</p>
+  <div class="feat__body">
+    <div class="swatches">
+      <div class="swatch"><div class="chip" style="background:#c6f32e"></div><div class="lbl"><b>--lime</b>#c6f32e · primary, energy, action</div></div>
+      <div class="swatch"><div class="chip" style="background:#ff5c38"></div><div class="lbl"><b>--coral</b>#ff5c38 · effort, HR, heat</div></div>
+      <div class="swatch"><div class="chip" style="background:#ffb020"></div><div class="lbl"><b>--amber</b>#ffb020 · warning, pending</div></div>
+      <div class="swatch"><div class="chip" style="background:#6ec1ff"></div><div class="lbl"><b>--sky</b>#6ec1ff · info, slack</div></div>
+      <div class="swatch"><div class="chip" style="background:#ffc821"></div><div class="lbl"><b>--gold</b>#ffc821 · Ben's primary (467 uses)</div></div>
+      <div class="swatch"><div class="chip" style="background:#8b5cf6"></div><div class="lbl"><b>--energy</b>#8b5cf6 · power-ups, events</div></div>
+      <div class="swatch"><div class="chip" style="background:#34d399"></div><div class="lbl"><b>--success</b>#34d399 · target hit, online</div></div>
+      <div class="swatch"><div class="chip" style="background:#ff4d5e"></div><div class="lbl"><b>--danger</b>#ff4d5e · errors, DZ3</div></div>
+      <div class="swatch"><div class="chip" style="background:#ff8a00"></div><div class="lbl"><b>--urgency</b>#ff8a00 · streaks, DZ2</div></div>
+      <div class="swatch"><div class="chip" style="background:#0b0a12"></div><div class="lbl"><b>--ink</b>#0b0a12 · Ben's purple-ink base</div></div>
+      <div class="swatch"><div class="chip" style="background:#1b1830"></div><div class="lbl"><b>--ink-raised</b>#1b1830 · raised cards</div></div>
+      <div class="swatch"><div class="chip" style="background:#150810"></div><div class="lbl"><b>--dz-bg</b>#150810 · DZ3 screen wash</div></div>
+      <div class="swatch"><div class="chip" style="background:#0a0b0d"></div><div class="lbl"><b>--bg</b>#0a0b0d · our base</div></div>
+      <div class="swatch"><div class="chip" style="background:#121418"></div><div class="lbl"><b>--surface</b>#121418 · cards</div></div>
+      <div class="swatch"><div class="chip" style="background:#23262d"></div><div class="lbl"><b>--line</b>#23262d · hairlines</div></div>
+      <div class="swatch"><div class="chip" style="background:#e8eaed"></div><div class="lbl"><b>--text</b>#e8eaed · body text</div></div>
+    </div>
+    <p style="margin-top:16px">Beyond colour: type (<span class="mono">Space Grotesk</span> body/display + <span class="mono">Anton</span> and <span class="mono">Inter</span> vendored as Ben's pair — woff2 in <span class="mono">design/fonts/</span>, no CDN), the radius scale (9 / 14 / 16-lg / 24-xl — his 8/12/16/24 mapped on), and the <b>motion budget</b>: a 160ms control law plus a strategic ramp — calm setup (200ms) → sheet slide (250ms) → row reposition spring (400ms) → winner finale (1200ms confetti + count-up) → DZ3 heartbeat pulse (1000ms). Anti-casino clause applies: intensity only where the game earns it.</p>
+    <p>Contrast is enforced with intent: <span class="mono">--faint</span> had to be lifted to #868b92 to clear AA 4.5:1 on all three surfaces for real text; the old #5f646d survives only as <span class="mono">--faint-deco</span>, decorative dots and markers, never text.</p>
+    <div class="where"><b>lives:</b> design/tokens.css (canonical — this wiki links it and ships a copy) · design/fonts/ · figma/impl/specs/</div>
+  </div>
+</section>
+
+<!-- THEME QUESTION -->
+<section class="feat">
+  <div class="feat__head"><h3>The gold / lime theme question</h3><span class="badge badge--partial">open</span></div>
+  <div class="feat__grid">
+    <figure class="shot shot--phone"><img src="shots/app-index.png" alt="App index in gold theme"><figcaption>app-index.png · the app in Ben's gold theme (its default)</figcaption></figure>
+    <div class="feat__body">
+      <p><b>Two palettes, one contract.</b> The slot <i>names</i> are the contract — <span class="mono">--lime</span> has meant "primary accent" since day one. The opt-in theme <span class="mono">&lt;html data-theme="gold"&gt;</span> re-points the core slots 1:1 onto Ben's purple-ink surfaces and brand gold, so every token consumer — existing and new — flips together, and lime/coral values are never overwritten anywhere.</p>
+      <p><b>Where each lives today:</b> our surfaces (site, hub, this wiki) default to the lime palette; the figma-app defaults to <b>gold</b> with a lime toggle in its status bar (both shots on this page show gold). The founder call decided the demo runs gold-first; which palette ships as the product default is the open design decision.</p>
+      <div class="where"><b>lives:</b> the <span class="mono">[data-theme="gold"]</span> block in design/tokens.css · figma-app theme toggle (e2e asserts it)</div>
+    </div>
+  </div>
+</section>
+
+<!-- COMPONENTS -->
+<section class="feat">
+  <div class="feat__head"><h3>Component library + icons</h3><span class="badge badge--live">live</span></div>
+  <div class="feat__body">
+    <p><b>16 design-system primitives</b> — buttons, chips, sheets, banners, leaderboard rows, countdown pills, avatar rings, medals… — implemented as HTML/CSS from the Figma extraction (lane F3) and browsable at the local route <span class="mono">/figma</span> (<span class="mono">figma/impl/components/</span>). The production surfaces consume them via <span class="mono">figma-components.css</span> (shipped in the app bundle). A 22-icon set was redrawn as inline SVG paths to Ben's strokes — no icon font, no CDN.</p>
+    <p>Every component spec (props, states, sizes, exact fills) is written up in <span class="mono">figma/impl/specs/</span>, and the whole Figma adoption is reasoned through in <span class="mono">figma/notes/analysis.md</span> (§7 is the token decision record cited above).</p>
+    <div class="where"><b>lives:</b> figma/impl/components/ · design/figma-components.{css,js} · figma/impl/specs/ · figma/notes/{analysis,catalogue}.md</div>
+  </div>
+</section>
+
+<!-- SYSTEM PAGE -->
+<section class="feat">
+  <div class="feat__head"><h3>The /system dissemination page</h3><span class="badge badge--live">live</span></div>
+  <div class="feat__grid">
+    <figure class="shot shot--full"><img src="shots/design-system.png" alt="System page with element families and progress bars"><figcaption>design-system.png · /system — families A–G, per-element status, live component renders</figcaption></figure>
+    <div class="feat__body">
+      <p><b>What.</b> The public one-pager that disseminates the whole build: token swatches, the 16 components rendered live, all 36 elements of families A–G with per-element status, and progress bars. The wiki's <a href="status.html">Status</a> chapter carries the same data with the blockers register beside it.</p>
+      <div class="where"><b>lives:</b> apps/systempage/ · live at rwf.qalarc.com/system</div>
+    </div>
+  </div>
+</section>
+
+<div class="pager">
+  <a href="ops.html"><span class="dir">← back</span>Ops &amp; Testing</a>
+  <a class="next" href="status.html"><span class="dir">next →</span>Status</a>
+</div>
+<footer class="wfoot">
+  <span>RWF wiki · design · slot names are the contract</span>
+  <span>gold demo-first; default still open</span>
+</footer>
+</div>
+<script src="wiki.js"></script>
+</body>
+</html>

@@ -1,0 +1,212 @@
+/* RWF design tokens — shared by site, app, hub. Dark athletic system. */
+:root {
+  --bg: #0a0b0d;
+  --surface: #121418;
+  --surface-2: #1a1d23;
+  --line: #23262d;
+  --line-bright: #31353e;
+  --text: #e8eaed;
+  --muted: #9aa0a8;
+  /* --faint is used for real (small) text across every surface — hints, meta
+     labels, mono values — so it must clear AA 4.5:1 on bg/surface/surface-2.
+     #5f646d only reached 3.31/3.10/2.84. #868b92 reads 5.74/5.37/4.92 and still
+     sits a clear step below --muted (7.5) so the hierarchy survives. */
+  --faint: #868b92;
+  /* Genuinely decorative only — hairline dots, idle markers. Never text. */
+  --faint-deco: #5f646d;
+
+  --lime: #c6f32e;        /* primary — energy, verified, action */
+  --lime-dim: #8fb31c;
+  --lime-glow: rgba(198, 243, 46, 0.14);
+  --coral: #ff5c38;       /* effort, HR, heat */
+  --coral-glow: rgba(255, 92, 56, 0.14);
+  --amber: #ffb020;       /* warning, pending */
+  --sky: #6ec1ff;         /* info, slack */
+
+  --font-display: 'Space Grotesk', system-ui, sans-serif;
+  --font-body: 'Space Grotesk', system-ui, sans-serif;
+  --font-mono: ui-monospace, 'Cascadia Code', 'SF Mono', Menlo, monospace;
+
+  --radius: 14px;
+  --radius-sm: 9px;
+  --pill: 999px;
+  --ease: 160ms cubic-bezier(0.2, 0.7, 0.2, 1);
+
+  /* ═══════════════════════════════════════════════════════════════════
+     FIGMA ADOPTION — Ben's craft as tokens (lane F3, docs/13 §7)
+     Sources: figma/notes/analysis.md §1, figma/impl/specs/.
+     His palette lives ALONGSIDE ours as named tokens; the lime/coral
+     defaults above are untouched. The [data-theme="gold"] block below
+     re-points the core slots for the brand demo (founder call D5/D6).
+     ═══════════════════════════════════════════════════════════════════ */
+
+  /* Brand-gold axis — his accent/primary (467 uses: actions, wins, LIVE) */
+  --gold: #ffc821;
+  --gold-strong: #e0a800;          /* pressed gold */
+  --gold-glow: rgba(255, 200, 33, 0.14);
+  --on-gold: #07060d;              /* his text/on-accent */
+
+  /* Purple-ink surfaces — his bg family (purple-tinted, not blue-black) */
+  --ink: #0b0a12;                  /* bg/base */
+  --ink-surface: #14121f;          /* cards, sheets */
+  --ink-raised: #1b1830;           /* raised cards, modals, chips */
+  --ink-brand-tint: #1c1533;       /* purple surfaces (power-up zones) */
+  --ink-navy: #131a2e;             /* alt surface (freeze suggestion) */
+  --ink-line: #26263a;             /* border/default */
+  --ink-line-strong: #3b3b52;      /* chip strokes (his #3B3B52) */
+  --ink-line-bright: #63637a;      /* border/strong + expired states */
+
+  /* Energy purple — his power-up/event axis (a semantic axis we lacked) */
+  --energy: #8b5cf6;
+  --energy-light: #b79dfb;         /* avatar initials on purple */
+  --energy-tint: #2a1f4d;          /* avatar bg + gradient tint */
+
+  /* State axes — his split (§7 row 2, adopt structure):
+     success ≠ danger ≠ urgency. Ours folds these into lime/coral/amber. */
+  --success: #34d399;              /* target hit, online dot, completed */
+  --danger: #ff4d5e;               /* errors, DZ3, destructive */
+  --urgency: #ff8a00;              /* streaks, DZ2, close call, SAVE% */
+
+  /* Danger-zone ramp — 3-level nightly escalation (§7 row 23) */
+  --dz-bg: #150810;                /* screen wash at DZ3 */
+  --dz3-surface: #2a1020;          /* countdown pill at DZ3 */
+  --dz-hero: #3a0f1b;              /* hero card gradient top at DZ3 */
+
+  /* Radius scale extension — his 8/12/16/24 onto ours (§1.3):
+     his 8 → --radius-sm (9) · his 12/14 → --radius (14) ·
+     his 16/20 → --radius-lg · his 24/28 (sheets/dialogs) → --radius-xl */
+  --radius-lg: 16px;
+  --radius-xl: 24px;
+
+  /* Motion budget — strategic intensity ramp (§7 row 16, adopt).
+     Our 160ms law stays for controls; these budget the game-feel arc:
+     calm setup → loud finale. Anti-casino clause applies verbatim. */
+  --ease-spring: 400ms cubic-bezier(0.34, 1.3, 0.64, 1); /* row reposition */
+  --dur-sheet: 250ms;              /* log sheet slide + count-up */
+  --dur-setup: 200ms;              /* calm setup transitions */
+  --dur-winner: 1200ms;            /* confetti + count-up finale */
+  --dur-heartbeat: 1000ms;         /* DZ3 timer-only pulse */
+}
+
+/* ═══════════════════════════════════════════════════════════════════
+   BRAND-GOLD THEME — Ben's palette in our slots (founder call D5/D6).
+   Opt-in: <html data-theme="gold">. Default pages never set it.
+   The slot NAMES are the contract (--lime has meant "primary accent"
+   since day one); gold theme re-points the slots 1:1, so every token
+   consumer — existing and new — flips together. Lime/coral values as
+   such are never overwritten anywhere else.
+   ═══════════════════════════════════════════════════════════════════ */
+[data-theme="gold"] {
+  --bg: var(--ink);
+  --surface: var(--ink-surface);
+  --surface-2: var(--ink-raised);
+  --line: var(--ink-line);
+  --line-bright: var(--ink-line-strong);
+  --text: #ffffff;
+  --muted: #c2c2d1;                /* his text/secondary */
+  --faint: #8e8ea3;                /* his text/tertiary — 5.5:1 on --ink ✓ */
+  --faint-deco: #63637a;
+
+  --lime: var(--gold);             /* slot semantics: primary accent */
+  --lime-dim: var(--gold-strong);
+  --lime-glow: var(--gold-glow);
+  --coral: var(--urgency);         /* slot semantics: effort/heat */
+  --coral-glow: rgba(255, 138, 0, 0.14);
+  --amber: var(--urgency);         /* his orange is both urgency + warning */
+  --sky: #4da3ff;                  /* his state/info */
+
+  --font-display: 'Anton', 'Space Grotesk', system-ui, sans-serif;
+  --font-body: 'Inter', 'Space Grotesk', system-ui, sans-serif;
+}
+/* Two hard-coded shades in the shared button primitive would read lime
+   inside the gold theme — re-point them to the slot values. */
+[data-theme="gold"] .rwf-btn--primary { color: var(--on-gold); }
+[data-theme="gold"] .rwf-btn--primary:hover { background: var(--gold-strong); color: var(--on-gold); }
+
+
+/* Shared primitives */
+.rwf-card {
+  background: var(--surface);
+  border: 1px solid var(--line);
+  border-radius: var(--radius);
+}
+.rwf-btn {
+  font-family: var(--font-display);
+  font-weight: 700;
+  letter-spacing: 0.01em;
+  border-radius: var(--pill);
+  border: 1px solid var(--line-bright);
+  background: var(--surface-2);
+  color: var(--text);
+  padding: 10px 20px;
+  cursor: pointer;
+  /* Minimum comfortable hit area for the shared button primitive. Pages that
+     want a visually smaller button keep their padding but stay tappable. */
+  min-height: 44px;
+  display: inline-flex; align-items: center; justify-content: center;
+  /* Explicit property list, not `all`: `all` also animated outline-width, so
+     the keyboard focus ring faded in over 160ms instead of appearing at once. */
+  transition: background var(--ease), border-color var(--ease), color var(--ease), box-shadow var(--ease), transform var(--ease);
+}
+.rwf-btn:hover { border-color: var(--lime); color: var(--lime); }
+/* Keyboard focus is part of the primitive — every surface that uses .rwf-btn
+   gets the same ring, so no page has to remember to add one. */
+.rwf-btn:focus-visible {
+  outline: 2px solid var(--lime);
+  outline-offset: 2px;
+}
+.rwf-btn--primary {
+  background: var(--lime);
+  border-color: var(--lime);
+  color: #0a0b0d;
+}
+.rwf-btn--primary:hover { background: #d6ff45; color: #0a0b0d; box-shadow: 0 0 24px var(--lime-glow); }
+/* On a lime fill a lime ring is invisible — switch to --text for contrast.
+   Full shorthand (not just outline-color): .rwf-btn--primary is declared after
+   .rwf-btn, so a colour-only rule would leave width/style unset. */
+.rwf-btn--primary:focus-visible {
+  outline: 2px solid var(--text);
+  outline-offset: 2px;
+}
+.rwf-tag {
+  display: inline-flex; align-items: center; gap: 6px;
+  font-size: 11px; font-weight: 700; letter-spacing: 0.14em; text-transform: uppercase;
+  color: var(--muted);
+  border: 1px solid var(--line); border-radius: var(--pill); padding: 4px 10px;
+}
+.rwf-dot { width: 8px; height: 8px; border-radius: 50%; display: inline-block; }
+.rwf-dot--ok { background: var(--lime); box-shadow: 0 0 8px var(--lime); }
+.rwf-dot--down { background: var(--coral); }
+.rwf-dot--idle { background: var(--faint); }
+
+/* Scroll reveal */
+.reveal { opacity: 0; transform: translateY(18px); transition: opacity 500ms ease, transform 500ms cubic-bezier(0.2,0.7,0.2,1); }
+.reveal.in { opacity: 1; transform: none; }
+
+/* Baseline keyboard affordance for any interactive element on any surface.
+   Individual pages may override with a tighter ring, but nothing is ever
+   focusable-but-invisible. Mouse users never see this (:focus-visible only). */
+a:focus-visible,
+button:focus-visible,
+input:focus-visible,
+select:focus-visible,
+textarea:focus-visible,
+summary:focus-visible,
+[tabindex]:focus-visible {
+  outline: 2px solid var(--lime);
+  outline-offset: 2px;
+}
+
+/* Global reduced-motion floor. Surfaces with their own richer block (site,
+   app, /system, /demo) still opt out of specific effects; this catches the
+   pages that never declared one (hub, connect, slack, debug) so the
+   "reduced motion honoured globally" rule is true everywhere. */
+@media (prefers-reduced-motion: reduce) {
+  *, *::before, *::after {
+    animation-duration: 0.01ms !important;
+    animation-iteration-count: 1 !important;
+    transition-duration: 0.01ms !important;
+    scroll-behavior: auto !important;
+  }
+  .reveal { opacity: 1; transform: none; }
+}

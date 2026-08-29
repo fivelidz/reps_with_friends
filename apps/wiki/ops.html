@@ -1,0 +1,132 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>Ops &amp; Testing — RWF Wiki</title>
+<link rel="stylesheet" href="/design/tokens.css">
+<link rel="stylesheet" href="tokens.css">
+<link rel="stylesheet" href="wiki.css">
+</head>
+<body>
+<nav class="wnav">
+  <a class="wnav__brand" href="index.html"><b>RWF&nbsp;WIKI</b><span>internal docs</span></a>
+  <a class="wnav__link" href="game.html">Game Rules</a>
+  <a class="wnav__link" href="app.html">App Screens</a>
+  <a class="wnav__link" href="bots.html">Bots</a>
+  <a class="wnav__link" href="verification.html">Verification</a>
+  <a class="wnav__link" href="avatars.html">Avatars</a>
+  <a class="wnav__link" href="ops.html">Ops &amp; Testing</a>
+  <a class="wnav__link" href="design.html">Design System</a>
+  <a class="wnav__link" href="status.html">Status</a>
+</nav>
+<div class="wrap">
+
+<header class="hero">
+  <p class="eyebrow">Chapter 6 · operations</p>
+  <h1>Ops &amp; Testing</h1>
+  <p class="lede">One dev server runs the whole system locally; one GitHub push deploys it to the world. In between: a live ops console, a REST API foundation, an AI layer, and a test pyramid from pure engine units to full headless-browser walks.</p>
+</header>
+
+<!-- HUB -->
+<section class="feat">
+  <div class="feat__head"><h3>Hub console (/hub)</h3><span class="badge badge--live">live</span></div>
+  <p class="feat__what">The ops + corporate console: live match telemetry, bot health, and an activity feed — everything the demo runner needs on one screen.</p>
+  <div class="feat__grid">
+    <figure class="shot shot--full"><img src="shots/ops-hub.png" alt="Hub console with stats, matches table and activity feed"><figcaption>ops-hub.png · /hub live — stats, matches table (expandable player rows), activity feed</figcaption></figure>
+    <div class="feat__body">
+      <p><b>How it works.</b> Polls <span class="mono">/api/state</span> every 3 seconds. That endpoint reads the bot match store, recomputes each player's raw/adjusted/progress/verified % server-side (same multipliers as the engine), merges bot heartbeats (fresh if seen &lt; 45s) and the Qalarc Hub health, and returns one JSON. The feed is derived client-side by diffing successive polls — no server push needed. Degrades gracefully when anything is missing; the corporate tab (org leagues, employer-funded pots, k≥5 aggregate-only wellbeing dashboards) renders from the same state.</p>
+      <p>The match visible in the screenshot was played through the real CommandBus (the /debug simulator) minutes before capture.</p>
+      <div class="where"><b>lives:</b> apps/hub/{index.html,hub.js,hub.css} · serve.ts <code>apiState()</code> · verified end-to-end by apps/figma-app/bots-sim.mjs (plays a match → asserts /api/state → asserts the hub renders it)</div>
+    </div>
+  </div>
+</section>
+
+<!-- DEBUG -->
+<section class="feat">
+  <div class="feat__head"><h3>Debug console (/debug)</h3><span class="badge badge--live">live</span></div>
+  <div class="feat__grid">
+    <figure class="shot shot--full"><img src="shots/ops-debug.png" alt="Debug bot simulator console mid-match"><figcaption>ops-debug.png · the bot simulator mid-match — see Bots for the transcript</figcaption></figure>
+    <div class="feat__body">
+      <p><b>What.</b> Chat-shaped access to the real CommandBus plus the element gallery. The fastest way to demo the game end-to-end without a phone or a WhatsApp account — documented in depth in <a href="bots.html">Bots</a>.</p>
+      <div class="where"><b>lives:</b> apps/debug/ · <span class="mono">/api/sim</span> in serve.ts (isolated scratch store)</div>
+    </div>
+  </div>
+</section>
+
+<!-- DEPLOY -->
+<section class="feat">
+  <div class="feat__head"><h3>Deploy pipeline</h3><span class="badge badge--live">live</span></div>
+  <div class="feat__body">
+<pre class="code">
+git push (main)
+   └─▶ GitHub Actions: .github/workflows/deploy.yml
+         ├─ bun setup
+         ├─ bash scripts/build-deploy.sh        ← assembles deploy/public from the monorepo
+         │     site → / · design → /design · web app → /app · hub → /hub · debug → /debug
+         │     slack → /slack · connect → /connect · demo → /demo · system → /system
+         │     figma-app → /figma-app · wiki → /wiki · functions/ → /api/{ai,state}
+         ├─ wrangler pages deploy → Cloudflare Pages (project "rwf")
+         └─ bun test packages/game-core packages/bot-core apps/api   ← 122 tests gate every push
+~20 seconds later: live at rwf.qalarc.com
+</pre>
+    <p><b>How it works.</b> The deploy bundle is assembled by <span class="mono">scripts/build-deploy.sh</span> — pure copies, no per-app build except the web app bundle (Bun build, minified). Pages Functions (<span class="mono">deploy/functions/api/</span>) provide the AI proxy and state endpoint in production, mirroring the local serve.ts routes. The local dev story is one command — <span class="mono">bun serve.ts</span> on :4173 serves <i>everything</i> including this wiki at /wiki — so local and production surface the same paths.</p>
+    <p><b>Always-on hosting:</b> the GMKtec minirig kit is prepared (<span class="mono">scripts/hosting/</span> — install script, systemd units for the Slack bot) for bots that run without a dev machine; see blocker T3 in <a href="status.html">Status</a>.</p>
+    <div class="where"><b>lives:</b> scripts/build-deploy.sh · .github/workflows/deploy.yml · deploy/functions/api/ · scripts/hosting/ · docs/16_HOSTING.md</div>
+  </div>
+</section>
+
+<!-- API -->
+<section class="feat">
+  <div class="feat__head"><h3>The REST API (apps/api)</h3><span class="badge badge--live">built · unwired</span></div>
+  <div class="feat__body">
+    <p><b>What.</b> A unified backend for crews, players, matches and seasons — the foundation that replaces the app's localStorage and the bots' file state with one source of truth.</p>
+    <p><b>How it works.</b> Bun server on :4174 with CORS for the dev origin and production domain. Persistence is a single JSON file (<span class="mono">.data/api-db.json</span>) written atomically (tmp + rename) so a crash never corrupts the store. Crew records carry the 5-char join codes (no 0/O/1/I) that match the CREW-XXXX grammar the app and bots already display. The wiring step (app → API ← bots) is mechanical and tracked as blocker T5.</p>
+    <div class="where"><b>lives:</b> apps/api/src/{main,routes,db}.ts<br><b>proven by:</b> apps/api/test/api.test.ts — 24 tests, run in CI</div>
+  </div>
+</section>
+
+<!-- AI -->
+<section class="feat">
+  <div class="feat__head"><h3>AI layer</h3><span class="badge badge--partial">live · metered</span></div>
+  <div class="feat__body">
+    <p><b>What.</b> GLM-5.3 behind a server-side proxy — powers the site's AI guide, the app narrator and the bots' taunts/digest one-liners.</p>
+    <p><b>How it works.</b> Clients post to <span class="mono">/api/ai</span>; the key lives server-side only (local .env / Pages Function secret) and is never shipped to a client. The proxy injects a system prompt describing the whole product, keeps the last 12 messages, caps content length, rate-limits 60/min, preserves upstream error classes (429 ≠ 502), and every consumer has a canned fallback — if the AI is asleep the product still talks. Locally the same endpoint is served by serve.ts; in production by the Pages Function.</p>
+    <div class="where"><b>lives:</b> serve.ts <code>aiChat()</code> · deploy/functions/api/ai.js · packages/bot-core/src/ai.ts (2s timeout + fallback)</div>
+  </div>
+</section>
+
+<!-- TESTS -->
+<section class="feat">
+  <div class="feat__head"><h3>The test suites</h3><span class="badge badge--live">122 green</span></div>
+  <p class="feat__what">Unit → integration → headless-browser. Every push runs the suites; the E2E walks run on demand and produce the screenshots this wiki is built from.</p>
+  <div class="tblwrap"><table class="tbl">
+    <tr><th>Suite</th><th class="num">Tests</th><th>What it proves</th><th>Run</th></tr>
+    <tr><td><b>game-core</b> — core.test.ts</td><td class="num">29</td><td>300-format math: scoring, handicaps, closure, comeback, pot, standings</td><td class="mono" rowspan="3">bun test packages/game-core</td></tr>
+    <tr><td><b>game-core</b> — season.test.ts</td><td class="num">15</td><td>3/2/1 + MVP, ladder ordering, forgiveness, relegation</td></tr>
+    <tr><td><b>game-core</b> — gfamily.test.ts</td><td class="num">15</td><td>second wave: rematch, photo finish, nemesis, digest inputs</td></tr>
+    <tr><td><b>bot-core</b> — bus.test.ts</td><td class="num">27</td><td>command grammar, aliases, cards, store behaviour, error cards</td><td class="mono" rowspan="2">bun test packages/bot-core</td></tr>
+    <tr><td><b>bot-core</b> — gfamily.test.ts</td><td class="num">12</td><td>rematch/nemesis/digest commands over the bus</td></tr>
+    <tr><td><b>api</b> — api.test.ts</td><td class="num">24</td><td>REST routes, crew codes, atomic persistence</td><td class="mono">bun test apps/api</td></tr>
+    <tr><td><b>figma-app</b> — engine.test.js</td><td class="num">23</td><td>the engine <i>port</i> matches the spec (incl. power-ups)</td><td class="mono">bun test apps/figma-app/engine.test.js</td></tr>
+    <tr><td><b>figma-app</b> — e2e.mjs</td><td class="num">~60 steps</td><td>full product walk in headless Chromium; asserts DOM + state at every step, fails on any console error; writes the walk screenshots</td><td class="mono">bun apps/figma-app/e2e.mjs</td></tr>
+    <tr><td><b>figma-app</b> — e2e-daily.mjs</td><td class="num">~40 steps</td><td>the temporal loop with time travel: DZ1→2→3, day close, recap, day 2</td><td class="mono">bun apps/figma-app/e2e-daily.mjs</td></tr>
+    <tr><td><b>figma-app</b> — bots-sim.mjs</td><td class="num">—</td><td>plays a real match through the CommandBus then asserts /api/state + the hub render it</td><td class="mono">bun apps/figma-app/bots-sim.mjs</td></tr>
+    <tr><td><b>wiki</b> — walk.mjs</td><td class="num">—</td><td>this wiki: every page loads with zero console errors, every referenced asset resolves</td><td class="mono">bun apps/wiki/test/walk.mjs</td></tr>
+  </table></div>
+  <p class="dim">CI runs the three packaged suites (122 tests) on every deploy push — a red suite blocks nothing at Cloudflare but fails the workflow loudly. The E2E walks are the design contract: if a screen breaks, its screenshot can't be taken.</p>
+  <div class="where"><b>lives:</b> the test dirs above · CI gate in .github/workflows/deploy.yml · measured live 29 Aug 2026: <span class="mono">122 pass · 0 fail · 395 expect() calls</span></div>
+</section>
+
+<div class="pager">
+  <a href="avatars.html"><span class="dir">← back</span>Avatars</a>
+  <a class="next" href="design.html"><span class="dir">next →</span>Design System</a>
+</div>
+<footer class="wfoot">
+  <span>RWF wiki · ops · one server locally, one push globally</span>
+  <span>test counts measured, not estimated</span>
+</footer>
+</div>
+<script src="wiki.js"></script>
+</body>
+</html>

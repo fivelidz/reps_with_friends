@@ -1,0 +1,128 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>RWF Wiki — Reps With Friends</title>
+<meta name="description" content="Living documentation for Reps With Friends — every element and feature, with screenshots and how it works.">
+<link rel="stylesheet" href="/design/tokens.css">
+<link rel="stylesheet" href="tokens.css">
+<link rel="stylesheet" href="wiki.css">
+</head>
+<body>
+<nav class="wnav">
+  <a class="wnav__brand" href="index.html"><b>RWF&nbsp;WIKI</b><span>internal docs</span></a>
+  <a class="wnav__link" href="game.html">Game Rules</a>
+  <a class="wnav__link" href="app.html">App Screens</a>
+  <a class="wnav__link" href="bots.html">Bots</a>
+  <a class="wnav__link" href="verification.html">Verification</a>
+  <a class="wnav__link" href="avatars.html">Avatars</a>
+  <a class="wnav__link" href="ops.html">Ops &amp; Testing</a>
+  <a class="wnav__link" href="design.html">Design System</a>
+  <a class="wnav__link" href="status.html">Status</a>
+</nav>
+<div class="wrap">
+
+<header class="hero">
+  <p class="eyebrow">Reps With Friends · living documentation</p>
+  <h1>The system wiki</h1>
+  <p class="lede"><b>Reps With Friends</b> is a real-time multiplayer fitness game. A group agrees on exercises, races to a raw rep target (any reps, any order, any mix) — first to the target <i>closes</i> the match, but the winner is the highest <b>effort-adjusted</b> score. Played inside WhatsApp and Slack group chats via bots, with a phone-first app as home base. Losers pay a charity pot the winner directs.</p>
+  <p class="lede">This wiki documents every element and feature with screenshots, the actual mechanics underneath, and where each one lives in the code.</p>
+  <div class="stats">
+    <div class="stat"><b>122</b><span>tests green in CI</span></div>
+    <div class="stat"><b>11</b><span>public surfaces</span></div>
+    <div class="stat"><b>36</b><span>elements catalogued</span></div>
+    <div class="stat"><b>~20s</b><span>push → live deploy</span></div>
+  </div>
+</header>
+
+<section>
+  <h2 class="sect">Chapters</h2>
+  <p class="sectsub">Each feature entry carries: what it is, a screenshot, how it works underneath (the real multipliers, thresholds and data flow), where it lives, and an honest status badge.</p>
+
+  <div class="shots" style="margin-bottom:26px">
+    <figure class="shot shot--phone"><img src="shots/app-battle-live.png" alt="Battle live screen from the app"><figcaption>app · battle live</figcaption></figure>
+    <figure class="shot shot--phone"><img src="shots/game-dz3.png" alt="Danger zone 3 screen"><figcaption>game · danger zone 3</figcaption></figure>
+    <figure class="shot shot--wide"><img src="shots/ops-hub.png" alt="Hub ops console"><figcaption>ops · hub console</figcaption></figure>
+    <figure class="shot shot--wide"><img src="shots/avatars-gallery.png" alt="Avatar gallery"><figcaption>avatars · style gallery</figcaption></figure>
+  </div>
+
+  <div class="grid grid--2">
+
+    <a class="card" href="game.html">
+      <h3>Game Rules <span class="badge badge--live">live</span></h3>
+      <p>The 300 format, tier handicaps (couch ×1.5 → athlete ×0.85), comeback ×1.2, closure bonus +15, the four power-ups, danger-zone ramp, daily close + recap, seasons, and the charity pot — with the exact math.</p>
+      <div class="card-meta"><span>9 rule systems</span><span>· 12 screenshots</span></div>
+    </a>
+
+    <a class="card" href="app.html">
+      <h3>App Screens <span class="badge badge--demo">demo</span></h3>
+      <p>Ben's Figma design as a working app: onboarding, home, create battle, waiting room, battle live, the ≤3-tap log sheet, power-ups, recap, result, rematch, profile and season ladder — screen by screen.</p>
+      <div class="card-meta"><span>20+ screens</span><span>· 31 screenshots</span></div>
+    </a>
+
+    <a class="card" href="bots.html">
+      <h3>Bots <span class="badge badge--demo">demo</span></h3>
+      <p>WhatsApp + Slack on one command bus — the full command grammar, result cards, rematch, nemesis, Monday digest, and a real simulated match transcript.</p>
+      <div class="card-meta"><span>15 commands</span><span>· 39 tests</span></div>
+    </a>
+
+    <a class="card" href="verification.html">
+      <h3>Verification <span class="badge badge--live">live (P1)</span></h3>
+      <p>Camera rep counting with MoveNet (angle-threshold state machine, 100% on-device) and BLE heart-rate straps scored as Karvonen %HRR — the anti-cheat lane.</p>
+      <div class="card-meta"><span>push-ups + squats</span><span>· any GATT strap</span></div>
+    </a>
+
+    <a class="card" href="avatars.html">
+      <h3>Avatars <span class="badge badge--parked">exploration</span></h3>
+      <p>The /avatars studio: 8 procedural styles side by side, GLB model characters, BVH mocap, wardrobe and species heads — plus the measured investigation of why looks match or miss.</p>
+      <div class="card-meta"><span>8 styles · 12 GLBs</span><span>· 11 screenshots</span></div>
+    </a>
+
+    <a class="card" href="ops.html">
+      <h3>Ops &amp; Testing <span class="badge badge--live">live</span></h3>
+      <p>The /hub console, /debug bot simulator, the deploy pipeline (GitHub → Cloudflare Pages), the REST API, the AI layer, and every test suite and what it proves.</p>
+      <div class="card-meta"><span>122 CI tests</span><span>· 2 E2E walks</span></div>
+    </a>
+
+    <a class="card" href="design.html">
+      <h3>Design System <span class="badge badge--live">live</span></h3>
+      <p>Tokens (dark athletic + Ben's gold/ink adoption), the gold-vs-lime theme question, the 16-component library, the 22-icon set, and the /system dissemination page.</p>
+      <div class="card-meta"><span>2 palettes</span><span>· 16 components</span></div>
+    </a>
+
+    <a class="card" href="status.html">
+      <h3>Status &amp; Roadmap <span class="badge badge--partial">in motion</span></h3>
+      <p>Honest per-element status across families A–G, the blockers register (technical, legal, business) and the unblock order.</p>
+      <div class="card-meta"><span>36 elements</span><span>· 14 blockers</span></div>
+    </a>
+
+  </div>
+</section>
+
+<section>
+  <h2 class="sect">The system at a glance</h2>
+  <div class="tblwrap"><table class="tbl">
+    <tr><th>Surface</th><th>What it is</th><th>Where</th></tr>
+    <tr><td><b>Site</b></td><td>Concept showcase — Three.js hero, interactive handicap demo, AI guide</td><td class="mono">/ · site/</td></tr>
+    <tr><td><b>App</b></td><td>Phone-first PWA (our first-party build with camera + HR verify)</td><td class="mono">/app · apps/web/</td></tr>
+    <tr><td><b>Figma app</b></td><td>Ben's full design as a navigable offline app — the reference build</td><td class="mono">/figma-app · apps/figma-app/</td></tr>
+    <tr><td><b>Bots</b></td><td>WhatsApp (via Qalarc Hub) + Slack (Bolt) — one command grammar</td><td class="mono">apps/bot-whatsapp · apps/bot-slack</td></tr>
+    <tr><td><b>Hub console</b></td><td>Ops + corporate console, live /api/state polling</td><td class="mono">/hub · apps/hub/</td></tr>
+    <tr><td><b>Debug</b></td><td>Live bot simulator + element gallery</td><td class="mono">/debug · apps/debug/</td></tr>
+    <tr><td><b>System page</b></td><td>Complete dissemination: tokens, components, 36 elements with status</td><td class="mono">/system · apps/systempage/</td></tr>
+    <tr><td><b>API</b></td><td>REST backend (crews / matches / seasons) — the MVP state foundation</td><td class="mono">apps/api/ · port 4174</td></tr>
+    <tr><td><b>Avatars</b></td><td>Local-only avatar style + tuning studio</td><td class="mono">/avatars · apps/avatars/ (local)</td></tr>
+    <tr><td><b>Wiki</b></td><td>This documentation</td><td class="mono">/wiki · apps/wiki/</td></tr>
+  </table></div>
+  <p class="dim">Everything runs from one Bun dev server (<span class="mono">bun serve.ts</span> → <span class="mono">localhost:4173</span>) locally, and from Cloudflare Pages at <span class="mono">rwf.qalarc.com</span> in production. See <a href="ops.html">Ops &amp; Testing</a>.</p>
+</section>
+
+<footer class="wfoot">
+  <span>RWF wiki · apps/wiki/ · vanilla HTML/CSS/JS, no deps</span>
+  <span>shots: apps/wiki/shots/ (self-contained)</span>
+</footer>
+</div>
+<script src="wiki.js"></script>
+</body>
+</html>

@@ -722,9 +722,11 @@ if (modelGrid) {
       // clearWardrobe once up front — attachHead must not strip a fresh wardrobe.
       if (M.wardrobe || M.head) {
         clearWardrobe(av);
-        // fabric secondary motion: verlet hems on the tank + shorts leg
-        // openings — disabled under prefers-reduced-motion (static drape)
-        if (M.wardrobe) entry.wardrobe = attachWardrobe(av, { slots: M.wardrobe, fabric: !REDUCED });
+        // hems are SKINNED by default (skin-follow). The verlet strips are
+        // opt-in via attachWardrobe({ fabric: true }) — they exploded at
+        // stride extremes (ring spread 29 cm), which read as fabric orbiting
+        // the figure; the skinned hem is stiff but always attached.
+        if (M.wardrobe) entry.wardrobe = attachWardrobe(av, { slots: M.wardrobe });
         if (M.head) entry.speciesHead = attachHead(av, M.head);
       }
       // normalise scale to ~1.5 units tall so all cards share a camera

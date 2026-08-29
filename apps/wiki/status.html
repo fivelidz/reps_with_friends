@@ -1,0 +1,138 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>Status &amp; Roadmap — RWF Wiki</title>
+<link rel="stylesheet" href="/design/tokens.css">
+<link rel="stylesheet" href="tokens.css">
+<link rel="stylesheet" href="wiki.css">
+</head>
+<body>
+<nav class="wnav">
+  <a class="wnav__brand" href="index.html"><b>RWF&nbsp;WIKI</b><span>internal docs</span></a>
+  <a class="wnav__link" href="game.html">Game Rules</a>
+  <a class="wnav__link" href="app.html">App Screens</a>
+  <a class="wnav__link" href="bots.html">Bots</a>
+  <a class="wnav__link" href="verification.html">Verification</a>
+  <a class="wnav__link" href="avatars.html">Avatars</a>
+  <a class="wnav__link" href="ops.html">Ops &amp; Testing</a>
+  <a class="wnav__link" href="design.html">Design System</a>
+  <a class="wnav__link" href="status.html">Status</a>
+</nav>
+<div class="wrap">
+
+<header class="hero">
+  <p class="eyebrow">Chapter 8 · status</p>
+  <h1>Status &amp; Roadmap</h1>
+  <p class="lede">Honest per-element status across the seven feature families, the blockers register with unblock paths, and the working order. Sources: docs/17_FEATURES_AND_PROGRESS.md and docs/15_BLOCKERS.md — both reviewed weekly.</p>
+  <p class="lede">Badges: <span class="badge badge--live">live</span> shipped &amp; tested · <span class="badge badge--demo">demo</span> works but demo-scoped · <span class="badge badge--next">next</span> engine-ready, waiting on a dependency · <span class="badge badge--parked">parked</span> idea phase.</p>
+</header>
+
+<!-- FAMILIES -->
+<section>
+  <h2 class="sect">Feature families A–G</h2>
+  <div class="tblwrap"><table class="tbl">
+    <tr><th>Element</th><th>Status</th><th>One-liner</th></tr>
+    <tr><td colspan="3" style="background:var(--surface)"><b>A · Core loop — built</b></td></tr>
+    <tr><td>A1 · 300-format match</td><td><span class="badge badge--live">live</span></td><td>any reps, any order, first to target closes</td></tr>
+    <tr><td>A2 · tier handicap v1</td><td><span class="badge badge--live">live</span></td><td>couch ×1.5 → athlete ×0.85</td></tr>
+    <tr><td>A3 · %HRR handicap v2</td><td><span class="badge badge--next">next</span></td><td>Karvonen blend — engine ready, needs straps in play</td></tr>
+    <tr><td>A4 · closure bonus</td><td><span class="badge badge--live">live</span></td><td>+15 urgency for the closer</td></tr>
+    <tr><td>A5 · charity pot</td><td><span class="badge badge--live">live</span></td><td>winner directs, never receives</td></tr>
+    <tr><td>A6 · taunt engine</td><td><span class="badge badge--live">live</span></td><td>AI-generated, canned fallback</td></tr>
+    <tr><td colspan="3" style="background:var(--surface)"><b>B · Retention arc — built</b></td></tr>
+    <tr><td>B7 · seasons</td><td><span class="badge badge--live">live</span></td><td>4-week series, 3/2/1 + MVP, champion crowning</td></tr>
+    <tr><td>B8 · relegation</td><td><span class="badge badge--live">live</span></td><td>A/B divisions swap at season end</td></tr>
+    <tr><td>B9 · comeback ×1.2</td><td><span class="badge badge--live">live</span></td><td>&gt;30% behind → one-time boost</td></tr>
+    <tr><td>B10 · MVP vote</td><td><span class="badge badge--live">live</span></td><td>second podium, feeds season points</td></tr>
+    <tr><td>B11 · streak forgiveness</td><td><span class="badge badge--live">live</span></td><td>$2 charity top-up saves the streak, once/season</td></tr>
+    <tr><td>B12 · baseline learning</td><td><span class="badge badge--live">live</span></td><td>HR drift ≤10%/update; volume-based anti-sandbagging</td></tr>
+    <tr><td colspan="3" style="background:var(--surface)"><b>C · Social &amp; viral — mostly built</b></td></tr>
+    <tr><td>C13 · result cards</td><td><span class="badge badge--live">live</span></td><td>1200×675 SVG from bots, PNG from app</td></tr>
+    <tr><td>C14 · spectator mode</td><td><span class="badge badge--live">live</span></td><td><span class="mono">watch &lt;code&gt;</span> — spectate another crew</td></tr>
+    <tr><td>C15 · crew-vs-crew</td><td><span class="badge badge--live">live</span></td><td><span class="mono">challenge &lt;code&gt;</span> / <span class="mono">challenge accept</span></td></tr>
+    <tr><td>C16 · drop-cam / public ladder</td><td><span class="badge badge--parked">parked</span></td><td>ideas</td></tr>
+    <tr><td colspan="3" style="background:var(--surface)"><b>D · Corporate — built (seeded)</b></td></tr>
+    <tr><td>D17 · org leagues</td><td><span class="badge badge--demo">demo</span></td><td>hub corporate tab, awaiting real orgs</td></tr>
+    <tr><td>D18 · employer-funded pots</td><td><span class="badge badge--demo">demo</span></td><td>"no employee money handled"</td></tr>
+    <tr><td>D19 · wellbeing dashboard</td><td><span class="badge badge--demo">demo</span></td><td>aggregate-only, k≥5 suppression (Sahha-EAP playbook)</td></tr>
+    <tr><td colspan="3" style="background:var(--surface)"><b>E · Verification — P1 built</b></td></tr>
+    <tr><td>E20 · camera counting</td><td><span class="badge badge--live">live</span></td><td>MoveNet in-browser, on-device only, verified:true</td></tr>
+    <tr><td>E21 · HR straps</td><td><span class="badge badge--live">live</span></td><td>GATT 0x180D, Karvonen %HRR per set</td></tr>
+    <tr><td>E22 · HealthKit / Health Connect</td><td><span class="badge badge--parked">P2</span></td><td>phased with native</td></tr>
+    <tr><td>E23 · WHOOP / Garmin cross-check</td><td><span class="badge badge--parked">P3</span></td><td>phased</td></tr>
+    <tr><td colspan="3" style="background:var(--surface)"><b>F · Wilder cards — ideas</b></td></tr>
+    <tr><td>F24–F28</td><td><span class="badge badge--parked">parked</span></td><td>referee review · champion belts · radio mode · annual charity championship</td></tr>
+    <tr><td colspan="3" style="background:var(--surface)"><b>G · Second wave — first four built (27 Aug)</b></td></tr>
+    <tr><td>G29 · rematch</td><td><span class="badge badge--live">live</span></td><td>one-tap run-it-back, roster carried (app + bots)</td></tr>
+    <tr><td>G30 · Monday digest</td><td><span class="badge badge--live">live</span></td><td>matches, margins, MVPs, pot, rivalry callout, AI line</td></tr>
+    <tr><td>G31 · photo finish</td><td><span class="badge badge--live">live</span></td><td>≤5% gap → dramatic card + coral SVG variant</td></tr>
+    <tr><td>G32 · nemesis</td><td><span class="badge badge--live">live</span></td><td>head-to-head rival detection</td></tr>
+    <tr><td>G33+ · still proposed</td><td><span class="badge badge--parked">parked</span></td><td>PRs · ghost race · guest slot · charity ladder · roast tiers · adaptive equivalents · warm-up predictions</td></tr>
+  </table></div>
+</section>
+
+<!-- BLOCKERS -->
+<section>
+  <h2 class="sect">Blockers register</h2>
+  <p class="sectsub">What's blocked, why, who unblocks it. 🟥 blocked · 🟧 partial · 🟩 clear — full detail in docs/15_BLOCKERS.md.</p>
+  <div class="tblwrap"><table class="tbl">
+    <tr><th>#</th><th>Blocker</th><th>Unblock path</th><th>Status</th></tr>
+    <tr><td colspan="4" style="background:var(--surface)"><b>Technical</b></td></tr>
+    <tr><td>T1</td><td>Slack app doesn't exist yet (5-min human creation from /slack/manifest.yml)</td><td>create → install → paste Client ID at /slack → permanent Add-to-Slack link</td><td><span class="badge badge--blocked">blocked</span></td></tr>
+    <tr><td>T2</td><td>WhatsApp Cloud API group messaging likely 1:1-only [VERIFY]</td><td>verify with Meta at pilot; DM-fallback designed (docs/14)</td><td><span class="badge badge--blocked">blocked</span></td></tr>
+    <tr><td>T3</td><td>Bots only run while the dev machine is on (minirig offline ~96d)</td><td>power-on + <span class="mono">tailscale up --force-reauth</span> → hosting kit install (one command)</td><td><span class="badge badge--blocked">blocked</span></td></tr>
+    <tr><td>T4</td><td>No auth — names free-typed, per-device state</td><td>magic-link auth via Resend on apps/api at MVP</td><td><span class="badge badge--partial">partial</span></td></tr>
+    <tr><td>T5</td><td>App ↔ bot state split (localStorage vs file JSON)</td><td>wire app → apps/api ← bots — built + tested, migration mechanical</td><td><span class="badge badge--partial">partial</span></td></tr>
+    <tr><td>T6</td><td>AI key balance — primary exhausted, running on secondary</td><td>monitor + top up; fallbacks degrade gracefully</td><td><span class="badge badge--partial">partial</span></td></tr>
+    <tr><td>T7</td><td>CF token lacks Tunnel:Edit — local server not exposed on the domain</td><td>widen scope or one tunnel login</td><td><span class="badge badge--partial">partial</span></td></tr>
+    <tr><td>T8</td><td>GitHub Actions runner stall (Aug 26–27)</td><td>resolved — transient incident; watch billing if it recurs (private repo)</td><td><span class="badge badge--clear">clear</span></td></tr>
+    <tr><td colspan="4" style="background:var(--surface)"><b>Legal / compliance</b></td></tr>
+    <tr><td>L1</td><td>Charity-wager legal opinion — nobody has looked at the pot structure</td><td>brief a charity/gaming lawyer (AUD 3–10k); pledge-only / employer-funded until then</td><td><span class="badge badge--blocked">blocked</span></td></tr>
+    <tr><td>L2</td><td>Apple 3.2.2(iv) — no in-app charity collection</td><td>already designed around: payments stay web-only</td><td><span class="badge badge--clear">clear</span></td></tr>
+    <tr><td>L3</td><td>Privacy policy + data inventory unwritten</td><td>one data-inventory sheet → policy + Apple labels + Play data safety</td><td><span class="badge badge--blocked">blocked</span></td></tr>
+    <tr><td colspan="4" style="background:var(--surface)"><b>Business</b></td></tr>
+    <tr><td>B1</td><td>Figma + blueprint not received from founder</td><td>email ask + call scheduled — design audit waits on it</td><td><span class="badge badge--blocked">blocked</span></td></tr>
+    <tr><td>B2</td><td>Equity terms undefined (split, vesting, IP)</td><td>call agenda item; get it in writing</td><td><span class="badge badge--blocked">blocked</span></td></tr>
+    <tr><td>B3</td><td>Corporate prospects unvalidated — no LOIs</td><td>ask on the call; Sahha-network intros</td><td><span class="badge badge--partial">partial</span></td></tr>
+  </table></div>
+  <p><b>Deliberately NOT blockers:</b> Apple Messages (no API exists — parked permanently) · app stores (PWA ships without them) · Strava (paid + capped) · custom ML rep counting (MoveNet covers MVP).</p>
+</section>
+
+<!-- ORDER -->
+<section>
+  <h2 class="sect">The working order</h2>
+  <div class="grid grid--3">
+    <div class="card"><h3>1 · Slack app</h3><p>T1 — 5 minutes, human-in-loop → corporate surface goes live.</p><div class="card-meta">blocker T1</div></div>
+    <div class="card"><h3>2 · Founder email + call</h3><p>B1/B2 — Figma + equity specifics in writing.</p><div class="card-meta">blockers B1 B2</div></div>
+    <div class="card"><h3>3 · Bots to minirig</h3><p>T3 — always-on demo reliability.</p><div class="card-meta">blocker T3</div></div>
+    <div class="card"><h3>4 · App ↔ API ↔ bots</h3><p>T5 — kill the localStorage/file split; ~one session, mechanical.</p><div class="card-meta">blocker T5</div></div>
+    <div class="card"><h3>5 · Data inventory</h3><p>L3 — one sheet feeds policy, Apple labels, Play data safety.</p><div class="card-meta">blocker L3</div></div>
+    <div class="card"><h3>6 · Camera lane activation</h3><p>E20 in production play — MoveNet verifier live for pilot crews.</p><div class="card-meta">element E20</div></div>
+  </div>
+</section>
+
+<section>
+  <h2 class="sect">Where the build stands</h2>
+  <div class="feat__grid" style="margin-top:18px">
+    <figure class="shot shot--full"><img src="shots/design-system.png" alt="The /system dissemination page showing element families and progress"><figcaption>design-system.png · the live /system page — the same status data, publicly rendered with live components</figcaption></figure>
+    <div>
+      <p><b>Phase 0 (due diligence) complete. Prototype feature-complete and live.</b> What began as an email evaluation is a running system: a tested game engine, two chat bots, a phone-first app, an ops console, an AI layer, and push-to-deploy hosting — <b>122 tests green in CI</b> (measured), 11 public surfaces, GitHub → Cloudflare Pages in ~20s. Remaining for MVP proper: state unification (T5), auth (T4), first real crews, and the pilot gates (WhatsApp verification, Stripe pots, legal opinion).</p>
+      <p class="dim">Live version of the status tables with rendered components: <span class="mono">rwf.qalarc.com/system</span>. Full writeups: <span class="mono">docs/17_FEATURES_AND_PROGRESS.md</span> · <span class="mono">docs/15_BLOCKERS.md</span>.</p>
+    </div>
+  </div>
+</section>
+
+<div class="pager">
+  <a href="design.html"><span class="dir">← back</span>Design System</a>
+  <a class="next" href="index.html"><span class="dir">↺</span>Index</a>
+</div>
+<footer class="wfoot">
+  <span>RWF wiki · status · mirrored from docs/15 + docs/17 (reviewed weekly)</span>
+  <span>badges are honest — demo ≠ live</span>
+</footer>
+</div>
+<script src="wiki.js"></script>
+</body>
+</html>

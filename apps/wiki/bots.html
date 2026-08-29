@@ -1,0 +1,179 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>Bots — RWF Wiki</title>
+<link rel="stylesheet" href="/design/tokens.css">
+<link rel="stylesheet" href="tokens.css">
+<link rel="stylesheet" href="wiki.css">
+</head>
+<body>
+<nav class="wnav">
+  <a class="wnav__brand" href="index.html"><b>RWF&nbsp;WIKI</b><span>internal docs</span></a>
+  <a class="wnav__link" href="game.html">Game Rules</a>
+  <a class="wnav__link" href="app.html">App Screens</a>
+  <a class="wnav__link" href="bots.html">Bots</a>
+  <a class="wnav__link" href="verification.html">Verification</a>
+  <a class="wnav__link" href="avatars.html">Avatars</a>
+  <a class="wnav__link" href="ops.html">Ops &amp; Testing</a>
+  <a class="wnav__link" href="design.html">Design System</a>
+  <a class="wnav__link" href="status.html">Status</a>
+</nav>
+<div class="wrap">
+
+<header class="hero">
+  <p class="eyebrow">Chapter 3 · the bots</p>
+  <h1>Bots — one grammar, two platforms</h1>
+  <p class="lede">The whole game is playable inside a group chat. A platform-agnostic <b>CommandBus</b> (<span class="mono">packages/bot-core/src/bus.ts</span>) takes plain text in and returns WhatsApp/Slack-compatible text cards out — all game logic lives in game-core, so the bots are a thin parse → mutate store → format layer. The identical command surface runs on WhatsApp (via the local Qalarc Hub) and Slack (Bolt Socket Mode).</p>
+</header>
+
+<!-- ARCHITECTURE -->
+<section class="feat">
+  <div class="feat__head"><h3>Architecture</h3><span class="badge badge--live">live</span></div>
+  <div class="feat__body">
+<pre class="code">
+  WhatsApp group ──▶ Qalarc Hub (localhost:8769) ──▶ apps/bot-whatsapp/main.ts ─┐
+                                                                                ├─▶ CommandBus.handle()
+  Slack channel ───▶ Slack Bolt (Socket Mode) ────▶ apps/bot-slack/app.ts ─────┘         │
+                                                                                          ▼
+                                                                    parse() → normalise token → alias map
+                                                                                          ▼
+                                                                    MatchStore (.data/bot-matches.json, one match per chatId)
+                                                                                          ▼
+                                                                    game-core engine (logReps · standings · comeback …)
+                                                                                          ▼
+                                                                    cards.ts → text card (mrkdwn, renders on both platforms)
+                                                                    card-image.ts → 1200×675 SVG result card → /cards/&lt;name&gt;.svg
+</pre>
+    <p>Every command is pure input→output: <span class="mono">handle()</span> never throws (errors come back as cards), runs synchronously with canned taunts, and <span class="mono">handleAsync()</span> upgrades <span class="mono">taunt</span> and <span class="mono">digest</span> to AI-generated lines via the local AI endpoint with a 2s timeout and canned fallback.</p>
+    <div class="where"><b>lives:</b> packages/bot-core/src/{bus,store,cards,card-image,digest,game-extras,ai}.ts · apps/bot-whatsapp · apps/bot-slack<br><b>proven by:</b> bus.test.ts (27) + gfamily.test.ts (12) — 39 tests green in CI</div>
+  </div>
+</section>
+
+<!-- COMMANDS -->
+<section class="feat" id="commands">
+  <div class="feat__head"><h3>Command surface</h3><span class="badge badge--live">live</span></div>
+  <p class="feat__what">15 commands, identical on both platforms. Optional <span class="mono">rwf</span> / <span class="mono">/rwf</span> prefix for group-mention style. Aliases: <span class="mono">s</span>→standings · <span class="mono">h</span>→help · <span class="mono">again</span>/<span class="mono">runitback</span>→rematch · <span class="mono">nem</span>→nemesis · <span class="mono">monday</span>→digest.</p>
+  <div class="tblwrap"><table class="tbl">
+    <tr><th>Command</th><th>What it does</th><th>Mechanics underneath</th></tr>
+    <tr><td class="mono">new [target]</td><td>Create a match (default 300)</td><td>createMatch → status open, play days + exercise list announced</td></tr>
+    <tr><td class="mono">join [tier]</td><td>Join with couch/casual/fit/athlete</td><td>Sets your ×1.5/×1.25/×1.0/×0.85 multiplier</td></tr>
+    <tr><td class="mono">start</td><td>Lock the roster, go live</td><td>status → live, logging opens</td></tr>
+    <tr><td class="mono">log &lt;ex&gt; &lt;reps&gt;[!]</td><td>Log reps; trailing <b>!</b> = camera-verified</td><td>Chains applyComeback → entry with verified flag; closure check</td></tr>
+    <tr><td class="mono">s</td><td>Standings with medal bars</td><td>standings() + ⚡ comeback markers + 👁 spectator count</td></tr>
+    <tr><td class="mono">taunt &lt;name&gt;</td><td>AI-generated cheek (canned fallback)</td><td>handleAsync → local AI endpoint, 2s timeout</td></tr>
+    <tr><td class="mono">pot &lt;cents&gt;</td><td>Chip into the charity pot</td><td>contribute() — "$5.00 banked. Winner picks where it goes."</td></tr>
+    <tr><td class="mono">result</td><td>Final card + shareable image</td><td>finalStandings() + closure bonus; writes the SVG card</td></tr>
+    <tr><td class="mono">rematch</td><td>Run it back after a finish</td><td>Same roster/rules, fresh pot — mirrors the app's one-tap rematch</td></tr>
+    <tr><td class="mono">nemesis [name]</td><td>Who's got your number</td><td>Head-to-head record scan across stored matches</td></tr>
+    <tr><td class="mono">digest</td><td>Monday recap card</td><td>Matches, margins, MVPs, pot, rivalry callout, AI one-liner</td></tr>
+    <tr><td class="mono">link &lt;code&gt;</td><td>Bind this chat to a crew</td><td>Same CREW-XXXX code the app's waiting room shows</td></tr>
+    <tr><td class="mono">watch &lt;code&gt;</td><td>Spectate another crew</td><td>Read-only standings of the watched crew in your chat</td></tr>
+    <tr><td class="mono">challenge &lt;code&gt;</td><td>Crew-vs-crew challenge</td><td><span class="mono">challenge accept</span> locks it in</td></tr>
+    <tr><td class="mono">season new / ladder</td><td>Run a season, climb the ladder</td><td>3/2/1 points + MVP, A/B divisions (see Game Rules)</td></tr>
+  </table></div>
+  <div class="where"><b>lives:</b> the exact help card verbatim in packages/bot-core/src/cards.ts <code>helpCard()</code> · grammar in bus.ts <code>COMMANDS / ALIASES / parse()</code></div>
+</section>
+
+<!-- TRANSCRIPT -->
+<section class="feat" id="transcript">
+  <div class="feat__head"><h3>A real match, start to finish</h3><span class="badge badge--demo">simulated</span></div>
+  <p class="feat__what">Captured from the live /debug simulator (same CommandBus the real bots run) — a couch player steals one back from an athlete. Watch the comeback fire, the closure land, and the adjusted-score upset resolve.</p>
+  <div class="feat__body">
+<pre class="term">
+<span class="t-user">Ben:</span> new 150
+<span class="t-bot">🏋️ *Match created — first to 150 reps*</span>
+<span class="t-bot">Exercises: Push-ups, Squats, Sit-ups, Burpees, Lunges</span>
+<span class="t-bot">Play days: Tue · Thu</span>
+<span class="t-user">Ben:</span> join couch        <span class="t-user">Nico:</span> join athlete
+<span class="t-bot">✅ *Ben* in as *couch* (1 playing)</span>
+<span class="t-bot">✅ *Nico* in as *athlete* (2 playing)</span>
+<span class="t-dim">Tier matters — couch reps are worth 1.5×, athlete reps 0.85×. Effort wins.</span>
+<span class="t-user">Ben:</span> start
+<span class="t-bot">🚀 *LIVE — first to 150 raw reps closes it*</span>
+<span class="t-user">Ben:</span> log pushups 40
+<span class="t-bot">💪 *Ben* logs 40 Push-ups</span>
+<span class="t-user">Nico:</span> log squats 80
+<span class="t-bot">💪 *Nico* logs 80 Squats</span>
+<span class="t-bot">⚡ comeback ×1.2 applied — never out of it.</span>   <span class="t-dim">← Ben is 50% behind → eligible</span>
+<span class="t-user">Ben:</span> s
+<span class="t-bot">🏋️ *Standings* (LIVE)</span>
+<span class="t-bot">🥇 *Nico* █████░░░░░ 53.3%   raw 80 · *adjusted 81.6* · 0% verified</span>
+<span class="t-bot">🥈 *Ben*⚡ ███░░░░░░░ 26.7%   raw 40 · *adjusted 60* · 0% verified</span>
+<span class="t-user">Ben:</span> log pushups 110
+<span class="t-bot">🔥 *Ben* logs 110 Push-ups — *THAT'S 150! MATCH CLOSED* 🏁</span>
+<span class="t-bot">⚡ comeback ×1.2 applied — never out of it.</span>
+<span class="t-user">Ben:</span> result
+<span class="t-bot">🏁 *MATCH RESULT*</span>
+<span class="t-bot">🏆 *Ben* takes it — adjusted score *273*</span>
+<span class="t-bot">1. Ben — 273 (150 raw)      <span class="t-dim">← 60 + 110×1.5×1.2 (=198) + 15 closure</span></span>
+<span class="t-bot">2. Nico — 81.6 (80 raw)</span>
+<span class="t-bot">🖼 Result card: …/cards/m-wiki-txt-….svg</span>
+</pre>
+    <p class="dim">The same walkthrough is replayable any time at <span class="mono">/debug</span> — the console feeds the real bus through <span class="mono">/api/sim</span>.</p>
+    <div class="where"><b>lives:</b> apps/debug (page) · serve.ts <code>/api/sim</code> (isolated scratch store .data/sim-debug.json) · apps/figma-app/bots-sim.mjs (scripted replay + hub check)</div>
+  </div>
+</section>
+
+<!-- DEBUG SHOT -->
+<section class="feat">
+  <div class="feat__head"><h3>The simulator console</h3><span class="badge badge--live">live</span></div>
+  <div class="feat__grid">
+    <figure class="shot shot--full"><img src="shots/ops-debug.png" alt="Debug page with bot simulator mid-match"><figcaption>ops-debug.png · /debug — live bot simulator, mid-match (3 players, pot building)</figcaption></figure>
+    <div class="feat__body">
+      <p><b>What.</b> The /debug page is a chat-shaped console into the real CommandBus: type commands as any player, watch the cards come back, and the generated result card SVG appears inline. This screenshot was taken mid-match with three tiers playing and a $10.00 pot banked.</p>
+      <p><b>How it works.</b> Posts to <span class="mono">/api/sim</span> which runs <span class="mono">simBus.handle()</span> — one bus, one scratch store, overridable chatId so automated runs never collide with the console's session. The page doubles as the element gallery for design review.</p>
+      <div class="where"><b>lives:</b> apps/debug/ · serve.ts <span class="mono">/api/sim</span><br><b>proven by:</b> this very screenshot was produced through the endpoint</div>
+    </div>
+  </div>
+</section>
+
+<!-- RESULT CARDS -->
+<section class="feat">
+  <div class="feat__head"><h3>Result cards</h3><span class="badge badge--live">live</span></div>
+  <p class="feat__what">Every finished match can be shared as a 1200×675 branded image — SVG generated server-side by the bots, PNG export from the app.</p>
+  <div class="feat__grid">
+    <figure class="shot shot--wide"><img src="shots/bots-result-card-match.svg" alt="Generated SVG result card for the transcript match"><figcaption>shots/bots-result-card-match.svg · the actual card from the transcript above (Ben 273 def. Nico)</figcaption></figure>
+    <div class="feat__body">
+      <p><b>How it works.</b> <span class="mono">card-image.ts</span> renders the final standings, scores and match name into an SVG, writes it to <span class="mono">.data/cards/</span>, and the bots link it (<span class="mono">serve.ts</span> serves <span class="mono">/cards/*</span>). The link in the transcript above produced exactly this file. Photo finishes (margin ≤ 5%) get a dramatic coral variant; the app exports PNG for social.</p>
+      <div class="where"><b>lives:</b> packages/bot-core/src/card-image.ts · game-core photo-finish.ts · served from .data/cards/<br><b>proven by:</b> card generation tests + the card linked above</div>
+    </div>
+  </div>
+</section>
+
+<!-- RETENTION COMMANDS -->
+<section class="feat">
+  <div class="feat__head"><h3>Rematch · Nemesis · Digest</h3><span class="badge badge--live">live</span></div>
+  <div class="feat__body">
+    <ul>
+      <li><b>Rematch</b> (<span class="mono">rematch</span> / <span class="mono">again</span> / <span class="mono">runitback</span>) — after any finished match, one command re-arms the same roster and rules with a fresh pot. The app has the one-tap equivalent on the result screen.</li>
+      <li><b>Nemesis</b> (<span class="mono">nemesis [name]</span>) — scans your head-to-head history and names the player who beats you most, with the record. Rivalry is the retention engine; this makes it personal. <span class="mono">nemesis</span> with no args finds your worst matchup automatically.</li>
+      <li><b>Monday digest</b> (<span class="mono">digest</span> / <span class="mono">monday</span>) — the week's recap card: matches played, winning margins, MVPs, pot totals, a rivalry callout, and an AI one-liner to open the week (canned fallback if the AI is asleep).</li>
+    </ul>
+    <p>These are the "G-family" second wave — first four shipped 27 Aug (docs/17).</p>
+    <div class="where"><b>lives:</b> bus.ts <span class="mono">rematch/nemesis/digest</span> handlers · digest.ts · game-extras.ts<br><b>proven by:</b> gfamily.test.ts (bot-core + game-core) — 27 tests across both suites</div>
+  </div>
+</section>
+
+<!-- RUNNING -->
+<section class="feat">
+  <div class="feat__head"><h3>Running them for real</h3><span class="badge badge--partial">demo-only today</span></div>
+  <div class="feat__body">
+    <p><b>Status honestly:</b> the bots are demo-reliable, not production-always-on. They run while the dev machine (superlocal) is up; heartbeats appear in the <a href="ops.html">hub console</a> (45s freshness window). WhatsApp flows through the local Qalarc Hub session; Slack needs its 5-minute app creation (blocker T1). Moving both to the always-on minirig is one SSH command away (blocker T3) — see <a href="status.html">Status &amp; Roadmap</a>.</p>
+    <div class="where"><b>lives:</b> apps/bot-whatsapp/main.ts · apps/bot-slack/{app,main}.ts · heartbeat files .data/heartbeat-{whatsapp,slack}.json</div>
+  </div>
+</section>
+
+<div class="pager">
+  <a href="app.html"><span class="dir">← back</span>App Screens</a>
+  <a class="next" href="verification.html"><span class="dir">next →</span>Verification</a>
+</div>
+<footer class="wfoot">
+  <span>RWF wiki · bots · transcript captured live via /api/sim</span>
+  <span>one grammar — WhatsApp + Slack</span>
+</footer>
+</div>
+<script src="wiki.js"></script>
+</body>
+</html>

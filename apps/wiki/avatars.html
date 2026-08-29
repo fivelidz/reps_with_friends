@@ -1,0 +1,132 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>Avatars — RWF Wiki</title>
+<link rel="stylesheet" href="/design/tokens.css">
+<link rel="stylesheet" href="tokens.css">
+<link rel="stylesheet" href="wiki.css">
+</head>
+<body>
+<nav class="wnav">
+  <a class="wnav__brand" href="index.html"><b>RWF&nbsp;WIKI</b><span>internal docs</span></a>
+  <a class="wnav__link" href="game.html">Game Rules</a>
+  <a class="wnav__link" href="app.html">App Screens</a>
+  <a class="wnav__link" href="bots.html">Bots</a>
+  <a class="wnav__link" href="verification.html">Verification</a>
+  <a class="wnav__link" href="avatars.html">Avatars</a>
+  <a class="wnav__link" href="ops.html">Ops &amp; Testing</a>
+  <a class="wnav__link" href="design.html">Design System</a>
+  <a class="wnav__link" href="status.html">Status</a>
+</nav>
+<div class="wrap">
+
+<header class="hero">
+  <p class="eyebrow">Chapter 5 · avatars</p>
+  <h1>Avatar system — styles, models, mocap</h1>
+  <p class="lede">The <span class="mono">/avatars</span> studio is a local-only playground for the customisation system: a gallery comparing every procedural style side by side (same exercise, same build, same freeze-frame), a studio for tuning single figures, and a model-character lane exploring GLB characters with BVH mocap, wardrobe and species heads.</p>
+</header>
+
+<!-- GALLERY -->
+<section class="feat">
+  <div class="feat__head"><h3>The style gallery</h3><span class="badge badge--parked">exploration</span></div>
+  <p class="feat__what">Eight procedural styles rendered side by side, each card printing proportions <i>measured off its own live rig</i> — so directions are compared, not eyeballed in isolation.</p>
+  <div class="feat__grid">
+    <figure class="shot shot--full"><img src="shots/avatars-gallery.png" alt="Avatar gallery with procedural styles and model sections"><figcaption>avatars-gallery.png · the live /avatars page — style cards above, model characters below</figcaption></figure>
+    <div class="feat__body">
+      <p><b>How it works.</b> One rig spec per style (site/avatars.js + <span class="mono">site/avatar-styles/*.js</span>); a shared dimension solver (<span class="mono">rig-core.js</span>) derives the mesh from the spec, and the same solver produces each card's printed proportion summary — a label can never disagree with the render. Gallery order puts the game look first: <b>goblinfit · dragon · gamelow · athletic · lowpoly · blocky · chibi · minimal</b>.</p>
+      <p>Every card freezes at <span class="mono">MID_REP = 0.52</span> — deep in the eccentric, the phase that shows the most about a rep — so screenshots are comparable across styles. The page manages a hard WebGL context budget (12 live, releases off-screen renderers first) to stay under Chrome's ~16-context eviction limit.</p>
+      <div class="where"><b>lives:</b> apps/avatars/ (local route /avatars) · site/avatars.js · site/avatar-styles/index.js<br><b>proven by:</b> apps/avatars/test/ suite (probe + verify scripts)</div>
+    </div>
+  </div>
+</section>
+
+<!-- GENO -->
+<section class="feat">
+  <div class="feat__head"><h3>Model characters — Geno + mocap</h3><span class="badge badge--parked">exploration</span></div>
+  <p class="feat__what">Geno (the reference GLB humanoid) driven by real BVH motion capture, plus a fabric-deforming wardrobe and swappable species heads.</p>
+  <div class="feat__grid">
+    <div class="shots">
+      <figure class="shot shot--wide"><img src="shots/avatars-geno-lineup.png" alt="Geno lineup of poses"><figcaption>avatars-geno-lineup.png · the Geno pose lineup</figcaption></figure>
+      <figure class="shot shot--wide"><img src="shots/avatars-geno-bvh-walk.png" alt="Geno BVH mocap walk frame"><figcaption>avatars-geno-bvh-walk.png · BVH mocap walk (goblin_walk_stick.bvh)</figcaption></figure>
+      <figure class="shot shot--wide"><img src="shots/avatars-geno-pushup.png" alt="Geno doing a push-up"><figcaption>avatars-geno-pushup.png · push-up, retargeted</figcaption></figure>
+      <figure class="shot shot--wide"><img src="shots/avatars-geno-squat.png" alt="Geno doing a squat"><figcaption>avatars-geno-squat.png · deep squat</figcaption></figure>
+    </div>
+    <div class="feat__body">
+      <p><b>How it works.</b> BVH clips (<span class="mono">site/models/*.bvh</span>: walk-stick, combat, drag, limp, one-arm) are loaded by a vendored BVHLoader and retargeted onto the GLB skeleton — so exercise form comes from real captured motion rather than hand animation. The same driver plays on the wardrobe variants, which is what makes the deformation stress tests meaningful.</p>
+      <div class="where"><b>lives:</b> site/lib/BVHLoader.js · apps/avatars/model-avatars.js · scripts/avatars/bvh_check.ts</div>
+    </div>
+  </div>
+</section>
+
+<!-- WARDROBE + HEADS -->
+<section class="feat">
+  <div class="feat__head"><h3>Wardrobe + species heads</h3><span class="badge badge--parked">exploration</span></div>
+  <div class="feat__grid">
+    <div class="shots">
+      <figure class="shot shot--wide"><img src="shots/avatars-geno-wardrobe-walk.png" alt="Geno in full wardrobe walking"><figcaption>avatars-geno-wardrobe-walk.png · full-kit wardrobe, walking</figcaption></figure>
+      <figure class="shot shot--wide"><img src="shots/avatars-wardrobe-stress-squat.png" alt="Wardrobe stress test deep squat"><figcaption>avatars-wardrobe-stress-squat.png · stress: deep squat</figcaption></figure>
+      <figure class="shot shot--wide"><img src="shots/avatars-wardrobe-stress-walk.png" alt="Wardrobe stress test widest walk"><figcaption>avatars-wardrobe-stress-walk.png · stress: widest stride</figcaption></figure>
+      <figure class="shot shot--wide"><img src="shots/avatars-geno-goblin-head.png" alt="Geno with goblin head"><figcaption>avatars-geno-goblin-head.png · species head swap: goblin</figcaption></figure>
+      <figure class="shot shot--wide"><img src="shots/avatars-geno-robot-head.png" alt="Geno with robot head"><figcaption>avatars-geno-robot-head.png · species head swap: robot</figcaption></figure>
+    </div>
+    <div class="feat__body">
+      <p><b>How it works.</b> The wardrobe is fabric-simulated garment meshes bound to the body (the newest approach, 29 Aug) — the stress suite runs the <i>full kit</i> through every extreme pose: combat swing, curl top, drag, jumping jacks, limp, one-arm, push-up bottom, deep squat, widest stride. Screenshots are per-pose evidence the garments don't explode. Species heads swap the skull mesh on the same body, proving orc/dragon/robot variants share one pipeline.</p>
+      <div class="where"><b>lives:</b> apps/avatars/test/{wardrobe_stress,wardrobe_switcher,fabric_*}.ts · site/models/geno-wardrobe.js · scripts/avatars/</div>
+    </div>
+  </div>
+</section>
+
+<!-- MODEL CAST -->
+<section class="feat">
+  <div class="feat__head"><h3>The model cast</h3><span class="badge badge--parked">exploration</span></div>
+  <div class="feat__grid">
+    <div class="shots">
+      <figure class="shot shot--wide"><img src="shots/avatars-models-stand.png" alt="GLB model characters standing lineup"><figcaption>avatars-models-stand.png · the GLB cast at rest</figcaption></figure>
+      <figure class="shot shot--wide"><img src="shots/avatars-models-squat.png" alt="GLB model characters squatting"><figcaption>avatars-models-squat.png · same cast mid-squat</figcaption></figure>
+    </div>
+    <div class="feat__body">
+      <p><b>What.</b> Twelve rigged GLBs in <span class="mono">site/models/</span>: Geno (the reference humanoid), orcs (orc, orc_marauder), dragons (dragon_elder, dragon_hunter), Soldier, Xbot, RobotExpressive, humanoid_adventurer, humanoid_brute, wolf, Cranberry — all driven by the same exercise/rig core, rendered in the models section of the gallery.</p>
+      <p>Why a cast: the avatar system has to hold up across species (the dragon problem below) and silhouettes, not just one ideal human.</p>
+      <div class="where"><b>lives:</b> site/models/*.glb · apps/avatars model section · scripts/avatars/model_analyse.py</div>
+    </div>
+  </div>
+</section>
+
+<!-- INVESTIGATION -->
+<section class="feat">
+  <div class="feat__head"><h3>The measured look investigation</h3><span class="badge badge--clear">documented</span></div>
+  <p class="feat__what">Why our early avatars didn't match the reference game — measured in pixels, not eyeballed — and the fix list it produced. Full write-up: <span class="mono">notes_avatars_investigation.md</span>.</p>
+  <div class="feat__body">
+    <p><b>The one-line law the investigation produced:</b></p>
+    <div class="formula">look <span class="op">=</span> recipe <span class="op">×</span> palette <span class="op">×</span> lighting <span class="op">×</span> camera <span class="op">×</span> context <span class="op">×</span> pose</div>
+    <p>Matching only the mesh recipe (the goblinfit port was faithful — ears, red eyes, two-tone derivation, 6-radial capsules) still read "totally different", because the reference look lives mostly in the other five terms. Deltas, ranked by measured impact:</p>
+    <ul>
+      <li><b>1 · No world</b> — our figure floated on a &gt;90% near-black void; the reference is ~80% warm textured tiles under sky. Biggest single delta.</li>
+      <li><b>2 · Wrong palette</b> — tier-lime outfits rendered olive/khaki under our rig; the reference green is clear and cool, and lime appears nowhere in it.</li>
+      <li><b>3 · Wrong proportions</b> — our 3.4-heads athlete vs the reference ~2.7-heads chibi (head+ears ≈ 40% of height, ≈1.5–1.9× body width, no neck).</li>
+      <li><b>4 · Extra anatomy</b> — articulated joints, mittens, wedge feet: the reference has single hanging capsules, no elbows ever.</li>
+      <li><b>5 · Wrong camera</b> — product-sheet front-on FOV 32 vs the reference's −52° top-down FOV 60 with the figure ~8% of frame.</li>
+      <li><b>6 · Wrong light</b> — three-point studio rig with coloured rims vs one warm sun + cool ambient + soft shadows.</li>
+      <li><b>7 · Wrong pose</b> — frozen mid-squat vs idle/glide/bob.</li>
+      <li><b>8 · Missing game furniture</b> — selection ring, job icons, ground shadow.</li>
+    </ul>
+    <p><b>The dragon post-mortem</b> (why the first dragon read "person in a dragon suit"): an upright humanoid biped can't read as a dragon. A dragon needs a <i>horizontal-axis silhouette</i> (long neck, counterbalancing tail), big contrasting wing membranes, a projecting snout, reptile posture — the reference game's own non-humanoid (the fortress wolf) is built on a horizontal axis for exactly this reason. dragon2.js is the second attempt informed by that.</p>
+    <p>Everything was extracted <i>programmatically</i> — in-page raycasting to locate characters, pixel sampling for exact hexes and silhouettes — which is why the numbers above can be specific.</p>
+    <div class="where"><b>lives:</b> notes_avatars_investigation.md (root) · measurement scripts in apps/avatars/test/ + scripts/avatars/</div>
+  </div>
+</section>
+
+<div class="pager">
+  <a href="verification.html"><span class="dir">← back</span>Verification</a>
+  <a class="next" href="ops.html"><span class="dir">next →</span>Ops &amp; Testing</a>
+</div>
+<footer class="wfoot">
+  <span>RWF wiki · avatars · local playground, not in the public deploy</span>
+  <span>look = recipe × palette × lighting × camera × context × pose</span>
+</footer>
+</div>
+<script src="wiki.js"></script>
+</body>
+</html>

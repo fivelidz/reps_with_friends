@@ -1,0 +1,99 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>Verification — RWF Wiki</title>
+<link rel="stylesheet" href="/design/tokens.css">
+<link rel="stylesheet" href="tokens.css">
+<link rel="stylesheet" href="wiki.css">
+</head>
+<body>
+<nav class="wnav">
+  <a class="wnav__brand" href="index.html"><b>RWF&nbsp;WIKI</b><span>internal docs</span></a>
+  <a class="wnav__link" href="game.html">Game Rules</a>
+  <a class="wnav__link" href="app.html">App Screens</a>
+  <a class="wnav__link" href="bots.html">Bots</a>
+  <a class="wnav__link" href="verification.html">Verification</a>
+  <a class="wnav__link" href="avatars.html">Avatars</a>
+  <a class="wnav__link" href="ops.html">Ops &amp; Testing</a>
+  <a class="wnav__link" href="design.html">Design System</a>
+  <a class="wnav__link" href="status.html">Status</a>
+</nav>
+<div class="wrap">
+
+<header class="hero">
+  <p class="eyebrow">Chapter 4 · verification</p>
+  <h1>Verification — proving the work</h1>
+  <p class="lede">Handicap scoring only means something if reps and effort are real. Lane 7 ships two verifiers in the first-party app today: <b>camera rep counting</b> (MoveNet pose detection, 100% on-device) and <b>BLE heart-rate straps</b> (any GATT strap, scored as Karvonen %HRR). Both feed fields the engine already scores.</p>
+</header>
+
+<!-- CAMERA -->
+<section class="feat">
+  <div class="feat__head"><h3>Camera rep counting</h3><span class="badge badge--live">live</span></div>
+  <p class="feat__what">Point the phone at yourself side-on, pick the exercise, do the set — the app counts reps live and logs the set as <span class="mono">verified:true</span>. No frame ever leaves the device.</p>
+  <div class="feat__grid">
+    <figure class="shot shot--phone"><img src="shots/app-camera-note.png" alt="Camera verification affordance in the app"><figcaption>app-camera-note.png · the camera-verify route offered at logging time</figcaption></figure>
+    <div class="feat__body">
+      <p><b>How it works — the pose layer.</b> The verifier lazily injects TensorFlow.js + MoveNet Lightning (~1MB, UMD builds via CDN) the <i>first</i> time a verifier opens — never on app boot, never bundled. Every frame runs through MoveNet locally; the counter consumes only keypoints.</p>
+      <p><b>How it works — the counting state machine.</b> Pure logic, unit-tested headlessly in <span class="mono">count.ts</span>: one tracked joint angle per exercise, two thresholds (hysteresis) plus a persistence window —</p>
+      <div class="formula">
+        angle <span class="op">&lt;</span> downAngle  <span class="op">→</span> enter "down" (timestamped)<br>
+        angle <span class="op">&gt;</span> upAngle    <span class="op">→</span> "up"; if down persisted ≥ <span class="hl">300ms</span> → <b>1 rep</b>
+      </div>
+      <div class="tblwrap"><table class="tbl">
+        <tr><th>Exercise</th><th>Tracked joint (vertex)</th><th class="num">down threshold</th><th class="num">up threshold</th></tr>
+        <tr><td>Push-ups</td><td>shoulder → <b>elbow</b> → wrist</td><td class="num">&lt; 90°</td><td class="num">&gt; 160°</td></tr>
+        <tr><td>Squats</td><td>hip → <b>knee</b> → ankle</td><td class="num">&lt; 100°</td><td class="num">&gt; 150°</td></tr>
+      </table></div>
+      <p>Anti-jitter rules, all enforced in code: keypoint confidence floor <b>0.35</b> (both sides averaged when both clear it); the 300ms debounce rejects twitchy half-reps; a tracking dropout longer than the debounce <i>invalidates the phase</i> (the person may have moved anywhere while untracked) — brief dropouts are tolerated. The Good-GYM angle-threshold approach (MIT), kept DOM-free so it can be reused by future verifiers (watch, IMU).</p>
+      <p>Confirming the counted set logs it straight into the match; the leaderboard's verified % rises with it.</p>
+      <div class="where"><b>lives:</b> apps/web/src/verify/camera.ts (sheet + MoveNet) · apps/web/src/verify/count.ts (pure logic)<br><b>proven by:</b> counter unit tests + e2e camera mocks (<span class="mono">--use-fake-device-for-media-stream</span>) · figma-app surface in e2e.mjs</div>
+    </div>
+  </div>
+</section>
+
+<!-- HR -->
+<section class="feat">
+  <div class="feat__head"><h3>Heart-rate straps (%HRR)</h3><span class="badge badge--live">live</span></div>
+  <p class="feat__what">Pair any standard chest/arm strap over Web Bluetooth; the app scores each set's effort as <b>Karvonen %HRR</b> and attaches <span class="mono">avgHrrPct</span> to the entry — the exact field the v2 handicap blend consumes.</p>
+  <div class="feat__grid">
+    <figure class="shot shot--phone"><img src="shots/webapp-match.png" alt="First-party app match screen where verified entries land"><figcaption>webapp-match.png · the /app build where both verifiers live; verified % shows per player</figcaption></figure>
+    <div class="feat__body">
+      <p><b>How it works.</b> Connects to the standard GATT Heart Rate Service (<span class="mono">0x180D</span> → measurement characteristic <span class="mono">0x2A37</span>) — Polar H10, Garmin, Wahoo, anything that broadcasts it; no vendor API needed. Per-session it averages notifications into:</p>
+      <div class="formula">%HRR <span class="op">=</span> (bpm <span class="op">−</span> restingHr) <span class="op">/</span> (maxHr <span class="op">−</span> restingHr) <span class="op">×</span> 100<span class="op">,</span>   maxHr <span class="op">=</span> 220 <span class="op">−</span> age</div>
+      <p>Settings (resting HR default 60, age default 35 → max 185) persist in <span class="mono">localStorage["rwf.hr.v1"]</span> and are clamped to sane ranges. Graceful by design: unsupported browser (iOS Safari), user cancel, and mid-session disconnect (partial averages are kept) all resolve cleanly — verified reps never block a workout.</p>
+      <p>The engine side: an entry carrying <span class="mono">avgHrrPct</span> plus a learned player baseline switches that entry's multiplier to the 70/30 measured-vs-declared blend (see <a href="game.html">Game Rules → tier handicap</a>), with baseline drift ≤10% per update as anti-sandbagging.</p>
+      <div class="where"><b>lives:</b> apps/web/src/verify/hr.ts · engine blend in apps/figma-app/engine.js <code>effortMultiplier</code> · baseline logic in game-core/src/baseline.ts<br><b>proven by:</b> Karvonen + settings tests; blend math covered in engine tests</div>
+    </div>
+  </div>
+</section>
+
+<!-- ROADMAP -->
+<section class="feat">
+  <div class="feat__head"><h3>The phased verification plan</h3><span class="badge badge--parked">P2/P3 parked</span></div>
+  <div class="feat__body">
+    <div class="tblwrap"><table class="tbl">
+      <tr><th>Phase</th><th>Lane</th><th>Status</th></tr>
+      <tr><td><b>P1</b></td><td>In-browser MoveNet camera counting + Web Bluetooth HR straps</td><td class="ok">BUILT — live in the app, entries log verified:true / avgHrrPct</td></tr>
+      <tr><td><b>P2</b></td><td>HealthKit / Health Connect history import</td><td>phased (docs/05) — native wrapper required</td></tr>
+      <tr><td><b>P3</b></td><td>WHOOP / Garmin cloud cross-check</td><td>phased (docs/05)</td></tr>
+      <tr><td>—</td><td>Custom ML rep counting</td><td>deliberately NOT a blocker — MoveNet covers MVP</td></tr>
+    </table></div>
+    <p>Privacy stance: inference is 100% local, no frame ever leaves the device, and HR is averaged per-set rather than streamed anywhere. The wearable research trail (chest-strap accuracy, camera angles) is documented in <span class="mono">docs/05_RESEARCH_WEARABLES.md</span>.</p>
+    <div class="where"><b>plan:</b> docs/05_RESEARCH_WEARABLES.md · agents/07-verification-wearables/BRIEF.md · docs/04_RESEARCH_OPENGYM.md (the counting approach's lineage)</div>
+  </div>
+</section>
+
+<div class="pager">
+  <a href="bots.html"><span class="dir">← back</span>Bots</a>
+  <a class="next" href="avatars.html"><span class="dir">next →</span>Avatars</a>
+</div>
+<footer class="wfoot">
+  <span>RWF wiki · verification · thresholds verbatim from count.ts / camera.ts / hr.ts</span>
+  <span>on-device only — privacy is the design</span>
+</footer>
+</div>
+<script src="wiki.js"></script>
+</body>
+</html>

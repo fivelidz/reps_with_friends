@@ -1,0 +1,242 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>App Screens — RWF Wiki</title>
+<link rel="stylesheet" href="/design/tokens.css">
+<link rel="stylesheet" href="tokens.css">
+<link rel="stylesheet" href="wiki.css">
+</head>
+<body>
+<nav class="wnav">
+  <a class="wnav__brand" href="index.html"><b>RWF&nbsp;WIKI</b><span>internal docs</span></a>
+  <a class="wnav__link" href="game.html">Game Rules</a>
+  <a class="wnav__link" href="app.html">App Screens</a>
+  <a class="wnav__link" href="bots.html">Bots</a>
+  <a class="wnav__link" href="verification.html">Verification</a>
+  <a class="wnav__link" href="avatars.html">Avatars</a>
+  <a class="wnav__link" href="ops.html">Ops &amp; Testing</a>
+  <a class="wnav__link" href="design.html">Design System</a>
+  <a class="wnav__link" href="status.html">Status</a>
+</nav>
+<div class="wrap">
+
+<header class="hero">
+  <p class="eyebrow">Chapter 2 · the app</p>
+  <h1>App Screens — Ben's design, working</h1>
+  <p class="lede">The app at <span class="mono">/figma-app</span> is the founder's Figma file rebuilt as a navigable offline PWA — every screen from his design exists as a real page, and the battle screens run the <i>real</i> engine (state in <span class="mono">localStorage["rwf.figma.v1"]</span>). Gold theme by default, lime toggle in the status bar, hash router, installable, fully offline via service worker.</p>
+  <p class="lede">The screenshots below come from the two headless E2E walks that play the entire product (<span class="mono">e2e.mjs</span>: onboard → create → battle → power-ups → result → rematch → seasons → profile; <span class="mono">e2e-daily.mjs</span>: the multi-day danger-zone arc with time travel). If a screen below exists, a test walked through it.</p>
+</header>
+
+<!-- INDEX -->
+<section class="feat">
+  <div class="feat__head"><h3>Index / splash</h3><span class="badge badge--demo">demo</span></div>
+  <div class="feat__grid">
+    <figure class="shot shot--phone"><img src="shots/app-index.png" alt="App index splash screen"><figcaption>app-index.png · brand splash, gold theme, theme toggle</figcaption></figure>
+    <div class="feat__body">
+      <p><b>What.</b> First paint: wordmark, tagline, the gold/lime theme toggle — the entry to onboarding.</p>
+      <p><b>How it works.</b> Hash router (<span class="mono">#/auth-008</span> style routes matching Ben's Figma frame names). The theme toggle flips <span class="mono">data-theme="gold"</span> — see <a href="design.html">Design System</a> for what that means.</p>
+      <div class="where"><b>lives:</b> apps/figma-app/index.html · app.js router<br><b>proven by:</b> e2e.mjs step 1 — "index renders", "theme toggle present"</div>
+    </div>
+  </div>
+</section>
+
+<!-- ONBOARDING -->
+<section class="feat">
+  <div class="feat__head"><h3>Onboarding — name → tier → in</h3><span class="badge badge--demo">demo</span></div>
+  <div class="feat__grid">
+    <div class="shots">
+      <figure class="shot shot--phone"><img src="shots/app-onboard-name.png" alt="Onboarding name entry with live avatar initials"><figcaption>app-onboard-name.png · name entry — initials live-update</figcaption></figure>
+      <figure class="shot shot--phone"><img src="shots/app-onboard-tier.png" alt="Tier picker with four fitness tiers"><figcaption>app-onboard-tier.png · the tier pick — this sets your ×multiplier</figcaption></figure>
+      <figure class="shot shot--phone"><img src="shots/app-onboard-done.png" alt="Onboarding complete screen"><figcaption>app-onboard-done.png · "YOU'RE IN" — greeted by real name</figcaption></figure>
+    </div>
+    <div class="feat__body">
+      <p><b>What.</b> Three screens: pick a display name (avatar initials derive live), pick a fitness tier (couch / casual / fit / athlete — the handicap decision), done.</p>
+      <p><b>How it works.</b> Draft state accumulates then persists the player object to <span class="mono">rwf.figma.v1</span>. The tier chosen here is the multiplier applied to every rep this player ever logs (see <a href="game.html">Game Rules</a>).</p>
+      <div class="where"><b>lives:</b> app.js onboard screens (<span class="mono">#/auth-008…014</span>)<br><b>proven by:</b> e2e.mjs — initials live-update, tier selectable, player persisted, greeting by name</div>
+    </div>
+  </div>
+</section>
+
+<!-- HOME -->
+<section class="feat">
+  <div class="feat__head"><h3>Home — battles list</h3><span class="badge badge--demo">demo</span></div>
+  <div class="feat__grid">
+    <div class="shots">
+      <figure class="shot shot--phone"><img src="shots/app-home-battles.png" alt="Home screen with battle cards"><figcaption>app-home-battles.png · battle cards with live status</figcaption></figure>
+      <figure class="shot shot--phone"><img src="shots/app-overflow-6.png" alt="Leaderboard with six players testing overflow"><figcaption>app-overflow-6.png · 6-player overflow test</figcaption></figure>
+      <figure class="shot shot--phone"><img src="shots/game-home-temporal.png" alt="Home with temporal day state"><figcaption>game-home-temporal.png · temporal state chip (day in play)</figcaption></figure>
+    </div>
+    <div class="feat__body">
+      <p><b>What.</b> Your battle cards: name, target, days, live standings snapshot, temporal state (which play day, when it closes). Empty state → create your first battle.</p>
+      <p><b>How it works.</b> Renders from the matches array in state; each card recomputes its countdown chip via the daily layer, so the home screen is always temporal-state aware. The 6-player shot is the deliberate overflow/edge-case test from the design audit.</p>
+      <div class="where"><b>lives:</b> app.js home screens (<span class="mono">#/home-*</span>)<br><b>proven by:</b> e2e.mjs home asserts · e2e-daily.mjs temporal chip</div>
+    </div>
+  </div>
+</section>
+
+<!-- CREATE -->
+<section class="feat">
+  <div class="feat__head"><h3>Create battle</h3><span class="badge badge--demo">demo</span></div>
+  <div class="feat__grid">
+    <figure class="shot shot--phone"><img src="shots/app-create-battle.png" alt="Create battle screen with day and target chips"><figcaption>app-create-battle.png · day chips + target presets (Light = 150)</figcaption></figure>
+    <div class="feat__body">
+      <p><b>What.</b> Name the battle, pick play days (week chips), pick a target preset.</p>
+      <p><b>How it works.</b> Creates a match through the real engine: <span class="mono">createMatch(config, players)</span> with you + 3 demo mates (the demo roster), status <span class="mono">open</span>, and generates a <span class="mono">CREW-XXXX</span> code — the bridge token the bots use (<span class="mono">link CREW-…</span>).</p>
+      <div class="where"><b>lives:</b> app.js create screens (<span class="mono">#/create-002…</span>) · engine.js <code>createMatch</code><br><b>proven by:</b> e2e.mjs — "Light target = 150 reps", "crew code generated", "crew = you + 3 mates"</div>
+    </div>
+  </div>
+</section>
+
+<!-- WAITING ROOM -->
+<section class="feat">
+  <div class="feat__head"><h3>Waiting room</h3><span class="badge badge--demo">demo</span></div>
+  <div class="feat__grid">
+    <figure class="shot shot--phone"><img src="shots/app-waiting-room.png" alt="Waiting room with crew code share card"><figcaption>app-waiting-room.png · crew code + `link` grammar share card</figcaption></figure>
+    <div class="feat__body">
+      <p><b>What.</b> The pre-match lobby: who's in, the crew code, how mates join from WhatsApp/Slack, and a START EARLY button.</p>
+      <p><b>How it works.</b> The share card shows the exact bot grammar (<span class="mono">link CREW-XXXX</span>) — the app↔bot bridge is a shared code, not a shared login (state unification is tracked in <a href="status.html">Status</a> → T5). START EARLY flips the match to <span class="mono">live</span> immediately.</p>
+      <div class="where"><b>lives:</b> app.js <span class="mono">#/create-014</span> · /connect helper page in the public bundle<br><b>proven by:</b> e2e.mjs — code shown matches state, START EARLY → live</div>
+    </div>
+  </div>
+</section>
+
+<!-- BATTLE LIVE -->
+<section class="feat">
+  <div class="feat__head"><h3>Battle live</h3><span class="badge badge--demo">demo</span></div>
+  <div class="feat__grid">
+    <div class="shots">
+      <figure class="shot shot--phone"><img src="shots/app-battle-live.png" alt="Battle live with progress ring and leaderboard"><figcaption>app-battle-live.png · your ring + the live board</figcaption></figure>
+      <figure class="shot shot--phone"><img src="shots/app-battle-final.png" alt="Battle screen at final state"><figcaption>app-battle-final.png · the board at match end</figcaption></figure>
+      <figure class="shot shot--phone"><img src="shots/game-dz3.png" alt="Battle at danger zone 3"><figcaption>game-dz3.png · same screen at DZ3 (screen wash)</figcaption></figure>
+    </div>
+    <div class="feat__body">
+      <p><b>What.</b> The main screen: your progress ring (raw / target), the full leaderboard (adjusted score + verified %), the dual-clock countdown, comeback banner, danger-zone chrome, the big LOG button and the power-up button.</p>
+      <p><b>How it works.</b> Leaderboard rows come from <span class="mono">engine.standings(state)</span> — the same function the bots use for their standings card. The ring tracks <i>your raw</i> reps against target; the board sorts by adjusted. Countdown + DZ chrome from the daily layer ticker (see <a href="game.html">Game Rules → danger zone</a>).</p>
+      <div class="where"><b>lives:</b> app.js <span class="mono">#/battle-001</span> · engine.js <code>standings</code> · daily.js <code>applyDzChrome</code><br><b>proven by:</b> e2e.mjs — 4 standings rows, ring shows 0→20 after log, countdown ticking, no comeback banner until eligible</div>
+    </div>
+  </div>
+</section>
+
+<!-- LOG SHEET -->
+<section class="feat">
+  <div class="feat__head"><h3>Log sheet — ≤3 taps</h3><span class="badge badge--demo">demo</span></div>
+  <div class="feat__grid">
+    <div class="shots">
+      <figure class="shot shot--phone"><img src="shots/app-log-sheet.png" alt="Quick log sheet with rep chips"><figcaption>app-log-sheet.png · quick chips, live conversion, one CTA</figcaption></figure>
+      <figure class="shot shot--phone"><img src="shots/app-camera-note.png" alt="Camera verify note in the log sheet"><figcaption>app-camera-note.png · camera-verify route from logging</figcaption></figure>
+    </div>
+    <div class="feat__body">
+      <p><b>What.</b> The core loop surface: tap LOG → tap a rep count chip → tap the CTA. Done, mid-workout, with sweaty hands.</p>
+      <p><b>How it works.</b> The sheet shows your live conversion ("×1.5" for couch — what those reps are worth) and the CTA text mirrors the selection ("LOG 20 PUSH-UPS"). Confirming chains the engine's tag functions — <span class="mono">applyComeback</span> then <span class="mono">applyLightning</span> — appends the entry, and if the raw total crosses the target the match closes right there. Camera verify is offered inline for supported exercises.</p>
+      <div class="where"><b>lives:</b> app.js quick-log sheet · state.js <code>logRepsAt</code><br><b>proven by:</b> e2e.mjs — sheet opens, conversion shows ×1.5, CTA reflects selection, entry lands in state, ring updates</div>
+    </div>
+  </div>
+</section>
+
+<!-- POWER-UPS -->
+<section class="feat" id="powerups">
+  <div class="feat__head"><h3>Power-up surfaces</h3><span class="badge badge--live">live</span></div>
+  <div class="feat__grid">
+    <div class="shots">
+      <figure class="shot shot--phone"><img src="shots/app-pwr-button.png" alt="Power-up button on battle screen"><figcaption>app-pwr-button.png · the PWR button appears once you hold cards</figcaption></figure>
+      <figure class="shot shot--phone"><img src="shots/app-pwr-sheet.png" alt="Power-up arsenal sheet"><figcaption>app-pwr-sheet.png · arsenal sheet — held cards with rarities</figcaption></figure>
+      <figure class="shot shot--phone"><img src="shots/app-pwr-detail.png" alt="Power-up detail sheet"><figcaption>app-pwr-detail.png · card detail before activation</figcaption></figure>
+      <figure class="shot shot--phone"><img src="shots/app-pwr-steal.png" alt="Rep steal toast"><figcaption>app-pwr-steal.png · steal fires — ledger toast</figcaption></figure>
+      <figure class="shot shot--phone"><img src="shots/app-pwr-steal-blocked.png" alt="Steal blocked by shield toast"><figcaption>app-pwr-steal-blocked.png · shield eats the steal</figcaption></figure>
+      <figure class="shot shot--phone"><img src="shots/app-pwr-lightning-toast.png" alt="Lightning activation toast"><figcaption>app-pwr-lightning-toast.png · lightning armed</figcaption></figure>
+      <figure class="shot shot--phone"><img src="shots/app-pwr-lightning-live.png" alt="Lightning countdown on battle screen"><figcaption>app-pwr-lightning-live.png · ×3 window counting down live</figcaption></figure>
+    </div>
+    <div class="feat__body">
+      <p><b>What.</b> The full power-up journey: discover the button → open the arsenal → inspect a card → activate → feel it in toasts and on the live board.</p>
+      <p><b>How it works.</b> All mechanics are specified in <a href="game.html">Game Rules → power-ups</a> (×3/10min, 10% steal, shield-block, +30min freeze). The UI layer adds the feedback: steal shows a preview against the current leader before committing; a blocked steal explains that the shield was consumed and the card kept; lightning leaves a persistent countdown on the battle screen while the window is open.</p>
+      <div class="where"><b>lives:</b> app.js power-up sheets + toasts · engine.js <code>activatePowerUp / stealPreview</code><br><b>proven by:</b> e2e.mjs FLOW-05 walk — steal, blocked steal, lightning window all asserted</div>
+    </div>
+  </div>
+</section>
+
+<!-- RESULT + POT -->
+<section class="feat">
+  <div class="feat__head"><h3>Result + charity pot</h3><span class="badge badge--demo">demo</span></div>
+  <div class="feat__grid">
+    <div class="shots">
+      <figure class="shot shot--phone"><img src="shots/app-result.png" alt="Final result standings with medals"><figcaption>app-result.png · final order, medals, closer marked</figcaption></figure>
+      <figure class="shot shot--phone"><img src="shots/app-pot.png" alt="Charity pot on result"><figcaption>app-pot.png · the pot rides the result</figcaption></figure>
+      <figure class="shot shot--phone"><img src="shots/app-pot-designated.png" alt="Winner designating charity"><figcaption>app-pot-designated.png · winner directs it</figcaption></figure>
+      <figure class="shot shot--phone"><img src="shots/app-rematch.png" alt="Rematch battle live again"><figcaption>app-rematch.png · REMATCH — roster carried, fresh match</figcaption></figure>
+    </div>
+    <div class="feat__body">
+      <p><b>What.</b> The finale: final standings with medals, the closure bonus applied, the charity pot total, the winner's designation flow, and the one-tap REMATCH.</p>
+      <p><b>How it works.</b> Result = <span class="mono">finalStandings()</span> (bonus applied, re-ranked) with confetti + count-up finale (motion budget: 1200ms — see <a href="design.html">Design</a>). The pot panel shows the ledger total and, for the winner, the designation picker. Rematch creates a new match with the same roster and rules — "run it back" also exists as a bot command (<span class="mono">rematch</span>).</p>
+      <div class="where"><b>lives:</b> app.js result screens · engine.js <code>finalStandings / rematchState</code><br><b>proven by:</b> e2e.mjs — result renders, rematch goes live with roster carried</div>
+    </div>
+  </div>
+</section>
+
+<!-- PROFILE + SEASON -->
+<section class="feat">
+  <div class="feat__head"><h3>Profile + season ladder</h3><span class="badge badge--demo">demo</span></div>
+  <div class="feat__grid">
+    <div class="shots">
+      <figure class="shot shot--phone"><img src="shots/app-profile.png" alt="Profile screen with stats"><figcaption>app-profile.png · profile — tier, record, streaks</figcaption></figure>
+      <figure class="shot shot--phone"><img src="shots/app-season-ladder.png" alt="Season ladder"><figcaption>app-season-ladder.png · season ladder — points / played / MVP</figcaption></figure>
+    </div>
+    <div class="feat__body">
+      <p><b>What.</b> Profile: identity, tier (changeable between matches), match record. Season ladder: the 4-week points table with MVP counts and division movement.</p>
+      <p><b>How it works.</b> The ladder is <span class="mono">seasonLadder()</span> over recorded match results (3/2/1 + MVP — see <a href="game.html">Game Rules → seasons</a>). The profile doubles as the settings surface for HR straps (resting HR / age → Karvonen) in the first-party app build.</p>
+      <div class="where"><b>lives:</b> app.js profile + season screens · game-core season.ts<br><b>proven by:</b> e2e.mjs ladder + profile asserts</div>
+    </div>
+  </div>
+</section>
+
+<!-- THE WIDER DESIGN COVERAGE -->
+<section class="feat">
+  <div class="feat__head"><h3>The wider design coverage</h3><span class="badge badge--demo">demo</span></div>
+  <p class="feat__what">Beyond the E2E journey, a 67-screenshot walk covers every frame in Ben's file — including screens the flow doesn't reach: wagers, corporate, social, edge cases, offline.</p>
+  <div class="feat__grid">
+    <div class="shots">
+      <figure class="shot shot--phone"><img src="shots/app-wager.png" alt="Wager screen from the design walk"><figcaption>app-wager.png · the wager flow (design)</figcaption></figure>
+      <figure class="shot shot--phone"><img src="shots/app-corp.png" alt="Corporate screen from the design walk"><figcaption>app-corp.png · corporate league (design)</figcaption></figure>
+      <figure class="shot shot--phone"><img src="shots/app-social.png" alt="Social screen from the design walk"><figcaption>app-social.png · social feed (design)</figcaption></figure>
+      <figure class="shot shot--phone"><img src="shots/app-edge.png" alt="Edge case screen from the design walk"><figcaption>app-edge.png · edge cases (design)</figcaption></figure>
+      <figure class="shot shot--phone"><img src="shots/app-offline.png" alt="App working offline"><figcaption>app-offline.png · the app offline — SW serving</figcaption></figure>
+    </div>
+    <div class="feat__body">
+      <p><b>How it works.</b> Every Figma frame was extracted with exact fills and bounding boxes from <span class="mono">figma/assets/file.json</span> and rebuilt as HTML/CSS (lane F4). The offline shot proves the service worker: with the network cut, the app still boots from cache — it's installable as a PWA (<span class="mono">manifest.webmanifest</span> + <span class="mono">sw.js</span>).</p>
+      <p>The full walk lives in <span class="mono">apps/screenshots/figma-app/</span> (67 PNGs: auth-*, battle-*, create-*, corp-*, edge-*, home-*, integ-*, join-*, log-*, profile-*, pwr-*, result-*, set-*, social-*, wager-*, _offline-*) — the wiki ships the highlights.</p>
+      <div class="where"><b>lives:</b> apps/figma-app/ · extraction notes in figma/notes/analysis.md<br><b>proven by:</b> the walk itself + e2e.mjs offline section</div>
+    </div>
+  </div>
+</section>
+
+<!-- FIRST-PARTY APP -->
+<section class="feat">
+  <div class="feat__head"><h3>The first-party app (/app)</h3><span class="badge badge--live">live</span></div>
+  <p class="feat__what">A second app exists — ours, not Ben's — shipped at <span class="mono">rwf.qalarc.com/app</span>. It carries the verification lane (camera + HR) and the synced state demo.</p>
+  <div class="feat__grid">
+    <div class="shots">
+      <figure class="shot shot--phone"><img src="shots/webapp-onboard.png" alt="First-party app onboarding"><figcaption>webapp-onboard.png · onboarding</figcaption></figure>
+      <figure class="shot shot--phone"><img src="shots/webapp-match.png" alt="First-party app match screen"><figcaption>webapp-match.png · match live</figcaption></figure>
+      <figure class="shot shot--phone"><img src="shots/webapp-result.png" alt="First-party app result card"><figcaption>webapp-result.png · result + share card</figcaption></figure>
+      <figure class="shot shot--phone"><img src="shots/webapp-profile.png" alt="First-party app profile"><figcaption>webapp-profile.png · profile</figcaption></figure>
+    </div>
+    <div class="feat__body">
+      <p><b>How it works.</b> Built from <span class="mono">apps/web/src</span> (bundled with Bun, deployed to /app), it shares the same engine port and adds the verifier surfaces: the camera sheet (MoveNet) and BLE HR pairing that feed <span class="mono">verified:true</span> + <span class="mono">avgHrrPct</span> entries — the wiki's <a href="verification.html">Verification</a> chapter documents those mechanics. The figma-app remains the design reference; this is the shipping surface.</p>
+      <div class="where"><b>lives:</b> apps/web/src/ (main.ts, screens/, verify/) · deployed at /app<br><b>proven by:</b> 35 browser checks (docs/17) · polish screenshots above</div>
+    </div>
+  </div>
+</section>
+
+<div class="pager">
+  <a href="game.html"><span class="dir">← back</span>Game Rules</a>
+  <a class="next" href="bots.html"><span class="dir">next →</span>Bots</a>
+</div>
+<footer class="wfoot">
+  <span>RWF wiki · app screens · shots from e2e.mjs / e2e-daily.mjs / design walk</span>
+  <span>apps/figma-app is offline + PWA + SW-cached</span>
+</footer>
+</div>
+<script src="wiki.js"></script>
+</body>
+</html>

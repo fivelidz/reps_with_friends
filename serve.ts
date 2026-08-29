@@ -261,6 +261,9 @@ const server = Bun.serve({
       r = dirRoute("apps/avatars", url) ?? new Response("avatars playground not found", { status: 404 });
     } else if (p.startsWith("/system")) {
       r = dirRoute("apps/systempage", url) ?? new Response("system page not found", { status: 404 });
+    } else if (p.startsWith("/wiki")) {
+      // This documentation wiki (self-contained; shots copied into apps/wiki/shots).
+      r = dirRoute("apps/wiki", url) ?? new Response("wiki not found", { status: 404 });
     } else if (p.startsWith("/figma-app")) {
       // Offline Figma test app — Ben's full design, every screen (lane F4).
       // Must sit ABOVE /figma: startsWith("/figma") would swallow it.
