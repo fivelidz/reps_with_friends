@@ -262,6 +262,232 @@ describe("parity: lifecycle guards", () => {
   });
 });
 
+/* ── 10. POWER-UPS (FLOW-05 — figma-app only, no game-core twin) ────────
+   These are NOT parity tests: power-ups deliberately live only in the
+   figma-app engine port (Ben's launch-gate concept, our v1 scope call),
+   so there is no TS spec to mirror. They follow the parity STYLE —
+   scripted matches through the real lifecycle, exact-number assertions. */
+
+describe("power-ups: lightning round", () => {
+  const players = [player("ben", "fit"), player("sam", "fit")];
+
+  test("×3 inside the window, normal after expiry, one activation per match, card consumed", () => {
+    let m = liveMatch(players);
+    m = JS.grantPowerUp(m, "ben", "lightning");
+    m = JS.grantPowerUp(m, "ben", "lightning"); // hold TWO — the cap must still bite
+    expect(JS.inventoryOf(m, "ben")).toHaveLength(2);
+
+    // activate at t=1000 with an injectable 10-min window
+    const act = JS.activatePowerUp(m, "ben", "lightning", { at: 1000, lightningMs: 600_000 });
+    expect(act.result.ok).toBe(true);
+    expect(act.result.until).toBe(601_000);
+    expect(act.result.multiplier).toBe(3);
+    expect(act.state.lightningUsed.ben).toBe(true);
+    expect(JS.inventoryOf(act.state, "ben")).toHaveLength(1); // one card spent
+
+    // entry logged INSIDE the window → tagged ×3 (fit tier ×1 → 20×3 = 60)
+    const inWindow = JS.applyLightning(act.state, entry("ben", "pushup", 20, false, 2000));
+    expect(inWindow.lightning).toBe(true);
+    m = JS.logReps(act.state, inWindow).state;
+    expect(JS.standings(m).find((r) => r.player.id === "ben").adjustedScore).toBe(60);
+
+    // entry logged exactly AT the expiry instant is OUT (exclusive end)…
+    const atEdge = JS.applyLightning(m, entry("ben", "pushup", 20, false, 601_000));
+    expect(atEdge.lightning).toBeUndefined();
+    // …and one after expiry too
+    const after = JS.applyLightning(m, entry("ben", "squat", 20, false, 601_001));
+    expect(after.lightning).toBeUndefined();
+    m = JS.logReps(m, after).state;
+    expect(JS.standings(m).find((r) => r.player.id === "ben").adjustedScore).toBe(80); // 60 + 20×1
+
+    // the cap survives expiry: second activation refused even with a card held
+    const again = JS.activatePowerUp(m, "ben", "lightning", { at: 700_000 });
+    expect(again.result.ok).toBe(false);
+    expect(again.result.reason).toContain("one per match");
+    expect(JS.inventoryOf(again.state, "ben")).toHaveLength(1); // card NOT spent on a refused activation
+  });
+
+  test("lightning stacks with the comeback ×1.2 on the same entry", () => {
+    let m = liveMatch(players);
+    m = JS.logReps(m, entry("sam", "pushup", 100)).state; // ben 100% behind → comeback armed
+    m = JS.grantPowerUp(m, "ben", "lightning");
+    m = JS.activatePowerUp(m, "ben", "lightning", { at: 2000, lightningMs: 600_000 }).state;
+    let e = JS.applyComeback(m, entry("ben", "pushup", 50, false, 3000));
+    e = JS.applyLightning(m, e);
+    expect(e.comeback).toBe(true);
+    expect(e.lightning).toBe(true);
+    m = JS.logReps(m, e).state;
+    // 50 × 1.0 (fit) × 1.2 comeback × 3 lightning = 180
+    expect(JS.standings(m).find((r) => r.player.id === "ben").adjustedScore).toBe(180);
+  });
+});
+
+describe("power-ups: rep steal", () => {
+  const players = [player("ben", "couch"), player("sam", "athlete"), player("alex", "casual")];
+
+  test("takes floor(10%) of the CURRENT leading rival; raw + adjusted both move; card consumed", () => {
+    let m = liveMatch(players);
+    m = JS.logReps(m, entry("sam", "pushup", 100)).state; // sam leads, alex 0
+    m = JS.grantPowerUp(m, "ben", "steal");
+
+    expect(JS.stealPreview(m, "ben")).toMatchObject({ victim: { id: "sam" }, victimRaw: 100, amount: 10, blocked: false });
+
+    const act = JS.activatePowerUp(m, "ben", "steal", { at: 5000 });
+    expect(act.result.ok).toBe(true);
+    expect(act.result.stolen).toBe(10);
+    expect(act.result.victimId).toBe("sam");
+    expect(act.result.victimRaw).toBe(90);
+
+    // ledger: two transfer entries; thief +10 raw, victim −10 raw
+    expect(act.state.entries.filter((e) => e.steal)).toHaveLength(2);
+    const rows = JS.standings(act.state);
+    const ben = rows.find((r) => r.player.id === "ben");
+    const sam = rows.find((r) => r.player.id === "sam");
+    expect(ben.rawReps).toBe(10);
+    expect(sam.rawReps).toBe(90);
+    // adjusted moves too — each side at their own handicap (couch 1.5 / athlete 0.85)
+    expect(ben.adjustedScore).toBe(15);
+    expect(sam.adjustedScore).toBe(76.5);
+
+    // inventory exhaustion: the card is gone, a second attempt is refused
+    expect(JS.inventoryOf(act.state, "ben")).toHaveLength(0);
+    const again = JS.activatePowerUp(act.state, "ben", "steal", { at: 6000 });
+    expect(again.result.ok).toBe(false);
+    expect(again.result.reason).toContain("no steal card held");
+  });
+
+  test("minimum steal is 1 when the rival is above zero", () => {
+    let m = liveMatch(players);
+    m = JS.logReps(m, entry("sam", "pushup", 5)).state; // floor(0.5) = 0 → clamps to 1
+    m = JS.grantPowerUp(m, "ben", "steal");
+    const act = JS.activatePowerUp(m, "ben", "steal", { at: 1000 });
+    expect(act.result.stolen).toBe(1);
+    expect(act.state.entries.filter((e) => e.steal)).toHaveLength(2);
+  });
+
+  test("steal at zero: nothing to take — card spent, no entries added", () => {
+    let m = liveMatch(players); // everyone at 0
+    m = JS.grantPowerUp(m, "ben", "steal");
+    const act = JS.activatePowerUp(m, "ben", "steal", { at: 1000 });
+    expect(act.result.ok).toBe(true);
+    expect(act.result.stolen).toBe(0);
+    expect(act.state.entries).toHaveLength(0);
+    expect(JS.inventoryOf(act.state, "ben")).toHaveLength(0); // honest: the card burned on a dry well
+  });
+});
+
+describe("power-ups: shield", () => {
+  const players = [player("ben", "fit"), player("sam", "fit")];
+
+  test("blocks one steal, breaks, and the thief KEEPS the steal card; the next steal lands", () => {
+    let m = liveMatch(players);
+    m = JS.logReps(m, entry("sam", "pushup", 100)).state; // sam leads
+    m = JS.grantPowerUp(m, "sam", "shield");
+    m = JS.grantPowerUp(m, "ben", "steal");
+    m = JS.activatePowerUp(m, "sam", "shield", { at: 1000 }).state;
+    expect(m.shields.sam).toBe(true);
+
+    // blocked attempt: no transfer, shield consumed, steal card retained
+    const blocked = JS.activatePowerUp(m, "ben", "steal", { at: 2000 });
+    expect(blocked.result.ok).toBe(true);
+    expect(blocked.result.blocked).toBe(true);
+    expect(blocked.result.stolen).toBe(0);
+    expect(blocked.state.shields.sam).toBeUndefined();
+    expect(blocked.state.entries).toHaveLength(1); // only sam's original 100
+    expect(JS.inventoryOf(blocked.state, "ben").map((i) => i.kind)).toEqual(["steal"]);
+
+    // second steal: shield is gone → transfers 10
+    const landed = JS.activatePowerUp(blocked.state, "ben", "steal", { at: 3000 });
+    expect(landed.result.stolen).toBe(10);
+    expect(landed.state.entries.filter((e) => e.steal)).toHaveLength(2);
+    expect(JS.inventoryOf(landed.state, "ben")).toHaveLength(0);
+  });
+
+  test("no double-arming; a shield guards the target even at zero reps", () => {
+    let m = liveMatch(players);
+    m = JS.logReps(m, entry("sam", "pushup", 100)).state;
+    m = JS.grantPowerUp(m, "ben", "shield");
+    m = JS.grantPowerUp(m, "ben", "shield");
+    m = JS.activatePowerUp(m, "ben", "shield", { at: 1000 }).state;
+    const again = JS.activatePowerUp(m, "ben", "shield", { at: 2000 });
+    expect(again.result.ok).toBe(false);
+    expect(again.result.reason).toContain("already armed");
+
+    // sam (100 raw) steals from ben (0 raw, shielded): blocked — the shield
+    // guards the TARGET, even though there was nothing to take
+    m = JS.grantPowerUp(m, "sam", "steal");
+    const act = JS.activatePowerUp(m, "sam", "steal", { at: 3000 });
+    expect(act.result.blocked).toBe(true);
+  });
+});
+
+describe("power-ups: time freeze + deadlineAt", () => {
+  const players = [player("ben", "fit"), player("sam", "fit")];
+
+  test("freeze extends the deadline by exactly 30 min, and stacks", () => {
+    let m = JS.startMatch(JS.createMatch({ ...config(300), deadlineAt: 1_000_000 }, players), 500);
+    expect(m.deadlineAt).toBe(1_000_000); // injectable config deadline honored
+
+    m = JS.grantPowerUp(m, "ben", "freeze");
+    m = JS.grantPowerUp(m, "ben", "freeze");
+    m = JS.activatePowerUp(m, "ben", "freeze", { at: 2000 }).state;
+    expect(m.deadlineAt).toBe(1_000_000 + JS.FREEZE_MS);
+    m = JS.activatePowerUp(m, "ben", "freeze", { at: 3000 }).state;
+    expect(m.deadlineAt).toBe(1_000_000 + 2 * JS.FREEZE_MS); // stacks
+    expect(JS.FREEZE_MS).toBe(30 * 60 * 1000);
+  });
+
+  test("createMatch defaults deadlineAt to end of play day (now + 24h) when not injected", () => {
+    const open = JS.createMatch(config(300), players, 5_000);
+    expect(open.deadlineAt).toBe(5_000 + JS.DAY_MS);
+    // the whole FLOW-05 match scaffold comes pre-built
+    expect(open.inventory).toEqual({ ben: [], sam: [] });
+    expect(open.shields).toEqual({});
+    expect(open.lightning).toEqual({});
+    expect(open.powerLog).toEqual([]);
+  });
+});
+
+describe("power-ups: grants, odds + guards", () => {
+  const players = [player("ben", "fit"), player("sam", "fit")];
+
+  test("grantPowerUp defaults rarity, honours overrides, and throws honestly", () => {
+    let m = liveMatch(players);
+    m = JS.grantPowerUp(m, "ben", "lightning", { at: 42 });
+    m = JS.grantPowerUp(m, "ben", "shield", { at: 43, rarity: "legendary" });
+    const inv = JS.inventoryOf(m, "ben");
+    expect(inv[0]).toEqual({ kind: "lightning", rarity: "legendary", grantedAt: 42 });
+    expect(inv[1]).toEqual({ kind: "shield", rarity: "legendary", grantedAt: 43 });
+    expect(() => JS.grantPowerUp(m, "ben", "mega")).toThrow("unknown power-up mega");
+    expect(() => JS.grantPowerUp(m, "nobody", "shield")).toThrow("player nobody not in match");
+  });
+
+  test("randomPowerUpKind follows the drop odds with an injectable rng", () => {
+    expect(JS.randomPowerUpKind(() => 0.049)).toBe("lightning"); // legendary band
+    expect(JS.randomPowerUpKind(() => 0.10)).toBe("steal");      // epic band
+    expect(JS.randomPowerUpKind(() => 0.40)).toBe("freeze");     // rare band
+    expect(JS.randomPowerUpKind(() => 0.99)).toBe("shield");     // common band
+    expect(JS.DROP_ODDS).toEqual({ common: 0.5, rare: 0.3, epic: 0.15, legendary: 0.05 });
+  });
+
+  test("guards + purity: not-live, unknown kind, missing card, input never mutated", () => {
+    const open = JS.createMatch(config(300), players);
+    const r1 = JS.activatePowerUp(open, "ben", "shield", { at: 1 });
+    expect(r1.result.ok).toBe(false);
+    expect(r1.result.reason).toBe("match is not live");
+
+    let m = liveMatch(players);
+    expect(JS.activatePowerUp(m, "ben", "mega").result.reason).toContain("unknown power-up");
+    expect(JS.activatePowerUp(m, "nobody", "shield").result.reason).toContain("not in match");
+    expect(JS.activatePowerUp(m, "ben", "shield").result.reason).toContain("no shield card held");
+
+    const before = JSON.stringify(m);
+    JS.grantPowerUp(m, "ben", "shield");
+    JS.activatePowerUp(m, "ben", "shield", { at: 10 });
+    expect(JSON.stringify(m)).toBe(before); // pure: both calls returned new states
+  });
+});
+
 /* ── 9. verify.js: angle-threshold counter parity (spec: count.ts) ────── */
 
 describe("parity: rep counter (verify.js vs count.ts)", () => {

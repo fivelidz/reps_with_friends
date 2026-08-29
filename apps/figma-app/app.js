@@ -39,10 +39,16 @@ const $ = (s, r = document) => r.querySelector(s);
 /* ── the real game: engine port + persistent state ───────────────────── */
 import * as S from "./state.js";
 import * as E from "./engine.js";
+import * as D from "./daily.js"; // temporal loop: deadlines, danger zone, daily winners (FLOW-06/07)
 import { openCameraNote } from "./verify.js";
 
 /* transient form drafts (persisted only on CONTINUE / CREATE) */
 const draft = { name: "Ben the Machine", tier: "casual", battle: { name: "The Sunday Showdown", days: [1, 3, 5], pack: "bodyweight", target: "solid" } };
+
+/* daily-001: which closed day the recap shows (null → latest) */
+let dailyDaySel = null;
+/* transient power-up selection (pwr-001 card tap → pwr-002 detail sheet) */
+let selectedPwr = null;
 
 const ST = () => S.load();
 const ordinal = (n) => (n === 1 ? "1st" : n === 2 ? "2nd" : n === 3 ? "3rd" : `${n}th`);
@@ -58,13 +64,17 @@ const lastDone = (st = ST()) => [...st.matches].filter((m) => m.status === "comp
 function realBoard(match, { max = null, youId = null } = {}) {
   const st = ST();
   const you_ = youId ?? st.player?.id;
+  const now = Date.now();
   const rows = E.standings(match);
   const shown = max ? rows.slice(0, max) : rows;
   const target = match.config.targetReps;
   const eligible = (pid) => E.comebackEligible(match, pid);
+  const lit = (pid) => E.lightningActive(match, pid, now);
+  const shielded = (pid) => !!match.shields?.[pid];
   return shown
     .map((r, i) => lbRow({
       rank: i + 1,
+      pid: r.player.id,
       name: r.player.id === you_ ? "You" : r.player.name,
       you: r.player.id === you_,
       initials: r.player.id === you_
@@ -79,6 +89,8 @@ function realBoard(match, { max = null, youId = null } = {}) {
       online: r.player.id !== you_,
       leader: i === 0,
       comeback: eligible(r.player.id),
+      lightning: lit(r.player.id),
+      shield: shielded(r.player.id),
     }))
     .join("");
 }
@@ -139,15 +151,20 @@ function nav(active = "") {
 }
 
 /* leaderboard row — his 9:90 (completion % primary, RUF secondary) */
-function lbRow({ rank, name, you = false, initials = null, crown = false, pct, ruf, rufOf = 120, barPct, barColor = "purple", online = false, leader = false, comeback = false }) {
+function lbRow({ rank, name, you = false, initials = null, crown = false, pct, ruf, rufOf = 120, barPct, barColor = "purple", online = false, leader = false, comeback = false, lightning = false, shield = false, pid = "" }) {
   const barFill = barColor === "gold" ? "var(--lime)" : barColor === "orange" ? "var(--urgency)" : "var(--energy)";
   const av = initials ?? (you ? "BT" : name.split(" ").map(w => w[0]).join("").slice(0, 2));
+  const tags = [
+    comeback ? '<b class="fx-cb" title="Comeback ×1.2 armed — log to claim">×1.2</b>' : "",
+    lightning ? '<b class="fx-lt" title="Lightning Round live — logs count ×3">×3</b>' : "",
+    shield ? `<b class="fx-sh" title="Shield armed — blocks one rep steal">${ic("shield")}</b>` : "",
+  ].join("");
   return `
-  <div class="fg-lbrow ${leader ? "fg-lbrow--leader" : ""} ${you ? "fg-lbrow--you" : ""}">
+  <div class="fg-lbrow ${leader ? "fg-lbrow--leader" : ""} ${you ? "fg-lbrow--you" : ""}" ${pid ? `data-player="${pid}"` : ""}>
     <span class="fg-lbrow__rank">${rank}</span>
     <span class="fg-avatar ${leader ? "fg-avatar--leader" : ""}" style="width:48px;height:48px;font-size:14px">${av}${online ? '<i class="fg-avatar__dot"></i>' : ""}</span>
     <div class="fg-lbrow__info">
-      <span class="fg-lbrow__name">${name}${crown ? ic("crown") : ""}${comeback ? '<b class="fx-cb" title="Comeback ×1.2 armed — log to claim">×1.2</b>' : ""}</span>
+      <span class="fg-lbrow__name">${name}${crown ? ic("crown") : ""}${tags}</span>
       <span class="fg-lbrow__bar"><i style="width:${barPct}%;background:${barFill}"></i></span>
     </div>
     <div class="fg-lbrow__score">
@@ -182,10 +199,12 @@ function ring(pct, num, sub, size = 150) {
   </div>`;
 }
 
-/* countdown — his 9:165, dual clock, DZ ramp classes from fg-components */
-function countdown({ time = "6:12:44", sub = "ends 9:00 PM AEST · 7:00 PM for you", level = "" }) {
+/* countdown — his 9:165, dual clock, DZ ramp classes from fg-components.
+   `extra` carries live-deadline attrs (data-dz-countdown + match id) so
+   the daily ticker — not the naive decrementer — drives real deadlines. */
+function countdown({ time = "6:12:44", sub = "ends 9:00 PM AEST · 7:00 PM for you", level = "", extra = "" }) {
   return `
-  <span class="fg-count ${level ? `fg-count--${level}` : ""}" data-countdown="${time}">
+  <span class="fg-count ${level ? `fg-count--${level}` : ""}" data-countdown="${time}" ${extra}>
     ${ic("clock")}
     <span class="fg-count__wrap">
       <span class="fg-count__time">${time}</span>
@@ -253,9 +272,10 @@ function pwrCard({ rarity, name, desc, icon = "bolt" }) {
   </div>`;
 }
 
-/* danger-zone banner — his 3-level ramp (fg-dz) */
-function dzBanner(level, text) {
-  return `<div class="fg-dz fg-dz--${level}">${ic("warning")}<span class="fg-dz__label">${text}</span></div>`;
+/* danger-zone banner — his 3-level ramp (fg-dz). extra carries the live
+   attr (data-dz-banner) so the daily ticker can retune level + copy. */
+function dzBanner(level, text, extra = "") {
+  return `<div class="fg-dz fg-dz--${level}" ${extra}>${ic("warning")}<span class="fg-dz__label">${text}</span></div>`;
 }
 
 /* event banner — his 12:175 */
@@ -271,14 +291,16 @@ function eventBanner({ kind = "", icon = "bolt", title, subText, tag }) {
   </div>`;
 }
 
-/* battle card — his 11:131 */
-function battleCard({ status = "LIVE", statusCls = "", meta, title, crewN = 4, barPct = null, barColor = "var(--lime)", foot, border = "purple" }) {
+/* battle card — his 11:131. `chip` = the temporal status chip (next
+   deadline / DZ1-3 level) from the daily layer, shown on home lists. */
+function battleCard({ status = "LIVE", statusCls = "", meta, title, crewN = 4, barPct = null, barColor = "var(--lime)", foot, border = "purple", chip = "" }) {
   const av = Array.from({ length: crewN }, (_, i) =>
     `<span class="fg-avatar fg-avatar--sm" style="width:32px;height:32px;font-size:9px;${i < 2 ? "" : ""}">${["BT", "SK", "AT", "JP", "CM"][i]}</span>`).join("");
   return `
   <div class="fg-battle ${border === "line" ? "fg-battle--upcoming" : ""}" ${go("battle-001")}>
     <div class="fg-battle__head">
       <span class="fg-status ${statusCls}">${status}</span>
+      ${chip}
       <span class="fg-battle__meta">${meta}</span>
     </div>
     <h3 class="fg-battle__title">${title}</h3>
@@ -286,6 +308,18 @@ function battleCard({ status = "LIVE", statusCls = "", meta, title, crewN = 4, b
     ${barPct !== null ? `<div class="fg-battle__bar"><i style="width:${barPct}%;background:${barColor}"></i></div>` : ""}
     <div class="fg-battle__foot">${foot}</div>
   </div>`;
+}
+
+/** temporal chip for a live battle: next deadline, or the DZ level ramp
+ *  (gold/orange/red) once inside 3h / 1h / 30min of the day deadline. */
+function dzChip(m, nowTs = D.now()) {
+  if (!m || m.status !== "live") return "";
+  const lvl = D.dangerLevel(m, nowTs);
+  const dl = D.deadlineFor(m, nowTs);
+  if (lvl) {
+    return `<span class="fg-status fg-status--dz${lvl}">DZ${lvl} · ${D.fmtChip(dl - nowTs)}</span>`;
+  }
+  return `<span class="fg-status fg-status--info">CLOSES ${D.fmtTimeLocal(dl)}</span>`;
 }
 
 /* confetti — his winner frames (1.2s, reduced-motion safe) */
@@ -322,6 +356,7 @@ function quickLogSheet() {
   const p = you(st);
   const mult = E.TIER_MULTIPLIERS[p?.tier ?? "casual"];
   const cb = E.comebackEligible(m, p?.id);
+  const lt = E.lightningActive(m, p?.id);
   return `
   <div class="fx-sheet" id="quickLog" data-match="${m.config.id}">
     <div class="fx-sheet__grab"></div>
@@ -335,12 +370,12 @@ function quickLogSheet() {
     </div>
     <p class="fg-sheet__conversion" id="qlConv"></p>
     ${cb ? `<p class="fg-sheet__conversion" style="color:var(--energy-light)">${ic("bolt")} COMEBACK ×1.2 ARMED — THIS LOG COUNTS EXTRA</p>` : ""}
+    ${lt ? `<p class="fg-sheet__conversion" style="color:var(--energy)">${ic("bolt")} LIGHTNING ROUND LIVE — THIS LOG COUNTS ×3</p>` : ""}
     <button class="fg-sheet__cta" id="qlCta">LOG</button>
     <button class="fx-cambtn" id="camVerify" type="button">${ic("camera")} CAMERA VERIFY <span>— pose counting lives in the prototype app</span></button>
     <p class="fg-sheet__note">3 taps, one thumb. Adjusted ×${mult} (${p?.tier ?? "casual"} tier).</p>
   </div>`;
 }
-
 function wireQuickLog(root) {
   const sheet = root.querySelector("#quickLog");
   if (!sheet || !sheet.dataset.match) return;
@@ -352,11 +387,12 @@ function wireQuickLog(root) {
   const cbEligible = E.comebackEligible(m, p?.id);
   const sel = { ex: m.config.exercises[0], n: 20 };
   const conv = sheet.querySelector("#qlConv"), cta = sheet.querySelector("#qlCta");
+  const ltActive = E.lightningActive(m, p?.id);
   const render = () => {
-    const pts = Math.round(sel.n * mult * (cbEligible ? E.COMEBACK_MULTIPLIER : 1) * 10) / 10;
+    const pts = Math.round(sel.n * mult * (cbEligible ? E.COMEBACK_MULTIPLIER : 1) * (ltActive ? E.LIGHTNING_MULTIPLIER : 1) * 10) / 10;
     const raw = E.playerRawReps(p.id, m.entries) + sel.n;
     const pct = Math.min(100, Math.round((raw / m.config.targetReps) * 100));
-    conv.innerHTML = `<b>${sel.n} ${sel.ex.name.toLowerCase()} = ${pts} RUF</b> (×${mult}${cbEligible ? " ×1.2 comeback" : ""}) · takes you to ${pct}%`;
+    conv.innerHTML = `<b>${sel.n} ${sel.ex.name.toLowerCase()} = ${pts} RUF</b> (×${mult}${cbEligible ? " ×1.2 comeback" : ""}${ltActive ? " ×3 lightning" : ""}) · takes you to ${pct}%`;
     cta.textContent = `LOG ${sel.n} ${sel.ex.name.toUpperCase()}`;
     sheet.querySelectorAll("#qlEx .fg-chip[data-ex]").forEach(c => c.setAttribute("aria-pressed", String(c.dataset.ex === sel.ex.id)));
     sheet.querySelectorAll("#qlPre .fg-chip").forEach(c => c.setAttribute("aria-pressed", String(Number(c.dataset.n) === sel.n)));
@@ -378,11 +414,136 @@ function wireQuickLog(root) {
     if (res.closed) {
       location.hash = "#/result-005";
     } else {
-      toast(`${ic("check")}+${sel.n} ${sel.ex.name.toLowerCase()} logged${res.comeback ? " · COMEBACK ×1.2 CLAIMED" : ""}`);
+      toast(`${ic("check")}+${sel.n} ${sel.ex.name.toLowerCase()} logged${res.comeback ? " · COMEBACK ×1.2 CLAIMED" : ""}${res.lightning ? " · LIGHTNING ×3 CLAIMED" : ""}`);
       route(); // re-render current screen with fresh standings
     }
   });
   render();
+}
+
+/* ── power-up inventory sheet (FLOW-05 — REAL: engine + state) ───────── */
+const fmtClock = (ms) => {
+  const m = Math.floor(ms / 60000), s = Math.floor((ms % 60000) / 1000);
+  return `${m}:${String(s).padStart(2, "0")}`;
+};
+const fmtDeadline = (ms) => {
+  try { return new Date(ms).toLocaleTimeString("en-AU", { hour: "numeric", minute: "2-digit" }); }
+  catch { return new Date(ms).toTimeString().slice(0, 5); }
+};
+
+/** One inventory row: rarity card (F3 fg-pwr component) + live state + action. */
+function pwrRow(m, def, count, state) {
+  const rarityTag = `${def.rarity.toUpperCase()}${count > 1 ? ` ×${count}` : ""}`;
+  const action = state === "held"
+    ? `<button class="fx-btn fx-btn--sm fx-btn--purple" data-pwr="${def.kind}">USE</button>`
+    : state === "active"
+      ? `<span class="fx-pwrstate fx-pwrstate--on">${ic("bolt")} ×3 LIVE</span>`
+      : state === "armed"
+        ? `<span class="fx-pwrstate fx-pwrstate--on">${ic("shield")} ARMED</span>`
+        : `<span class="fx-pwrstate">${state === "used" ? "USED THIS MATCH" : "NONE HELD"}</span>`;
+  return `
+  <div class="fg-pwr fg-pwr--${def.rarity} fx-pwrcard">
+    <span class="fg-pwr__rarity">${rarityTag}</span>
+    <span class="fg-pwr__art">${ic(def.icon)}</span>
+    <div class="fx-pwrcard__body">
+      <h3 class="fg-pwr__name">${def.name}</h3>
+      <p class="fg-pwr__desc">${state === "held" || state === "active" || state === "armed" ? def.blurb : state === "used" ? def.blurb : "Not in your inventory — the daily drop or a dev grant restocks it."}</p>
+    </div>
+    ${action}
+  </div>`;
+}
+
+function powerUpSheet() {
+  const st = ST();
+  const m = liveMatch(st);
+  if (!m) return `
+  <div class="fx-sheet" id="pwrSheet">
+    <div class="fx-sheet__grab"></div>
+    <h2 class="fx-sheet__h">POWER-UPS</h2>
+    <p class="fg-sheet__note">No live battle — power-ups live inside one. Create a battle and your arsenal opens with it.</p>
+    <button class="fg-sheet__cta" ${go("create-002")}>CREATE A BATTLE</button>
+  </div>`;
+  const myId = st.player?.id;
+  const now = Date.now();
+  const inv = E.inventoryOf(m, myId);
+  const count = (kind) => inv.filter((i) => i.kind === kind).length;
+  const steal = E.stealPreview(m, myId);
+  const shieldArmed = !!m.shields?.[myId];
+  const litActive = E.lightningActive(m, myId, now);
+  const litUsed = !!m.lightningUsed?.[myId];
+  const litRemain = E.lightningRemainingMs(m, myId, now);
+  const rows = [
+    pwrRow(m, E.POWER_UPS.lightning, count("lightning"), litActive ? "active" : litUsed ? "used" : count("lightning") ? "held" : "none"),
+    pwrRow(m, E.POWER_UPS.steal, count("steal"), count("steal") ? "held" : "none"),
+    pwrRow(m, E.POWER_UPS.shield, count("shield"), shieldArmed ? "armed" : count("shield") ? "held" : "none"),
+    pwrRow(m, E.POWER_UPS.freeze, count("freeze"), count("freeze") ? "held" : "none"),
+  ].join("");
+  return `
+  <div class="fx-sheet" id="pwrSheet" data-match="${m.config.id}">
+    <div class="fx-sheet__grab"></div>
+    <h2 class="fx-sheet__h">POWER-UPS</h2>
+    ${litActive ? `<div class="fx-ltline">${ic("bolt")}LIGHTNING LIVE — ${fmtClock(litRemain)} left · logs count ×3</div>` : ""}
+    ${shieldArmed ? `<div class="fx-ltline fx-ltline--shield">${ic("shield")}SHIELD ARMED — your reps can't be stolen</div>` : ""}
+    ${steal ? `<div class="fx-ltline fx-ltline--target">${ic("bolt")}STEAL TARGET: ${steal.victim.id === myId ? "you" : steal.victim.name} (${steal.victimRaw} reps) → takes ${steal.amount}${steal.blocked ? " · SHIELDED" : ""}</div>` : ""}
+    <div class="fx-pwrlist">${rows}</div>
+    <div class="fx-rule"><span class="fx-rule__k">BATTLE DEADLINE</span><span class="fx-rule__v">${fmtDeadline(m.deadlineAt)} · freeze +30 min</span></div>
+    <p class="fg-sheet__note">Hidden from your crew · rarity is cosmetic in this build · one lightning per match</p>
+  </div>`;
+}
+
+/** Toast copy for an activation result card (engine truth → founder words). */
+function pwrToast(result, m) {
+  const who = (id) => id === ST().player?.id ? "YOU" : (m?.players.find((p) => p.id === id)?.name ?? id);
+  if (!result.ok) return `⚠️ ${result.reason ?? "can't activate that"}`;
+  switch (result.kind) {
+    case "lightning": return `${ic("bolt")}LIGHTNING ROUND LIVE — ×3 FOR 10:00. GO.`;
+    case "shield": return `${ic("shield")}SHIELD ARMED — one steal bounces off you`;
+    case "freeze": return `${ic("clock")}TIME FREEZE — DEADLINE +30 MIN → ${fmtDeadline(result.newDeadline)}`;
+    case "steal":
+      if (result.blocked) return `${ic("shield")}STEAL BLOCKED by ${who(result.victimId)}'s shield — their shield broke, your card survived`;
+      return result.stolen > 0
+        ? `${ic("bolt")}REP STEAL — TOOK ${result.stolen} FROM ${who(result.victimId).toUpperCase()}`
+        : `${ic("bolt")}REP STEAL fizzled — ${who(result.victimId)} had nothing to take`;
+    default: return `${ic("bolt")}${result.name ?? "POWER-UP"} ACTIVATED`;
+  }
+}
+
+/** Wire the inventory sheet (overlay or embedded): USE buttons → engine. */
+function wirePowerUps(root) {
+  const sheet = root.querySelector("#pwrSheet");
+  if (!sheet || !sheet.dataset.match) return;
+  const matchId = sheet.dataset.match;
+  sheet.querySelectorAll("[data-pwr]").forEach((btn) => {
+    btn.addEventListener("click", () => {
+      let out;
+      try {
+        out = S.activateInMatch(matchId, { kind: btn.dataset.pwr });
+      } catch (err) {
+        toast(`⚠️ ${err.message}`);
+        return;
+      }
+      const { result } = out;
+      if (result.ok && result.kind === "steal" && !result.blocked && result.stolen > 0) {
+        pendingFlash = { victim: result.victimId, thief: result.playerId, at: Date.now() };
+      }
+      toast(pwrToast(result, out.match));
+      closeOverlay();
+      route(); // standings re-render (tags, bars, deadline)
+    });
+  });
+}
+
+/* steal flash: the two touched rows pulse once after re-render (cheap CSS) */
+let pendingFlash = null;
+function applyPendingFlash(root) {
+  if (!pendingFlash) return;
+  const { victim, thief, at } = pendingFlash;
+  pendingFlash = null;
+  if (Date.now() - at > 3000) return;
+  for (const pid of [victim, thief]) {
+    root.querySelector(`.fg-lbrow[data-player="${pid}"]`)
+      ?.classList.add(pid === thief ? "fg-lbrow--gain" : "fg-lbrow--hit");
+  }
 }
 
 /** transient toast (bottom of viewport, auto-dismiss) */
@@ -403,7 +564,9 @@ function toast(html) {
    Core-loop screens are WIRED to real state (rwf.figma.v1); everything
    else keeps Ben's mock copy and carries a DEMO chip (see renderScreen). */
 
-/* the battle screen underlay — REAL: standings, ring, comeback, dual clock */
+/* the battle screen underlay — REAL: standings, ring, comeback, dual clock
+   + the temporal loop (FLOW-06): live day deadline, danger-zone banner,
+   pulsing LOG NOW, DZ3 wash, recap link. */
 const battleUnder = () => {
   const st = ST();
   const m = liveMatch(st);
@@ -423,26 +586,47 @@ const battleUnder = () => {
   const myRank = rows.findIndex((r) => r.player.id === myId) + 1;
   const leader = rows[0];
   const gap = leader.rawReps - mine.rawReps;
-  const clock = S.dualClock();
+  /* ── temporal: real deadline, DZ ramp, play-day label ── */
+  const dnow = D.now();
+  const lvl = D.dangerLevel(m, dnow);
+  const clock = D.deadlineClock(m, dnow); // ticking to THIS day's deadline
+  const dayHist = m.dailyHistory ?? {};
+  const dayN = Object.keys(dayHist).length + 1;
+  const restDay = !D.isPlayDay(m, dnow);
+  const nextD = D.nextPlayDay(m, D.dayKeyOf(dnow));
+  const lastDay = Object.keys(dayHist).sort().pop() ?? null;
+  const lastRecap = lastDay ? dayHist[lastDay] : null;
   const streak = st.season?.streaks?.[myId]?.length ?? 0;
   const cb = E.comebackEligible(m, myId);
+  const litMe = E.lightningActive(m, myId);
+  const litRemain = E.lightningRemainingMs(m, myId);
+  const litClock = `0:${String(Math.floor(litRemain / 60000)).padStart(2, "0")}:${String(Math.floor((litRemain % 60000) / 1000)).padStart(2, "0")}`;
+  const myCards = E.inventoryOf(m, myId).length;
   return `
   ${statusBar()}
   ${topBar({ title: m.config.name ?? "Battle" })}
-  <div class="fx-content">
+  <div class="fx-content" data-dz-root data-match="${m.config.id}">
+    <div class="fx-daylabel">${restDay
+      ? `REST DAY — NEXT BATTLE DAY <b>${nextD?.weekdayShort ?? "SOON"}</b> · LOGS STILL COUNT FOR THE BATTLE`
+      : `<b>DAY ${dayN}</b> — CLOSES ${D.fmtTimeLocal(D.deadlineFor(m, dnow))} YOUR TIME`}</div>
     <div class="fx-statusrow">
       ${badge({ icon: "flame", text: `${streak} DAY STREAK` })}
-      ${countdown({ time: clock.time, sub: clock.sub })}
+      ${countdown({ time: clock.time, sub: clock.sub, level: lvl ? `dz${lvl}` : "", extra: `data-dz-countdown data-match="${m.config.id}"` })}
     </div>
+    ${lvl ? dzBanner(`l${lvl}`, D.dzCopy(lvl, D.deadlineFor(m, dnow) - dnow), 'data-dz-banner') : `<div style="display:none" data-dz-banner></div>`}
     ${cb ? `<div class="fx-cbbanner">${ic("bolt")}COMEBACK ×1.2 ARMED — YOU'RE ${Math.round((gap / Math.max(leader.rawReps, 1)) * 100)}% BEHIND. NEXT LOG COUNTS 1.2×</div>` : ""}
+    ${litMe ? `<div class="fx-activebanner"><span style="font-size:24px">⚡</span><div><div class="fx-activebanner__t">LIGHTNING ROUND — 3× REPS</div><div class="fx-activebanner__s"><span class="fx-ltclock" data-countdown="${litClock}"><span class="fg-count__time">${litClock}</span></span> remaining · every log counts triple</div></div></div>` : ""}
     <div class="fx-hero">${ring(mine.progressPct, String(mine.rawReps), `of ${m.config.targetReps} reps`)}
       <div class="fx-hero__line">${mine.rawReps >= m.config.targetReps ? "TARGET HIT" : `${m.config.targetReps - mine.rawReps} REPS TO GO${gap > 0 && myRank > 1 ? ` — ${leader.player.id === myId ? "YOU" : leader.player.name} IS ${gap} AHEAD` : myRank === 1 ? " — YOU LEAD" : ""}`}</div>
     </div>
+    <button class="fx-dzlog" data-dz-log type="button" ${lvl ? "" : 'style="display:none"'}>${ic("bolt")} LOG NOW — THE CLOCK'S NOT WAITING</button>
     <div class="fx-crewnow">
       ${m.players.slice(0, 5).map((p) => `<span class="fg-avatar fg-avatar--sm fg-avatar--online" style="width:32px;height:32px;font-size:9px">${p.id === myId ? (st.player.name.split(" ").map(w => w[0]).join("").slice(0, 2)) : p.name.split(" ").map(w => w[0]).join("").slice(0, 2)}</span>`).join("")}
       <span class="fx-crewnow__text">${m.players.length} in the crew · ${m.entries.length} sets logged</span>
     </div>
     <div class="fx-board">${realBoard(m)}</div>
+    ${lastRecap ? `<button class="fx-recaplink" data-go="daily-001">DAILY RECAP — <b>${lastRecap.youWon ? "YOU WON" : lastRecap.winner ? `${lastRecap.winner.name.split(" ")[0].toUpperCase()} TOOK` : "NOBODY LOGGED"} ${D.weekdayShortOf(lastRecap.dayKey)}</b>${ic("chevron")}</button>` : ""}
+    <button class="fx-pwrbtn" id="pwrBtn" type="button">⚡ POWER-UPS <span>(${myCards} held)</span></button>
     <button class="fx-simbtn" id="simMates" type="button">▸ SIMULATE MATES' REPS <span>(demo)</span></button>
   </div>
   ${nav("battle-001")}`;
@@ -700,16 +884,22 @@ const SCREENS = [
       const mine = rows.find((r) => r.player.id === myId) ?? rows[0];
       const myRank = rows.findIndex((r) => r.player.id === myId) + 1;
       const leader = rows[0];
-      const clock = S.dualClock();
+      /* temporal: the real day deadline + latest closed-day recap strip */
+      const dnow = D.now();
+      const clock = D.deadlineClock(m, dnow);
+      const dayHist = m.dailyHistory ?? {};
+      const lastDay = Object.keys(dayHist).sort().pop() ?? null;
+      const lastRecap = lastDay ? dayHist[lastDay] : null;
       return `
       ${statusBar()}
       ${topBar({ logo: true })}
       <div class="fx-content">
         <div class="fx-statusrow">
           <span class="fg-badge">${ic("flame")}${st.season?.streaks?.[myId]?.length ?? 0} DAY STREAK</span>
-          ${countdown({ time: clock.time, sub: clock.sub })}
+          ${countdown({ time: clock.time, sub: clock.sub, level: clock.level ? `dz${clock.level}` : "", extra: `data-dz-countdown data-match="${m.config.id}"` })}
         </div>
-        ${battleCard({ meta: `${m.players.length} mates · ${S.fmtDays(m.config.playDays)}`, title: (m.config.name ?? "BATTLE").toUpperCase(), crewN: m.players.length, barPct: Math.round(mine.progressPct), foot: myRank === 1 ? "You lead — don't blink" : `You're ${ordinal(myRank)} — ${leader.rawReps - mine.rawReps} reps behind ${leader.player.id === myId ? "you" : leader.player.name}` })}
+        ${lastRecap ? `<div data-go="daily-001" style="cursor:pointer">${eventBanner({ kind: lastRecap.youWon ? "" : "close", icon: "trophy", title: lastRecap.youWon ? `YOU WON ${D.weekdayShortOf(lastRecap.dayKey)}` : `${lastRecap.winner ? lastRecap.winner.name.split(" ")[0].toUpperCase() : "NOBODY"} TOOK ${D.weekdayShortOf(lastRecap.dayKey)}`, subText: "Day closed — see the recap & moments", tag: "RECAP" })}</div>` : ""}
+        ${battleCard({ meta: `${m.players.length} mates · ${S.fmtDays(m.config.playDays)}`, title: (m.config.name ?? "BATTLE").toUpperCase(), crewN: m.players.length, barPct: Math.round(mine.progressPct), foot: myRank === 1 ? "You lead — don't blink" : `You're ${ordinal(myRank)} — ${leader.rawReps - mine.rawReps} reps behind ${leader.player.id === myId ? "you" : leader.player.name}`, chip: dzChip(m, dnow) })}
         <div class="fx-hero fx-hero--split">
           ${ring(mine.progressPct, String(mine.rawReps), `of ${m.config.targetReps} reps`, 120)}
           <div>
@@ -743,6 +933,11 @@ const SCREENS = [
         const status = m.status === "live" ? "LIVE" : m.status === "open" ? "RECRUITING" : "COMPLETE";
         const cls = m.status === "live" ? "" : "fg-status--muted";
         const w = m.status === "complete" ? E.winner(m) : null;
+        /* temporal: last daily winner goes in the foot, DZ chip in the head */
+        const dh = m.dailyHistory ?? {};
+        const ld = Object.keys(dh).sort().pop() ?? null;
+        const lr = ld ? dh[ld] : null;
+        const dailyFoot = lr ? `Last day: ${lr.youWon ? "you won" : lr.winner ? `${lr.winner.name.split(" ")[0]} won` : "nobody logged"} ${D.weekdayShortOf(lr.dayKey)} · see daily recap` : null;
         return battleCard({
           status: w ? (w.playerId === myId ? "YOU WON" : `${(m.players.find(p => p.id === w.playerId)?.name ?? "?").split(" ")[0].toUpperCase()} WON`) : status,
           statusCls: cls,
@@ -753,8 +948,9 @@ const SCREENS = [
           barColor: m.status === "complete" ? "var(--success)" : "var(--lime)",
           foot: m.status === "complete"
             ? `Winner: ${m.players.find(p => p.id === w?.playerId)?.name ?? "?"} · ${w?.adjustedScore} RUF (adjusted)`
-            : mine ? `You're at ${Math.round(mine.progressPct)}% · ${mine.rawReps}/${m.config.targetReps} reps` : "",
+            : dailyFoot ?? (mine ? `You're at ${Math.round(mine.progressPct)}% · ${mine.rawReps}/${m.config.targetReps} reps` : ""),
           border: m.status === "live" ? "purple" : "line",
+          chip: dzChip(m),
         });
       }).join("");
       return `
@@ -1366,6 +1562,77 @@ const SCREENS = [
       ${nav("battle-001")}`,
   },
   {
+    /* the REAL daily winner + recap — Ben's MOB-RESULT-001/002/003 wired to
+       match.dailyHistory via daily.js (FLOW-07). result-003 above stays as
+       his mock frame; this one computes from actual logged entries. */
+    id: "daily-001", figma: "MOB-RESULT-001/002/003", name: "Daily winner & recap (real)", group: "Results", next: "battle-001",
+    render: () => {
+      const st = ST();
+      const withDays = st.matches.filter((m) => m.dailyHistory && Object.keys(m.dailyHistory).length > 0);
+      const m = withDays[withDays.length - 1] ?? null; // recap needs a closed day
+      if (!m) return `
+      ${statusBar()}
+      ${topBar({ title: "Daily recap", back: true })}
+      <div class="fx-content">
+        ${h1("NO DAY CLOSED YET", "fx-h1--30")}
+        ${sub("Every battle day closes at its deadline — winner, standings and moments land here.", "fx-sub--15")}
+        <div class="fx-gap8"></div>
+        ${btn("GO TO BATTLE", "fx-btn--primary", "battle-001")}
+      </div>`;
+      const hist = m.dailyHistory ?? {};
+      const keys = Object.keys(hist).sort();
+      const liveDay = m.status === "live" ? D.currentDayKey(m, D.now()) : null;
+      const sel = dailyDaySel && keys.includes(dailyDaySel) ? dailyDaySel : keys[keys.length - 1];
+      const r = D.recapFor(m, sel, { youId: st.player?.id, nowTs: D.now() });
+      const maxAdj = Math.max(...r.standings.map((x) => x.adjustedScore), 1);
+      const rows = r.standings.map((row, i) => `
+        <div class="fx-drow ${i === 0 ? "fx-drow--win" : ""} ${row.playerId === st.player?.id ? "fx-drow--you" : ""}">
+          <span class="fx-drow__rank">${i + 1}</span>
+          <span class="fg-avatar" style="width:44px;height:44px;font-size:13px">${row.playerId === st.player?.id ? (st.player?.name ?? "You").split(" ").map(w => w[0]).join("").slice(0, 2) : row.name.split(" ").map(w => w[0]).join("").slice(0, 2)}</span>
+          <div class="fx-drow__info">
+            <span class="fx-drow__name">${row.playerId === st.player?.id ? `${st.player?.name ?? "You"} (you)` : row.name}${i === 0 ? ic("crown") : ""}</span>
+            <span class="fx-drow__bar"><i style="width:${Math.round((row.adjustedScore / maxAdj) * 100)}%"></i></span>
+          </div>
+          <div class="fx-drow__score">
+            <div class="fx-drow__pts">${Math.round(row.adjustedScore)}</div>
+            <div class="fx-drow__sets">RUF · ${row.sets} set${row.sets === 1 ? "" : "s"} · ${row.rawReps} raw</div>
+          </div>
+        </div>`).join("");
+      const chips = keys.map((k) => `
+        <button class="fx-daychip" data-day="${k}" aria-pressed="${k === sel}">${D.weekdayShortOf(k)}${hist[k].youWon ? " ★" : ""}</button>`).join("") +
+        (liveDay ? `<span class="fx-daychip fx-daychip--live">${D.weekdayShortOf(liveDay)} · LIVE</span>` : "");
+      return `
+      ${r.youWon ? confetti() : ""}
+      ${statusBar()}
+      ${topBar({ title: m.config.name ?? "Battle", back: true })}
+      <div class="fx-content">
+        <div class="fx-winnercard ${r.winner ? (r.youWon ? "fx-winnercard--won" : "") : "fx-winnercard--brutal"}">
+          ${r.youWon ? `<div class="fx-winnercard__trophy">${ic("trophy")}</div>` : r.winner ? `<div style="display:flex;justify-content:center"><span class="fg-avatar" style="width:72px;height:72px;font-size:23px">${r.winner.name.split(" ").map(w => w[0]).join("").slice(0, 2)}</span></div>` : `<div class="fx-winnercard__trophy">${ic("clock")}</div>`}
+          ${h1(r.headline, r.youWon ? "fx-h1--36 fx-h1--gold" : "fx-h1--30")}
+          ${r.winner ? sub(`${Math.round(r.winner.adjustedScore)} RUF adjusted · ${r.winner.rawReps} raw reps — the handicap story, not the raw one`, "fx-sub--13") : sub("The deadline hit with zero logs. Streaks survive — pride doesn't.", "fx-sub--13")}
+          ${r.youLine ? `<p class="fx-winnercard__sub">${r.youLine}${r.standings.length > 1 && r.yourRank === 1 ? ` ${r.standings[1] ? `${r.standings[1].name.split(" ")[0]} finished 2nd — ${Math.max(1, Math.round(r.standings[0].adjustedScore - r.standings[1].adjustedScore))} RUF behind. Brutal.` : ""}` : ""}</p>` : ""}
+          ${r.ledLine ? `<p class="fx-winnercard__sub">${r.ledLine}</p>` : ""}
+          ${r.potDeltaCents > 0 ? `<p class="fx-winnercard__sub">Charity pot grew <b>$${(r.potDeltaCents / 100).toFixed(2)}</b> today — $${(r.potTotalCents / 100).toFixed(2)} banked.</p>` : ""}
+        </div>
+        ${keys.length + (liveDay ? 1 : 0) > 1 ? `<div class="fx-daychips">${chips}</div>` : `<div class="fx-daychips">${chips}</div>`}
+        <p class="fx-overline" style="margin-top:16px">${D.weekdayOf(sel)} — ADJUSTED STANDINGS</p>
+        <div class="fx-board">${rows || `<div class="fx-note">No logs this day.</div>`}</div>
+        ${r.nemesis ? `<div class="fx-nemesis">${ic("crown")} ${r.nemesis}</div>` : ""}
+        <div class="fx-moments">
+          <div class="fx-overline">MOMENTS</div>
+          ${r.moments.map((mm) => `<div class="fx-moments__row">${mm}</div>`).join("")}
+        </div>
+        <div class="fx-nextday">${r.tomorrow.label} — ${r.tomorrow.sub}</div>
+        <div class="fx-gap8"></div>
+        ${m.status === "complete" ? btn("SEE FINAL RESULT", "fx-btn--primary", "result-005") : btn("BACK TO BATTLE — LOG FOR " + r.tomorrow.label.replace("NEXT BATTLE DAY: ", ""), "fx-btn--primary", "battle-001")}
+        <div class="fx-gap8"></div>
+        ${r.winner && !r.youWon ? btn(`${ic("bell")} SET A REVENGE REMINDER FOR 7 AM`, "fx-btn--dark", "", 'id="revengeBtn"') : ""}
+        ${r.youWon ? btn("Share the win", "fx-btn--ghost", "result-007") : ""}
+      </div>
+      ${nav("battle-001")}`;
+    },
+  },
+  {
     id: "result-005", figma: "MOB-RESULT-005", name: "Final battle result", group: "Results", next: "set-005", tint: "tint",
     render: () => {
       const st = ST();
@@ -1454,44 +1721,135 @@ TUESDAY</div>
   },
 
   /* ── PWR ×5 ──────────────────────────────────────────────────────── */
+  /* FLOW-05: pwr-001 (inventory) + pwr-002 (detail) are REAL — backed by
+     the engine inventory in rwf.figma.v1. pwr-004 (lightning full-screen)
+     stays mock, pwr-006 chest cadence is mock but the reveal grants a real
+     card, pwr-007 store is mock + DEV GRANT. */
   {
     id: "pwr-001", figma: "MOB-PWR-001", name: "Power-up inventory", group: "Power-Ups", next: "pwr-002",
-    render: () => `
+    render: () => {
+      const st = ST();
+      const m = liveMatch(st);
+      const inv = m ? E.inventoryOf(m, st.player?.id) : [];
+      const kinds = ["lightning", "steal", "shield", "freeze"];
+      const slots = Math.max(6, inv.length);
+      const card = (kind) => {
+        const def = E.POWER_UPS[kind];
+        const n = inv.filter((i) => i.kind === kind).length;
+        return `
+        <div class="fg-pwr fg-pwr--${def.rarity}" ${n ? `data-pwrsel="${kind}"` : ""} style="${n ? "cursor:pointer" : "opacity:0.45"}">
+          <span class="fg-pwr__rarity">${def.rarity.toUpperCase()}${n > 1 ? ` ×${n}` : ""}</span>
+          <span class="fg-pwr__art">${ic(def.icon)}</span>
+          <h3 class="fg-pwr__name">${def.name}</h3>
+          <p class="fg-pwr__desc">${n ? def.blurb : "none held"}</p>
+        </div>`;
+      };
+      return `
       ${statusBar()}
       <div class="fx-content">
         ${h1("YOUR ARSENAL", "fx-h1--26")}
-        ${sub("Hidden from your crew. 6 of 12 slots used · commons expire after 7 days.", "fx-sub--12")}
+        ${m
+          ? sub(`${inv.length} of ${slots} slots used in “${m.config.name ?? "battle"}” · commons would expire after 7 days (not enforced in this build).`, "fx-sub--12")
+          : sub("No live battle — power-ups live inside one. Create a battle and every player starts with a free random card.", "fx-sub--12")}
         <div class="fx-pwrgrid">
-          ${pwrCard({ rarity: "legendary", name: "LIGHTNING ROUND", desc: "Reps count 3× for the next 10 minutes", icon: "bolt" })}
-          ${pwrCard({ rarity: "epic", name: "REP STEAL", desc: "Take 10% of an opponent's total (SAMPLE cap)", icon: "bolt" })}
-          ${pwrCard({ rarity: "rare", name: "TIME FREEZE", desc: "Pauses the battle clock for 30 minutes", icon: "clock" })}
-          ${pwrCard({ rarity: "common", name: "GROUP SHIELD", desc: "Protects the crew from one failure consequence", icon: "shield" })}
+          ${kinds.map(card).join("")}
         </div>
+        <div class="fx-gap16"></div>
+        <button class="fx-btn fx-btn--purple" id="devGrant" data-grant="${m?.config.id ?? ""}" ${m ? "" : "disabled"}>⚡ DEV GRANT — ALL FOUR, EVERY PLAYER</button>
+        <p class="fx-note fx-note--11">DEV GRANT replaces the store in this build — it exists so the founder can actually play all four power-ups. The real store ships later.</p>
         <div class="fx-drop" ${go("pwr-006")}>🎁 Daily drop ready — open your free card</div>
       </div>
-      ${nav("pwr-001")}`,
+      ${nav("pwr-001")}`;
+    },
+    wire: (root) => {
+        root.querySelectorAll("[data-pwrsel]").forEach((c) =>
+          c.addEventListener("click", () => { selectedPwr = c.dataset.pwrsel; }));
+        root.querySelector("#devGrant")?.addEventListener("click", (e) => {
+          const id = e.currentTarget.dataset.grant;
+          if (!id) { toast("⚠️ No battle to grant into"); return; }
+          const r = S.devGrant(id);
+        toast(`${ic("bolt")}DEV GRANT — all four power-ups × ${r.granted / 4} players. Go play.`);
+        route();
+      });
+    },
   },
   {
     id: "pwr-002", figma: "MOB-PWR-002", name: "Card detail & activation", group: "Power-Ups", next: "pwr-004",
-    render: () => sheetScreen(battleUnder(), `
+    render: () => {
+      const st = ST();
+      const m = liveMatch(st);
+      const kind = selectedPwr ?? "lightning";
+      const def = E.POWER_UPS[kind] ?? E.POWER_UPS.lightning;
+      const myId = st.player?.id;
+      const n = m ? E.inventoryOf(m, myId).filter((i) => i.kind === kind).length : 0;
+      const shieldArmed = m?.shields?.[myId];
+      const litActive = m ? E.lightningActive(m, myId) : false;
+      const litUsed = m?.lightningUsed?.[myId];
+      const steal = m ? E.stealPreview(m, myId) : null;
+      const rules = {
+        lightning: [
+          ["Window", "10 minutes, server-timed — starts the second you confirm"],
+          ["Effect", "every rep you log in the window counts ×3 (stacks with a comeback ×1.2)"],
+          ["Limit", "one activation per player per match — the cap survives the window expiring"],
+          ["Best used", "one big set left and the clock is closing"],
+        ],
+        steal: [
+          ["Target", steal ? `${steal.victim.id === myId ? "You lead — your leading rival is next" : `${steal.victim.name} (${steal.victimRaw} reps)`} — takes ${steal.amount} instantly` : "the CURRENT leading rival by raw reps"],
+          ["Math", "10% of their raw reps, rounded down, minimum 1"],
+          ["Shielded?", steal?.blocked ? `${steal.victim.name} is shielded — your steal bounces and their shield breaks` : "if they're shielded, the steal is blocked and their shield breaks — your card survives"],
+          ["Ledger", "raw AND adjusted both move — at each side's handicap multiplier"],
+        ],
+        shield: [
+          ["Effect", "blocks one rep steal against you, then breaks"],
+          ["Armed", shieldArmed ? "yes — you are protected right now" : "no"],
+          ["Stacking", "one armed at a time; re-arm after it breaks"],
+        ],
+        freeze: [
+          ["Effect", "extends the battle deadline by 30 minutes for the whole crew"],
+          ["Stacks", "multiple freezes add up (+30 min each)"],
+          ["Deadline", m ? fmtDeadline(m.deadlineAt) : "—"],
+        ],
+      }[kind];
+      const cta = !m ? "NO LIVE BATTLE"
+        : litActive ? "LIGHTNING ALREADY LIVE"
+        : kind === "lightning" && litUsed ? "USED THIS MATCH"
+        : kind === "shield" && shieldArmed ? "SHIELD ALREADY ARMED"
+        : n === 0 ? "NONE HELD — DEV GRANT ON THE ARSENAL SCREEN"
+        : null;
+      return sheetScreen(battleUnder(), `
       <div class="fx-sheet__grab"></div>
       <div style="display:flex;justify-content:center">
-        <div class="fg-pwr fg-pwr--legendary" style="width:272px;padding:20px">
-          <span class="fg-pwr__rarity" style="font-size:12px">LEGENDARY</span>
-          <span class="fg-pwr__art" style="width:102px;height:102px">${ic("bolt")}</span>
-          <h3 class="fg-pwr__name" style="font-size:25px">LIGHTNING ROUND</h3>
-          <p class="fg-pwr__desc" style="font-size:14px">Reps count 3× for the next 10 minutes</p>
+        <div class="fg-pwr fg-pwr--${def.rarity}" style="width:272px;padding:20px">
+          <span class="fg-pwr__rarity" style="font-size:12px">${def.rarity.toUpperCase()}${n > 1 ? ` ×${n}` : ""}</span>
+          <span class="fg-pwr__art" style="width:102px;height:102px">${ic(def.icon)}</span>
+          <h3 class="fg-pwr__name" style="font-size:25px">${def.name}</h3>
+          <p class="fg-pwr__desc" style="font-size:14px">${def.blurb}</p>
         </div>
       </div>
       <div class="fx-card" style="margin-top:4px">
-        <div style="font:700 12px/1.2 var(--font-body);color:var(--lime)">LIGHTNING ROUND · LEGENDARY</div>
-        <div class="fx-card__s" style="color:var(--muted)">For 10 minutes, every rep you log counts 3×. Server-timed — the window starts the second you confirm.</div>
-        <div class="fx-card__s">Best used when: you've got one big set left and the clock is closing.</div>
-        <div class="fx-card__s" style="color:var(--faint-deco)">Limit: one per player per day · visible to the whole crew when fired</div>
+        <div style="font:700 12px/1.2 var(--font-body);color:var(--lime)">${def.name} · ${def.rarity.toUpperCase()}</div>
+        ${rules.map(([k, v]) => `<div class="fx-rule"><span class="fx-rule__k">${k}</span><span class="fx-rule__v">${v}</span></div>`).join("")}
       </div>
-      <button class="fg-sheet__cta" ${go("pwr-004")}>ACTIVATE — 10:00 STARTS NOW</button>
+      ${cta
+        ? `<button class="fg-sheet__cta" disabled style="opacity:0.5">${cta}</button>`
+        : `<button class="fg-sheet__cta" id="pwrActivate" data-pwr="${kind}" data-match="${m.config.id}">ACTIVATE ${def.name.toUpperCase()}</button>`}
       <button class="fg-sheet__cta" style="background:none;color:var(--lime)" ${go("pwr-001")}>Save it for later</button>
-    `),
+    `);
+    },
+    wire: (root) => {
+      const act = root.querySelector("#pwrActivate");
+      if (!act) return;
+      act.addEventListener("click", () => {
+        let out;
+        try { out = S.activateInMatch(act.dataset.match, { kind: act.dataset.pwr }); }
+        catch (err) { toast(`⚠️ ${err.message}`); return; }
+        if (out.result.ok && out.result.kind === "steal" && !out.result.blocked && out.result.stolen > 0) {
+          pendingFlash = { victim: out.result.victimId, thief: out.result.playerId, at: Date.now() };
+        }
+        toast(pwrToast(out.result, out.match));
+        location.hash = "#/battle-001";
+      });
+    },
   },
   {
     id: "pwr-004", figma: "MOB-PWR-004", name: "Lightning Round active", group: "Power-Ups", next: "pwr-007",
@@ -1526,24 +1884,40 @@ TUESDAY</div>
           <button class="fx-chest" id="chest" aria-label="Open chest">${ic("chest")}</button>
           <span class="fx-tap-open" id="tapOpen">TAP TO OPEN</span>
         </div>
-        ${sub("Come back every day you battle — streaks improve your odds of Rare+. Founders keep this forever.", "fx-sub--12")}
+        ${sub("Come back every day you battle — streaks improve your odds of Rare+. Founders keep this forever. (Cadence is still mock in this build, but the card you pull is REAL — it lands in your live battle inventory.)", "fx-sub--12")}
         <div class="fx-gap16"></div>
         <div id="lootReveal"></div>
       </div>`,
   },
   {
     id: "pwr-007", figma: "MOB-PWR-007", name: "Power-up store", group: "Power-Ups", next: "set-005",
-    render: () => `
+    render: () => {
+      const st = ST();
+      const m = liveMatch(st);
+      return `
       ${statusBar()}
       <div class="fx-content">
         ${h1("THE STORE", "fx-h1--26")}
-        ${sub("Cosmetic and convenience only — you can't buy the win. Purchase caps: 3 packs/week (SAMPLE).", "fx-sub--12")}
+        ${sub("Cosmetic and convenience only — you can't buy the win. Purchase caps: 3 packs/week (SAMPLE). No IAP in this build — use the DEV GRANT instead.", "fx-sub--12")}
         ${storeRow("Starter pack", "3 random cards · max Rare", "$1.99")}
         ${storeRow("Battle pack", "5 random cards · 1 guaranteed Epic", "$4.99")}
         ${storeRow("Streak Freeze", "Protect one missed day", "$0.99")}
+        <div class="fx-gap12"></div>
+        <button class="fx-btn fx-btn--purple" id="devGrant" data-grant="${m?.config.id ?? ""}" ${m ? "" : "disabled"}>⚡ DEV GRANT — REPLACES THE STORE IN THIS BUILD</button>
+        <p class="fx-note fx-note--11">Grants all four power-ups to every player in the live battle — so the founder can play the whole mechanic today. The real store + caps ship with the economy.</p>
         ${note("Disabled in wager battles where the crew turned off purchased power-ups. Purchases are separate from any wager money.", "fx-note--11")}
       </div>
-      ${nav("pwr-001")}`,
+      ${nav("pwr-001")}`;
+    },
+    wire: (root) => {
+      root.querySelector("#devGrant")?.addEventListener("click", (e) => {
+        const id = e.currentTarget.dataset.grant;
+        if (!id) { toast("⚠️ No live battle to grant into"); return; }
+        const r = S.devGrant(id);
+        toast(`${ic("bolt")}DEV GRANT — all four power-ups × ${r.granted / 4} players`);
+        route();
+      });
+    },
   },
 
   /* ── WAGER ×6 (all feature-flagged) ──────────────────────────────── */
@@ -2078,7 +2452,7 @@ const GROUPS = [
   ["Join", "Invitation preview + pick your level (Light/Solid/Hero)."],
   ["Battle", "Main screen, danger zone 30 min, team battle, full leaderboard, activity feed."],
   ["Log", "Quick sheet (≤3 taps), picker, timed, gym mode, large-log confirm, history, offline queue."],
-  ["Results", "Daily winner, daily loss, recap + MOMENTS, final + awards, share card."],
+  ["Results", "Daily winner, daily loss, recap + MOMENTS, final + awards, share card — plus the REAL daily winner/recap (daily-001) from each closed play day."],
   ["Season", "The real ladder — 3/2/1 points + MVP from completed battles."],
   ["Power-Ups", "Inventory, card detail, Lightning active, store, daily loot."],
   ["Wagers (flagged)", "All feature-flagged: explainer, eligibility, region, payment, settlement, responsible play."],
@@ -2132,7 +2506,11 @@ function renderScreen(id) {
   if (DEMO_SCREENS.has(id)) app.insertAdjacentHTML("afterbegin", demoChip());
   wireQuickLog(app);
   wireChest(app);
+  wirePowerUps(app);
   wireScreen(app, id);
+  s.wire?.(app); // per-screen wiring (FLOW-05 pwr screens)
+  applyPendingFlash(app);
+  try { D.tickCountdowns(); } catch {} // paint live deadline + DZ chrome immediately
   document.title = `${s.figma} · ${s.name} — RWF Figma Test`;
 }
 
@@ -2143,7 +2521,10 @@ const DEMO_SCREENS = new Set([
   "battle-002", "battle-004", "battle-006", "feed-nav",
   "log-003", "log-004", "log-007", "log-008", "log-009",
   "result-003", "result-007",
-  "pwr-001", "pwr-002", "pwr-004", "pwr-006", "pwr-007",
+  /* pwr-001 (inventory) + pwr-002 (detail/activation) went REAL in FLOW-05;
+     pwr-004 (lightning full-screen mock) / pwr-006 (chest cadence) /
+     pwr-007 (store — DEV GRANT replaces it) stay demo-chipped */
+  "pwr-004", "pwr-006", "pwr-007",
   "wager-001", "wager-002", "wager-003", "wager-005", "wager-011", "wager-016",
   "set-005", "set-005b",
   "social-001", "integ-001", "integ-003",
@@ -2256,6 +2637,24 @@ function wireScreen(root, id) {
     toast(`${ic("check")}Crew code ${code} copied — paste \`link ${code}\` in your crew chat`);
   });
 
+  /* battle: power-up inventory sheet (FLOW-05) */
+  root.querySelector("#pwrBtn")?.addEventListener("click", () => openOverlay(powerUpSheet()));
+
+  /* battle (FLOW-06): danger-zone LOG NOW → quick-log sheet */
+  root.querySelector("[data-dz-log]")?.addEventListener("click", () => openOverlay(quickLogSheet()));
+
+  /* daily recap (FLOW-07): day chips + revenge reminder
+     (.fx-daychip scope is load-bearing: bare [data-day] also matches the
+     CREATE-battle day chips and re-rendered them before the #cbDays
+     handler could update the draft — FLOW-05 e2e caught the collision) */
+  root.querySelectorAll(".fx-daychip[data-day]").forEach(c => c.addEventListener("click", () => {
+    dailyDaySel = c.dataset.day;
+    route();
+  }));
+  root.querySelector("#revengeBtn")?.addEventListener("click", () => {
+    toast(`${ic("bell")}Revenge reminder set for 7 AM — push notifications are a V1 feature, this one's on your honour.`);
+  });
+
   /* battle: simulate mates */
   root.querySelector("#simMates")?.addEventListener("click", () => {
     const st = ST();
@@ -2294,7 +2693,8 @@ function wireScreen(root, id) {
   /* log sheet: camera verify is wired globally (the sheet lives outside #app) */
 }
 
-/* loot chest tap → reveal (his chest-tap reveal) */
+/* loot chest tap → reveal (his chest-tap reveal) — the card is REAL:
+   it's granted into the live battle inventory (cadence stays mock). */
 function wireChest(root) {
   const chest = root.querySelector("#chest");
   if (!chest) return;
@@ -2303,7 +2703,17 @@ function wireChest(root) {
   chest.addEventListener("click", () => {
     if (reveal.dataset.done) return;
     reveal.dataset.done = "1";
-    reveal.innerHTML = `<div style="display:flex;justify-content:center">${pwrCard({ rarity: "rare", name: "TIME FREEZE", desc: "Pauses the battle clock for 30 minutes", icon: "clock" })}</div>`;
+    const st = ST();
+    const m = liveMatch(st) ?? lastDone(st) ?? st.matches[st.matches.length - 1] ?? null;
+    const drop = m ? S.grantRandomTo(m.config.id) : null;
+    if (!drop) {
+      reveal.innerHTML = `<p class="fg-sheet__note" style="margin-top:12px">No battle to drop into — create one and the chest pays out for real.</p>`;
+      if (tap) tap.textContent = "CREATE A BATTLE FIRST";
+      return;
+    }
+    const def = E.POWER_UPS[drop.kind];
+    reveal.innerHTML = `<div style="display:flex;justify-content:center">${pwrCard({ rarity: def.rarity, name: def.name, desc: def.blurb, icon: def.icon })}</div>`;
+    toast(`${ic("chest")}${def.name.toUpperCase()} (${def.rarity}) granted to your arsenal`);
     if (tap) tap.textContent = "NICE. SEE YOU TOMORROW.";
   });
 }
@@ -2337,15 +2747,19 @@ function openOverlay(html) {
   overlayEl.innerHTML = html;
   document.body.appendChild(overlayEl);
   wireQuickLog(document);
+  wirePowerUps(document);
 }
 function closeOverlay() {
   document.querySelectorAll("body > .fx-scrim[data-global]").forEach(n => n.remove());
   overlayEl = null;
 }
 
-/* countdown tick (text only — reduced-motion safe, timers-as-text) */
+/* countdown tick (text only — reduced-motion safe, timers-as-text).
+   Live-deadline elements ([data-dz-countdown]) are owned by the daily
+   ticker — skip them here so they're never double-driven. */
 setInterval(() => {
   document.querySelectorAll("[data-countdown]").forEach(el => {
+    if (el.hasAttribute("data-dz-countdown")) return;
     const t = el.querySelector(".fg-count__time");
     if (!t) return;
     let [h, m, s] = t.textContent.split(":").map(Number);
@@ -2354,6 +2768,20 @@ setInterval(() => {
     t.textContent = `${h}:${String(m).padStart(2, "0")}:${String(s).padStart(2, "0")}`;
   });
 }, 1000);
+
+/* ── the temporal loop ticker (FLOW-06/07) — every second: real countdown
+   to the day deadline, DZ level switches (banner copy, LOG NOW pulse, DZ3
+   wash), and the nightly close — each due play day settles ONCE into
+   match.dailyHistory with a winner + recap. Toast + recap link on close;
+   battle screens re-render so day 2 shows without a manual reload. */
+D.startAppTicker({
+  onDayClosed: (result, match) => {
+    const day = D.weekdayOf(result.dayKey);
+    const who = result.youWon ? "YOU WON" : result.winner ? `${result.winner.name.split(" ")[0].toUpperCase()} TOOK` : "NOBODY LOGGED";
+    toast(`${ic("trophy")}DAY CLOSED — ${who} ${day} <button data-go="daily-001" style="background:none;border:1px solid var(--line-bright);color:var(--lime);border-radius:999px;padding:4px 10px;font:600 11px/1.2 var(--font-body);cursor:pointer;margin-left:6px">RECAP →</button>`);
+    if (["#/battle-001", "#/log-001", "#/log-002", "#/home-002", "#/home-003"].includes(location.hash)) route();
+  },
+});
 
 /* theme restore + route */
 try {

@@ -344,6 +344,129 @@ ok(statsTxt.split("|")[0] === "150", `lifetime reps real (got ${statsTxt.split("
 ok(statsTxt.includes("1"), "wins counted");
 await shot("profile");
 
+/* ══ POWER-UPS (FLOW-05) — runs on the live REMATCH so the completed-match
+   assertions above (ladder points, lifetime 150) stay untouched, and never
+   closes it (small logs + a 3-rep steal; target is 150). */
+console.log("— POWER-UPS (FLOW-05)");
+await goto("#/pwr-001");
+ok(!(await exists(".fx-demochip")), "arsenal screen is REAL now (no demo chip)");
+ok((await evalJs(`document.querySelectorAll('.fx-pwrgrid .fg-pwr').length`)) === 4, "4 power-up kinds in the arsenal grid");
+const seededKinds = await evalJs(`(JSON.parse(localStorage.getItem('rwf.figma.v1')).matches[1].inventory.you ?? []).length`);
+ok(seededKinds === 1, `new matches seed 1 random card per player (you hold ${seededKinds})`);
+await shot("pwr-arsenal");
+await click("#devGrant");
+st = await state();
+const rm0 = st.matches[1];
+ok(["lightning", "steal", "shield", "freeze"].every(k => rm0.inventory.you.some(i => i.kind === k)), "DEV GRANT: all four kinds in YOUR inventory");
+ok(rm0.inventory.sam?.length >= 4 && rm0.inventory.you.length >= 4, "DEV GRANT covers every player (mates too)");
+/* normalize your hand to exactly one of each so exhaustion is deterministic
+   (the seeded random card may have been a second steal) */
+await evalJs(`(async () => { const S = await import('${BASE}/state.js');
+  S.mutate(s => { s.matches[1].inventory.you = ['lightning','steal','shield','freeze'].map(kind => ({ kind, rarity: 'dev', grantedAt: Date.now() })); });
+  return true; })()`);
+ok((await evalJs(`(JSON.parse(localStorage.getItem('rwf.figma.v1')).matches[1].inventory.you).length`)) === 4, "hand normalized to one of each (deterministic)");
+
+await goto("#/battle-001");
+ok(await exists("#pwrBtn"), "POWER-UPS button on the battle screen");
+await shot("pwr-button");
+/* deterministic rival reps: seed 0.77 → every mate logs exactly 38 */
+await evalJs(`(async () => { const S = await import('${BASE}/state.js'); S.simMates(S.load().matches[1].config.id, 0.77); return true; })()`);
+st = await state();
+const raws0 = {};
+st.matches[1].entries.filter(e => e.playerId !== "you").forEach(e => { raws0[e.playerId] = (raws0[e.playerId] ?? 0) + e.reps; });
+const mateRaw0 = Math.max(...Object.values(raws0), 0);
+ok(mateRaw0 === 38, `mates logged deterministically (leader raw ${mateRaw0} = 38)`);
+
+/* arm the LEADER's shield (mates hold cards from the dev grant) */
+ok(await evalJs(`(async () => { const E = await import('${BASE}/engine.js'); const S = await import('${BASE}/state.js');
+  const m = S.load().matches[1];
+  const r = E.activatePowerUp(m, 'sam', 'shield');
+  S.mutate(s => { s.matches[1] = r.state; });
+  return r.result.ok && r.state.shields.sam === true; })()`), "shield armed on the leader (sam) via engine");
+
+/* steal #1 — BLOCKED by the shield */
+await goto("#/battle-001");
+await click("#pwrBtn");
+ok(await exists("#pwrSheet"), "power-up inventory sheet opens");
+ok((await text(".fx-ltline--target"))?.includes("STEAL TARGET"), "steal target preview line shown");
+ok((await text(".fx-ltline--target"))?.includes("SHIELDED"), "target preview flags the shield");
+await shot("pwr-sheet");
+await click('[data-pwr="steal"]');
+await shot("pwr-steal-blocked-toast");
+st = await state();
+const rm1 = st.matches[1];
+ok(rm1.shields?.sam == null, "blocked steal CONSUMED the leader's shield");
+ok(rm1.inventory.you.filter(i => i.kind === "steal").length === 1, "blocked steal did NOT spend your steal card");
+ok(rm1.entries.filter(e => e.steal).length === 0, "no ledger transfer while shielded");
+ok(rm1.powerLog.some(p => p.kind === "steal" && p.blocked === true), "powerLog records the block");
+
+/* steal #2 — lands: floor(38 × 10%) = 3 */
+await click("#pwrBtn");
+await click('[data-pwr="steal"]');
+/* the activation's route() re-render carries the flash classes — assert
+   BEFORE any further navigation wipes them */
+ok(await exists(".fg-lbrow--gain"), "thief row flashes (gain animation class)");
+ok(await exists(".fg-lbrow--hit"), "victim row flashes (hit animation class)");
+await shot("pwr-steal-toast");
+st = await state();
+const rm2 = st.matches[1];
+const steals = rm2.entries.filter(e => e.steal);
+ok(steals.length === 2, "steal wrote both ledger entries (victim −3, you +3)");
+const youRaw2 = rm2.entries.filter(e => e.playerId === "you").reduce((s, e) => s + e.reps, 0);
+const samRaw2 = rm2.entries.filter(e => e.playerId === "sam").reduce((s, e) => s + e.reps, 0);
+ok(youRaw2 === 3 && samRaw2 === 35, `steal math: you ${youRaw2}=+3, sam ${samRaw2}=38−3`);
+ok(rm2.inventory.you.filter(i => i.kind === "steal").length === 0, "successful steal spent the card (exhaustion)");
+
+/* lightning — activate, then log INSIDE the window */
+const dlBefore = await evalJs(`JSON.parse(localStorage.getItem('rwf.figma.v1')).matches[1].deadlineAt`);
+await click("#pwrBtn");
+await click('[data-pwr="lightning"]');
+await shot("pwr-lightning-toast");
+st = await state();
+const rm3 = st.matches[1];
+const nowMs = Date.now();
+ok(rm3.lightning?.you > nowMs + 9 * 60 * 1000 && rm3.lightning.you <= nowMs + 10 * 60 * 1000 + 2000, "lightning window ≈ 10 minutes (ms epoch)");
+ok(rm3.lightningUsed?.you === true, "lightning one-per-match flag set");
+await goto("#/battle-001");
+ok(await exists(".fx-activebanner"), "lightning banner on the battle screen");
+ok(await exists('.fg-lbrow[data-player="you"] .fx-lt'), "×3 tag on your leaderboard row while live");
+await shot("pwr-lightning-live");
+await click("#logBtn");
+ok(((await text("#quickLog")) ?? "").toUpperCase().includes("LIGHTNING ROUND LIVE"), "quick-log sheet shows the ×3 preview");
+await evalJs(`(() => { document.querySelector('[data-n="5"]').click(); return true; })()`);
+await sleep(100);
+await click("#qlCta");
+st = await state();
+const myEntry = st.matches[1].entries.find(e => e.playerId === "you" && e.reps === 5);
+ok(myEntry?.lightning === true, "entry logged inside the window is tagged ×3 in state");
+ok(myEntry?.comeback === true, "…and it stacked with the armed comeback ×1.2");
+const myAdj = (await evalJs(`(async () => { const E = await import('${BASE}/engine.js'); const s = JSON.parse(localStorage.getItem('rwf.figma.v1'));
+  return E.standings(s.matches[1]).find(r => r.player.id === 'you').adjustedScore; })()`));
+ok(myAdj === 31.5, `×3 verified in standings: 3×1.5 steal + 5×1.5×1.2×3 = ${myAdj} (expect 31.5)`);
+
+/* freeze — deadline +30 min exactly */
+await click("#pwrBtn");
+await click('[data-pwr="freeze"]');
+st = await state();
+ok(st.matches[1].deadlineAt === dlBefore + 30 * 60 * 1000, `freeze extended the deadline by exactly 30 min (${st.matches[1].deadlineAt - dlBefore}ms)`);
+ok(st.matches[1].inventory.you.filter(i => i.kind === "freeze").length === 0, "freeze card spent");
+
+/* your shield — arms and shows on your row */
+await click("#pwrBtn");
+await click('[data-pwr="shield"]');
+st = await state();
+ok(st.matches[1].shields?.you === true, "your shield armed");
+await goto("#/battle-001");
+ok(await exists('.fg-lbrow[data-player="you"] .fx-sh'), "shield tag on your leaderboard row");
+
+/* card detail screen (pwr-002) is real now */
+await goto("#/pwr-002");
+ok(!(await exists(".fx-demochip")), "card detail screen is REAL (no demo chip)");
+/* lightning is still live → the CTA honestly refuses with a state, not a
+   fake activate button */
+ok((await exists("#pwrActivate")) || /USED|ALREADY LIVE|ARMED|NONE HELD|NO LIVE/.test((await text(".fg-sheet__cta")) ?? ""), "card detail reflects live power-up state");
+await shot("pwr-detail");
+
 console.log("— HOME (battle list)");
 await goto("#/home-003");
 const cards = await evalJs(`document.querySelectorAll('.fg-battle').length`);
@@ -378,8 +501,10 @@ await evalJs(`(() => { document.querySelector('[data-camnote-close]').click(); r
 await sleep(150);
 
 console.log("— DEMO CHIP HONESTY");
-await goto("#/pwr-001");
-ok(await exists(".fx-demochip"), "power-ups carries DEMO chip");
+await goto("#/pwr-007");
+ok(await exists(".fx-demochip"), "store carries DEMO chip (DEV GRANT replaces it)");
+await goto("#/pwr-006");
+ok(await exists(".fx-demochip"), "loot chest carries DEMO chip (cadence mock — the card itself is real)");
 await goto("#/wager-001");
 ok(await exists(".fx-demochip"), "wagers carries DEMO chip");
 await goto("#/battle-001");

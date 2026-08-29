@@ -720,6 +720,88 @@
   font: 600 11px/1.2 var(--font-body); letter-spacing: 0.06em; color: var(--faint); padding: 8px;
 }
 .fx-simbtn span { color: var(--faint-deco); font-weight: 400; }
+
+/* ── FLOW-05 power-ups ────────────────────────────────────────────────── */
+
+/* ×3 lightning tag on a leaderboard row (mirrors .fx-cb, gold axis) */
+.fx-lt {
+  font: 700 9px/1 var(--font-body); color: var(--bg); background: var(--gold, var(--lime));
+  border-radius: var(--pill); padding: 3px 6px; margin-left: 6px; vertical-align: 2px; letter-spacing: 0.06em;
+  animation: fx-lt-pop 0.18s ease-out;
+}
+@keyframes fx-lt-pop { from { transform: scale(0.6); opacity: 0; } to { transform: scale(1); opacity: 1; } }
+@media (prefers-reduced-motion: reduce) { .fx-lt { animation: none; } }
+
+/* shield-armed tag on a row */
+.fx-sh {
+  display: inline-flex; align-items: center; margin-left: 6px; vertical-align: 2px;
+  color: var(--sky); border-radius: var(--pill); padding: 2px 5px;
+  background: color-mix(in srgb, var(--sky) 14%, transparent);
+  border: 1px solid color-mix(in srgb, var(--sky) 45%, transparent);
+}
+.fx-sh svg { width: 10px; height: 10px; }
+
+/* steal flash — both touched rows pulse once (cheap CSS, reduced-motion safe) */
+.fg-lbrow--gain { animation: fx-pwr-gain 0.9s ease-out; }
+.fg-lbrow--hit { animation: fx-pwr-hit 0.9s ease-out; }
+@keyframes fx-pwr-gain {
+  0% { background: color-mix(in srgb, var(--lime) 30%, transparent); }
+  100% { background: transparent; }
+}
+@keyframes fx-pwr-hit {
+  0% { background: color-mix(in srgb, var(--danger) 30%, transparent); }
+  100% { background: transparent; }
+}
+@media (prefers-reduced-motion: reduce) { .fg-lbrow--gain, .fg-lbrow--hit { animation: none; } }
+
+/* POWER-UPS button on the battle screen (purple axis — Ben's power-up colour) */
+.fx-pwrbtn {
+  margin-top: 14px; align-self: stretch; cursor: pointer;
+  display: flex; align-items: center; justify-content: center; gap: 6px;
+  height: 46px; border-radius: var(--pill); border: 1.5px solid color-mix(in srgb, var(--energy) 60%, transparent);
+  background: color-mix(in srgb, var(--energy) 16%, transparent);
+  font: 700 13px/1.2 var(--font-body); letter-spacing: 0.06em; color: var(--energy-light, var(--text));
+}
+.fx-pwrbtn span { color: var(--faint); font-weight: 600; }
+.fx-pwrbtn:active { transform: scale(0.98); background: color-mix(in srgb, var(--energy) 26%, transparent); }
+
+/* lightning live clock inside the active banner (text-ticker, light inline) */
+.fx-ltclock .fg-count__time {
+  font: 700 12px/1.2 var(--font-body); color: var(--text); font-variant-numeric: tabular-nums;
+}
+
+/* status line above the card list in the power-up sheet */
+.fx-ltline {
+  display: flex; align-items: center; gap: 6px; margin-top: 8px; padding: 8px 10px;
+  border-radius: 10px; font: 700 11px/1.3 var(--font-body); letter-spacing: 0.04em;
+  color: var(--gold, var(--lime)); background: color-mix(in srgb, var(--gold, var(--lime)) 12%, transparent);
+  border: 1px solid color-mix(in srgb, var(--gold, var(--lime)) 40%, transparent);
+}
+.fx-ltline svg { width: 13px; height: 13px; flex: none; }
+.fx-ltline--shield { color: var(--sky); background: color-mix(in srgb, var(--sky) 12%, transparent); border-color: color-mix(in srgb, var(--sky) 40%, transparent); }
+.fx-ltline--target { color: var(--energy-light, var(--text)); background: color-mix(in srgb, var(--energy) 12%, transparent); border-color: color-mix(in srgb, var(--energy) 40%, transparent); }
+
+/* inventory card list (sheet + rows with an action) */
+.fx-pwrlist { display: flex; flex-direction: column; gap: 10px; margin-top: 12px; }
+.fx-pwrcard {
+  display: grid; grid-template-columns: auto auto 1fr auto; align-items: center;
+  gap: 10px; width: 100%; padding: 12px; text-align: left; cursor: default;
+}
+.fx-pwrcard__body { min-width: 0; }
+.fx-pwrcard .fg-pwr__name { font-size: 14px; }
+.fx-pwrcard .fg-pwr__desc { font-size: 10.5px; }
+.fx-pwrcard .fg-pwr__art { width: 38px; height: 38px; }
+.fx-pwrcard .fg-pwr__art .fg-icon { width: 20px; height: 20px; }
+.fx-pwrcard .fx-btn { flex: none; }
+.fx-pwrstate {
+  font: 700 9px/1.2 var(--font-body); letter-spacing: 0.05em; color: var(--faint);
+  text-align: center; max-width: 64px;
+}
+.fx-pwrstate--on { color: var(--success); }
+.fx-pwrstate svg { width: 11px; height: 11px; vertical-align: -1px; }
+
+/* tappable real cards on the arsenal screen */
+.fx-pwrgrid .fg-pwr[data-pwrsel]:active { transform: scale(0.97); }
 .fx-simbtn:hover { color: var(--muted); }
 
 /* season ladder rows */

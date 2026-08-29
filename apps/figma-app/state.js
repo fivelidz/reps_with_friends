@@ -110,16 +110,18 @@ export function createFastBattle({ name, days, pack, target, withMates = true })
   const packIds = PACKS[pack] ?? PACKS.bodyweight;
   const state = load();
   const code = crewCode(state);
-  const match = E.createMatch(
+  let match = E.createMatch(
     {
       id: `m${Date.now()}`,
       name: String(name || "The Battle").slice(0, 40),
       exercises: EXERCISES.filter((e) => packIds.includes(e.id)),
       targetReps: target_.reps,
       playDays: days?.length ? days : [1, 3, 5],
+      deadlineAt: playDayEndMs(), // FLOW-05: battles run to end of play day (9PM AEST)
     },
     withMates ? [state.player, ...MATES.slice(0, 3)] : [state.player]
   );
+  match = seedPowerUps(match); // every new match: 1 random card per player (discoverability)
   return mutate((s) => {
     s.seq = (s.seq ?? 0) + 1;
     s.matches.push(match);
@@ -157,13 +159,14 @@ export function logToMatch(matchId, { exerciseId, reps, playerId, verified = fal
   const match = pre.matches.find((m) => m.config.id === matchId);
   if (!match) throw new Error("match not found");
   const pid = playerId ?? pre.player?.id;
-  const entry = E.applyComeback(match, {
+  let entry = E.applyComeback(match, {
     playerId: pid,
     exerciseId,
     reps,
     at: Date.now(),
     verified,
   });
+  entry = E.applyLightning(match, entry); // FLOW-05: tag ×3 while the window is open
   const res = E.logReps(match, entry);
   const out = mutate((s) => {
     const i = s.matches.findIndex((m) => m.config.id === matchId);
@@ -173,6 +176,7 @@ export function logToMatch(matchId, { exerciseId, reps, playerId, verified = fal
   return {
     closed: res.closedMatch,
     comeback: !!entry.comeback,
+    lightning: !!entry.lightning,
     match: out.matches.find((m) => m.config.id === matchId),
   };
 }
@@ -201,16 +205,108 @@ export function rematch(matchId) {
   const s = load();
   const old = s.matches.find((m) => m.config.id === matchId);
   if (!old) throw new Error("match not found");
-  const fresh = E.startMatch(
+  let fresh = E.startMatch(
     E.createMatch(
-      { ...old.config, id: `m${Date.now()}` },
+      { ...old.config, id: `m${Date.now()}`, deadlineAt: playDayEndMs() }, // fresh play-day deadline
       old.players
     )
   );
+  fresh = seedPowerUps(fresh);
   return mutate((st) => {
     st.matches.push(fresh);
     st.pots[fresh.config.id] = E.createPot(`pot-${fresh.config.id}`, fresh.config.id);
   });
+}
+
+/* ── power-ups (FLOW-05) ──────────────────────────────────────────────── */
+
+/** Every new match starts with 1 random card per player — the mechanic is
+ *  discoverable from the first battle without any store/chest. */
+export function seedPowerUps(match) {
+  let m = match;
+  for (const p of m.players) m = E.grantPowerUp(m, p.id, E.randomPowerUpKind());
+  return m;
+}
+
+/** The battle deadline as end-of-play-day: next 21:00 Australia/Sydney
+ *  (the group clock Ben's design standardises on — matches dualClock).
+ *  DST-safe via Intl; falls back to +24h off-browser. */
+export function playDayEndMs(now = new Date()) {
+  try {
+    const fmt = new Intl.DateTimeFormat("en-AU", {
+      timeZone: "Australia/Sydney", hour: "2-digit", minute: "2-digit",
+      hour12: false,
+    });
+    const [h, m] = fmt.format(now).split(":").map(Number);
+    const minsNow = h * 60 + m;
+    let minsLeft = 21 * 60 - minsNow;
+    if (minsLeft <= 0) minsLeft += 1440; // past 9PM → tomorrow's play day
+    return now.getTime() + minsLeft * 60_000;
+  } catch {
+    return now.getTime() + 24 * 60 * 60 * 1000;
+  }
+}
+
+/** Your cards in a match (tolerates pre-FLOW-05 saved matches). */
+export function myInventory(matchId, state = load()) {
+  const m = state.matches.find((x) => x.config.id === matchId);
+  if (!m) return [];
+  return E.inventoryOf(m, state.player?.id);
+}
+
+/** Activate a held power-up inside a match (default: you). Persists the
+ *  engine result + returns { result, match } — result is the result card
+ *  ({ok:false, reason} on refusal; nothing is persisted then). */
+export function activateInMatch(matchId, { playerId, kind }) {
+  const pre = load();
+  const match = pre.matches.find((m) => m.config.id === matchId);
+  if (!match) throw new Error("match not found");
+  const res = E.activatePowerUp(match, playerId ?? pre.player?.id, kind);
+  if (res.result.ok) {
+    mutate((s) => {
+      const i = s.matches.findIndex((m) => m.config.id === matchId);
+      if (i >= 0) s.matches[i] = res.state;
+    });
+  }
+  return {
+    result: res.result,
+    match: load().matches.find((m) => m.config.id === matchId),
+  };
+}
+
+/** DEV GRANT — replaces the store in this build. Grants ALL FOUR kinds to
+ *  EVERY player (you + the mates, so shield-blocks and rival plays can be
+ *  exercised). Honest label in the UI; not the real IAP economy. */
+export function devGrant(matchId) {
+  const pre = load();
+  let m = pre.matches.find((x) => x.config.id === matchId);
+  if (!m) return { granted: 0, matchId };
+  for (const p of m.players) {
+    for (const kind of ["lightning", "steal", "shield", "freeze"]) {
+      m = E.grantPowerUp(m, p.id, kind);
+    }
+  }
+  const granted = m.players.length * 4;
+  mutate((s) => {
+    const i = s.matches.findIndex((x) => x.config.id === matchId);
+    if (i >= 0) s.matches[i] = m;
+  });
+  return { granted, matchId };
+}
+
+/** Daily-drop style grant of one random card (the loot chest reveal). */
+export function grantRandomTo(matchId, playerId) {
+  const pre = load();
+  const m0 = pre.matches.find((x) => x.config.id === matchId);
+  if (!m0) return null;
+  const pid = playerId ?? pre.player?.id;
+  const kind = E.randomPowerUpKind();
+  const m = E.grantPowerUp(m0, pid, kind);
+  mutate((s) => {
+    const i = s.matches.findIndex((x) => x.config.id === matchId);
+    if (i >= 0) s.matches[i] = m;
+  });
+  return { kind, rarity: E.POWER_UPS[kind].rarity, playerId: pid };
 }
 
 /* ── season plumbing ──────────────────────────────────────────────────── */
