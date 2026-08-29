@@ -398,9 +398,13 @@ function poseAim(rig, exercise, p) {
     rig.sync();
     const fD = lerpDir(new THREE.Vector3(0.18, -0.97, 0.16), new THREE.Vector3(0.08, -0.05, 1.0), d);
     rig.aim(B.foreL, fD); rig.aim(B.foreR, mirrorX(fD));
-    // head counters the lean — look forward
-    rig.aim(B.neck, new THREE.Vector3(0, 0.55, 0.83));
-    rig.aim(B.head, new THREE.Vector3(0, 0.3, 0.95));
+    // head counters the lean — look forward. NOTE: aim() points the bone's
+    // REST direction (≈ straight UP for the neck chain) at the target, so the
+    // old targets (0,0.55,0.83)/(0,0.3,0.95) folded the head 56°/72° forward
+    // mid-squat — a tucked chin the whole rep (measured pitch, atelier probe).
+    // Near-vertical + a modest gaze tilt reads as a lifter looking ahead.
+    rig.aim(B.neck, new THREE.Vector3(0, 0.97, 0.26));
+    rig.aim(B.head, new THREE.Vector3(0, 0.83, 0.55));
     return;
   }
 
@@ -464,8 +468,8 @@ function poseAim(rig, exercise, p) {
     rig.aim(B.armL, aD); rig.aim(B.armR, mirrorX(aD));
     rig.sync();
     rig.aim(B.foreL, aD); rig.aim(B.foreR, mirrorX(aD));
-    rig.aim(B.neck, new THREE.Vector3(0, 0.35, 0.94));
-    rig.aim(B.head, new THREE.Vector3(0, 0.2, 0.98));
+    rig.aim(B.neck, new THREE.Vector3(0, 0.98, 0.2));   // was (0,0.35,0.94): 70° head fold
+    rig.aim(B.head, new THREE.Vector3(0, 0.92, 0.4));
     return;
   }
 
@@ -478,8 +482,8 @@ function poseAim(rig, exercise, p) {
     const fD = lerpDir(new THREE.Vector3(0.06, -0.99, 0.1), new THREE.Vector3(0.04, 0.82, 0.57), d);
     rig.aim(B.foreL, fD); rig.aim(B.foreR, mirrorX(fD));
     rig.bend(B.spine1, XAX, -0.05 * d);
-    rig.aim(B.neck, new THREE.Vector3(0, 0.3, 0.95));
-    rig.aim(B.head, new THREE.Vector3(0, 0.18, 0.98));
+    rig.aim(B.neck, new THREE.Vector3(0, 0.99, 0.15));  // was (0,0.3,0.95): 72° head fold
+    rig.aim(B.head, new THREE.Vector3(0, 0.95, 0.31));
     return;
   }
 }

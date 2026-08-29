@@ -259,6 +259,11 @@ const server = Bun.serve({
     } else if (p.startsWith("/avatars")) {
       // Local-only avatar playground — tune the customisation system live.
       r = dirRoute("apps/avatars", url) ?? new Response("avatars playground not found", { status: 404 });
+    } else if (p.startsWith("/atelier")) {
+      // Outfit Atelier — one-avatar garment inspection tool (x-ray, seam
+      // heatmap, build-up, attachment probe). The verification instrument
+      // for geno-outfit.js; reusable for other avatars/games later.
+      r = dirRoute("apps/atelier", url) ?? new Response("atelier not found", { status: 404 });
     } else if (p.startsWith("/system")) {
       r = dirRoute("apps/systempage", url) ?? new Response("system page not found", { status: 404 });
     } else if (p.startsWith("/wiki")) {

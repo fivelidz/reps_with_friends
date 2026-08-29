@@ -1,0 +1,141 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8" />
+<meta name="viewport" content="width=device-width, initial-scale=1.0" />
+<title>RWF · Outfit Atelier</title>
+<link rel="stylesheet" href="/design/tokens.css" />
+<link rel="stylesheet" href="/design/fonts/fonts.css" />
+<link rel="stylesheet" href="/atelier/atelier.css" />
+<link rel="icon" href="data:image/svg+xml,<svg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 100 100'><text y='.9em' font-size='90'>🧵</text></svg>">
+<script type="importmap">
+{
+  "imports": {
+    "three": "/site/lib/three.module.js",
+    "three/addons/controls/OrbitControls.js": "/site/lib/OrbitControls.js"
+  }
+}
+</script>
+</head>
+<body class="atelier">
+
+<header class="at-head">
+  <div class="at-head-main">
+    <p class="at-kicker">REPS WITH FRIENDS · INTERNAL TOOL</p>
+    <h1>Outfit Atelier</h1>
+  </div>
+  <p class="at-sub">
+    One avatar, up close. The instrument for judging garments with human eyes:
+    zoom, slow-mo, x-ray, seam heatmap, build-up, isolation. Geno + the
+    canonical outfit (<code>geno-outfit.js</code>) — the gallery switches after
+    founder approval.
+  </p>
+  <div class="at-fixbar" title="the founder's defect report this page exists to answer">
+    <span class="fix-chip">fixing: holes in shirt &amp; shorts</span>
+    <span class="fix-chip">shirt must be a T-SHIRT, not a singlet</span>
+    <span class="fix-chip">waistband must be VISIBLE</span>
+    <span class="fix-chip">must hold through all animations</span>
+  </div>
+</header>
+
+<main class="at-main">
+
+  <!-- ══ THE VIEWPORT — one avatar, one WebGL context ════════════════════ -->
+  <section class="at-stage-wrap" id="stageWrap">
+    <div class="at-stage" id="stage">
+      <div class="at-hud">
+        <span class="hud-chip" id="hudAnim">—</span>
+        <span class="hud-chip hud-dim" id="hudPhase">—</span>
+        <span class="hud-chip hud-dim" id="hudFps">— fps</span>
+        <span class="hud-chip hud-dim" id="hudCtx">— ctx</span>
+      </div>
+      <div class="at-legend" id="heatLegend" hidden>
+        <span class="lg lg-green">attached &lt;2 cm</span>
+        <span class="lg lg-amber">drift &lt;5 cm</span>
+        <span class="lg lg-red">off-body &gt;5 cm</span>
+      </div>
+    </div>
+    <div class="at-stage-foot">
+      <span>drag = orbit · wheel = zoom · double-click = reset view</span>
+      <span class="hud-dim" id="stageNote"></span>
+    </div>
+  </section>
+
+  <!-- ══ CONTROL RAIL ═══════════════════════════════════════════════════ -->
+  <aside class="at-rail" id="rail">
+
+    <section class="rail-sec">
+      <h2>Animation</h2>
+      <div class="ctl">
+        <label class="ctl-label" for="animSel">clip / pose</label>
+        <select id="animSel" class="ctl-input"></select>
+      </div>
+      <div class="ctl ctl-row">
+        <label class="ctl-label" for="speedRange">speed <b id="speedVal">1.00×</b></label>
+        <input type="range" id="speedRange" class="ctl-range" min="0.1" max="2" step="0.05" value="1" />
+      </div>
+      <div class="btn-row">
+        <button class="rwf-btn" id="btnPause" type="button">⏸ Pause</button>
+        <button class="rwf-btn" id="btnStepB" type="button" title="back one frame (1/30 s)">⏴ Frame</button>
+        <button class="rwf-btn" id="btnStepF" type="button" title="forward one frame (1/30 s)">Frame ⏵</button>
+      </div>
+      <p class="ctl-hint">0.1× slow-mo + frame stepping: watch a seam at the exact instant it strains.</p>
+    </section>
+
+    <section class="rail-sec">
+      <h2>View</h2>
+      <div class="btn-row wrap">
+        <button class="rwf-btn is-on" id="btnTurn" type="button" title="auto turntable">⟳ Turntable</button>
+        <button class="rwf-btn" id="btnXray" type="button" title="garments go translucent — check seams against the body through the fabric">👁 X-ray</button>
+        <button class="rwf-btn" id="btnWire" type="button" title="body wireframe through the fabric">🕸 Body wire</button>
+        <button class="rwf-btn" id="btnHeat" type="button" title="false-colour garment vertices by distance to body surface">🌡 Seam heatmap</button>
+        <button class="rwf-btn" id="btnShot" type="button" title="save a PNG of the current frame">📸 PNG</button>
+      </div>
+      <p class="ctl-hint">X-ray = fabric 30% opacity. Heatmap = green hugging, red floating/holes.</p>
+    </section>
+
+    <section class="rail-sec">
+      <h2>Build-up</h2>
+      <div class="btn-row">
+        <button class="rwf-btn" id="btnStepPrev" type="button">◀ Prev</button>
+        <button class="rwf-btn" id="btnStepNext" type="button">Next ▶</button>
+      </div>
+      <div class="build-list" id="buildList"></div>
+      <p class="ctl-hint">Each step stays on screen until you advance. Step 3 exists so the
+        waistband can be judged on its own.</p>
+    </section>
+
+    <section class="rail-sec">
+      <h2>Isolation</h2>
+      <div class="chip-row" id="isoRow"></div>
+      <p class="ctl-hint">Show exactly one garment — the fastest way to see a hole in a single piece.</p>
+    </section>
+
+    <section class="rail-sec">
+      <h2>Verify <span class="hud-dim">(programmatic)</span></h2>
+      <button class="rwf-btn rwf-btn--primary" id="btnVerify" type="button">▶ Run attachment probe</button>
+      <p class="ctl-hint">Poses every clip × 4 phases + every exercise × 3 phases, then measures
+        garment→body distance (bar: ≤5 cm) and ring-by-ring continuity (bar: no
+        edge stretched &gt;3 mm).</p>
+      <div class="verify-out" id="verifyOut"><p class="hud-dim">No run yet.</p></div>
+    </section>
+
+    <section class="rail-sec">
+      <h2>Config export</h2>
+      <button class="rwf-btn" id="btnExport" type="button">⧉ Build JSON</button>
+      <textarea id="exportBox" class="export-box" rows="8" spellcheck="false" readonly
+        placeholder="Current outfit + animation + view as JSON — copyable, reusable in other tasks and games."></textarea>
+      <p class="ctl-hint">Reusable: the same JSON drives any Geno-shaped rig.</p>
+    </section>
+
+  </aside>
+</main>
+
+<footer class="at-foot">
+  <span>apps/atelier · one WebGL context · no external deps</span>
+  <span class="hud-dim" id="footNote">—</span>
+</footer>
+
+<script type="module" src="/atelier/atelier.js"></script>
+</body>
+</html>
