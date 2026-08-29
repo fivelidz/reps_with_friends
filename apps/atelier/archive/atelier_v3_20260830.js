@@ -23,7 +23,7 @@ import { OrbitControls } from 'three/addons/controls/OrbitControls.js';
 import { loadModel, applyFlatTint, loadBVH, BVHPlayer, ModelAvatar, BVH_FILES }
   from '/site/model-avatars.js';
 import {
-  attachOutfit, clearOutfit, garmentVerts, bodySurface, bodyTriangles, nearestDistanceFactory,
+  attachOutfit, clearOutfit, garmentVerts, bodySurface, nearestDistanceFactory,
   skeletonSamples, OUTFIT_SLOTS, SLOT_LABELS, BUILDUP_STEPS,
 } from '/site/models/geno-outfit.js';
 
@@ -160,28 +160,12 @@ const heatColour = (dCm, out) => {
   out[0] = c[0]; out[1] = c[1]; out[2] = c[2];
 };
 
-/** SIGNED heat: verts INSIDE the body render bright RED with a white core —
- *  distinct at a glance from the far-from-body reds. The unsigned colour
- *  alone cannot show the founder's "garment swallowed by flesh" class. */
-const INSIDE_COL = [1.0, 0.12, 0.12];
-const INSIDE_DEEP = [1.0, 0.85, 0.9];
-
-let heatOracle = null;   // rebuilt on a slower cadence than the distance pass
-let heatOracleAt = -1;
-
-function updateHeatmap(rebuildOracle = false) {
+function updateHeatmap() {
   if (!state.heat || !outfit) return;
   const s = av.root.getWorldScale(new THREE.Vector3()).x || 1;
   const cmPerUnit = 175 / (s * av.H);           // 1.75 m human at this scale
   const body = bodySurface(av, 9000);           // cheaper sampling for live updates
   const nearest = nearestDistanceFactory(body, 0.05);
-  // the depth oracle (10 body-only renders) is heavier than the distance
-  // pass — rebuild it on a slower cadence, reuse between frames
-  if (rebuildOracle || !heatOracle || performance.now() - heatOracleAt > 500) {
-    heatOracle = bodyDepthOracle();
-    heatOracleAt = performance.now();
-  }
-  const oracle = heatOracle;
   const rgb = [0, 0, 0];
   for (const g of allGarments()) {
     if (!g.visible) continue;
@@ -189,17 +173,8 @@ function updateHeatmap(rebuildOracle = false) {
     if (!colAttr) continue;
     const verts = garmentVerts(g);
     for (let i = 0; i < verts.length && i < colAttr.count; i++) {
-      const v = verts[i];
-      if (oracle.inside(v.x, v.y, v.z)) {
-        // signed RED: bright for shallow burial, white-cored when deep
-        const d = nearest(v.x, v.y, v.z) * cmPerUnit;
-        const t = Math.min(1, d / 4);
-        rgb[0] = INSIDE_COL[0] + (INSIDE_DEEP[0] - INSIDE_COL[0]) * t;
-        rgb[1] = INSIDE_COL[1] + (INSIDE_DEEP[1] - INSIDE_COL[1]) * t;
-        rgb[2] = INSIDE_COL[2] + (INSIDE_DEEP[2] - INSIDE_COL[2]) * t;
-      } else {
-        heatColour(nearest(v.x, v.y, v.z) * cmPerUnit, rgb);
-      }
+      const d = nearest(verts[i].x, verts[i].y, verts[i].z) * cmPerUnit;
+      heatColour(d, rgb);
       colAttr.setXYZ(i, rgb[0], rgb[1], rgb[2]);
     }
     colAttr.needsUpdate = true;
@@ -459,590 +434,6 @@ async function sleeveCheck(view = 'front') {
   });
 }
 
-
-// ── SIGNED coverage probe (inside-body detection) — FIX 1 ────────────────────
-//
-// WHY: the attachment probe measures UNSIGNED distance-to-body — a ring 5 mm
-// INSIDE the flesh scores "green <2 cm" exactly like a proper fit, so a
-// garment swallowed by the body is invisible to the instrument (the founder's
-// three absence reports — shoulders/upper chest, upper thighs, toes — all
-// passed 32/32 while he saw bare skin). The signed probe turns the failure
-// class visible, in two layers:
-//
-//   • scanSignedCoverage — coarse extent diagnostic: per ring, per principal
-//     axis, the body cross-section vs the ring's one-sided extents (the task's
-//     slab/semi-axes method; kept for dev runs — it over-reaches when other
-//     body parts are contiguous with the ring's flesh in the slab, so it is
-//     diagnostic-only).
-//   • scanInsideBody — the VERDICT: per garment VERTEX, "is flesh in front of
-//     this point from EVERY direction?" via a body-only depth oracle (8-view
-//     — no, 10-view — ortho occlusion over a CPU-skinned triangle soup; Geno's
-//     mesh is positionally watertight but index-split, so voxel/ray-parity
-//     sealing leaks). A vertex occluded in all views, deeper than tolerance
-//     under the surface it exits through, farther than the crease guard from
-//     any skin, and NOT tucked under another strip's tube (ellipse
-//     containment) is a COVERED-BY-BODY defect — the red "inside body" state.
-
-const DEPTH_VIEWS = 10;
-const DEPTH_SIZE = 384;
-
-/** Smallest-eigenvector frame of one ring's live verts (3×3 cyclic Jacobi). */
-function ringFrame(verts) {
-  const c = new THREE.Vector3();
-  for (const v of verts) c.add(v);
-  c.divideScalar(verts.length);
-  let xx = 0, xy = 0, xz = 0, yy = 0, yz = 0, zz = 0;
-  for (const v of verts) {
-    const dx = v.x - c.x, dy = v.y - c.y, dz = v.z - c.z;
-    xx += dx * dx; xy += dx * dy; xz += dx * dz; yy += dy * dy; yz += dy * dz; zz += dz * dz;
-  }
-  const a = [[xx, xy, xz], [xy, yy, yz], [xz, yz, zz]];
-  let v0 = [1, 0, 0], v1 = [0, 1, 0], v2 = [0, 0, 1];
-  for (let sweep = 0; sweep < 8; sweep++) {
-    for (let p = 0; p < 3; p++) for (let q = p + 1; q < 3; q++) {
-      if (Math.abs(a[p][q]) < 1e-12) continue;
-      const theta = (a[q][q] - a[p][p]) / (2 * a[p][q]);
-      const t = Math.sign(theta || 1) / (Math.abs(theta) + Math.hypot(1, theta));
-      const cos = 1 / Math.hypot(1, t), sin = t * cos;
-      for (let k = 0; k < 3; k++) {
-        const akp = a[k][p], akq = a[k][q];
-        a[k][p] = cos * akp - sin * akq; a[k][q] = sin * akp + cos * akq;
-      }
-      for (let k = 0; k < 3; k++) {
-        const apk = a[p][k], aqk = a[q][k];
-        a[p][k] = cos * apk - sin * aqk; a[q][k] = sin * apk + cos * aqk;
-      }
-      const vs = [v0, v1, v2];
-      for (const vec of vs) {
-        const vp = vec[p], vq = vec[q];
-        vec[p] = cos * vp - sin * vq; vec[q] = sin * vp + cos * vq;
-      }
-    }
-  }
-  const vecs = [[a[0][0], v0], [a[1][1], v1], [a[2][2], v2]].sort((A, B) => B[0] - A[0]);
-  const e1 = new THREE.Vector3(...vecs[0][1]).normalize();
-  const n = new THREE.Vector3(...vecs[2][1]).normalize();
-  const e2 = new THREE.Vector3().crossVectors(n, e1).normalize();
-  return { c, e1, e2, n };
-}
-
-/** contiguous outward run: flesh extent along one direction, stopping at the
- *  first sampling gap (a different body part). */
-function runExtent(sortedAsc, gap) {
-  if (!sortedAsc.length) return 0;
-  let ext = sortedAsc[0];
-  for (let i = 1; i < sortedAsc.length; i++) {
-    if (sortedAsc[i] - sortedAsc[i - 1] > gap) break;
-    ext = sortedAsc[i];
-  }
-  return ext;
-}
-
-/** Per-ring signed extent deficits (diagnostic). */
-function ringSignedDeficits(ringVerts, bodyPts, Hw, cmPerUnit) {
-  const { c, e1, e2, n } = ringFrame(ringVerts);
-  const slab = 0.011 * Hw;
-  const gap = 0.028 * Hw / 1.7;
-  const capR = 0.11 * Hw;
-  const p1 = [], p2 = [];
-  for (const p of bodyPts) {
-    const dx = p[0] - c.x, dy = p[1] - c.y, dz = p[2] - c.z;
-    if (Math.abs(dx * n.x + dy * n.y + dz * n.z) > slab) continue;
-    const a = dx * e1.x + dy * e1.y + dz * e1.z;
-    const b = dx * e2.x + dy * e2.y + dz * e2.z;
-    if (Math.hypot(a, b) > capR) continue;
-    p1.push(a);
-    p2.push(b);
-  }
-  const pos = (arr) => arr.filter((v) => v > 0).sort((x, y) => x - y);
-  const neg = (arr) => arr.filter((v) => v < 0).map((v) => -v).sort((x, y) => x - y);
-  const ringExt = (dir) => Math.max(0, ...ringVerts.map((v) => (v.x - c.x) * dir.x + (v.y - c.y) * dir.y + (v.z - c.z) * dir.z));
-  const dirs = [
-    { d: e1.clone(), name: '+x', body: pos(p1) },
-    { d: e1.clone().negate(), name: '-x', body: neg(p1) },
-    { d: e2.clone(), name: '+z', body: pos(p2) },
-    { d: e2.clone().negate(), name: '-z', body: neg(p2) },
-  ];
-  let worst = Infinity, worstDir = '';
-  for (const dir of dirs) {
-    const deficit = (ringExt(dir.d) - runExtent(dir.body, gap)) * cmPerUnit;
-    if (deficit < worst) { worst = deficit; worstDir = dir.name; }
-  }
-  return { c, worstCm: worst, worstDir };
-}
-
-/** Coarse diagnostic: failing rings by extent comparison. */
-function scanSignedCoverage() {
-  const s = av.root.getWorldScale(new THREE.Vector3()).x || 1;
-  const cmPerUnit = 175 / (s * av.H);
-  const Hw = s * av.H;
-  const bodyPts = bodySurface(av, 40000);
-  const bad = [];
-  let rings = 0;
-  for (const g of outfit.softGarments) {
-    const layout = g.userData?.rwfLayout;
-    if (!layout) continue;
-    const tag = g.userData?.rwfWardrobe ?? '?';
-    const gi = outfit.softGarments.indexOf(g);
-    const verts = garmentVerts(g);
-    for (let si = 0; si < layout.layout.length; si++) {
-      const strip = layout.layout[si];
-      if (!strip) continue;
-      for (let ri = 0; ri < strip.ringCount; ri++) {
-        rings++;
-        const rv = verts.slice(strip.start + ri * layout.radial, strip.start + (ri + 1) * layout.radial);
-        if (rv.length < 3 || rv.some((v) => !isFinite(v.x + v.y + v.z))) continue;
-        const res = ringSignedDeficits(rv, bodyPts, Hw, cmPerUnit);
-        if (res.worstCm < -0.2) {
-          bad.push({ tag, mesh: gi, strip: si, ring: ri, yM: +(res.c.y / Hw * 1.75).toFixed(2), dCm: +res.worstCm.toFixed(2), dir: res.worstDir });
-        }
-      }
-    }
-  }
-  const byGarment = {};
-  for (const b of bad) byGarment[b.tag] = (byGarment[b.tag] ?? 0) + 1;
-  return { rings, insideRings: bad.length, byGarment, bad, worstCm: bad.length ? Math.min(...bad.map((b) => b.dCm)) : 0 };
-}
-
-/** The VERDICT oracle: body-only depth from 10 ortho views over a CPU-skinned
- *  triangle soup (exact same LBS maths as garmentVerts — an overrideMaterial
- *  shader would render the BIND pose: no skinning chunks). */
-function bodyDepthOracle() {
-  const soup = new Float32Array(bodyTriangles(av));
-  const geo = new THREE.BufferGeometry();
-  geo.setAttribute('position', new THREE.BufferAttribute(soup, 3));
-  const packMat = new THREE.ShaderMaterial({
-    vertexShader: `
-      varying float vZ;
-      void main() {
-        vec4 mv = modelViewMatrix * vec4(position, 1.0);
-        vZ = -mv.z;
-        gl_Position = projectionMatrix * mv;
-      }`,
-    fragmentShader: `
-      varying float vZ;
-      void main() {
-        float q = clamp((vZ + 4.0) / 8.0, 0.0, 1.0) * 65535.0;
-        gl_FragColor = vec4(floor(q / 256.0) / 255.0, mod(q, 256.0) / 255.0, 0.0, 1.0);
-      }`,
-  });
-  const soupMesh = new THREE.Mesh(geo, packMat);
-  soupMesh.frustumCulled = false;
-  scene.add(soupMesh);
-  const hidden = [];
-  const hide = (o) => { if (o.visible) { o.visible = false; hidden.push(o); } };
-  hide(av.root); hide(ground); hide(ring);
-  const rt = new THREE.WebGLRenderTarget(DEPTH_SIZE, DEPTH_SIZE, {
-    minFilter: THREE.NearestFilter, magFilter: THREE.NearestFilter, depthBuffer: true,
-  });
-  const cam = new THREE.OrthographicCamera(-1, 1, 1, -1, 0.05, 6);
-  const dirs = [
-    new THREE.Vector3(1, 0, 0), new THREE.Vector3(-1, 0, 0),
-    new THREE.Vector3(0, 1, 0), new THREE.Vector3(0, -1, 0),
-    new THREE.Vector3(0, 0, 1), new THREE.Vector3(0, 0, -1),
-    new THREE.Vector3(1, 1, 1).normalize(), new THREE.Vector3(-1, 1, -1).normalize(),
-    new THREE.Vector3(1, -1, -1).normalize(), new THREE.Vector3(-1, -1, 1).normalize(),
-  ];
-  const box = new THREE.Box3();
-  for (let i = 0; i < soup.length; i += 3) box.expandByPoint(new THREE.Vector3(soup[i], soup[i + 1], soup[i + 2]));
-  const centre = box.getCenter(new THREE.Vector3());
-  const radius = Math.max(box.max.x - box.min.x, box.max.y - box.min.y, box.max.z - box.min.z) * 0.62 + 0.15;
-  const zbuf = new Uint8Array(DEPTH_SIZE * DEPTH_SIZE * 4);
-  const views = [];
-  try {
-    for (const d of dirs) {
-      cam.left = -radius; cam.right = radius; cam.top = radius; cam.bottom = -radius;
-      cam.position.copy(centre).addScaledVector(d, 3.0);
-      cam.up.set(0, 1, 0);
-      if (Math.abs(d.y) > 0.99) cam.up.set(0, 0, 1);
-      cam.lookAt(centre);
-      cam.updateProjectionMatrix();
-      cam.updateMatrixWorld(true);
-      renderer.setRenderTarget(rt);
-      renderer.clear(true, true, true);
-      renderer.render(scene, cam);
-      renderer.readRenderTargetPixels(rt, 0, 0, DEPTH_SIZE, DEPTH_SIZE, zbuf);
-      const zimg = new Float32Array(DEPTH_SIZE * DEPTH_SIZE);
-      for (let p2 = 0; p2 < DEPTH_SIZE * DEPTH_SIZE; p2++) {
-        const r8 = zbuf[p2 * 4], g8 = zbuf[p2 * 4 + 1];
-        const q = r8 * 256 + g8;
-        zimg[p2] = q < 30000 ? 1e9 : (q / 65535) * 8 - 4;
-      }
-      views.push({ cam: cam.clone(), zimg });
-    }
-  } finally {
-    renderer.setRenderTarget(null);
-    rt.dispose();
-    geo.dispose();
-    packMat.dispose();
-    scene.remove(soupMesh);
-    for (const o of hidden) o.visible = true;
-    av.root.updateMatrixWorld(true);
-  }
-  const v4 = new THREE.Vector3();
-  const sampleZ = (view, x, y, z) => {
-    v4.set(x, y, z).applyMatrix4(view.cam.matrixWorldInverse);
-    const vx = (v4.x / (2 * radius) + 0.5) * (DEPTH_SIZE - 1);
-    const vy = (v4.y / (2 * radius) + 0.5) * (DEPTH_SIZE - 1);
-    const zi = -v4.z;
-    const ix = Math.round(vx), iy = Math.round(vy);
-    if (ix < 0 || iy < 0 || ix >= DEPTH_SIZE || iy >= DEPTH_SIZE) return { body: 1e9, vert: zi };
-    return { body: view.zimg[iy * DEPTH_SIZE + ix], vert: zi };
-  };
-  return {
-    radius,
-    inside(x, y, z, tol = 0.006) {
-      let occluded = 0;
-      for (const view of views) {
-        const s = sampleZ(view, x, y, z);
-        if (s.body < s.vert - tol) occluded++;
-      }
-      return occluded === views.length;
-    },
-    debugPoint(x, y, z, tol = 0.006) {
-      return views.map((view) => {
-        const s = sampleZ(view, x, y, z);
-        return { body: +s.body.toFixed(3), vert: +s.vert.toFixed(3), occ: s.body < s.vert - tol };
-      });
-    },
-    exit(x, y, z, ux, uy, uz, tx = 0, ty = 0, tz = 0) {
-      const step = 0.005;
-      const tryDir = (dx, dy, dz) => {
-        for (let n = 1; n <= 24; n++) {
-          const t = n * step;
-          if (!this.inside(x + dx * t, y + dy * t, z + dz * t)) {
-            return { x: x + dx * t, y: y + dy * t, z: z + dz * t, depth: t };
-          }
-        }
-        return null;
-      };
-      // the OUTWARD direction is the meaningful one (away from the ring's
-      // centre); others are fallbacks for verts whose outward path is sealed
-      const primary = tryDir(ux, uy, uz);
-      if (primary) return primary;
-      let best = null;
-      const dirs = [
-        [-ux, -uy, -uz], [tx, ty, tz], [-tx, -ty, -tz],
-        [1, 0, 0], [-1, 0, 0], [0, 1, 0], [0, -1, 0], [0, 0, 1], [0, 0, -1],
-      ];
-      for (const [dx, dy, dz] of dirs) {
-        if (!dx && !dy && !dz) continue;
-        const r = tryDir(dx, dy, dz);
-        if (r && (!best || r.depth < best.depth)) best = r;
-      }
-      // nothing within 12 cm in ANY direction: a closed fold (joint shut,
-      // limb pressed to torso) — no surface anywhere near; not a sizing failure
-      if (!best) return { fold: true, x, y, z, depth: 1e9 };
-      return best;
-    },
-  };
-}
-
-/** TUCK coverers: ellipse containment in every other soft strip's skinned
- *  rings (+ rigid-piece proximity). A buried vertex is excused when its exit
- *  lands on flesh another garment surface encloses. */
-function stripCoverers() {
-  const strips = [];
-  for (let mi = 0; mi < outfit.softGarments.length; mi++) {
-    const g = outfit.softGarments[mi];
-    const layout = g.userData?.rwfLayout;
-    const tag = g.userData?.rwfWardrobe ?? '?';
-    if (!layout) continue;
-    const verts = garmentVerts(g);
-    for (let si = 0; si < layout.layout.length; si++) {
-      const strip = layout.layout[si];
-      if (!strip) continue;
-      const rings = [];
-      for (let ri = 0; ri < strip.ringCount; ri++) {
-        const rv = verts.slice(strip.start + ri * layout.radial, strip.start + (ri + 1) * layout.radial);
-        if (rv.length < 3) continue;
-        const f = ringFrame(rv);
-        let rx = 0, rz = 0;
-        for (const v of rv) {
-          const dx = v.x - f.c.x, dy = v.y - f.c.y, dz = v.z - f.c.z;
-          rx = Math.max(rx, Math.abs(dx * f.e1.x + dy * f.e1.y + dz * f.e1.z));
-          rz = Math.max(rz, Math.abs(dx * f.e2.x + dy * f.e2.y + dz * f.e2.z));
-        }
-        rings.push({ ...f, rx, rz, ri });
-      }
-      let gap = 0.05;
-      if (rings.length > 1) {
-        gap = 0;
-        for (let i = 1; i < rings.length; i++) gap += rings[i].c.distanceTo(rings[i - 1].c);
-        gap = (gap / (rings.length - 1)) * 1.6 + 0.01;
-      }
-      gap = Math.max(gap, 0.06); // poses compress ring spacing — the containment slab must not collapse with it
-      strips.push({ tag, mesh: mi, strip: si, rings, gap });
-    }
-  }
-  const rigids = [];
-  for (const g of outfit.rigidPieces) {
-    const pts = garmentVerts(g).map((v) => [v.x, v.y, v.z]);
-    rigids.push(nearestDistanceFactory(pts, 0.05));
-  }
-  return {
-    /** own-strip rings count ONLY if they are a different ring of the tube
-     *  (|ri − ri'| ≥ 1): the sleeve's t=0.16 ring genuinely covers flesh the
-     *  t=0.02 entry sinks into; a ring excusing ITSELF is meaningless. */
-    clothed(x, y, z, exMesh, exStrip, exRing = -1) {
-      for (const st of strips) {
-        for (let ri = 0; ri < st.rings.length; ri++) {
-          if (st.mesh === exMesh && st.strip === exStrip && Math.abs(ri - exRing) < 1) continue;
-          const r = st.rings[ri];
-          const dx = x - r.c.x, dy = y - r.c.y, dz = z - r.c.z;
-          if (Math.abs(dx * r.n.x + dy * r.n.y + dz * r.n.z) > st.gap) continue;
-          const a = (dx * r.e1.x + dy * r.e1.y + dz * r.e1.z) / (r.rx + 1e-6);
-          const b = (dx * r.e2.x + dy * r.e2.y + dz * r.e2.z) / (r.rz + 1e-6);
-          if (a * a + b * b <= 1.15 * 1.15) return true;
-        }
-      }
-      for (const near of rigids) if (near(x, y, z) <= 0.026) return true;
-      return false;
-    },
-  };
-}
-
-/** SIGNED coverage verdict. A vertex is a DEFECT when it is (a) occluded by
- *  flesh from EVERY view, (b) deeper than `tolCm` under the surface it exits
- *  through, (c) farther than `nearCm` from any skin (deep creases hide verts
- *  from all views at millimetres' distance — not a coverage failure), (d) not
- *  in a closed fold, (e) not crossed by a bare limb segment (forearm/hand,
- *  shin/knee — anatomy no garment claims, passing through a ring mid-swing;
- *  LBS fabric cannot compress out of its way), and (f) not TUCK-excused
- *  (exits through flesh enclosed by another strip's tube). */
-function scanInsideBody(tolCm = 0.35, nearCm = 1.2) {
-  const s = av.root.getWorldScale(new THREE.Vector3()).x || 1;
-  const cmPerUnit = 175 / (s * av.H);
-  const tol = tolCm / cmPerUnit, near = nearCm / cmPerUnit;
-  const oracle = bodyDepthOracle();
-  window.__oracle = oracle; // probe debug handle
-  const nearSurface = nearestDistanceFactory(bodySurface(av, 30000), 0.05);
-  const cover = stripCoverers();
-  window.__cover = cover;
-  // bare-limb segments: forearm+hand (sleeves end mid-upper arm BY DESIGN);
-  // shin+knee+lower thigh (shoe collar and shorts hem leave them bare)
-  const segs = [];
-  // neck+head: bare by design above the collar — LBS rings dragged into the
-  // neck by extreme arm raises exit through it (crossing class, not sizing)
-  {
-    const n = av.bones.neck, h = av.bones.head;
-    if (n && h) {
-      n.updateWorldMatrix(true, false); h.updateWorldMatrix(true, false);
-      const a = new THREE.Vector3().setFromMatrixPosition(n.matrixWorld);
-      const b = new THREE.Vector3().setFromMatrixPosition(h.matrixWorld);
-      segs.push([a, b.clone().addScaledVector(b.clone().sub(a).normalize(), b.distanceTo(a) * 1.3), 0.065]);
-    }
-  }
-  for (const [armName, foreName, handName] of [['armL', 'foreL', 'handL'], ['armR', 'foreR', 'handR']]) {
-    const a2 = av.bones[armName], f = av.bones[foreName], h = av.bones[handName];
-    if (!f || !h) continue;
-    f.updateWorldMatrix(true, false); h.updateWorldMatrix(true, false);
-    const fore = new THREE.Vector3().setFromMatrixPosition(f.matrixWorld);
-    const hand = new THREE.Vector3().setFromMatrixPosition(h.matrixWorld);
-    const tip = hand.clone().addScaledVector(hand.clone().sub(fore).normalize(), hand.distanceTo(fore) * 0.5);
-    segs.push([fore, tip, 0.03]); // forearm+hand
-    segs.push([fore, hand, 0.03]);
-    if (a2) { // lower humerus + elbow — bare below the sleeve hem (t=0.5)
-      a2.updateWorldMatrix(true, false);
-      const sh = new THREE.Vector3().setFromMatrixPosition(a2.matrixWorld);
-      segs.push([sh.clone().lerp(fore, 0.45), fore, 0.035]);
-    }
-  }
-  for (const [upLegName, legName, footName] of [['upLegL', 'legL', 'footL'], ['upLegR', 'legR', 'footR']]) {
-    const u = av.bones[upLegName], l = av.bones[legName], f = av.bones[footName];
-    if (!l || !f) continue;
-    l.updateWorldMatrix(true, false); f.updateWorldMatrix(true, false);
-    const knee = new THREE.Vector3().setFromMatrixPosition(l.matrixWorld);
-    const ankle = new THREE.Vector3().setFromMatrixPosition(f.matrixWorld);
-    let top = knee.clone().lerp(ankle, -0.9);
-    if (u) {
-      u.updateWorldMatrix(true, false);
-      const hip = new THREE.Vector3().setFromMatrixPosition(u.matrixWorld);
-      top = hip.clone().lerp(knee, 0.62);
-    }
-    const mid = knee.clone().lerp(ankle, 0.15);
-    segs.push([top, mid, 0.045]);       // thigh+knee span (calf offset)
-    segs.push([mid, ankle.clone().lerp(knee, 0.1), 0.045]); // shin span
-  }
-  const ab = new THREE.Vector3(), ap = new THREE.Vector3();
-  const distToSeg = (x, y, z) => {
-    let best = 1e9;
-    for (const [a, b, off] of segs) {
-      ab.subVectors(b, a); ap.set(x - a.x, y - a.y, z - a.z);
-      const t = Math.min(1, Math.max(0, ap.dot(ab) / Math.max(1e-9, ab.lengthSq())));
-      best = Math.min(best, ap.addScaledVector(ab, -t).length() - off);
-    }
-    return best;
-  };
-  const rows = [];
-  for (let mi = 0; mi < outfit.softGarments.length; mi++) {
-    const g = outfit.softGarments[mi];
-    const layout = g.userData?.rwfLayout;
-    if (!layout) continue;
-    const tag = g.userData?.rwfWardrobe ?? '?';
-    const verts = garmentVerts(g);
-    for (let si = 0; si < layout.layout.length; si++) {
-      const strip = layout.layout[si];
-      if (!strip) continue;
-      let inside = 0, excused = 0, defect = 0, worstCm = 0, worstY = 0, limbCross = 0, samples = [];
-      for (let ri = 0; ri < strip.ringCount; ri++) {
-        const c = new THREE.Vector3();
-        for (let k2 = 0; k2 < layout.radial; k2++) c.add(verts[strip.start + ri * layout.radial + k2]);
-        c.divideScalar(layout.radial);
-        for (let k = 0; k < layout.radial; k++) {
-          const vi = strip.start + ri * layout.radial + k;
-          const v = verts[vi];
-          if (!v || !isFinite(v.x + v.y + v.z)) continue;
-          if (!oracle.inside(v.x, v.y, v.z)) continue;
-          if (nearSurface(v.x, v.y, v.z) <= near) { excused++; continue; } // crease/skin graze
-          inside++;
-          const u = new THREE.Vector3().subVectors(v, c);
-          if (u.lengthSq() < 1e-9) continue;
-          u.normalize();
-          const nrm = new THREE.Vector3().subVectors(
-            verts[strip.start + ((ri + 1) % strip.ringCount) * layout.radial + k], v);
-          const tg = new THREE.Vector3().crossVectors(u, nrm);
-          const ex = oracle.exit(v.x, v.y, v.z, u.x, u.y, u.z,
-            isFinite(tg.x) ? tg.x : 0, isFinite(tg.y) ? tg.y : 0, isFinite(tg.z) ? tg.z : 0);
-          if (ex.fold) { excused++; continue; } // closed joint fold
-          if (ex.depth <= tol) { excused++; continue; }  // surface-hug fuzz
-          if (cover.clothed(ex.x, ex.y, ex.z, mi, si, ri)) { excused++; continue; } // tuck
-          if (distToSeg(ex.x, ex.y, ex.z) <= 0.055) { limbCross++; continue; } // bare-limb crossing
-          defect++;
-          const dCm = ex.depth * cmPerUnit;
-          if (dCm > worstCm) { worstCm = dCm; worstY = +(v.y / (s * av.H) * 1.75).toFixed(2); }
-          if (samples.length < 4) samples.push({ ring: ri, col: k, yM: +(v.y / (s * av.H) * 1.75).toFixed(2), dCm: +dCm.toFixed(1) });
-        }
-      }
-      rows.push({ tag, mesh: mi, strip: si, rings: strip.ringCount, insideVerts: inside, excused, limbCross, defectVerts: defect, worstCm: +worstCm.toFixed(2), worstY, samples });
-    }
-  }
-  const bad = rows.filter((r) => r.defectVerts > 0);
-  // oracle self-test: torso bone centres are deep inside flesh; the perineum
-  // is outside. If these flip the depth oracle is broken (blind scan).
-  const selfTest = {};
-  for (const bn of ['spine', 'spine1', 'spine2', 'neck']) {
-    const b = av.bones[bn];
-    if (!b) continue;
-    b.updateWorldMatrix(true, false);
-    const p = new THREE.Vector3().setFromMatrixPosition(b.matrixWorld);
-    selfTest[bn] = oracle.inside(p.x, p.y, p.z);
-  }
-  const ul = av.bones.upLegL?.getWorldPosition(new THREE.Vector3());
-  const ur = av.bones.upLegR?.getWorldPosition(new THREE.Vector3());
-  if (ul && ur) {
-    const mid = ul.clone().lerp(ur, 0.5).add(new THREE.Vector3(0, -0.06 * av.H, 0));
-    selfTest.perineumOutside = !oracle.inside(mid.x, mid.y, mid.z);
-  }
-  return {
-    solidOk: Object.values(selfTest).every(Boolean),
-    selfTest,
-    badStrips: bad.length,
-    defectVerts: bad.reduce((a, r) => a + r.defectVerts, 0),
-    limbCrossVerts: rows.reduce((a, r) => a + r.limbCross, 0),
-    worstCm: rows.reduce((a, r) => Math.max(a, r.worstCm), 0),
-    bad, rows,
-  };
-}
-
-// ── REGION pixel checks (FIX 3) — the founder's three reports, encoded ──────
-// Front render, anchors projected from 3D bones: shirt-LIME must be present
-// in the shoulder/upper-chest band, shorts-CORAL on both upper thighs,
-// shoe-CHARCOAL at both toes. These are direct regressions for "shirt absent
-// around the shoulders and upper chest" / "shorts invisible around the upper
-// thighs" / "shoes invisible around the toes" — all three FAIL on v3.
-
-const classifyRegion = (r, g, b) => {
-  const mx = Math.max(r, g, b), mn = Math.min(r, g, b), d = mx - mn;
-  if (mx < 30) return 'bg';
-  if (mx < 92 && d < 34 && mx > 34) return 'charcoal';   // sneaker body
-  if (d >= 16 && Math.abs(60 * (((g - b) / Math.max(1, d)) % 6) - 68) < 24 && mx === g) return 'lime';
-  if (d >= 14 && Math.abs(60 * (((g - b) / Math.max(1, d)) % 6) - 68) < 26 && mx === g) return 'lime';
-  if (mx === r && d >= 12) {
-    let h = 60 * (((g - b) / d) % 6);
-    if (h < 0) h += 360;
-    if (Math.abs(h - 11) < 20) return 'coral';
-  }
-  if (d < 30 && mx > 150) return 'white';
-  if (d < 40 && mx > 95) return 'body';
-  return 'other';
-};
-
-/** Project a world point to frame pixels. */
-const toPx = (v3, W, H) => {
-  const p = v3.clone().project(camera);
-  return { x: Math.round((p.x + 1) / 2 * (W - 1)), y: Math.round((1 - (p.y + 1) / 2) * (H - 1)) };
-};
-
-/** Sample a disc of radius px around an anchor; return class counts. */
-function discCount(px, py, rad, W, H, buf) {
-  const tally = {};
-  let n = 0;
-  for (let dy = -rad; dy <= rad; dy += 2) for (let dx = -rad; dx <= rad; dx += 2) {
-    if (dx * dx + dy * dy > rad * rad) continue;
-    const x = px + dx, y = H - 1 - py; // readPixels row 0 = bottom
-    if (x < 0 || y < 0 || x >= W || y >= H) continue;
-    const p = (y * W + x) * 4;
-    const c = classifyRegion(buf[p], buf[p + 1], buf[p + 2]);
-    tally[c] = (tally[c] ?? 0) + 1;
-    n++;
-  }
-  return { tally, n };
-}
-
-/** The three founder regions at the CURRENT pose (bind or any anim frame).
- *  Camera: front, neutral lights, full kit. */
-function regionChecks() {
-  return withUI(() => {
-    av.root.updateMatrixWorld(true);
-    return withCamera(new THREE.Vector3(0.55, 1.15, 2.9), new THREE.Vector3(0, 0.92, 0), () =>
-      withNeutralLights(() => {
-        const { buf, W, H } = readFrame();
-        const bp = (b, f = 0) => {
-          b.updateWorldMatrix(true, false);
-          return new THREE.Vector3().setFromMatrixPosition(b.matrixWorld).add(new THREE.Vector3(0, f, 0));
-        };
-        const rad = Math.max(9, Math.round(W * 0.016));
-        const regions = [];
-        const add = (name, want, v3, extra) => {
-          const q = toPx(v3, W, H);
-          const dc = discCount(q.x, q.y, rad, W, H, buf);
-          const got = dc.tally[want] ?? 0;
-          regions.push({ name, want, got, share: +(100 * got / Math.max(1, dc.n)).toFixed(1), pass: got > dc.n * (extra ?? 0.12), px: [q.x, q.y] });
-        };
-        // 1. shirt over shoulders + upper chest (lime)
-        if (av.bones.armL) add('shoulder L (shirt)', 'lime', bp(av.bones.armL, 0.01));
-        if (av.bones.armR) add('shoulder R (shirt)', 'lime', bp(av.bones.armR, 0.01));
-        if (av.bones.spine2) add('upper chest (shirt)', 'lime', bp(av.bones.spine2).add(new THREE.Vector3(0, 0.02, 0.05)));
-        // the SLOPE band (between the chest and the collar — the traps/shoulder
-        // slope): v3's slope rings stacked INSIDE this flesh, which is why the
-        // founder saw "absent around the shoulders and upper chest"
-        if (av.bones.neck && av.bones.spine2) {
-          const n = bp(av.bones.neck), s2 = bp(av.bones.spine2);
-          add('shoulder slope (shirt)', 'lime', n.clone().lerp(s2, 0.45).add(new THREE.Vector3(0, 0, 0.045)));
-        }
-        // 2. shorts on both upper thighs (coral)
-        for (const [up, knee, label] of [[av.bones.upLegL, av.bones.legL, 'thigh L (shorts)'], [av.bones.upLegR, av.bones.legR, 'thigh R (shorts)']]) {
-          if (!up || !knee) continue;
-          up.updateWorldMatrix(true, false); knee.updateWorldMatrix(true, false);
-          const a = new THREE.Vector3().setFromMatrixPosition(up.matrixWorld);
-          const b = new THREE.Vector3().setFromMatrixPosition(knee.matrixWorld);
-          add(label, 'coral', a.clone().lerp(b, 0.22).add(new THREE.Vector3(0, 0, 0.03)));
-        }
-        // 3. shoes at both toes (charcoal + white sole rim)
-        for (const [toe, label] of [[av.bones.toeL, 'toe L (shoe)'], [av.bones.toeR, 'toe R (shoe)']]) {
-          if (!toe) continue;
-          toe.updateWorldMatrix(true, false);
-          const t = new THREE.Vector3().setFromMatrixPosition(toe.matrixWorld);
-          add(label, 'charcoal', t.clone().add(new THREE.Vector3(0, 0.026, 0.012)), 0.05);
-          add(label + ' sole', 'white', t.clone().add(new THREE.Vector3(0, -0.008, 0.02)), 0.06);
-        }
-        const pass = regions.every((r) => r.pass);
-        return { pass, regions, view: 'front' };
-      }));
-  });
-}
-
 // ── THE VERIFY PROBE (programmatic attachment + continuity) ─────────────────
 const V_CLIPS = CLIPS;
 const V_POSES = ['squat', 'pushup', 'jumpingjack', 'curl'];
@@ -1060,18 +451,7 @@ async function runVerify() {
   // a t-shirt's sleeve-side fabric SPANS the armpit hollow (deltoid↔pec gap,
   // measured ~6–8 cm of void in Geno): bridging is what a t-shirt does, so
   // the tee is bar'd at 8 cm, everything else at 5.
-  // v4 bars — fit allowances, not blind spots (a detached garment trips its
-  // bar; the signed probe + region checks catch the swallowed/absent classes):
-  //   • tee TORSO 15 cm: the shoulder band spans the deltoids BY DESIGN (the
-  //     founder's defect-1 fix); when an arm raises or the push-up bottom
-  //     folds, the deltoid leaves the fabric — real cloth slings, LBS fabric
-  //     measures up to 14.8 cm of local slack (max, not median — the tube
-  //     stays attached; ring continuity covers that).
-  //   • tee SLEEVES 8 cm (v3 armpit bridge): they ride the arm.
-  //   • shorts LEGS 7.5 cm: the top rings deliberately reach past the body
-  //     centreline to close the crotch; folded poses float their inner
-  //     columns briefly. Shell stays at the founder's 5 cm.
-  const ATTACH_BAR = { default: 5, tshirt: 15, 'tshirt sleeves': 8, shorts: 5, 'shorts legs': 7.5 };
+  const ATTACH_BAR = { default: 5, tshirt: 8 };
   const barOf = (tag) => ATTACH_BAR[tag] ?? ATTACH_BAR.default;
   const STRETCH_BAR = 0.3;   // cm — ring-to-ring edge strain (3 mm)
   const rows = [];
@@ -1084,11 +464,6 @@ async function runVerify() {
     // rigid pieces are bone-welded: sparse low-poly flesh (Geno's feet) makes
     // surface-only distance dishonest for them — they answer to the skeleton
     const nearBody = nearestDistanceFactory([...surface, ...skeletonSamples(av)], 0.05);
-    // SIGNED coverage (FIX 1): the inside-body scan — a garment vertex
-    // occluded by flesh from every view (deep enough, not tucked, not a
-    // bare-limb crossing, not a closed fold) is COVERED-BY-BODY: the red
-    // failure state the unsigned distance probe cannot see.
-    const signed = scanInsideBody();
     const perGarment = {};
     let maxAll = 0, worst = '';
     let maxStretch = 0, worstStretch = '';
@@ -1096,44 +471,14 @@ async function runVerify() {
       const tag = g.userData?.rwfWardrobe ?? '?';
       const nearest = g.isSkinnedMesh ? nearSurface : nearBody;
       const verts = garmentVerts(g);
-      // tee sleeves = their own region with the tighter bar (they ride the
-      // arm and must stay close to it; the torso's shoulder band carries the
-      // sling allowance)
-      const gLayout = g.userData?.rwfLayout;
-      const nStrips = gLayout?.layout?.filter((s) => s).length ?? 0;
-      const tagOf = (vi) => {
-        if (tag === 'tshirt' && nStrips > 1) {
-          for (let q = 0; q < gLayout.layout.length; q++) {
-            const st = gLayout.layout[q];
-            if (st && vi >= st.start && vi < st.start + st.ringCount * gLayout.radial) return q === 0 ? 'tshirt' : 'tshirt sleeves';
-          }
-          return 'tshirt';
-        }
-        if (tag === 'shorts' && nStrips > 1) {
-          for (let q = 0; q < gLayout.layout.length; q++) {
-            const st = gLayout.layout[q];
-            if (st && vi >= st.start && vi < st.start + st.ringCount * gLayout.radial) return q === 0 ? 'shorts' : 'shorts legs';
-          }
-          return 'shorts';
-        }
-        return tag;
-      };
-      let nan = 0;
-      const maxByTag = {};
-      for (let vi = 0; vi < verts.length; vi++) {
-        const v = verts[vi];
+      let maxD = 0, nan = 0;
+      for (const v of verts) {
         if (!isFinite(v.x + v.y + v.z)) { nan++; continue; }
         const d = nearest(v.x, v.y, v.z) * cmPerUnit;
-        const tg = tagOf(vi);
-        if (!maxByTag[tg] || d > maxByTag[tg]) maxByTag[tg] = d;
+        if (d > maxD) maxD = d;
       }
-      for (const [tg, d] of Object.entries(maxByTag)) {
-        perGarment[tg] = { maxCm: +d.toFixed(1), nan: 0 };
-        if (d > maxAll) { maxAll = d; worst = tg; }
-      }
-      const primary = (tag === 'tshirt' || tag === 'shorts') ? tag : tag;
-      perGarment[primary] = perGarment[primary] ?? { maxCm: 0, nan: 0 };
-      perGarment[primary].nan += nan;
+      perGarment[tag] = { maxCm: +maxD.toFixed(1), nan };
+      if (maxD > maxAll) { maxAll = maxD; worst = tag; }
       // continuity: adjacent rings within each strip — live vs bind edge length
       const layout = g.userData?.rwfLayout;
       if (layout) {
@@ -1162,19 +507,7 @@ async function runVerify() {
     for (const [tag, v] of Object.entries(perGarment)) {
       if (v.maxCm > barOf(tag)) overBar = tag;
     }
-    const insideByGarment = {};
-    for (const r of signed.rows) {
-      if (!insideByGarment[r.tag]) insideByGarment[r.tag] = { defectVerts: 0, worstCm: 0 };
-      insideByGarment[r.tag].defectVerts += r.defectVerts;
-      insideByGarment[r.tag].worstCm = Math.max(insideByGarment[r.tag].worstCm, r.worstCm);
-    }
-    rows.push({
-      label, maxCm: +maxAll.toFixed(1), worst, stretchCm: +maxStretch.toFixed(2), worstStretch,
-      perGarment, overBar, nan: Object.values(perGarment).reduce((a, p) => a + p.nan, 0),
-      insideVerts: signed.defectVerts, insideWorstCm: signed.worstCm,
-      insideCross: signed.limbCrossVerts, insideByGarment,
-      solidOk: signed.solidOk,
-    });
+    rows.push({ label, maxCm: +maxAll.toFixed(1), worst, stretchCm: +maxStretch.toFixed(2), worstStretch, perGarment, overBar, nan: Object.values(perGarment).reduce((a, p) => a + p.nan, 0) });
     return rows[rows.length - 1];
   };
 
@@ -1184,7 +517,7 @@ async function runVerify() {
     const hadBvh = !!bvh;
     if (bvh) { bvh.stop(); bvh = null; }
 
-    say('<p class="vspin">probing BVH clips (attachment + continuity + signed coverage)…</p>');
+    say('<p class="vspin">probing BVH clips…</p>');
     await nextTick();
     for (const clip of V_CLIPS) {
       const res = await loadBVH(BVH_FILES[clip]);
@@ -1233,18 +566,14 @@ async function runVerify() {
     const attachRows = rows.filter((r) => r.overBar);
     const stretchRows = rows.filter((r) => r.stretchCm > STRETCH_BAR);
     const nanRows = rows.filter((r) => r.nan > 0);
-    const insideRows = rows.filter((r) => r.insideVerts > 0 || r.solidOk === false);
-    const attachPass = attachRows.length === 0 && nanRows.length === 0 && insideRows.length === 0;
+    const attachPass = attachRows.length === 0 && nanRows.length === 0;
     const stretchPass = stretchRows.length === 0;
 
-    let html = '<table><tr><th>case</th><th>max→body</th><th>worst</th><th>inside-body</th><th>stretch</th><th>verdict</th></tr>';
+    let html = '<table><tr><th>case</th><th>max→body</th><th>worst</th><th>stretch</th><th>verdict</th></tr>';
     for (const r of rows) {
-      const bad = !!r.overBar || r.stretchCm > STRETCH_BAR || r.nan > 0 || r.insideVerts > 0 || r.solidOk === false;
-      const insideTxt = r.solidOk === false ? 'oracle!' : (r.insideVerts > 0
-        ? `${r.insideVerts} vert${r.insideVerts > 1 ? 's' : ''} ${r.insideWorstCm}cm` : '0');
+      const bad = !!r.overBar || r.stretchCm > STRETCH_BAR || r.nan > 0;
       html += `<tr><td>${r.label}</td><td class="${r.overBar ? 'fail' : 'pass'}">${r.maxCm} cm</td>` +
-        `<td class="dim">${r.worst}</td><td class="${r.insideVerts > 0 || r.solidOk === false ? 'fail' : 'pass'}">${insideTxt}</td>` +
-        `<td class="${r.stretchCm > STRETCH_BAR ? 'fail' : 'pass'}">${r.stretchCm.toFixed(2)} cm</td>` +
+        `<td class="dim">${r.worst}</td><td class="${r.stretchCm > STRETCH_BAR ? 'fail' : 'pass'}">${r.stretchCm.toFixed(2)} cm</td>` +
         `<td class="${bad ? 'fail' : 'pass'}">${bad ? 'FAIL' : 'pass'}</td></tr>`;
     }
     html += '</table>';
@@ -1259,14 +588,10 @@ async function runVerify() {
       '</table>';
     const globalMax = Math.max(...rows.map((r) => r.maxCm));
     const globalStretch = Math.max(...rows.map((r) => r.stretchCm));
-    const insideTotal = rows.reduce((a, r) => a + r.insideVerts, 0);
-    const insideWorst = Math.max(...rows.map((r) => r.insideWorstCm));
-    const crossTotal = rows.reduce((a, r) => a + r.insideCross, 0);
     html += `<div class="verify-summary ${attachPass && stretchPass ? 'ok' : 'bad'}">` +
       `${rows.length} cases · max garment→body <b>${globalMax.toFixed(1)} cm</b> (bars: 5 cm · tee 8 cm — armpit bridge) · ` +
-      `inside-body verts <b>${insideTotal}</b> (worst ${insideWorst.toFixed(1)} cm · ${crossTotal} bare-limb crossings excused) · ` +
       `max ring stretch <b>${globalStretch.toFixed(2)} cm</b> (bar ≤${STRETCH_BAR}) · ` +
-      `${attachPass && stretchPass ? 'ALL PASS ✓' : attachRows.length + stretchRows.length + nanRows.length + insideRows.length + ' case(s) over bar'}</div>`;
+      `${attachPass && stretchPass ? 'ALL PASS ✓' : attachRows.length + stretchRows.length + nanRows.length + ' case(s) over bar'}</div>`;
     for (const r of rows) {
       if (r.ankleDriftCm != null && r.ankleDriftCm > 3) notes.push(`${r.pose}: feet drift ${r.ankleDriftCm} cm across phases (not planted)`);
     }
@@ -1274,7 +599,7 @@ async function runVerify() {
     html += '<p class="verify-note">edge "stretch" = welded ring-to-ring edge strain (LBS responds to joint bends; a welded strip cannot open a gap — NaN/degenerate verts are the structural hole check and must stay 0).</p>';
     say(html);
 
-    const report = { rows, attachPass, stretchPass, globalMaxCm: +globalMax.toFixed(1), globalStretchCm: +globalStretch.toFixed(2), insideVerts: insideTotal, insideWorstCm: +insideWorst.toFixed(1), limbCrossVerts: crossTotal, notes, bars: { attachCm: ATTACH_BAR, stretchCm: STRETCH_BAR } };
+    const report = { rows, attachPass, stretchPass, globalMaxCm: +globalMax.toFixed(1), globalStretchCm: +globalStretch.toFixed(2), notes, bars: { attachCm: ATTACH_BAR, stretchCm: STRETCH_BAR } };
     window.__atelier.lastVerify = report;
     return report;
   } catch (e) {
@@ -1492,8 +817,7 @@ window.__atelier = {
   setXray: (on) => { state.xray = !!on; applyViewFX(); $('btnXray').classList.toggle('is-on', state.xray); },
   setHeat: (on) => { state.heat = !!on; applyViewFX(); $('btnHeat').classList.toggle('is-on', state.heat); $('heatLegend').hidden = !state.heat; if (state.heat) updateHeatmap(); },
   setTurntable: (on) => { state.autoTurn = !!on; controls.autoRotate = state.autoTurn; $('btnTurn').classList.toggle('is-on', state.autoTurn); },
-  runVerify, bandCheck, sleeveCheck, asciiView, regionChecks,
-  scanSignedCoverage, scanInsideBody,
+  runVerify, bandCheck, sleeveCheck, asciiView,
   setCam: (pos, tgt) => {
     controls.autoRotate = false;
     camera.position.set(...pos);

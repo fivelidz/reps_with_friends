@@ -161,60 +161,6 @@ function slabVerts(cloud, boneSet, c, n, slab) {
   return out;
 }
 
-/** All-bone slab verts within a lateral (|x|) bound of the centre — the v4
- *  chest/shoulder population. Bone-set filters are what shrank the v3 shirt
- *  inside the deltoids: upper-arm flesh is dominated by the ARM bones, so a
- *  torso-bone-only slab never measured the shoulder flare. Here EVERYTHING
- *  near the torso counts (deltoids included — the shirt must cover the
- *  shoulder flare; the sleeves then overlap the deltoids outside it), while
- *  far-lateral flesh (the free-hanging arm, the bind A-pose hands out at
- *  |x|≈0.57H) stays excluded — the only pollution that is real, exactly as
- *  at the waist. */
-function slabVertsNearTorso(cloud, xMax, c, n, slab) {
-  const out = [];
-  for (const v of cloud) {
-    if (Math.abs(v.x - c.x) > xMax) continue;
-    const dx = v.x - c.x, dy = v.y - c.y, dz = v.z - c.z;
-    if (Math.abs(dx * n.x + dy * n.y + dz * n.z) > slab) continue;
-    out.push(v);
-  }
-  return out;
-}
-
-/** Ring sides from a raw vert list (same maths as ringSides). */
-function sidesOf(verts, c, e1, e2) {
-  let p1 = 0, m1 = 0, p2 = 0, m2 = 0;
-  for (const v of verts) {
-    const dx = v.x - c.x, dy = v.y - c.y, dz = v.z - c.z;
-    const a = dx * e1.x + dy * e1.y + dz * e1.z;
-    const b = dx * e2.x + dy * e2.y + dz * e2.z;
-    if (a > p1) p1 = a; else if (a < m1) m1 = a;
-    if (b > p2) p2 = b; else if (b < m2) m2 = b;
-  }
-  return { p1, m1, p2, m2 };
-}
-
-/** Radial profile from a raw vert list (same maths as radialProfile). */
-function profileOf(verts, c, e1, e2, rx, rz, radial, lo = 0.85, hi = 1.35) {
-  const prof = new Array(radial).fill(1);
-  const d = new THREE.Vector3();
-  for (let k = 0; k < radial; k++) {
-    const a = (k / radial) * Math.PI * 2;
-    d.set(0, 0, 0).addScaledVector(e1, rx * Math.cos(a)).addScaledVector(e2, rz * Math.sin(a));
-    const R = d.length();
-    if (R < 1e-6) continue;
-    d.divideScalar(R);
-    let ext = 0;
-    for (const v of verts) {
-      const dx = v.x - c.x, dy = v.y - c.y, dz = v.z - c.z;
-      const pv = dx * d.x + dy * d.y + dz * d.z;
-      if (pv > ext) ext = pv;
-    }
-    prof[k] = Math.min(hi, Math.max(lo, ext / R));
-  }
-  return prof;
-}
-
 function avgWeights(verts) {
   const acc = new Map();
   for (const v of verts) {
@@ -510,14 +456,10 @@ function buildShorts(av, colors, plan, env = {}) {
   });
   for (let i = 0; i < 5; i++) blurRingWeights(shell); // rings share deformation (anti-stretch)
 
-  // leg tubes (v4 SIZING): each ring is measured from the IPSILATERAL thigh
-  // + buttock — the thigh's own verts PLUS pelvis/lower-back verts on that
-  // leg's side. The v3 upLeg-only population missed the glute wrap at the
-  // top rings (the slab flesh extends ~9 cm behind the hug), so the upper
-  // tubes rode inside the buttock crease — the founder's "shorts invisible
-  // around the upper thighs". The contralateral thigh stays excluded (a
-  // different limb, real pollution), and the measured radius now reaches
-  // past the body centreline at the top rings, closing the crotch naturally.
+  // leg tubes: top rings INSIDE the shell, overlapping at the centre (the
+  // crotch closes between them). Skinned to mid-thigh with a finish ring
+  // (slight flare = hem, not a cut pipe). Crotch bridge kept (the shell's
+  // seat rings ARE the bridge).
   const radial = 18;
   const legStrips = [];
   for (const [upLegName, kneeName] of [['upLegL', 'legL'], ['upLegR', 'legR']]) {
@@ -531,34 +473,20 @@ function buildShorts(av, colors, plan, env = {}) {
     if (e1.lengthSq() < 1e-6) e1 = XAX.clone();
     e1.normalize();
     const e2 = new THREE.Vector3().crossVectors(n, e1).normalize();
-    const upLegIdx = skin.skeleton.bones.indexOf(upLeg);
-    const hipsIdx = skin.skeleton.bones.indexOf(av.bones.hips);
-    const spineIdx = skin.skeleton.bones.indexOf(av.bones.spine);
-    const side = Math.sign(hip.x) || 1; // which side this leg is on
-    // ipsilateral population: this thigh's flesh + glute/lower-back flesh
-    // on the same side of the body centreline
-    const legPop = [];
-    for (const v of cloud) {
-      if (v.b === upLegIdx) { legPop.push(v); continue; }
-      if ((v.b === hipsIdx || v.b === spineIdx) && (v.x * side) > -0.01 * H) legPop.push(v);
-    }
+    const legSet = new Set([skin.skeleton.bones.indexOf(upLeg)]);
     const ts = [0.10, 0.22, 0.34, 0.46, 0.56]; // 0.56·thigh ≈ mid-thigh hem
     const rings = [];
     for (let k = 0; k < ts.length; k++) {
       const c0 = new THREE.Vector3().copy(hip).addScaledVector(axis, ts[k] * L);
-      const slab = 0.024 * H;
-      const pop = legPop.filter((v) => {
-        const d = new THREE.Vector3(v.x - c0.x, v.y - c0.y, v.z - c0.z);
-        return Math.abs(d.dot(n)) <= slab;
-      });
+      const verts = slabVerts(cloud, legSet, c0, n, 0.022 * H);
       const last = k === ts.length - 1;
       const m = 0.013 * H + (last ? 0.004 * H : 0); // finish ring flares a touch
-      const floor = k <= 1 ? 0.055 * H : 0.04 * H;  // crotch overlap / hem sanity
-      const { c, rx, rz } = hugRing(legPop, null, c0, e1, e2, n, slab, m, floor, floor * 0.95);
+      const floor = k <= 1 ? 0.06 * H : 0.05 * H;   // top rings overlap at the crotch centre
+      const { c, rx, rz } = hugRing(cloud, legSet, c0, e1, e2, n, 0.022 * H, m, floor, floor * 0.95);
       rings.push({
         c, e1, e2, n, rx, rz,
-        prof: radialProfile(legPop, null, c, e1, e2, n, slab, rx, rz, 18),
-        w: avgWeights(pop.length ? pop : slabVerts(cloud, new Set([upLegIdx]), c0, n, slab)),
+        prof: radialProfile(cloud, legSet, c, e1, e2, n, 0.022 * H, rx, rz, 18),
+        w: avgWeights(verts),
       });
     }
     for (let i = 0; i < 5; i++) blurRingWeights(rings);
@@ -612,10 +540,6 @@ function buildTee(av, colors, plan, env = {}) {
   const torsoSet = new Set(chainBones.map((b) => skin.skeleton.bones.indexOf(b)));
   const chain = chainBones.map((b) => bindPos(b, skin.toBind));
   const neckP = bindPos(B.neck, skin.toBind);
-  if (neckP.y > chain[chain.length - 1].y) chain.push(neckP.clone()); // v4: the
-  // spine line must reach the NECK — v3 clamped at Spine3, stacking the whole
-  // shoulder slope + collar 12 cm below the neckline (every ring above
-  // Spine3.y returned Spine3's position; measured in the atelier dump)
   const armL = B.armL, armR = B.armR;
   const shoulderY = (armL && armR)
     ? (bindPos(armL, skin.toBind).y + bindPos(armR, skin.toBind).y) / 2
@@ -634,22 +558,8 @@ function buildTee(av, colors, plan, env = {}) {
     return chain[chain.length - 1].clone();
   };
 
-  // ── torso rings: hem → chest → yoke. v4 SIZING: population is ALL-BONE
-  //    NEAR THE TORSO (slabVertsNearTorso, |x| ≤ ARMHOLE) — deltoids and the
-  //    medial upper arm INCLUDED, bind A-pose hands (|x|≈0.57H) excluded.
-  //    The v3 torso-bone-only slab measured the chest at 0.14H half-width
-  //    while the deltoids flare to 0.24H — every upper ring sat up to 5 cm
-  //    INSIDE the flesh ("shirt absent around the shoulders and upper
-  //    chest"). Weights keep the v3 wide-slab torso-set blend (proven
-  //    anti-shear at Spine2/3).
-  // lateral population cap, ramped by height: below the armpit the free
-  // arm (bind A-pose, |x| up to 0.35H) is pollution → torso-only width;
-  // above it the deltoid flare is REAL shirt coverage → everything near the
-  // torso counts. A flat cap let the free arm widen ring 8 by 12 cm in one
-  // step (measured) — the ramp keeps the chest a chest and the shoulders
-  // shoulders.
-  const armpitY = shoulderY - 0.135 * H;
-  const capAt = (y) => 0.105 * H + 0.043 * H * smooth(clamp01((y - armpitY) / (0.07 * H)));
+  // ── torso rings: hem → chest → yoke. Same measured-hug approach as the
+  //    tank (that part was solid); margins a touch looser (fabric drapes).
   const yokeY = Math.min(neckP.y - 0.030 * H, shoulderY + 0.012 * H);
   const N = 15;
   const slabT = ((yokeY - hemY) / (N - 1)) * 1.4;
@@ -658,15 +568,10 @@ function buildTee(av, colors, plan, env = {}) {
     const f = k / (N - 1);
     const y = hemY + (yokeY - hemY) * f;
     const c0 = line(y);
-    const pop = slabVertsNearTorso(cloud, capAt(y), c0, UP, slabT);
-    const { p1, m1, p2, m2 } = sidesOf(pop, c0, XAX, ZAX);
+    const { p1, m1, p2, m2 } = ringSides(cloud, torsoSet, c0, XAX, ZAX, UP, slabT);
     const ox = (p1 + m1) / 2, oz = (p2 + m2) / 2;
     const hx = (p1 - m1) / 2, hz = (p2 - m2) / 2;
-    // 0.014H of the margin is POSE allowance: the spine-weighted rings lag
-    // the flesh's own rotation through walk/drag torso sway (measured 3.8–5
-    // cm sink at the mid-chest columns by the signed probe); a relaxed-fit
-    // tee absorbs it without reading baggy at bind.
-    const margin = (0.013 + 0.008 * f + 0.014) * H;
+    const margin = (0.013 + 0.008 * f) * H; // a touch more room at the chest
     const c = c0.clone().addScaledVector(XAX, ox).addScaledVector(ZAX, oz);
     let rx = hx + margin, rz = hz + margin;
     // yoke flare: the last ring clears the shoulder joints so the arm
@@ -679,21 +584,11 @@ function buildTee(av, colors, plan, env = {}) {
     }
     torso.push({
       c, e1: XAX, e2: ZAX, n: UP, rx, rz, y,
-      prof: profileOf(pop, c, XAX, ZAX, rx, rz, 18),
+      prof: radialProfile(cloud, torsoSet, c, XAX, ZAX, UP, slabT, rx, rz, 18),
       // WEIGHTS from a 2.2× WIDER slab: independent per-ring slabs flip the
       // dominant bone abruptly across the Spine2/Spine3 joint — adjacent
       // rings then displace apart when the spine bends there (3.3 cm shear
       // measured at one_arm). Overlapping populations force a graded blend.
-      // The top 3 rings (the SHOULDER BAND, k≥N−3) take the flesh's own
-      // ALL-BONE blend instead: their lateral columns sit over the deltoids,
-      // and spine-only weights left them hanging 12 cm in the air when the
-      // arm raised (measured at one_arm by the attachment probe) — with the
-      // flesh blend the shoulder fabric slings with the deltoid like real
-      // cloth. The ring-weight blur grades the k=N−4 transition.
-      // NOTE: the shoulder band keeps the pure torso-set weights. All-bone
-      // blends (deltoid-following, tried for the sling distance) shear up to
-      // 16.9 cm against the chest columns at one_arm's spine+arm twist — the
-      // attachment bar carries the sling slack instead (see atelier bars).
       w: columnWeights(cloud, torsoSet, c, XAX, ZAX, UP, slabT * 2.2, 18),
     });
   }
@@ -701,34 +596,20 @@ function buildTee(av, colors, plan, env = {}) {
   // (sleeve-cap clamping needs the radius-vs-height curve INCLUDING the
   //  shoulder slope — defined after the slope rings below)
 
-  // ── shoulder slope + collar (v4 SIZING). v3 lerped these rings from the
-  //    yoke straight onto the NECK ellipse, but the flesh at these heights
-  //    (traps + deltoid tops, y≈1.41–1.46 m) spans |x|≈0.23H — the closing
-  //    cone ran INSIDE the shoulders and the neckline simply vanished. v4:
-  //    the slope now closes onto the CROSS-SECTION at collar height (same
-  //    near-torso population as the torso rings), and the 2-ring collar is
-  //    a short cone from that cross-section onto the neck — it covers the
-  //    traps; the lateral deltoid tops tuck under the raglan caps (the
-  //    signed probe excuses them via the cap surface). WEIGHTS keep the
-  //    torso+neck bone set (the arm-swing collar-drag guard).
+  // ── shoulder slope + collar: the tube CLOSES onto the neck and finishes
+  //    with a 2-ring pinched collar (the neckline reads finished, not cut).
+  //    POPULATION = torso + neck chain ONLY: at these heights (y≈1.39–1.43)
+  //    the A-pose ARMS cross the slab — an all-bone query blends arm weights
+  //    into the collar and the arm swing drags it 12 cm off (measured). The
+  //    same pollution class as the waist hands; guarded the same way.
   const neck1 = findBone(av, 'Neck1');
   const torsoNeckSet = new Set([...chainBones, B.neck, neck1].filter(Boolean)
     .map((b) => skin.skeleton.bones.indexOf(b)));
   const slopeY0 = torso[torso.length - 1].y;              // yoke
-  const collarTopY = neckP.y - 0.010 * H;                // collar band top
+  const collarTopY = neckP.y - 0.006 * H;                 // collar band top
   const collarBotY = neckP.y - 0.022 * H;                 // collar band bottom
-  // neck hug: the closing target (narrow population — the neck itself)
   const neckHug = hugRing(cloud, torsoNeckSet, line(collarBotY), XAX, ZAX, UP, 0.012 * H,
     0.013 * H, 0.05 * H, 0.045 * H); // floors: a sane collar even on a thin neck population
-  // cross-section at collar height (near-torso population: traps included)
-  const collarPop = slabVertsNearTorso(cloud, capAt(collarBotY + 0.02 * H), line(collarBotY), UP, 0.012 * H);
-  const cs = sidesOf(collarPop, line(collarBotY), XAX, ZAX);
-  const collarC = line(collarBotY).clone()
-    .addScaledVector(XAX, (cs.p1 + cs.m1) / 2).addScaledVector(ZAX, (cs.p2 + cs.m2) / 2);
-  const collarSection = {
-    rx: (cs.p1 - cs.m1) / 2 + 0.016 * H,
-    rz: (cs.p2 - cs.m2) / 2 + 0.016 * H,
-  };
   const spine3Idx = skin.skeleton.bones.indexOf(spine3);
   const slopeYs = [];
   for (let k = 1; k <= 3; k++) slopeYs.push(lerp(slopeY0, collarBotY, k / 4));
@@ -736,45 +617,26 @@ function buildTee(av, colors, plan, env = {}) {
     const t = (y - slopeY0) / Math.max(1e-6, collarBotY - slopeY0);
     const yoke = torso[torso.length - 1];
     const c0 = line(y);
-    const pop = slabVertsNearTorso(cloud, capAt(y + 0.014 * H), c0, UP, 0.014 * H);
-    const ss = sidesOf(pop, c0, XAX, ZAX);
-    const c = c0.clone().addScaledVector(XAX, (ss.p1 + ss.m1) / 2).addScaledVector(ZAX, (ss.p2 + ss.m2) / 2);
-    // ease from the yoke ellipse onto the collar-height cross-section
-    const sx = lerp(yoke.rx, collarSection.rx, smooth(t));
-    const sz = lerp(yoke.rz, collarSection.rz, smooth(t));
+    const { p1, m1, p2, m2 } = ringSides(cloud, torsoNeckSet, c0, XAX, ZAX, UP, 0.014 * H);
+    const c = c0.clone().addScaledVector(XAX, (p1 + m1) / 2).addScaledVector(ZAX, (p2 + m2) / 2);
+    // shrink from the yoke ellipse onto the neck ellipse
+    const sx = lerp(yoke.rx, neckHug.rx, smooth(t));
+    const sz = lerp(yoke.rz, neckHug.rz, smooth(t));
     return {
       c, e1: XAX, e2: ZAX, n: UP, rx: sx, rz: sz, y,
-      prof: profileOf(pop, c, XAX, ZAX, sx, sz, 18),
+      prof: radialProfile(cloud, torsoNeckSet, c, XAX, ZAX, UP, 0.014 * H, sx, sz, 18),
       w: columnWeights(cloud, torsoNeckSet, c, XAX, ZAX, UP, 0.026 * H, 18, [[spine3Idx, 1]]),
     };
   });
-  // collar: 3 rings closing from the collar-height section onto the neck —
-  // a short cone over the traps (never inside them)
-  const neckIdx = skin.skeleton.bones.indexOf(B.neck);
-  const collar = [collarBotY, lerp(collarBotY, collarTopY, 0.5), collarTopY].map((y, k, arr) => {
+  const collar = [collarBotY, collarTopY].map((y, k) => {
     const last = slope[slope.length - 1];
-    const t = arr.length > 1 ? k / (arr.length - 1) : 0;
-    const pinch = smooth(t) * 0.85;
-    // pinch floor = half the section: the traps slope laterally past the
-    // neck, and pinching onto the bare neck ellipse dives inside them
-    const floorX = Math.max(neckHug.rx + 0.016 * H, last.rx * 0.50);
-    const floorZ = Math.max(neckHug.rz + 0.018 * H, last.rz * 0.50);
-    // re-centre on the neck/nape flesh at this height (the spine line alone
-    // sits ahead of the nape — the back collar columns grazed inside it)
-    const cc0 = line(y);
-    const cpop = slabVerts(cloud, torsoNeckSet, cc0, UP, 0.012 * H);
-    const csw = cpop.length ? sidesOf(cpop, cc0, XAX, ZAX) : { p1: 0, m1: 0, p2: 0, m2: 0 };
-    const cc = cc0.clone().addScaledVector(XAX, (csw.p1 + csw.m1) / 2).addScaledVector(ZAX, (csw.p2 + csw.m2) / 2);
     return {
-      c: cc, e1: XAX, e2: ZAX, n: UP,
-      rx: lerp(last.rx, floorX, pinch),
-      rz: lerp(last.rz, floorZ, pinch),
-      prof: radialProfile(cloud, torsoNeckSet, cc, XAX, ZAX, UP, 0.010 * H,
-        Math.max(last.rx, lerp(last.rx, floorX, pinch)), Math.max(last.rz, lerp(last.rz, floorZ, pinch)), 18, 0.9),
-      // neck-led: a collar is the NECK's garment — with spine-only weights it
-      // lags neck bends and grazes the nape/neck sides (measured 1–2.2 cm at
-      // one_arm/walk by the signed probe)
-      w: last.w.map((col) => neckIdx >= 0 ? mixWeights(col, [[neckIdx, 1]], 0.35 + 0.15 * (arr.length > 1 ? k / (arr.length - 1) : 0)) : col),
+      c: line(y), e1: XAX, e2: ZAX, n: UP,
+      rx: last.rx * (k === 0 ? 0.97 : 0.94), // pinched collar — reads finished
+      rz: last.rz * (k === 0 ? 0.97 : 0.94),
+      prof: radialProfile(cloud, torsoNeckSet, line(y), XAX, ZAX, UP, 0.010 * H,
+        last.rx, last.rz, 18, 0.8),
+      w: last.w,
     };
   });
 
@@ -800,7 +662,7 @@ function buildTee(av, colors, plan, env = {}) {
   const flare = {
     c: line(hemFlareY).add(off),
     e1: XAX, e2: ZAX, n: UP,
-    rx: hemHug.rx + 0.010 * H, rz: hemHug.rz + 0.010 * H, y: hemFlareY,
+    rx: hemHug.rx + 0.004 * H, rz: hemHug.rz + 0.004 * H, y: hemFlareY,
     prof: hemHug.prof, w: hemHug.w,
   };
 
@@ -817,7 +679,10 @@ function buildTee(av, colors, plan, env = {}) {
   //    30%) — the interleaved seam flexes instead of tearing.
   const armFallback = (arm) => [[skin.skeleton.bones.indexOf(arm), 1]];
   const ts = [0.02, 0.16, 0.30, 0.42, 0.50];
-  const tsScale = [1.16, 1.08, 0.99, 0.95, 0.90];
+  const tsScale = [1.0, 1.0, 0.97, 0.94, 0.90];
+  const capTs = [-0.075, -0.045, -0.02];
+  const capScale = [0.45, 0.72, 0.90];
+  const capSpineMix = [0.30, 0.18, 0.08];
   const sleeves = [];
   for (const armName of ['armL', 'armR']) {
     const arm = B[armName];
@@ -850,14 +715,10 @@ function buildTee(av, colors, plan, env = {}) {
     };
 
     // entry + arm rings: hug the arm's own flesh, D-clamped at the torso
-    // wall. Weights are arm-LED: the body's own arm weights blend Spine3 /
+    // wall. Weights are PURE arm: the body's own arm weights blend Spine3 /
     // Shoulder / ForeArm near the joints, and any of those in an edge
     // shears it when that bone diverges from the arm (measured 5 cm at the
-    // hem in one_arm) — so rings DOWN the arm stay pure-arm. The ENTRY ring
-    // (t=0.02, the armhole) carries a small Spine3 slice like the caps: with
-    // the arm raised overhead (one_arm, jumping jacks) a pure-arm armhole
-    // flies up the humerus into the neck (measured 6–7 cm inside the chin
-    // flesh by the signed probe); the slice anchors it to the shoulder.
+    // hem in one_arm). A set-in sleeve rotates with the upper arm, full stop.
     const rings = [];
     for (let k = 0; k < ts.length; k++) {
       const c0 = new THREE.Vector3().copy(sh).addScaledVector(axis, ts[k] * L);
@@ -865,40 +726,33 @@ function buildTee(av, colors, plan, env = {}) {
       const m = 0.012 * H;
       const { p1, m1, p2, m2 } = ringSides(cloud, armSet, c0, e1, e2, n, slab);
       const c = c0.clone().addScaledVector(e1, (p1 + m1) / 2).addScaledVector(e2, (p2 + m2) / 2);
-      // the entry armhole carries extra room: a raised arm bunches the
-      // deltoid short and wide (cross-section +1–3 cm, measured by the probe
-      // at one_arm) — a bind-tight armhole sinks into the bunch. The floor
-      // makes the armhole a relaxed-tee opening that clears the whole
-      // shoulder ball through any arm angle.
-      const armhole = k === 0 ? 0.062 * H : 0;
-      const rx = Math.max(Math.max((p1 - m1) / 2, 0.02) * tsScale[k] + m + (k === 0 ? 0.014 * H : 0), armhole);
-      const rz = Math.max(Math.max((p2 - m2) / 2, 0.02) * tsScale[k] + m + (k === 0 ? 0.012 * H : 0), armhole * 0.92);
-      // ENTRY ring (t=0.02, the armhole): the flesh's own all-bone blend at
-      // its slab — clavicle+arm+spine, the bones that carry the deltoid.
-      // (Pure-arm dragged it up a raised arm into the neck; fixed spine
-      // slices sheared it at arms-out; clavicle-only lagged the swing —
-      // all measured by the signed probe. The flesh blend is the compromise
-      // that tracks the armhole itself.)
+      const rx = Math.max((p1 - m1) / 2, 0.02) * tsScale[k] + m;
+      const rz = Math.max((p2 - m2) / 2, 0.02) * tsScale[k] + m;
       const ring = {
         c, e1, e2, n, rx, rz,
         prof: radialProfile(cloud, armSet, c, e1, e2, n, slab, rx, rz, 18, 0.78),
-        w: k === 0
-          ? columnWeights(cloud, null, c0, e1, e2, n, slab, 18, [[armIdx, 1]])
-          : Array.from({ length: 18 }, () => [[armIdx, 1]]),
+        w: Array.from({ length: 18 }, () => [[armIdx, 1]]),
       };
       rings.push(clampInsideTorso(ring));
     }
 
-    // v4: NO separate cap cone. The v3/v2 caps existed to cover a slope that
-    // never actually covered the shoulders (it closed onto the neck inside
-    // the traps). The v4 slope + collar genuinely span the deltoid band, so
-    // the sleeve is a SET-IN sleeve: its entry ring (t=0.02) dives under the
-    // torso wall (D-clamped columns inside the tube — rule: no edge faces an
-    // edge), and the arm rings run pure-arm down the sleeve. Every extreme
-    // arm pose that dragged cap rings into the neck/chin or sheared them at
-    // arms-out (measured 3–9 cm by the signed probe) no longer has caps to
-    // drag; the entry's flesh-blend weights track the armhole instead.
-    sleeves.push(rings);
+    // cap cone: shrinks from the entry ring toward the shoulder top, slid
+    // toward the neck (the raglan seam rises), always clamped inside the torso
+    const entry = rings[0];
+    const capRings = capTs.map((t, k) => {
+      const c0 = new THREE.Vector3().copy(sh).addScaledVector(axis, t * L)
+        .addScaledVector(XAX, -Math.sign(sh.x) * (1 - capScale[k]) * 0.025 * H);
+      const ring = {
+        c: c0, e1, e2, n,
+        rx: entry.rx * capScale[k], rz: entry.rz * capScale[k],
+        prof: entry.prof.map((v) => Math.min(1, v)),
+        w: entry.w.map((col) => col.map(([bi, w]) => [bi, w])),
+      };
+      const wSpine = columnWeights(cloud, torsoNeckSet, c0, e1, e2, n, 0.016 * H, 18, [[spine3Idx, 1]]);
+      ring.w = ring.w.map((col, i2) => mixWeights(col, wSpine[i2] ?? wSpine[0], capSpineMix[k]));
+      return clampInsideTorso(ring);
+    });
+    sleeves.push([...capRings, ...rings]);
   }
 
   const bodyStrip = [flare, ...torso, ...slope, ...collar];
@@ -969,82 +823,65 @@ function buildSneakers(av, colors, _plan, env = {}) {
     void footSet;
     const down2 = e2.y < 0 ? e2 : e2.clone().negate(); // the downward ring direction
 
-    // per-foot sub-cloud (v4 SIZING): keep only verts near THIS foot's
-    // ankle↔toe segment — all-bone slabs at the feet measure BOTH feet
-    // (the waist-hands pollution class) — AND drop the SHIN above the
-    // ankle. v3 kept the low shin in the cloud and then CAPPED every ring
-    // (min(rx, 0.058H) / min(rz, 0.05H) / taper / vertical cap) to fight
-    // the balloon; caps that can fall below flesh are exactly how the
-    // charcoal upper ended up inside the foot. With the shin excluded at
-    // the source, every ring hugs the true cross-section — no caps at all.
+    // per-foot sub-cloud: all-bone slabs at the feet measure BOTH feet (they
+    // share the slab plane 24 cm apart — the waist-hands pollution class).
+    // Keep only verts near THIS foot's ankle↔toe segment (+ the low shin).
     const footCloud = [];
-    const shinCut = fp.y + 0.034 * H; // the shoe never covers the shin
     for (const v of cloud) {
-      if (v.y > shinCut) continue;
       const rel = new THREE.Vector3(v.x - fp.x, v.y - fp.y, v.z - fp.z);
       const along = rel.dot(axis);
       const rad = rel.clone().addScaledVector(axis, -Math.min(L, Math.max(0, along))).length();
-      if (rad < 0.072 * H) footCloud.push(v);
+      if (rad < 0.072 * H) footCloud.push(v); // shin excluded: ankle-slab hugs must stay ON the foot
     }
 
-    // shoe rings: plain measured hugs. The mid-span centre shift stays
-    // damped toward the axis point (smooths the foot's centreline curl).
-    // Profile hi is 1.25 (the malleolus bulge is real flesh — a ring that
-    // caps BELOW it is inside the ankle).
-    const ringAt = (t, margin, drop, popMaxY = shinCut) => {
+    // shoe rings: hugs are CAPPED. An uncapped hug at the ankle slab spans
+    // the lower SHIN too — the ring balloons to ~12 cm radius, centred 13 cm
+    // up the shin, and at toe-off it swings 15 cm into the void between the
+    // feet (measured: the push-up Infinity). Caps keep every ring on the
+    // foot; the mid-span shift is damped toward the ring's axis point.
+    const ringAt = (t, margin, drop, pop, popT) => {
       const c0 = new THREE.Vector3().copy(fp).addScaledVector(axis, t * L);
       const slab = 0.02 * H;
-      const pop = popMaxY >= shinCut ? footCloud : footCloud.filter((v) => v.y <= popMaxY);
-      const { c, rx, rz } = hugRing(pop, null, c0, e1, e2, n, slab, margin, 0.024 * H, 0.016 * H);
+      const { c, rx, rz } = hugRing(footCloud, null, c0, e1, e2, n, slab, margin, 0.028 * H, 0.02 * H);
       const cc = c0.clone().lerp(c, 0.4).addScaledVector(down2, drop);
-      const prof = radialProfile(pop, null, c, e1, e2, n, slab, rx, rz, 18, 0.85, 1.25);
-      // vertical clamp at the population's own ceiling — a flesh-derived
-      // limit (it sits above every vert the ring measured), so unlike v3's
-      // fixed capY it can never drop a column below flesh; it only stops
-      // rings from towering past the flesh they wrap (heel/collar into the
-      // shin, measured 6–17 cm inside the calf).
+      const crx = Math.min(rx, 0.058 * H) * (pop ?? 1);
+      const crz = Math.min(rz, 0.05 * H);
+      // profile capped tight (0.85–1.1): the malleolus bulge otherwise
+      // spikes a column to 1.35× radius — a 10 cm fin that swings into
+      // the void between the feet at toe-off (the push-up Infinity)
+      const prof = radialProfile(footCloud, null, c, e1, e2, n, slab, crx, crz, 18, 0.85, 1.1);
+      // VERTICAL cap: the ankle-slab's vertical span (foot+shin base)
+      // inflates the up-columns ~9 cm over the ankle; at toe-off those
+      // columns swing wide of the raised heel (7.5 cm — measured). No
+      // shoe ring towers more than 3 cm above the ankle joint.
+      const capY = fp.y + 0.020 * H;
       for (let col = 0; col < 18; col++) {
         const a = (col / 18) * Math.PI * 2;
-        const py = cc.y + prof[col] * (rx * Math.cos(a) * e1.y + (rz + drop) * Math.sin(a) * e2.y);
-        if (py > popMaxY && py > cc.y + 1e-6) {
-          prof[col] *= Math.max(0.25, (popMaxY - cc.y) / (py - cc.y));
-        }
+        const py = cc.y + prof[col] * (crx * Math.cos(a) * e1.y + crz * Math.sin(a) * e2.y);
+        if (py > capY && py > cc.y + 1e-6) prof[col] *= Math.max(0.3, (capY - cc.y) / (py - cc.y));
       }
       return {
         c: cc, e1, e2, n,
-        rx, rz: rz + drop,
+        rx: crx, rz: (crz + drop) * (popT ?? 1),
         prof,
-        w: columnWeights(pop, null, cc, e1, e2, n, 0.03 * H, 18),
+        w: columnWeights(footCloud, null, cc, e1, e2, n, 0.03 * H, 18),
       };
     };
-    // sole (WHITE, reads as the sole rim): measured rings along the foot,
-    // dropped toward the ground so its bottom edge pokes below the upper.
-    // The heel ring is HUGGED (v3's derived 0.55× cone sat 3–18 cm inside
-    // the heel flesh — measured by the signed probe).
-    // the sole's back finish: a pinched ring just BEHIND the ankle joint —
-    // real heel flesh to hug there (t=-0.10), so the tube end reads as a
-    // finished edge over the heel instead of an open pipe. Nothing lives in
-    // the retrocalcaneal hollow further back: every ellipse tried there
-    // either sank 1.6+ cm into the calf's shadow or clipped the heel
-    // (signed probe, measured) — the hollow gets NO ring, by design.
-    const soleRings = [
-      ...[0.0, 0.02, 0.2, 0.38, 0.56, 0.74, 0.92, 1.06].map((t) => ringAt(t, 0.004 * H, 0.008 * H)),
-    ];
-    // back finish: a pinch on the ankle-station ring (t=0.0) — the ankle
-    // cross-section is fully flesh-anchored (every probe clean); stations
-    // behind the ankle all graze the retrocalcaneal hollow, so the sole's
-    // back edge lives AT the ankle, pinched to read finished.
-    soleRings[0] = {
-      ...soleRings[0],
-      rx: soleRings[0].rx * 0.94, rz: soleRings[0].rz * 0.94,
-      prof: soleRings[0].prof.map((v) => Math.min(1, v)),
-    };
-    // upper (CHARCOAL, the visible shoe): ankle collar → instep → toe box.
-    // No taper — the wedge foot's own cross-section tapers toward the toes,
-    // so the hugs taper naturally; the toe-end rings enclose the wide toe
-    // box per-axis (the founder's "shoes invisible around the toes").
-    const upRings = [0.0, 0.18, 0.38, 0.58, 0.78, 1.0]
-      .map((t, k) => ringAt(t, 0.007 * H, k === 0 ? 0.004 * H : 0.001 * H));
+    // sole: measured rings along the foot + a DERIVED heel cap (a shrinking
+    // cone ring behind the heel — never hugged, so it can't balloon)
+    const soleRings = [0.02, 0.2, 0.38, 0.56, 0.74, 0.92, 1.06]
+      .map((t) => ringAt(t, 0.006 * H, 0.006 * H));
+    const ankleRing = soleRings[0];
+    soleRings.unshift({
+      c: new THREE.Vector3().copy(fp).addScaledVector(axis, -0.42 * L).addScaledVector(down2, 0.006 * H),
+      e1, e2, n,
+      rx: ankleRing.rx * 0.55, rz: ankleRing.rz * 0.55,
+      prof: ankleRing.prof.map((v) => Math.min(1, v)),
+      w: ankleRing.w.map((c) => c.map(([bi, w]) => [bi, w])),
+    });
+    // upper: ankle collar → instep, hugging flesh, tapering onto the toes
+    const upRings = [0.0, 0.18, 0.38, 0.58, 0.78, 1.0].map((t, k) =>
+      ringAt(t, 0.008 * H, k === 0 ? 0 : 0.003 * H, 1, 1 - 0.06 * k));
     // WELD the shoe to the foot the way the old rigid shoes were welded: a
     // strip-average weight would blend Leg into the ankle rings and the shoe
     // rotates only HALF with the foot at toe-off — the sole swept 15 cm off
@@ -1160,42 +997,6 @@ export function bodySurface(avatar, maxVerts = 26000) {
   return pts;
 }
 
-/** Live CPU-skinned body TRIANGLES as one flat Float32Array [ax,ay,az, bx,
- *  by,bz, cx,cy,cz, ...] (world space, wardrobe meshes excluded). Vertex
- *  sampling cannot drive occlusion probes (Geno's samples land ~1.2 cm apart);
- *  the atelier's signed inside-body oracle renders this exact triangle soup. */
-export function bodyTriangles(avatar) {
-  const chunks = [];
-  let total = 0;
-  avatar.prone.children[0].traverse((o) => {
-    if (!o.isSkinnedMesh || !o.skeleton || !o.geometry.attributes.position
-      || o.userData?.rwfWardrobe) return;
-    o.updateWorldMatrix(true, false);
-    const M = freshBoneMatrices(o.skeleton);
-    const P = o.geometry.attributes.position;
-    const I = o.geometry.index;
-    const tri = Math.floor((I ? I.count : P.count) / 3);
-    const out = new Float32Array(tri * 9);
-    let w = 0;
-    const va = new THREE.Vector3(), vb = new THREE.Vector3(), vc = new THREE.Vector3();
-    for (let t = 0; t < tri; t++) {
-      const ia = I ? I.getX(t * 3) : t * 3;
-      const ib = I ? I.getX(t * 3 + 1) : t * 3 + 1;
-      const ic = I ? I.getX(t * 3 + 2) : t * 3 + 2;
-      skinnedVert(o, ia, va, M); skinnedVert(o, ib, vb, M); skinnedVert(o, ic, vc, M);
-      out[w++] = va.x; out[w++] = va.y; out[w++] = va.z;
-      out[w++] = vb.x; out[w++] = vb.y; out[w++] = vb.z;
-      out[w++] = vc.x; out[w++] = vc.y; out[w++] = vc.z;
-    }
-    chunks.push(out);
-    total += w;
-  });
-  const all = new Float32Array(total);
-  let off = 0;
-  for (const c of chunks) { all.set(c, off); off += c.length; }
-  return all;
-}
-
 /** Skeleton samples (world space): every bone segment every ~2 cm + a
  *  terminal extension for tips (toes/fingers/head). Sparse low-poly flesh
  *  (Geno's feet: a heel corner can be 15 cm from the nearest SURFACE vert)
@@ -1226,11 +1027,7 @@ export function skeletonSamples(avatar) {
   return pts;
 }
 
-/** Uniform-grid nearest-distance oracle over a point cloud (cell = `cell`).
- *  Expands the search ring (±1 → ±2 → ±4 cells) while nothing is found, so a
- *  query on a relaxed-fit garment ring 10–15 cm off the flesh returns its
- *  true distance instead of Infinity (measured on the v4 tee at BVH-bind
- *  arms-out, where the old ±1-only search poisoned the attachment bars). */
+/** Uniform-grid nearest-distance oracle over a point cloud (cell = `cell`). */
 export function nearestDistanceFactory(cloud, cell = 0.05) {
   const grid = new Map();
   const key = (i, j, k) => i + ',' + j + ',' + k;
@@ -1242,20 +1039,17 @@ export function nearestDistanceFactory(cloud, cell = 0.05) {
   }
   return (x, y, z) => {
     const ci = Math.floor(x / cell), cj = Math.floor(y / cell), ck = Math.floor(z / cell);
-    for (const ring of [1, 2, 4]) {
-      let best = Infinity;
-      for (let di = -ring; di <= ring; di++) for (let dj = -ring; dj <= ring; dj++) for (let dk = -ring; dk <= ring; dk++) {
-        const a = grid.get(key(ci + di, cj + dj, ck + dk));
-        if (!a) continue;
-        for (let i = 0; i < a.length; i += 3) {
-          const dx = a[i] - x, dy = a[i + 1] - y, dz = a[i + 2] - z;
-          const d2 = dx * dx + dy * dy + dz * dz;
-          if (d2 < best) best = d2;
-        }
+    let best = Infinity;
+    for (let di = -1; di <= 1; di++) for (let dj = -1; dj <= 1; dj++) for (let dk = -1; dk <= 1; dk++) {
+      const a = grid.get(key(ci + di, cj + dj, ck + dk));
+      if (!a) continue;
+      for (let i = 0; i < a.length; i += 3) {
+        const dx = a[i] - x, dy = a[i + 1] - y, dz = a[i + 2] - z;
+        const d2 = dx * dx + dy * dy + dz * dz;
+        if (d2 < best) best = d2;
       }
-      if (best < Infinity) return Math.sqrt(best);
     }
-    return Infinity;
+    return Math.sqrt(best);
   };
 }
 

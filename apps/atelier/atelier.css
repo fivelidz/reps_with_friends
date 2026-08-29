@@ -348,3 +348,6 @@
 @media (prefers-reduced-motion: reduce) {
   .rwf-btn, .iso-chip, .build-step { transition: none; }
 }
+
+/* signed-probe inside-body legend chip (bright red, white-cored like the heatmap) */
+.lg-inside { background: linear-gradient(90deg, #ff1f1f, #ffd9e1); color: #2a0d0d; }

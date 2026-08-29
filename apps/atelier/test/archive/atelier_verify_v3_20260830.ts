@@ -7,17 +7,13 @@
 //
 // Checks (exit 2 = console errors, 1 = failed bars):
 //   0. page loads, ZERO console errors, exactly ONE WebGL context
-//   1. attachment probe — garment→body distance bars (per region) across
+//   1. attachment probe — max garment→body distance ≤5 cm across
 //      5 BVH clips × 4 phases + 4 poses × 3 phases (page-side probe)
-//   2. SIGNED coverage probe — inside-body garment verts must be 0 per case
-//      (depth-oracle occlusion test; tuck/fold/bare-limb crossings excused)
-//   3. surface continuity — adjacent-ring edge strain (reported; welded
-//      topology cannot open gaps — NaN/degenerate verts are the hole check)
-//   4. REGION pixel checks — the founder's three reports as regressions:
-//      shirt-lime in the shoulder/upper-chest band, shorts-coral on both
-//      upper thighs, shoe-charcoal at both toes — at bind AND walk frame 50%
-//   5. waistband visibility + sleeves over the deltoid (pixel probes)
-//   6. build-up screenshots → apps/atelier/shots/ (v4, --shots)
+//   2. surface continuity — no adjacent-ring edge stretched >3 mm
+//   3. waistband visibility — pixel-sampled white band at the expected
+//      height, lime above, coral below (front render)
+//   4. sleeves — shirt pixels over the deltoid, front + 3/4 views
+//   5. build-up screenshots → apps/atelier/shots/ (--shots)
 //
 import { mkdirSync } from 'node:fs';
 
@@ -102,11 +98,7 @@ else {
   for (const r of byWorst) console.log(`    ${r.label.padEnd(22)} ${String(r.maxCm).padStart(5)} cm  (${r.worst})  stretch ${r.stretchCm} cm${r.ankleDriftCm != null ? `  ankleDrift ${r.ankleDriftCm}cm` : ''}`);
   const stretchWorst = [...report.rows].sort((a: any, b: any) => b.stretchCm - a.stretchCm)[0];
   console.log(`  worst stretch: ${stretchWorst.label} ${stretchWorst.stretchCm} cm (${stretchWorst.worstStretch})`);
-  if (!report.attachPass) {
-    const over = report.rows.filter((r: any) => r.overBar);
-    if (over.length) fail('attachment bar breached: ' + over.map((r: any) => `${r.label} ${r.overBar} ${r.perGarment[r.overBar].maxCm}cm`).join('; '));
-    // (inside-body failures are reported and failed by their own check below)
-  }
+  if (!report.attachPass) fail('attachment bar breached (see worst rows)');
   const nanTotal = report.rows.reduce((a: any, r: any) => a + (r.nan || 0), 0);
   if (nanTotal > 0) fail(`structural gaps: ${nanTotal} NaN/degenerate garment verts`);
   if (!report.stretchPass) console.log('  ⚠ note: ring strain exceeds 3 mm (LBS on welded rings — reported, not a hole; human pass = slow-mo/x-ray in the page)');
@@ -119,50 +111,17 @@ else {
   console.log('  per-garment max over all cases (cm):', JSON.stringify(perGarment));
 }
 
-// ── 2b. signed coverage summary (from the same verify report) ──────────────
-const insideRows = report?.rows?.filter((r: any) => r.insideVerts > 0) ?? [];
-const insideTotal = report?.insideVerts ?? 0;
-const crossTotal = report?.limbCrossVerts ?? 0;
-console.log(`  inside-body verts TOTAL: ${insideTotal} (bar 0) · worst ${report?.insideWorstCm ?? '?'} cm · ${crossTotal} bare-limb crossings excused (LBS cloth limit, documented)`);
-if (insideTotal > 0) {
-  for (const r of insideRows) console.log(`    ${r.label}: ${r.insideVerts} vert(s), worst ${r.insideWorstCm} cm`);
-  fail(`inside-body verts: ${insideTotal} (expected 0)`);
-}
-
-// ── 3. REGION pixel checks (founder's three reports) ────────────────────────
-console.log('\n── 3. region pixel checks (shoulders/chest, thighs, toes)');
-{
-  const walk = await ev(`
-    (async () => {
-      const A = window.__atelier, av = A.avatar;
-      const M = await import('/site/model-avatars.js');
-      const res = await M.loadBVH(M.BVH_FILES.walk);
-      const p = new M.BVHPlayer(av, res);
-      p.time = p.duration * 0.5; p.update(0);
-      av.root.updateMatrixWorld(true);
-      const r = await A.regionChecks();
-      p.stop();
-      return r;
-    })()`);
-  const bind = await ev('window.__atelier.regionChecks()');
-  for (const [label, r] of [['bind', bind], ['walk@50%', walk]] as const) {
-    if (!r || r.error) { fail(`regionChecks ${label}: ${r?.error ?? 'no value'}`); continue; }
-    console.log(`  ${label}: ${r.pass ? 'PASS' : 'FAIL'} — ` + r.regions.map((x: any) => `${x.name} ${x.share}%${x.pass ? '✓' : '✗'}`).join(' · '));
-    if (!r.pass) fail(`region checks ${label}: ` + r.regions.filter((x: any) => !x.pass).map((x: any) => x.name).join(', '));
-  }
-}
-
-// ── 3b. waistband pixel check ───────────────────────────────────────────────
+// ── 3. waistband pixel check ────────────────────────────────────────────────
 console.log('\n── 3. waistband visibility (pixel probe)');
 const band = await ev('window.__atelier.bandCheck()');
 console.log('  ' + JSON.stringify(band));
 if (!band || !band.pass) fail('waistband band not verified: ' + JSON.stringify(band));
 
-// ── 4b. sleeve coverage ─────────────────────────────────────────────────────
+// ── 4. sleeve coverage ──────────────────────────────────────────────────────
 console.log('\n── 4. sleeves over the deltoid (front + 3/4)');
 for (const view of ['front', 'three-quarter']) {
   const sl = await ev(`window.__atelier.sleeveCheck('${view}')`);
-  console.log(`  ${view}: ${sl?.pass ? 'PASS' : 'FAIL'} ${JSON.stringify(sl?.sleevePixels ?? sl?.samples ?? {})}`);
+  console.log(`  ${view}: ${sl?.pass ? 'PASS' : 'FAIL'} ` + JSON.stringify(sl?.samples));
   if (!sl?.pass) fail(`sleeve check ${view}: ${JSON.stringify(sl)}`);
 }
 
@@ -211,13 +170,12 @@ if (SHOTS) {
     await ev(`window.__atelier.setBuildStep(${i})`, false);
     await ev('window.__atelier.stepFrame(1)', false);
     await new Promise(r => setTimeout(r, 450));
-    await shotNow(`buildup_v4_${i}`);
-    console.log(`  buildup_v4_${i}.png`);
+    await shotNow(`buildup_${i}`);
+    console.log(`  buildup_${i}.png`);
   }
   // full kit front + 3/4 (sleeve + waistband visual evidence)
-  for (const [name, cam] of [['fullkit_v4_front', { pos: [0, 1.15, 2.6], tgt: [0, 0.95, 0] }],
-                              ['fullkit_v4_back', { pos: [0, 1.15, -2.6], tgt: [0, 0.95, 0] }],
-                              ['fullkit_v4_34', { pos: [1.75, 1.3, 1.9], tgt: [0, 0.95, 0] }]] as const) {
+  for (const [name, cam] of [['fullkit_front', { pos: [0, 1.15, 2.6], tgt: [0, 0.95, 0] }],
+                             ['fullkit_34', { pos: [1.75, 1.3, 1.9], tgt: [0, 0.95, 0] }]] as const) {
     await ev(`window.__atelier.setCam(${JSON.stringify(cam.pos)}, ${JSON.stringify(cam.tgt)})`, false);
     await new Promise(r => setTimeout(r, 500));
     await shotNow(name);
