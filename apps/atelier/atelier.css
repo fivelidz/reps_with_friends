@@ -226,6 +226,8 @@
 }
 .rwf-btn--primary:hover { background: var(--lime-dim); border-color: var(--lime-dim); color: #0b0d07; }
 .rwf-btn--primary:disabled { opacity: 0.55; cursor: wait; }
+.rwf-btn:disabled { opacity: 0.45; cursor: not-allowed; }
+.rwf-btn:disabled:hover { border-color: var(--line-bright); }
 
 /* build-up list */
 .build-list { margin-top: 12px; display: flex; flex-direction: column; gap: 4px; }

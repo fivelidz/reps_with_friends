@@ -26,17 +26,16 @@
   </div>
   <p class="at-sub">
     One avatar, up close. The instrument for judging garments with human eyes:
-    zoom, slow-mo, x-ray, seam heatmap, build-up, isolation. Geno wearing
-    <b>SKIN-DERIVED GARMENTS</b> (<code>geno-derived.js</code>): the shirt and
-    shorts are the body's own triangles offset +6 mm along their normals —
-    same skeleton, same weights, so they deform identically to the flesh
-    through every clip and pose. No cloth solver, no sizing war, no idle cost.
+    zoom, slow-mo, x-ray, seam heatmap, build-up, isolation. Geno + the
+    canonical outfit — now as <b>TRUE HANGING CLOTH</b> (<code>geno-cloth.js</code>):
+    the shirt and shorts are simulated fabric, pinned at the waistband and
+    shoulders, colliding with the body, draped by gravity.
   </p>
   <div class="at-fixbar" title="the founder's defect report this page exists to answer">
-    <span class="fix-chip">the body's own triangles, +6 mm — not an approximation</span>
-    <span class="fix-chip">cannot be inside the flesh · cannot be armour</span>
-    <span class="fix-chip">deforms identically to the body (shared skinning)</span>
-    <span class="fix-chip">stationary = silent (dirty-flag render loop)</span>
+    <span class="fix-chip">fixing: "american football armour" bulk</span>
+    <span class="fix-chip">hanging fabric over the model, colliding — not skinned</span>
+    <span class="fix-chip">no sizing war: collision + gravity is the fit</span>
+    <span class="fix-chip">must hold through all animations</span>
   </div>
 </header>
 
@@ -86,15 +85,6 @@
     </section>
 
     <section class="rail-sec">
-      <h2>Garment mode</h2>
-      <div class="btn-row wrap">
-        <button class="rwf-btn is-on" id="btnModeDerived" type="button" title="the body's own triangles + 6 mm, sharing the skeleton — the canonical system">◍ Skin-derived <span class="hud-dim">(default)</span></button>
-        <button class="rwf-btn" id="btnModeCloth" type="button" title="simulated hanging fabric (PBD) — experimental comparison path, OFF by default">≈ Cloth sim <span class="hud-dim">(experimental)</span></button>
-      </div>
-      <p class="ctl-hint">Skin-derived = the body's own triangles offset +6 mm (collar 3 mm, waistband 9 mm), hems dropped + flared. Cloth sim = the archived PBD experiment — kept for comparison, not the default.</p>
-    </section>
-
-    <section class="rail-sec">
       <h2>View</h2>
       <div class="btn-row wrap">
         <button class="rwf-btn is-on" id="btnTurn" type="button" title="auto turntable">⟳ Turntable</button>
@@ -124,21 +114,21 @@
     </section>
 
     <section class="rail-sec">
-      <h2>Cloth sim <span class="hud-dim">(experimental · cloth mode only)</span></h2>
+      <h2>Cloth <span class="hud-dim">(PBD sim)</span></h2>
       <div class="btn-row wrap">
         <button class="rwf-btn" id="btnClothDebug" type="button" title="particles (red = pinned) + constraint lines over the render">◌ Cloth debug</button>
         <button class="rwf-btn" id="btnClothStep" type="button" title="advance the cloth ONE substep (1/240 s) — watch it settle frame by frame while paused">▸ Substep</button>
         <button class="rwf-btn" id="btnClothReset" type="button" title="drop the cloth from its rest shape again">↺ Reset drape</button>
       </div>
-      <p class="ctl-hint" id="clothInfo">ARCHIVED EXPERIMENT (OFF by default). Switch "Garment mode" to "Cloth sim" to re-enable these controls.</p>
+      <p class="ctl-hint" id="clothInfo">shirt + shorts hang from pins (waistband, neckline + shoulders, sleeve tops) and collide with capsule colliders measured off the body. Pause freezes the sim.</p>
     </section>
 
     <section class="rail-sec">
       <h2>Verify <span class="hud-dim">(programmatic)</span></h2>
       <button class="rwf-btn rwf-btn--primary" id="btnVerify" type="button">▶ Run attachment probe</button>
-      <p class="ctl-hint">Poses every clip × 4 phases + every exercise × 3 phases, then measures garment→body distance (region verts ≈ the 6 mm offset; hem lips to 3.2 cm by construction),
-        inside-body verts (bar 0), Δsource attachment (garment verts track their body verts, bar &lt;1 cm), edge strain vs the body's own,
-        plus the silhouette bulk check: shirt ≤ body+6 cm (the armour detector).</p>
+      <p class="ctl-hint">Poses every clip × 4 phases + every exercise × 3 phases (cloth settled to each frame), then measures
+        garment→body distance (bar: ≤5 cm), ring continuity, inside-body verts (bar 0) — plus the cloth checks:
+        silhouette bulk ≤ body+6 cm (the armour detector), settle &lt;3 s, hem lag &gt;0 on walk.</p>
       <div class="verify-out" id="verifyOut"><p class="hud-dim">No run yet.</p></div>
     </section>
 

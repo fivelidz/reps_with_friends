@@ -108,7 +108,7 @@ const lerp = (a, b, t) => a + (b - a) * t;
 
 // ── rig measurement (copied from geno-wardrobe v2 — proven) ─────────────────
 
-export function genoSkin(av) {
+function genoSkin(av) {
   const scene = av.prone.children[0];
   let skeleton = null;
   scene.traverse((o) => { if (!skeleton && o.isSkinnedMesh && o.skeleton) skeleton = o.skeleton; });
@@ -129,7 +129,7 @@ function bindPos(bone, toBind, out = new THREE.Vector3()) {
   return bone.getWorldPosition(out).applyMatrix4(toBind);
 }
 
-export function bodyCloud(skin) {
+function bodyCloud(skin) {
   const pts = [];
   skin.scene.traverse((o) => {
     if (!o.isSkinnedMesh || !o.skeleton || !o.geometry.attributes.skinWeight) return;
@@ -459,7 +459,7 @@ function pelvisSet(av, skin) {
   );
 }
 
-export function waistPlan(av, skin) {
+function waistPlan(av, skin) {
   const H = av.H;
   const hipsP = bindPos(av.bones.hips, skin.toBind);
   const spineP = bindPos(av.bones.spine, skin.toBind);
@@ -911,7 +911,7 @@ function buildTee(av, colors, plan, env = {}) {
 
 // ── rigid pieces (ported from geno-wardrobe.js — founder-approved) ───────────
 
-export function buildHeadband(av, colors) {
+function buildHeadband(av, colors) {
   const H = av.H;
   const g = frameOnBone(av.bones.head, headUp(av), FWD);
   g.userData.rwfWardrobe = 'headband';
@@ -925,7 +925,7 @@ export function buildHeadband(av, colors) {
   return g;
 }
 
-export function buildWristbands(av, colors) {
+function buildWristbands(av, colors) {
   const H = av.H;
   const roots = [];
   for (const side of ['foreL', 'foreR']) {
@@ -941,7 +941,7 @@ export function buildWristbands(av, colors) {
   return roots;
 }
 
-export function buildSneakers(av, colors, _plan, env = {}) {
+function buildSneakers(av, colors, _plan, env = {}) {
   const skin = env.skin ?? genoSkin(av);
   const cloud = env.cloud ?? bodyCloud(skin);
   const H = av.H;
@@ -1077,7 +1077,7 @@ export function buildSneakers(av, colors, _plan, env = {}) {
  *  Deliberately NOT skeleton.boneMatrices: those are refreshed by the
  *  RENDERER, so probing without a render between poses would measure a
  *  stale mixed-pose state (measured: phantom 10–14 cm offsets). */
-export function freshBoneMatrices(skeleton) {
+function freshBoneMatrices(skeleton) {
   return skeleton.bones.map((b, i) =>
     new THREE.Matrix4().multiplyMatrices(b.matrixWorld, skeleton.boneInverses[i]));
 }
@@ -1089,7 +1089,7 @@ export function freshBoneMatrices(skeleton) {
  *  and the world position is JUST Σ w·(bone.matrixWorld·boneInverse)·v —
  *  multiplying mesh.matrixWorld on top double-applies root scale/prone/yaw
  *  (measured: garments rendered at S², every distance garbage). */
-export function skinnedVert(mesh, i, out, M) {
+function skinnedVert(mesh, i, out, M) {
   out.fromBufferAttribute(mesh.geometry.attributes.position, i);
   const SI = mesh.geometry.attributes.skinIndex;
   const SW = mesh.geometry.attributes.skinWeight;

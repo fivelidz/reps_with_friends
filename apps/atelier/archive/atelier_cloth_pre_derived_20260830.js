@@ -24,17 +24,11 @@ import { loadModel, applyFlatTint, loadBVH, BVHPlayer, ModelAvatar, BVH_FILES }
   from '/site/model-avatars.js';
 import {
   garmentVerts, bodySurface, bodyTriangles, nearestDistanceFactory,
-  skeletonSamples, freshBoneMatrices, skinnedVert,
-  OUTFIT_SLOTS, SLOT_LABELS, BUILDUP_STEPS,
+  skeletonSamples, OUTFIT_SLOTS, SLOT_LABELS, BUILDUP_STEPS,
 } from '/site/models/geno-outfit.js';
-// SKIN-DERIVED GARMENTS (geno-derived): the DEFAULT system — the body's own
-// triangles, offset +6 mm along their normals, same skeleton, same weights.
-// Cannot be inside the flesh, cannot be armour, deforms identically to the
-// body through every clip and pose. No sim, no per-frame cost.
-import { attachDerivedOutfit, clearDerived } from '/site/models/geno-derived.js';
-// TRUE HANGING CLOTH (geno-cloth): EXPERIMENTAL, OFF by default — simulated
-// fabric pinned + colliding + draped by gravity. Kept wired behind a toggle
-// for comparison runs; the derived system above is the canonical answer.
+// TRUE HANGING CLOTH (geno-cloth): the shirt + shorts are simulated fabric —
+// pinned at the waistband / neckline + shoulders, colliding with capsule
+// colliders measured off the body, draping under gravity. No skinned fit.
 import { attachClothOutfit, clearCloth, CLOTH_TUNING } from '/site/models/geno-cloth.js';
 
 const $ = (id) => document.getElementById(id);
@@ -91,7 +85,6 @@ const state = {
   buildStep: BUILDUP_STEPS.length - 1, iso: null,
   xray: false, wire: false, heat: false, autoTurn: true,
   ready: false, verifying: false,
-  mode: 'derived',          // 'derived' (default) | 'cloth' (experimental)
 };
 
 const POSES = [
@@ -159,7 +152,6 @@ function applyViewFX() {
     o.material.wireframe = state.wire;
     o.material.emissive?.setHex(state.xray ? 0x23272e : 0x000000);
   });
-  wake();
 }
 
 const heatColour = (dCm, out) => {
@@ -236,7 +228,6 @@ function applyVisibility() {
   $('stageNote').textContent = state.iso
     ? `isolated: ${SLOT_LABELS[state.iso]}`
     : `step ${state.buildStep + 1}/${BUILDUP_STEPS.length}: ${BUILDUP_STEPS[state.buildStep].label}`;
-  wake();
 }
 
 // ── animation engine ─────────────────────────────────────────────────────────
@@ -262,7 +253,6 @@ async function setAnim(id) {
   }
   $('animSel').value = id;
   $('hudAnim').textContent = a.label;
-  wake();
 }
 
 function applyAnimAt() {
@@ -283,9 +273,8 @@ function stepFrame(dir) {
   state.t += dir * (1 / 30) * state.speed;
   applyAnimAt();
   outfit?.updateFabric((1 / 30) * state.speed); // cloth tracks the stepped frame
-  if (state.heat) updateHeatmap();               // on-demand: paused garments don't move
+  if (state.heat) updateHeatmap();
   if (!wasPaused) $('hudPhase').textContent = phaseLabel();
-  wake();
 }
 
 function phaseLabel() {
@@ -298,7 +287,6 @@ function phaseLabel() {
 function updatePauseBtn() {
   $('btnPause').textContent = state.paused ? '▶ Play' : '⏸ Pause';
   $('btnPause').classList.toggle('is-on', state.paused);
-  wake();
 }
 
 // ── pixel probes (band visibility, sleeves) ─────────────────────────────────
@@ -949,62 +937,12 @@ function scanInsideBody(tolCm = 1.0, nearCm = 1.2) { // 1.0 cm = the cloth tunne
     }
   }
   const rows = [];
-  // world spine line (skin-derived garments have no rings — the outward
-  // direction for the exit probe is horizontal-radial from this line)
-  const spineW = [];
-  for (const bn of ['hips', 'spine', 'spine1', 'neck']) {
-    const b = av.bones[bn];
-    if (!b) continue;
-    b.updateWorldMatrix(true, false);
-    spineW.push(new THREE.Vector3().setFromMatrixPosition(b.matrixWorld));
-  }
-  spineW.sort((a, b) => a.y - b.y);
-  const centreAt = (y) => {
-    if (spineW.length < 2) return spineW[0] ?? new THREE.Vector3(0, y, 0);
-    for (let k = 0; k < spineW.length - 1; k++) {
-      if (y <= spineW[k + 1].y || k === spineW.length - 2) {
-        const t = Math.min(1, Math.max(0, (y - spineW[k].y) / (spineW[k + 1].y - spineW[k].y || 1)));
-        return spineW[k].clone().lerp(spineW[k + 1], t);
-      }
-    }
-    return spineW[0];
-  };
-  const _u = new THREE.Vector3();
   for (let mi = 0; mi < outfit.softGarments.length; mi++) {
     const g = outfit.softGarments[mi];
     const layout = g.userData?.rwfLayout;
+    if (!layout) continue;
     const tag = g.userData?.rwfWardrobe ?? '?';
     const verts = garmentVerts(g);
-    if (!layout) {
-      // ── SKIN-DERIVED garment: per-vertex verdict (no ring layout — the
-      //    garment IS body triangles, so each vertex answers for itself)
-      let inside = 0, excused = 0, defect = 0, worstCm = 0, worstY = 0, limbCross = 0;
-      const samples = [];
-      const s2 = av.root.getWorldScale(new THREE.Vector3()).x || 1;
-      for (let vi = 0; vi < verts.length; vi++) {
-        const v = verts[vi];
-        if (!v || !isFinite(v.x + v.y + v.z)) continue;
-        if (!oracle.inside(v.x, v.y, v.z)) continue;
-        if (nearSurface(v.x, v.y, v.z) <= near) { excused++; continue; } // crease/skin graze
-        inside++;
-        _u.set(v.x - centreAt(v.y).x, 0, v.z - centreAt(v.y).z);
-        if (_u.lengthSq() < 1e-9) _u.set(0, 0, 1);
-        _u.normalize();
-        const ex = oracle.exit(v.x, v.y, v.z, _u.x, _u.y, _u.z, 0, 1, 0);
-        if (ex.fold) { excused++; continue; }
-        if (ex.depth <= tol) { excused++; continue; }
-        if (cover.clothed(ex.x, ex.y, ex.z, mi, -1, -1)) { excused++; continue; }
-        if (distToSeg(ex.x, ex.y, ex.z) <= 0.055) { limbCross++; continue; }
-        if (tag === 'tshirt' && distToArmAxis(v.x, v.y, v.z) < 0.11) { limbCross++; continue; } // sleeve verts ride the arm into the armpit's flesh
-        if (bellyFold) { limbCross++; continue; } // folded torso: the skinning folds WITH the flesh
-        defect++;
-        const dCm = ex.depth * cmPerUnit;
-        if (dCm > worstCm) { worstCm = dCm; worstY = +(v.y / (s2 * av.H) * 1.75).toFixed(2); }
-        if (samples.length < 4) samples.push({ vert: vi, yM: +(v.y / (s2 * av.H) * 1.75).toFixed(2), dCm: +dCm.toFixed(1) });
-      }
-      rows.push({ tag, mesh: mi, strip: -1, rings: verts.length, insideVerts: inside, excused, limbCross, defectVerts: defect, worstCm: +worstCm.toFixed(2), worstY, samples });
-      continue;
-    }
     for (let si = 0; si < layout.layout.length; si++) {
       const strip = layout.layout[si];
       if (!strip) continue;
@@ -1216,64 +1154,12 @@ function regionChecks() {
   });
 }
 
-/** Remove wardrobe remnants (rigid v4 pieces clone through loadModel; cloth
- *  lives at scene level; derived garments are body-scene children — the
- *  rwfWardrobe tag catches all three). Collect-then-remove: removing during
- *  traverse shifts the children array mid-iteration (three's traverse reads
- *  children[i] raw — crash on the first multi-removal, i.e. on setMode). */
+/** Remove wardrobe remnants (rigid v4 pieces clone through loadModel). */
 function clearOutfitRemnants() {
   clearCloth(av);
-  const doomed = [];
   av.prone.children[0].traverse((o) => {
-    if (o.userData?.rwfWardrobe || o.userData?.rwfDerived) doomed.push(o);
+    if (o.userData?.rwfWardrobe) o.parent?.remove(o);
   });
-  for (const o of doomed) o.parent?.remove(o);
-}
-
-// ── garment mode: derived (default) ⇄ cloth (experimental) ───────────────────
-async function setMode(mode) {
-  if ((mode !== 'derived' && mode !== 'cloth') || !av) return;
-  if (outfit && state.mode === mode) return;
-  const savedAnim = state.animId;
-  if (bvh) { bvh.stop(); bvh = null; }
-  clearOutfitRemnants();
-  matSave.clear();
-  heatOracle = null;
-  heatOracleAt = -1;
-  state.mode = mode;
-  state.verifying = false;
-  $('btnVerify').disabled = false;
-  if (mode === 'cloth') {
-    outfit = attachClothOutfit(av, { slots: 'full' });
-    av.pose('stand', 0.5);
-    outfit.settle(1.2); // drop from the bind rest shape — the founder never sees A-pose cloth
-  } else {
-    outfit = attachDerivedOutfit(av, { slots: 'full' });
-    av.pose('stand', 0.5);
-  }
-  applyViewFX();
-  applyVisibility();
-  updateModeUI();
-  await setAnim(savedAnim);
-  state.t = 0;
-  applyAnimAt();
-  wake();
-  return outfit;
-}
-
-function updateModeUI() {
-  const cloth = state.mode === 'cloth';
-  for (const [id, m] of [['btnModeDerived', 'derived'], ['btnModeCloth', 'cloth']]) {
-    $(id)?.classList.toggle('is-on', state.mode === m);
-  }
-  for (const id of ['btnClothDebug', 'btnClothStep', 'btnClothReset']) {
-    const el = $(id);
-    if (el) { el.disabled = !cloth; el.title = cloth ? el.dataset.title ?? el.title : 'cloth-mode only — the derived garments have no sim'; }
-  }
-  const info = $('clothInfo');
-  if (info) info.textContent = cloth
-    ? 'EXPERIMENTAL cloth: shirt + shorts hang from pins and collide with capsule colliders. The DEFAULT garments are skin-derived (the body + 6 mm) — switch back with "Skin-derived".'
-    : 'The garments are SKIN-DERIVED: the body\'s own triangles offset +6 mm (collar 3 mm, band 9 mm), same skeleton, same weights — they cannot tunnel, balloon, or detach, and cost no sim. "Cloth sim" is the archived experimental path.';
 }
 
 // ── CLOTH-SPECIFIC CHECKS (the anti-armour instruments) ─────────────────────
@@ -1367,7 +1253,6 @@ function hemSnapshot() {
 
 async function drapeCheck() {
   if (!av || !outfit) return { error: 'not ready' };
-  if (!outfit.pieces) return { skipped: true, note: 'no cloth sim in this mode' }; // derived garments don't drape
   // ── settle timing (rest-drop → calm), body frozen at stand
   av.pose('stand', 0.5);
   av.root.updateMatrixWorld(true);
@@ -1447,21 +1332,7 @@ async function runVerify() {
   //   • waistband 8 cm: prone push-up folds the hips under the band (5.3)
   // The fitted-garment distance metric is CONTEXT for cloth; containment is
   // enforced by the signed probe (bar 0) and silhouette by bulkCheck.
-  // attachment bars (cm) are MODE-dependent:
-  //   DERIVED (skin-derived body triangles + offsets) — measured per role
-  //   (derived_role_probe): region verts sit at the constructed offset (0.63
-  //   cm ≈ 6 mm × scale), collar 0.32, band 0.95; the shirt hem lip (dropped
-  //   2.8 cm + flared 1 cm BY SPEC) reaches 3.13 cm at walk — so the tee bar
-  //   is 3.5, shorts 2.5 (hem 2.3). The REAL attachment assertion is the
-  //   source-delta probe (bar 1 cm) + inside-body probe (bar 0).
-  //   sneakers/headband/wristbands are the UNCHANGED founder-approved v4
-  //   pieces — sneakers 5.5 (measured 5.1, 1 mm sampling noise on the old
-  //   5.0 bar), band pieces 8 (their halo geometry predates this system).
-  //   CLOTH — hanging-fabric allowances, measured on this build (see notes).
-  const ATTACH_BAR = state.mode === 'cloth'
-    ? { default: 8, tshirt: 25, 'tshirt sleeves': 12, shorts: 45, 'shorts legs': 45, waistband: 8, sneakers: 5 }
-    : { default: 2.5, tshirt: 3.5, shorts: 2.5, waistband: 1.5, sneakers: 5.5, headband: 8, wristbands: 8 };
-  const DELTA_BAR = 1.0;  // cm — |live offset| vs |bind offset| (shared skinning)
+  const ATTACH_BAR = { default: 8, tshirt: 25, 'tshirt sleeves': 12, shorts: 45, 'shorts legs': 45, waistband: 8, sneakers: 5 };
   const barOf = (tag) => ATTACH_BAR[tag] ?? ATTACH_BAR.default;
   // cloth stretch bar: hanging fabric genuinely strains at pins/loads
   // (v4's 3 mm bar was for WELDED LBS topology — a welded strip cannot open;
@@ -1486,57 +1357,10 @@ async function runVerify() {
     const perGarment = {};
     let maxAll = 0, worst = '';
     let maxStretch = 0, worstStretch = '';
-    let maxDelta = 0, worstDelta = '';
-    let maxStrainExcess = 0;
     for (const g of [...outfit.softGarments, ...outfit.rigidPieces]) {
       const tag = g.userData?.rwfWardrobe ?? '?';
       const nearest = g.isSkinnedMesh ? nearSurface : nearBody;
       const verts = garmentVerts(g);
-      // ── DERIVED probes (skin-derived garments): (a) source-delta — each
-      //    garment vert must stay at its CONSTRUCTED offset from its own
-      //    source body vert (shared skinning ⇒ identical deformation; bar
-      //    1 cm for LBS blend softening at joint creases); (b) edge strain —
-      //    the garment's welded edges must strain no more than the BODY's
-      //    own edges between the same verts (inherited topology).
-      const der = g.userData?.rwfDerived;
-      if (der) {
-        const s2 = av.root.getWorldScale(new THREE.Vector3()).x || 1;
-        const mats = freshBoneMatrices(der.body.skeleton);
-        const src = der.srcIndex, bd = der.bindDelta;
-        const bodyLive = new Array(src.length);
-        let devMax = 0;
-        for (let k = 0; k < src.length && k < verts.length; k++) {
-          bodyLive[k] = skinnedVert(der.body, src[k], new THREE.Vector3(), mats).clone();
-          const dl = verts[k].distanceTo(bodyLive[k]);        // live offset length
-          const expect = Math.hypot(bd[k * 3], bd[k * 3 + 1], bd[k * 3 + 2]) * s2; // scaled bind offset
-          const dev = Math.abs(dl - expect);
-          if (dev > devMax) devMax = dev;
-        }
-        const devCm = devMax * cmPerUnit;
-        perGarment[tag] = perGarment[tag] ?? { maxCm: 0, nan: 0 };
-        perGarment[tag].deltaCm = +devCm.toFixed(2);
-        if (devCm > maxDelta) { maxDelta = devCm; worstDelta = tag; }
-        // edge strain: garment live vs bind, against the body's own
-        const gI = g.geometry.index, GP = g.geometry.attributes.position, BP = der.body.geometry.attributes.position;
-        const gv = new THREE.Vector3();
-        let gStrain = 0, bStrain = 0;
-        const strainEdge = (a, b) => {
-          const bindG = gv.fromBufferAttribute(GP, a).distanceTo(new THREE.Vector3().fromBufferAttribute(GP, b));
-          const liveG = verts[a].distanceTo(verts[b]) / s2;
-          gStrain = Math.max(gStrain, (liveG - bindG) * cmPerUnit);
-          const bindB = new THREE.Vector3().fromBufferAttribute(BP, src[a]).distanceTo(new THREE.Vector3().fromBufferAttribute(BP, src[b]));
-          const liveB = (bodyLive[a]?.distanceTo(bodyLive[b]) ?? 0) / s2;
-          bStrain = Math.max(bStrain, (liveB - bindB) * cmPerUnit);
-        };
-        for (let t = 0; t < gI.count; t += 3) {
-          strainEdge(gI.getX(t), gI.getX(t + 1));
-          strainEdge(gI.getX(t + 1), gI.getX(t + 2));
-          strainEdge(gI.getX(t + 2), gI.getX(t));
-        }
-        perGarment[tag].strainCm = +gStrain.toFixed(2);
-        perGarment[tag].bodyStrainCm = +bStrain.toFixed(2);
-        maxStrainExcess = Math.max(maxStrainExcess, gStrain - bStrain);
-      }
       // tee sleeves = their own region with the tighter bar (they ride the
       // arm and must stay close to it; the torso's shoulder band carries the
       // sling allowance)
@@ -1569,9 +1393,7 @@ async function runVerify() {
         if (!maxByTag[tg] || d > maxByTag[tg]) maxByTag[tg] = d;
       }
       for (const [tg, d] of Object.entries(maxByTag)) {
-        // max-merge: several meshes can share a tag (rigid group meshes) —
-        // assignment would silently keep only the LAST one's maximum
-        if (!perGarment[tg] || d > (perGarment[tg].maxCm ?? 0)) perGarment[tg] = { maxCm: +d.toFixed(1), nan: 0 };
+        perGarment[tg] = { maxCm: +d.toFixed(1), nan: 0 };
         if (d > maxAll) { maxAll = d; worst = tg; }
       }
       const primary = (tag === 'tshirt' || tag === 'shorts') ? tag : tag;
@@ -1617,10 +1439,6 @@ async function runVerify() {
       insideVerts: signed.defectVerts, insideWorstCm: signed.worstCm,
       insideCross: signed.limbCrossVerts, insideByGarment,
       solidOk: signed.solidOk,
-      // derived-mode verdicts
-      deltaCm: +maxDelta.toFixed(2), worstDelta,
-      strainExcessCm: +maxStrainExcess.toFixed(2),
-      overDelta: maxDelta > DELTA_BAR, overStrain: maxStrainExcess > 0.5,
     });
     return rows[rows.length - 1];
   };
@@ -1680,7 +1498,7 @@ async function runVerify() {
     say('<p class="vspin">cloth checks (bulk silhouette, settle, lag)…</p>');
     await nextTick();
     const bulk = bulkCheck();
-    const drape = outfit.pieces ? await drapeCheck() : null; // derived: no sim — nothing to drape
+    const drape = await drapeCheck();
     await setAnim(savedAnim); // drapeCheck drove the rig — restore again
 
     // ── verdicts
@@ -1688,25 +1506,17 @@ async function runVerify() {
     const stretchRows = rows.filter((r) => r.stretchCm > STRETCH_BAR);
     const nanRows = rows.filter((r) => r.nan > 0);
     const insideRows = rows.filter((r) => r.insideVerts > 0 || r.solidOk === false);
-    const deltaRows = state.mode === 'derived' ? rows.filter((r) => r.overDelta) : [];
-    const strainRows = state.mode === 'derived' ? rows.filter((r) => r.overStrain) : [];
-    const attachPass = attachRows.length === 0 && nanRows.length === 0 && insideRows.length === 0
-      && deltaRows.length === 0 && strainRows.length === 0;
+    const attachPass = attachRows.length === 0 && nanRows.length === 0 && insideRows.length === 0;
     const stretchPass = stretchRows.length === 0;
 
-    let html = '<table><tr><th>case</th><th>max→body</th><th>worst</th><th>inside-body</th><th>stretch</th>'
-      + (state.mode === 'derived' ? '<th>Δsrc</th><th>strain−body</th>' : '') + '<th>verdict</th></tr>';
+    let html = '<table><tr><th>case</th><th>max→body</th><th>worst</th><th>inside-body</th><th>stretch</th><th>verdict</th></tr>';
     for (const r of rows) {
-      const bad = !!r.overBar || r.stretchCm > STRETCH_BAR || r.nan > 0 || r.insideVerts > 0 || r.solidOk === false
-        || r.overDelta || r.overStrain;
+      const bad = !!r.overBar || r.stretchCm > STRETCH_BAR || r.nan > 0 || r.insideVerts > 0 || r.solidOk === false;
       const insideTxt = r.solidOk === false ? 'oracle!' : (r.insideVerts > 0
         ? `${r.insideVerts} vert${r.insideVerts > 1 ? 's' : ''} ${r.insideWorstCm}cm` : '0');
       html += `<tr><td>${r.label}</td><td class="${r.overBar ? 'fail' : 'pass'}">${r.maxCm} cm</td>` +
         `<td class="dim">${r.worst}</td><td class="${r.insideVerts > 0 || r.solidOk === false ? 'fail' : 'pass'}">${insideTxt}</td>` +
         `<td class="${r.stretchCm > STRETCH_BAR ? 'fail' : 'pass'}">${r.stretchCm.toFixed(2)} cm</td>` +
-        (state.mode === 'derived'
-          ? `<td class="${r.overDelta ? 'fail' : 'pass'}">${r.deltaCm.toFixed(2)} cm</td>` +
-            `<td class="${r.overStrain ? 'fail' : 'pass'}">+${r.strainExcessCm.toFixed(2)} cm</td>` : '') +
         `<td class="${bad ? 'fail' : 'pass'}">${bad ? 'FAIL' : 'pass'}</td></tr>`;
     }
     html += '</table>';
@@ -1724,28 +1534,17 @@ async function runVerify() {
     const insideTotal = rows.reduce((a, r) => a + r.insideVerts, 0);
     const insideWorst = Math.max(...rows.map((r) => r.insideWorstCm));
     const crossTotal = rows.reduce((a, r) => a + r.insideCross, 0);
-    const globalDelta = Math.max(...rows.map((r) => r.deltaCm));
-    const globalStrainExcess = Math.max(...rows.map((r) => r.strainExcessCm));
-    const barsTxt = state.mode === 'derived'
-      ? `derived bars: tee 3.5 (hem lip) · shorts 2.5 · band 1.5 · shoes 5.5 · Δsource <1.0 · strain−body ≤0.5 cm`
-      : `cloth hanging bars: tee 25 · sleeves 12 · shorts 45 · band 8 · shoes 5`;
     html += `<div class="verify-summary ${attachPass && stretchPass ? 'ok' : 'bad'}">` +
-      `${rows.length} cases · max garment→body <b>${globalMax.toFixed(1)} cm</b> (${barsTxt}) · ` +
+      `${rows.length} cases · max garment→body <b>${globalMax.toFixed(1)} cm</b> (cloth hanging bars: tee 25 · sleeves 12 · shorts 45 · band 8 · shoes 5) · ` +
       `inside-body verts <b>${insideTotal}</b> (worst ${insideWorst.toFixed(1)} cm · ${crossTotal} bare-limb crossings excused) · ` +
       `max ring stretch <b>${globalStretch.toFixed(2)} cm</b> (bar ≤${STRETCH_BAR}) · ` +
-      (state.mode === 'derived'
-        ? `max Δsource <b>${globalDelta.toFixed(2)} cm</b> (bar <${DELTA_BAR} — garment verts track their body verts through shared skinning) · ` +
-          `max strain−body <b>+${globalStrainExcess.toFixed(2)} cm</b> · `
-        : '') +
-      `${attachPass && stretchPass ? 'ALL PASS ✓' : attachRows.length + stretchRows.length + nanRows.length + insideRows.length + deltaRows.length + strainRows.length + ' case(s) over bar'}</div>`;
+      `${attachPass && stretchPass ? 'ALL PASS ✓' : attachRows.length + stretchRows.length + nanRows.length + insideRows.length + ' case(s) over bar'}</div>`;
     const bulkOK = bulk && bulk.pass !== false;
-    const drapeOK = drape == null || drape.pass !== false;
-    html += `<div class="verify-summary ${bulkOK && drapeOK ? 'ok' : 'bad'}">${state.mode === 'derived' ? 'DERIVED — ' : 'CLOTH — '}` +
+    const drapeOK = drape && drape.pass !== false;
+    html += `<div class="verify-summary ${bulkOK && drapeOK ? 'ok' : 'bad'}">CLOTH — ` +
       `bulk: shirt silhouette ${bulk?.shirtCm ?? '?'} cm vs body ${bulk?.bodyCm ?? '?'} cm = ` +
       `<b>+${bulk?.excessCm ?? '?'} cm</b> (bar ≤6 — the armour detector) · ` +
-      (drape
-        ? `settle: <b>${drape.settleS ?? '?'} s</b> (bar <3) · hem lag on walk: <b>${drape.lagCm ?? '?'} cm</b> (bar >0.15 — fabric, not glue) · `
-        : `settle/lag: <b>n/a</b> (no sim — the garment is skinned body surface) · `) +
+      `settle: <b>${drape?.settleS ?? '?'} s</b> (bar <3) · hem lag on walk: <b>${drape?.lagCm ?? '?'} cm</b> (bar >0.15 — fabric, not glue) · ` +
       `${bulkOK && drapeOK ? 'PASS ✓' : 'FAIL'}</div>`;
     for (const r of rows) {
       if (r.ankleDriftCm != null && r.ankleDriftCm > 3) notes.push(`${r.pose}: feet drift ${r.ankleDriftCm} cm across phases (not planted)`);
@@ -1754,7 +1553,7 @@ async function runVerify() {
     html += '<p class="verify-note">edge "stretch" = welded ring-to-ring edge strain (LBS responds to joint bends; a welded strip cannot open a gap — NaN/degenerate verts are the structural hole check and must stay 0).</p>';
     say(html);
 
-    const report = { rows, attachPass, stretchPass, globalMaxCm: +globalMax.toFixed(1), globalStretchCm: +globalStretch.toFixed(2), insideVerts: insideTotal, insideWorstCm: +insideWorst.toFixed(1), limbCrossVerts: crossTotal, notes, bars: { attachCm: ATTACH_BAR, stretchCm: STRETCH_BAR, deltaCm: state.mode === 'derived' ? DELTA_BAR : null, strainExcessCm: state.mode === 'derived' ? 0.5 : null }, bulk, drape, mode: state.mode, derivedStats: outfit.derived?.stats ?? null, cloth: outfit.clothStats?.() ?? null };
+    const report = { rows, attachPass, stretchPass, globalMaxCm: +globalMax.toFixed(1), globalStretchCm: +globalStretch.toFixed(2), insideVerts: insideTotal, insideWorstCm: +insideWorst.toFixed(1), limbCrossVerts: crossTotal, notes, bars: { attachCm: ATTACH_BAR, stretchCm: STRETCH_BAR }, bulk, drape, cloth: outfit.clothStats() };
     window.__atelier.lastVerify = report;
     return report;
   } catch (e) {
@@ -1763,7 +1562,6 @@ async function runVerify() {
   } finally {
     state.verifying = false;
     $('btnVerify').disabled = false;
-    wake(); // redraw the restored state
   }
 }
 
@@ -1801,14 +1599,13 @@ function configJSON() {
     tool: 'rwf-outfit-atelier',
     model: { file: '/models/Geno.glb', rig: 'mixamo', tint: '#eceef1' },
     outfit: {
-      module: state.mode === 'cloth' ? '/site/models/geno-cloth.js' : '/site/models/geno-derived.js',
-      mode: state.mode === 'cloth' ? 'hanging-cloth PBD (experimental)' : 'skin-derived body triangles (+6 mm)',
+      module: '/site/models/geno-cloth.js',
+      mode: 'hanging-cloth PBD',
       buildStep: state.buildStep,
       stepLabel: BUILDUP_STEPS[state.buildStep].label,
       slotsVisible: OUTFIT_SLOTS.filter((s2) => state.iso ? s2 === state.iso : BUILDUP_STEPS[state.buildStep].slots.includes(s2)),
       isolated: state.iso,
       bandTopM: +(outfit ? outfit.plan.bandTop / av.H * 1.75 : 0).toFixed(3),
-      derived: outfit?.derived?.stats ?? null,
     },
     anim: { id: state.animId, kind: a.kind, pose: a.pose ?? null, clip: a.clip ?? null, speed: state.speed, paused: state.paused },
     view: { xray: state.xray, bodyWire: state.wire, heatmap: state.heat, autoTurntable: state.autoTurn },
@@ -1858,12 +1655,10 @@ async function boot() {
   av.root.scale.setScalar(1.6 / av.H);
   scene.add(av.root);
   clearOutfitRemnants();
-  // DEFAULT: skin-derived garments — the body's own triangles + 6 mm, sharing
-  // the skeleton. (Cloth stays available behind the experimental toggle.)
-  outfit = attachDerivedOutfit(av, { slots: 'full' });
+  outfit = attachClothOutfit(av, { slots: 'full' });
   av.pose('stand', 0.5);
+  outfit.settle(1.2); // drop from the bind rest shape — the founder never sees A-pose cloth
   state.ready = true;
-  updateModeUI();
 
   // ── wire controls
   sel.addEventListener('change', () => setAnim(sel.value));
@@ -1878,7 +1673,6 @@ async function boot() {
     state.autoTurn = !state.autoTurn;
     controls.autoRotate = state.autoTurn;
     $('btnTurn').classList.toggle('is-on', state.autoTurn);
-    wake(state.autoTurn ? 100000 : 350); // turntable on = keep moving; off = settle + quiet
   });
   controls.autoRotate = state.autoTurn;
   controls.autoRotateSpeed = 1.1;
@@ -1903,27 +1697,20 @@ async function boot() {
     state.buildStep = Math.min(BUILDUP_STEPS.length - 1, state.buildStep + 1); state.iso = null; applyVisibility();
   });
   $('btnVerify').addEventListener('click', () => { runVerify().catch(() => {}); });
-  // ── garment mode: skin-derived (default) vs cloth sim (experimental) ─────
-  $('btnModeDerived').addEventListener('click', () => setMode('derived'));
-  $('btnModeCloth').addEventListener('click', () => setMode('cloth'));
   // ── cloth controls: debug overlay, substep-by-substep settle, reset drape
-  //    (clothed-mode only — inert in derived mode)
   $('btnClothDebug').addEventListener('click', () => {
-    if (!outfit?.sim?.debug) return;
     const on = !outfit.sim.debug.visible;
     outfit.clothDebug(on);
     $('btnClothDebug').classList.toggle('is-on', on);
   });
   $('btnClothStep').addEventListener('click', () => {
-    if (!outfit?.clothStep) return;
     state.paused = true; updatePauseBtn();
     outfit.clothStep(1); // ONE substep — watch the drape converge frame by frame
     if (state.heat) updateHeatmap();
-    wake();
   });
-  $('btnClothReset').addEventListener('click', () => { outfit?.resetDrape?.(); wake(); });
+  $('btnClothReset').addEventListener('click', () => { outfit.resetDrape(); });
   setInterval(() => {
-    if (state.mode !== 'cloth' || !outfit?.clothStats) return; // no sim, no polling
+    if (!outfit?.clothStats) return;
     const st = outfit.clothStats();
     $('clothInfo').textContent =
       `${st.particles} particles · ${st.constraints} constraints · ${st.colliders} colliders · sim ${st.lastMs.toFixed(2)} ms/frame · ${st.sleeping.every(Boolean) ? 'settled' : 'draping'}`;
@@ -1947,113 +1734,49 @@ async function boot() {
   renderer.domElement.addEventListener('dblclick', () => {
     camera.position.copy(HOME.pos);
     controls.target.copy(HOME.tgt);
-    wake();
   });
 
   applyVisibility();
   updatePauseBtn();
-  wake();
   window.dispatchEvent(new Event('atelier:ready'));
 }
 
-// ── resize + frame loop (DIRTY-FLAG: idle = silent) ─────────────────────────
-//
-// The founder's complaint: "this is performing so badly when just
-// stationary." The old loop ran rAF → controls.update() → full render at
-// display rate (measured: 101 callbacks / 129.7 ms busy per 2 s idle on a
-// paused, turntable-off page). Now the loop renders ONLY when something
-// changed — animation advancing, turntable, orbit drag + damping settle,
-// heatmap refresh (while animating only), probes, resize — and goes QUIET
-// when paused. Target ≈ 0 rAF callbacks over 2 s idle (perfProbe measures).
-//
-// renderer.setPixelRatio(min(dpr, 2)) caps fill-rate; RENDER_CAP_MS (~72 Hz)
-// keeps playing animation from burning a 120 Hz+ display for a scene this
-// small.
-const perf = { raf: 0, renders: 0, frameMs: 0, lastFrameMs: 0, wakeups: 0 };
-let loopActive = false;
-let needsRender = true;
-let holdUntil = 0;                  // keep looping while orbit damping settles
-let last = performance.now();
-let lastRenderAt = 0;
-const RENDER_CAP_MS = 1000 / 72;
-
-function wake(holdMs = 350) {
-  needsRender = true;
-  perf.wakeups++;
-  holdUntil = Math.max(holdUntil, performance.now() + holdMs);
-  if (!loopActive) {
-    loopActive = true;
-    last = performance.now();
-    requestAnimationFrame(tick);
-  }
-}
-
+// ── resize + frame loop ──────────────────────────────────────────────────────
 function resize() {
   const w = stage.clientWidth, h = stage.clientHeight;
   if (!w || !h) return;
   renderer.setSize(w, h, false);
   camera.aspect = w / h;
   camera.updateProjectionMatrix();
-  wake();
 }
 new ResizeObserver(resize).observe(stage);
 resize();
 
-controls.addEventListener('change', () => wake()); // drag + autoRotate + damping
-
-function tick(now) {
-  if (!loopActive) return;
-  perf.raf++;
+let last = performance.now();
+(function tick(now) {
+  requestAnimationFrame(tick);
   const dt = Math.min(0.05, (now - last) / 1000); last = now;
-  const engaged = state.ready && !state.verifying;
-  const animating = engaged && !state.paused;
-  const auto = engaged && controls.autoRotate;
-  if (animating) {
-    state.t += dt * state.speed;
-    const a = animById(state.animId);
-    if (a?.kind === 'bvh' && bvh) bvh.update(dt * state.speed);
-    else if (a?.kind === 'pose') av.pose(a.pose, (state.t / a.cycle) % 1);
-    // cloth mode: paused = FROZEN (reduced-motion safe); playing = sim advances.
-    // derived mode: no sim — updateFabric is a no-op.
-    outfit?.updateFabric(dt * state.speed);
-    // seam heatmap refreshes ONLY while animating (the ~7 Hz idle interval is
-    // gone — a paused garment's distances do not change)
+  fps.ema = fps.ema * 0.95 + (1 / Math.max(dt, 1e-3)) * 0.05;
+  if (state.ready && !state.verifying) {
+    if (!state.paused) {
+      state.t += dt * state.speed;
+      const a = animById(state.animId);
+      if (a?.kind === 'bvh' && bvh) bvh.update(dt * state.speed);
+      else if (a?.kind === 'pose') av.pose(a.pose, (state.t / a.cycle) % 1);
+      // cloth: paused = FROZEN (reduced-motion safe); playing = sim advances
+      outfit?.updateFabric(dt * state.speed);
+    }
     if (state.heat) {
       heatTimer += dt;
       if (heatTimer > 0.15) { heatTimer = 0; updateHeatmap(); }
     }
-  }
-  const capped = (animating || auto) && now - lastRenderAt < RENDER_CAP_MS - 0.5;
-  const doRender = engaged && (needsRender || animating || auto || now < holdUntil) && !capped;
-  if (doRender) {
-    const t0 = performance.now();
     controls.update();
     renderer.render(scene, camera);
-    perf.renders++;
-    perf.lastFrameMs = performance.now() - t0;
-    perf.frameMs = perf.frameMs * 0.9 + perf.lastFrameMs * 0.1;
-    lastRenderAt = now;
-    needsRender = false;
-    fps.ema = fps.ema * 0.95 + (1 / Math.max(dt, 1e-3)) * 0.05;
     $('hudFps').textContent = fps.ema.toFixed(0) + ' fps';
-    $('hudPhase').textContent = phaseLabel();
+    $('hudPhase').textContent = state.paused ? phaseLabel() : phaseLabel();
     $('hudCtx').textContent = glContexts + ' ctx';
   }
-  const stayAlive = (engaged && (animating || auto || needsRender)) || now < holdUntil;
-  if (stayAlive) requestAnimationFrame(tick);
-  else {
-    loopActive = false; // quiet until an event calls wake()
-    // kill the orbit damping momentum: with enableDamping off, three's
-    // update() ZEROES the spherical delta — otherwise the decay tail keeps
-    // firing 'change' → wake() → render for seconds after the last drag
-    // (measured: the "idle" 9-rAF tail). Two frames, then silence.
-    controls.enableDamping = false;
-    controls.update();
-    controls.enableDamping = true;
-    $('hudFps').textContent = 'idle · 0 rAF';
-  }
-}
-wake();
+})(last);
 
 // ── automation surface (CDP verify suite) ───────────────────────────────────
 window.__atelier = {
@@ -2061,8 +1784,6 @@ window.__atelier = {
   get ready() { return state.ready; },
   get avatar() { return av; },
   get outfit() { return outfit; },
-  get mode() { return state.mode; },
-  setMode,
   setAnim, setSpeed: (v) => { state.speed = v; $('speedRange').value = v; $('speedVal').textContent = v.toFixed(2) + '×'; },
   pause: () => { state.paused = true; updatePauseBtn(); },
   play: () => { state.paused = false; updatePauseBtn(); },
@@ -2071,43 +1792,18 @@ window.__atelier = {
   isolate: (slot) => { state.iso = slot ?? null; applyVisibility(); },
   setXray: (on) => { state.xray = !!on; applyViewFX(); $('btnXray').classList.toggle('is-on', state.xray); },
   setHeat: (on) => { state.heat = !!on; applyViewFX(); $('btnHeat').classList.toggle('is-on', state.heat); $('heatLegend').hidden = !state.heat; if (state.heat) updateHeatmap(); },
-  setTurntable: (on) => { state.autoTurn = !!on; controls.autoRotate = state.autoTurn; $('btnTurn').classList.toggle('is-on', state.autoTurn); wake(state.autoTurn ? 100000 : 350); },
+  setTurntable: (on) => { state.autoTurn = !!on; controls.autoRotate = state.autoTurn; $('btnTurn').classList.toggle('is-on', state.autoTurn); },
   runVerify, bandCheck, sleeveCheck, asciiView, regionChecks,
   scanSignedCoverage, scanInsideBody, bulkCheck, drapeCheck,
   clothStats: () => outfit?.clothStats?.() ?? null,
   clothStep: (n = 1) => outfit?.clothStep?.(n),   // watch cloth settle substep by substep
   clothDebug: (on) => outfit?.clothDebug?.(on),   // particles + constraints overlay
   resetDrape: () => outfit?.resetDrape?.(),
-  /** Derived-construction report (region sizes, tri counts, degenerates). */
-  derivedStats: () => outfit?.derived?.stats ?? null,
-  /** Idle-performance probe: rAF callbacks + renders over `ms` (setTimeout-
-   *  based — the probe itself schedules no rAFs and so does not pollute the
-   *  count). Paused + turntable off should read ≈ 0. */
-  perfProbe: (ms = 2000) => new Promise((res) => {
-    const r0 = perf.raf, rr0 = perf.renders, f0 = perf.frameMs;
-    setTimeout(() => res({
-      ms,
-      rafCallbacks: perf.raf - r0,
-      renders: perf.renders - rr0,
-      frameMsEma: +perf.frameMs.toFixed(2),
-      loopActive,
-      renderCapHz: +(1000 / RENDER_CAP_MS).toFixed(0),
-      pixelRatio: renderer.getPixelRatio(),
-    }), ms);
-  }),
-  /** Render + return the frame as a PNG data-URL (same JS task → safe with
-   *  preserveDrawingBuffer off). */
-  snapshot: () => {
-    controls.update();
-    renderer.render(scene, camera);
-    return renderer.domElement.toDataURL('image/png');
-  },
   setCam: (pos, tgt) => {
     controls.autoRotate = false;
     camera.position.set(...pos);
     controls.target.set(...tgt);
     controls.update();
-    wake();
   },
   getCam: () => camera,
   readPx: (ndcX, ndcY) => {
@@ -2124,14 +1820,9 @@ window.__atelier = {
     camera.position.copy(HOME.pos);
     controls.target.copy(HOME.tgt);
     controls.update();
-    wake();
   },
   configJSON,
-  stats: {
-    get contexts() { return glContexts; },
-    get fps() { return fps.ema; },
-    get perf() { return { ...perf, loopActive, renderCapHz: +(1000 / RENDER_CAP_MS).toFixed(0), pixelRatio: renderer.getPixelRatio() }; },
-  },
+  stats: { get contexts() { return glContexts; }, get fps() { return fps.ema; } },
   lastVerify: null,
 };
 
