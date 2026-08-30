@@ -3,8 +3,11 @@
 for site/model-avatars.js (`loadJSONClip`).
 
 The npz files (facebookresearch/ai4animationpy, Demos/_ASSETS_/Geno/Motions/)
-are CMU-derived captures in AI4Animation's 23-joint format using Geno's own
-joint names (Hips/Spine/Spine1-3/Neck/Head/LeftArm/...):
+are 100STYLE captures (Mason, Starke & Komura 2022 — trial naming
+{style}{take}_subject{n}) retargeted to the Geno skeleton via
+orangeduck/100style-retarget (data CC BY 4.0), per the repo README's dataset
+table (NOT CMU-derived, as earlier comments assumed). 23-joint mixamo-family
+format using Geno's own joint names (Hips/Spine/Spine1-3/Neck/Head/LeftArm/...):
 
     positions   (F, 23, 3)  WORLD joint positions, metres
     quaternions (F, 23, 4)  WORLD joint rotations, (x,y,z,w) [auto-verified]
@@ -31,11 +34,28 @@ import numpy as np
 SRC = "/home/fivelidz/projects/github_repos/_new_aug2026/Ai4animationpy/Demos/_ASSETS_/Geno/Motions"
 DST = "/home/fivelidz/projects/reps_with_friends/site/models"
 
-# name, npz file, loop window [min,max] seconds, min speed m/s, stride
+# name, npz file, loop window [min,max] seconds, min speed m/s, stride,
+# optional scan range (t0, t1) seconds restricting where loops are searched.
 JOBS = [
     ("geno_walk", "walk3_subject3.npz", (0.55, 1.35), 0.8, 5),
     ("geno_run", "run1_subject2.npz", (0.45, 1.05), 1.6, 5),
     ("geno_sprint", "sprint1_subject4.npz", (0.35, 0.90), 2.5, 5),
+    # tactical aim-walk: slow walk with a two-hand weapon hold (hands ~0.34m
+    # apart, wrists extended forward) — cleanest loop in the whole dataset
+    # (score 0.078 vs walk's 0.231). Found at ~22s, 1.38s period, ~0.12 m/s.
+    ("geno_aimwalk", "aiming1_subject1.npz", (0.90, 2.00), 0.10, 5),
+    # side-lying floor drag: subject lies on their side and pulls themselves
+    # across the floor. Scan restricted to the grounded phase (after the
+    # get-down at ~10-16s); best scoot cycle ~107.6s, 3.07s, 0.33 m/s.
+    ("geno_floorscoot", "ground1_subject1.npz", (2.00, 3.50), 0.08, 5, (16.0, 150.0)),
+]
+
+# name, npz file, [t0, t1] seconds — exported verbatim (no loop search);
+# played once and held at the end frame (`hold: true` in GENO_CLIPS).
+ONE_SHOTS = [
+    # stand → side-lying get-down, the prelude to floor work (crunches,
+    # stretches). Smooth 2s descent inside 8.5-11.5s; hips 0.79 → 0.11 m.
+    ("geno_getdown", "ground1_subject1.npz", 8.5, 11.5),
 ]
 
 
@@ -166,104 +186,137 @@ def find_loop(pos, quat, parents, fps, lo_s, hi_s, min_speed, stride):
     return best
 
 
-def main():
-    for name, fname, (lo_s, hi_s), min_speed, stride in JOBS:
-        d = np.load(f"{SRC}/{fname}", allow_pickle=True)
-        pos = d["positions"].astype(np.float64)
-        qraw = d["quaternions"].astype(np.float64)
-        names = [str(x) for x in d["bone_names"]]
-        parents = d["parent_indices"].astype(int)
-        fps = float(d["framerate"])
+def load_npz(fname):
+    """Load one capture and normalise the quat word-order → (pos, q, parents, names, fps, conv)."""
+    d = np.load(f"{SRC}/{fname}", allow_pickle=True)
+    pos = d["positions"].astype(np.float64)
+    qraw = d["quaternions"].astype(np.float64)
+    names = [str(x) for x in d["bone_names"]]
+    parents = d["parent_indices"].astype(int)
+    fps = float(d["framerate"])
+    conv = detect_convention(pos, qraw, parents)
+    if conv is None:
+        return None
+    q = (
+        qraw
+        if conv == "xyzw"
+        else np.stack([qraw[..., 1], qraw[..., 2], qraw[..., 3], qraw[..., 0]], axis=-1)
+    )
+    return pos, q, parents, names, fps, conv
 
-        conv = detect_convention(pos, qraw, parents)
-        if conv is None:
+
+def emit_clip(name, fname, pos, q, parents, names, fps, s, L, yaw=0.0):
+    """Slice frames s..s+L and write the JSON clip (shared by loops & one-shots)."""
+    # de-trend the yaw drift: rotate the slice progressively so the world
+    # quaternions (and horizontal travel) match at the wrap point
+    idx = np.arange(s, s + L + 1)
+    drift = 0.0
+    if yaw > 1e-3:
+        d0 = pos[min(s + 5, len(pos) - 1), 0, :2] - pos[s, 0, :2]
+        d1 = pos[min(s + L + 5, len(pos) - 1), 0, :2] - pos[s + L, 0, :2]
+        drift = yaw * np.sign(np.cross(d0, d1))
+    qs = q[idx].copy()
+    ps = pos[idx].copy()
+    for k in range(len(idx)):
+        if drift == 0.0:
+            break
+        t = k / max(1, len(idx) - 1)
+        a = -drift * t  # rotate about world Y
+        c, sn = np.cos(a / 2), np.sin(a / 2)
+        ry = np.array([0.0, sn, 0.0, c])  # (x,y,z,w) yaw quat
+        qs[k] = quat_mul(ry[None, :], qs[k])
+        m = quat_as_matrix(ry[None, :], "xyzw")[0]
+        ps[k] = ps[k] @ m.T  # row-vector rotation
+    # subsample to ~30 fps AFTER de-trending
+    step = 2 if fps > 45 else 1
+    sub = np.arange(0, len(idx), step)
+    qs, ps = qs[sub], ps[sub]
+    times = sub / fps
+    # make the hips translation IN-PLACE: linearly remove the slice's
+    # HORIZONTAL (x,z) drift so no residual travel leaks into downstream
+    # up-axis bob measurements (the Y bob is genuine — kept).
+    if len(ps) > 1:
+        dx = ps[-1, 0, 0] - ps[0, 0, 0]
+        dz = ps[-1, 0, 2] - ps[0, 0, 2]
+        for k in range(len(ps)):
+            t = k / (len(ps) - 1)
+            ps[k, 0, 0] -= dx * t
+            ps[k, 0, 2] -= dz * t
+
+    # local quats: q_local(f, i) = q_world(parent)⁻¹ · q_world(child)
+    qloc = qs.copy()
+    for i in range(1, len(names)):
+        qloc[:, i] = quat_mul(quat_conj(qs[:, parents[i]]), qs[:, i])
+
+    offsets: list = [[0.0, 0.0, 0.0]]
+    for i in range(1, len(names)):
+        p = parents[i]
+        off_world = ps[0, i] - ps[0, p]
+        m = quat_as_matrix(qs[0, p], "xyzw")
+        off_local = m.T @ off_world
+        offsets.append([round(float(x), 6) for x in off_local])
+
+    out = {
+        "source": f"ai4animationpy Demos/_ASSETS_/Geno/Motions/{fname}",
+        "names": names,
+        "parents": parents.tolist(),
+        "offsets": offsets,
+        "framerate": fps / step,
+        "times": [round(float(t), 4) for t in times],
+        "quats": {
+            names[i]: [round(float(x), 5) for x in qloc[:, i].reshape(-1)]
+            for i in range(len(names))
+        },
+        "hipsPos": [round(float(x), 5) for x in ps[:, 0].reshape(-1)],
+    }
+    path = f"{DST}/geno_npz_{name.replace('geno_', '')}.json"
+    with open(path, "w") as f:
+        json.dump(out, f)
+    print(f"  → {path} ({len(times)} frames)")
+
+
+def main():
+    for job in JOBS:
+        name, fname, (lo_s, hi_s), min_speed, stride = job[:5]
+        scan = job[5] if len(job) > 5 else None
+        data = load_npz(fname)
+        if data is None:
             print(f"{name}: convention detection FAILED — skipping", file=sys.stderr)
             continue
-        q = (
-            qraw
-            if conv == "xyzw"
-            else np.stack(
-                [qraw[..., 1], qraw[..., 2], qraw[..., 3], qraw[..., 0]], axis=-1
-            )
-        )
+        pos, q, parents, names, fps, conv = data
         print(f"{name}: quat convention = {conv}")
 
-        res = find_loop(pos, q, parents, fps, lo_s, hi_s, min_speed, stride)
+        # optionally restrict the loop search to a time range (e.g. the
+        # grounded phase of ground1) — slice, search, then offset back
+        f0 = 0
+        pos_s, q_s = pos, q
+        if scan:
+            f0, f1 = int(scan[0] * fps), int(scan[1] * fps)
+            pos_s, q_s = pos[f0:f1], q[f0:f1]
+
+        res = find_loop(pos_s, q_s, parents, fps, lo_s, hi_s, min_speed, stride)
         if res is None:
             print(f"{name}: no loop found (speed gate?) — skipping", file=sys.stderr)
             continue
         score, s, L, ang, vd, speed, yaw = res
+        s += f0
         print(
             f"{name}: loop frames {s}..{s + L} ({L / fps:.2f}s @ {fps:.0f}fps), "
             f"pose err {ang:.3f} rad, vel err {vd:.3f}, yaw drift {yaw:.3f}, speed {speed:.2f} m/s"
         )
+        emit_clip(name, fname, pos, q, parents, names, fps, s, L, yaw)
 
-        # de-trend the yaw drift: rotate the slice progressively so the world
-        # quaternions (and horizontal travel) match at the wrap point
-        idx = np.arange(s, s + L + 1)
-        drift = 0.0
-        if yaw > 1e-3:
-            d0 = pos[min(s + 5, len(pos) - 1), 0, :2] - pos[s, 0, :2]
-            d1 = pos[min(s + L + 5, len(pos) - 1), 0, :2] - pos[s + L, 0, :2]
-            drift = yaw * np.sign(np.cross(d0, d1))
-        qs = q[idx].copy()
-        ps = pos[idx].copy()
-        for k in range(len(idx)):
-            if drift == 0.0:
-                break
-            t = k / max(1, len(idx) - 1)
-            a = -drift * t  # rotate about world Y
-            c, sn = np.cos(a / 2), np.sin(a / 2)
-            ry = np.array([0.0, sn, 0.0, c])  # (x,y,z,w) yaw quat
-            qs[k] = quat_mul(ry[None, :], qs[k])
-            m = quat_as_matrix(ry[None, :], "xyzw")[0]
-            ps[k] = ps[k] @ m.T  # row-vector rotation
-        # subsample to ~30 fps AFTER de-trending
-        step = 2 if fps > 45 else 1
-        sub = np.arange(0, len(idx), step)
-        qs, ps = qs[sub], ps[sub]
-        times = sub / fps
-        # make the hips translation IN-PLACE: linearly remove the loop's
-        # HORIZONTAL (x,z) drift so no residual travel leaks into downstream
-        # up-axis bob measurements (the Y bob is genuine — kept).
-        if len(ps) > 1:
-            dx = ps[-1, 0, 0] - ps[0, 0, 0]
-            dz = ps[-1, 0, 2] - ps[0, 0, 2]
-            for k in range(len(ps)):
-                t = k / (len(ps) - 1)
-                ps[k, 0, 0] -= dx * t
-                ps[k, 0, 2] -= dz * t
-
-        # local quats: q_local(f, i) = q_world(parent)⁻¹ · q_world(child)
-        qloc = qs.copy()
-        for i in range(1, len(names)):
-            qloc[:, i] = quat_mul(quat_conj(qs[:, parents[i]]), qs[:, i])
-
-        offsets: list = [[0.0, 0.0, 0.0]]
-        for i in range(1, len(names)):
-            p = parents[i]
-            off_world = ps[0, i] - ps[0, p]
-            m = quat_as_matrix(qs[0, p], "xyzw")
-            off_local = m.T @ off_world
-            offsets.append([round(float(x), 6) for x in off_local])
-
-        out = {
-            "source": f"ai4animationpy Demos/_ASSETS_/Geno/Motions/{fname}",
-            "names": names,
-            "parents": parents.tolist(),
-            "offsets": offsets,
-            "framerate": fps / step,
-            "times": [round(float(t), 4) for t in times],
-            "quats": {
-                names[i]: [round(float(x), 5) for x in qloc[:, i].reshape(-1)]
-                for i in range(len(names))
-            },
-            "hipsPos": [round(float(x), 5) for x in ps[:, 0].reshape(-1)],
-        }
-        path = f"{DST}/geno_npz_{name.replace('geno_', '')}.json"
-        with open(path, "w") as f:
-            json.dump(out, f)
-        print(f"  → {path} ({len(times)} frames)")
+    for name, fname, t0, t1 in ONE_SHOTS:
+        data = load_npz(fname)
+        if data is None:
+            print(f"{name}: convention detection FAILED — skipping", file=sys.stderr)
+            continue
+        pos, q, parents, names, fps, conv = data
+        s, L = int(t0 * fps), int((t1 - t0) * fps)
+        print(
+            f"{name}: one-shot frames {s}..{s + L} ({L / fps:.2f}s @ {fps:.0f}fps) [hold]"
+        )
+        emit_clip(name, fname, pos, q, parents, names, fps, s, L, yaw=0.0)
 
 
 if __name__ == "__main__":

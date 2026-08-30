@@ -22,7 +22,10 @@ const origFetch = globalThis.fetch;
 (globalThis as any).fetch = (url: any, ...rest: any[]) =>
   origFetch(typeof url === 'string' && url.startsWith('/') ? BASE + url : url, ...rest);
 
-const CLIPS = ['walk', 'run', 'idle', 'demo_walk', 'demo_run', 'sprint', 'swagger', 'agree', 'headshake', 'sad', 'sneak', 'goblin_walk'];
+const CLIPS = ['walk', 'run', 'idle', 'demo_walk', 'demo_run', 'sprint', 'aim_walk', 'floor_scoot', 'get_down', 'swagger', 'agree', 'headshake', 'sad', 'sneak', 'goblin_walk'];
+// NOTE: floor_scoot (side-lying) and get_down (descent, held) legitimately
+// break the locomotion-shaped expectations — upDot/stride/skating numbers
+// for those two are informational only; nan=false is what matters.
 const TRACKED = ['hips', 'head', 'footL', 'footR', 'handL', 'handR', 'armL', 'armR', 'upLegL', 'upLegR'] as const;
 
 const scene = await loadModel(`${BASE}/models/Geno.glb`);

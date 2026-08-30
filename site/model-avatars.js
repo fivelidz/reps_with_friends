@@ -72,7 +72,7 @@ export const MODELS = [
   { id: 'geno-athlete', name: 'Geno — athlete tier', file: '/models/Geno.glb', rig: 'mixamo', native: [], tint: 'athlete' },
   { id: 'geno-goblin', name: 'Geno — goblin green', file: '/models/Geno.glb', rig: 'mixamo', native: [], tint: 'goblin' },
   { id: 'geno-human', name: 'Geno — human skin', file: '/models/Geno.glb', rig: 'mixamo', native: [], tint: 'human' },
-  { id: 'geno-bvh', name: 'Geno — mocap (source: AI4Animation)', file: '/models/Geno.glb', rig: 'mixamo', native: [], tint: '#eceef1', bvh: ['walk', 'run', 'idle', 'demo_walk', 'demo_run', 'sprint', 'swagger', 'agree', 'headshake', 'sad', 'sneak', 'goblin_walk', 'goblin_limp', 'goblin_drag', 'goblin_arm', 'goblin_combat'], bvhAuto: 'walk' },
+  { id: 'geno-bvh', name: 'Geno — mocap (source: AI4Animation)', file: '/models/Geno.glb', rig: 'mixamo', native: [], tint: '#eceef1', bvh: ['walk', 'run', 'idle', 'demo_walk', 'demo_run', 'sprint', 'aim_walk', 'floor_scoot', 'get_down', 'swagger', 'agree', 'headshake', 'sad', 'sneak', 'goblin_walk', 'goblin_limp', 'goblin_drag', 'goblin_arm', 'goblin_combat'], bvhAuto: 'walk' },
   // ── Geno Wardrobe: SKINNED clothes + species heads (geno-wardrobe.js).
   // Tank/shorts are SkinnedMeshes bound to Geno's own skeleton (smooth weight
   // ramps across the joint chains), so mocap and exercise poses deform
@@ -1079,13 +1079,16 @@ export class BVHPlayer {
 // ── Real mocap for Geno: embedded GLB clips + the source repo's own motions ──
 // Geno ships WITHOUT animations — but its source project does not. Geno is
 // byte-identical to facebookresearch/ai4animationpy `Demos/_ASSETS_/Geno/
-// Model.glb` (md5 match), where it is driven by real CMU-derived mocap, and
-// the site already carries mixamo-convention GLBs with embedded human mocap:
-// Soldier.glb (Idle/Walk/Run/TPose) and Xbot.glb (agree/headShake/idle/run/
-// sad_pose/sneak_pose/walk). Their skeletons use the same mixamo joint names
-// as Geno (modulo the `mixamorig:` prefix), so the BVHPlayer's world-quaternion
-// retarget transfers them exactly: per bone, E(b) maps the SOURCE rig's local
-// chain direction onto Geno's, then Geno's locals are solved top-down.
+// Model.glb` (md5 match), where it is driven by real 100STYLE mocap
+// (retargeted to Geno via orangeduck/100style-retarget — per that repo's
+// README dataset table; earlier comments said "CMU-derived", which was
+// wrong), and the site already carries mixamo-convention GLBs with embedded
+// human mocap: Soldier.glb (Idle/Walk/Run/TPose) and Xbot.glb (agree/
+// headShake/idle/run/sad_pose/sneak_pose/walk). Their skeletons use the same
+// mixamo joint names as Geno (modulo the `mixamorig:` prefix), so the
+// BVHPlayer's world-quaternion retarget transfers them exactly: per bone,
+// E(b) maps the SOURCE rig's local chain direction onto Geno's, then Geno's
+// locals are solved top-down.
 //
 // `scripts/avatars/geno_npz_export.py` additionally extracts looping cycles
 // from Geno's OWN demo motions (the 23-joint world-space npz captures shipped
@@ -1171,16 +1174,20 @@ export const GENO_CLIPS = {
   walk:      { label: 'walk',        group: 'mocap',    type: 'glb', file: '/models/Soldier.glb', clip: 'Walk' },
   run:       { label: 'run',         group: 'mocap',    type: 'glb', file: '/models/Soldier.glb', clip: 'Run' },
   idle:      { label: 'idle',        group: 'mocap',    type: 'glb', file: '/models/Soldier.glb', clip: 'Idle' },
-  // Geno's own demo motions (CMU-derived, exported from the source repo)
+  // Geno's own demo motions (100STYLE captures exported from the source repo)
   demo_walk: { label: 'demo walk',   group: 'mocap',    type: 'json', file: '/models/geno_npz_walk.json' },
   demo_run:  { label: 'demo run',    group: 'mocap',    type: 'json', file: '/models/geno_npz_run.json' },
   sprint:    { label: 'sprint',      group: 'mocap',    type: 'json', file: '/models/geno_npz_sprint.json' },
+  aim_walk:  { label: 'aim walk',    group: 'mocap',    type: 'json', file: '/models/geno_npz_aimwalk.json' },
   // Xbot character clips (mixamo re-targeted acting mocap)
   swagger:   { label: 'swagger walk', group: 'character', type: 'glb', file: '/models/Xbot.glb', clip: 'walk' },
   agree:     { label: 'nod yes',     group: 'character', type: 'glb', file: '/models/Xbot.glb', clip: 'agree' },
   headshake: { label: 'shake head',  group: 'character', type: 'glb', file: '/models/Xbot.glb', clip: 'headShake' },
   sad:       { label: 'sad',         group: 'character', type: 'glb', file: '/models/Xbot.glb', clip: 'sad_pose', hold: true },
   sneak:     { label: 'sneak',       group: 'character', type: 'glb', file: '/models/Xbot.glb', clip: 'sneak_pose', hold: true },
+  // more 100STYLE captures from the source repo (aiming1/ground1 subjects)
+  floor_scoot: { label: 'floor scoot (side-lying)', group: 'captures', type: 'json', file: '/models/geno_npz_floorscoot.json' },
+  get_down:    { label: 'get down (one-shot)',      group: 'captures', type: 'json', file: '/models/geno_npz_getdown.json', hold: true },
   // the original AI4Animation demo captures (formerly the whole "BVH" list)
   goblin_walk:  { label: 'stick walk (old)', group: 'captures', type: 'bvh', file: '/models/goblin_walk_stick.bvh' },
   goblin_limp:  { label: 'limp (old)',       group: 'captures', type: 'bvh', file: '/models/goblin_limp.bvh' },
@@ -1194,8 +1201,18 @@ export const GENO_CLIPS = {
 export async function loadGenoClip(id) {
   const spec = GENO_CLIPS[id];
   if (spec) {
-    if (spec.type === 'bvh') return loadBVH(spec.file);
-    if (spec.type === 'json') return loadJSONClip(spec.file);
+    // `hold: true` (play-once + clamp) applies to every source type — the
+    // JSON one-shots (get_down) need it just like the GLB pose settles.
+    if (spec.type === 'bvh') {
+      const res = await loadBVH(spec.file);
+      if (spec.hold) res.hold = true;
+      return res;
+    }
+    if (spec.type === 'json') {
+      const res = await loadJSONClip(spec.file);
+      if (spec.hold) res.hold = true;
+      return res;
+    }
     const res = await loadGLTFClip(spec.file, spec.clip);
     if (spec.hold) res.hold = true;
     return res;
