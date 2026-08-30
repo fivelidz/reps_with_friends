@@ -7,20 +7,17 @@
 //
 // Checks (exit 2 = console errors, 1 = failed bars):
 //   0. page loads, ZERO console errors, exactly ONE WebGL context
-//   1. attachment probe — garment→body distance bars (per region, cloth
-//      hanging allowances) across 5 BVH clips × 4 phases + 4 poses × 3
-//      phases, cloth SETTLED to each posed frame (page-side probe)
+//   1. attachment probe — garment→body distance bars (per region) across
+//      5 BVH clips × 4 phases + 4 poses × 3 phases (page-side probe)
 //   2. SIGNED coverage probe — inside-body garment verts must be 0 per case
-//      (depth-oracle occlusion test; dwell states after settle; tuck/fold/
-//      bare-limb/sleeve-armpit crossings excused and counted)
-//   3. cloth strain — adjacent-ring edge strain ≤ 2.5 cm (elastic collar)
-//   4. REGION pixel checks — shirt-lime at shoulders/upper chest, shorts-
-//      coral on both thighs, shoes at toes — at bind AND walk frame 50%
+//      (depth-oracle occlusion test; tuck/fold/bare-limb crossings excused)
+//   3. surface continuity — adjacent-ring edge strain (reported; welded
+//      topology cannot open gaps — NaN/degenerate verts are the hole check)
+//   4. REGION pixel checks — the founder's three reports as regressions:
+//      shirt-lime in the shoulder/upper-chest band, shorts-coral on both
+//      upper thighs, shoe-charcoal at both toes — at bind AND walk frame 50%
 //   5. waistband visibility + sleeves over the deltoid (pixel probes)
-//   6. CLOTH checks — silhouette bulk (shirt ≤ body+6 cm at chest, the
-//      anti-armour detector), settle < 3 s from a rest drop, hem lag > 0 on
-//      walk (fabric, not glue)
-//   7. build-up + fullkit screenshots → apps/atelier/shots/ (_cloth, --shots)
+//   6. build-up screenshots → apps/atelier/shots/ (v4, --shots)
 //
 import { mkdirSync } from 'node:fs';
 
@@ -169,33 +166,6 @@ for (const view of ['front', 'three-quarter']) {
   if (!sl?.pass) fail(`sleeve check ${view}: ${JSON.stringify(sl)}`);
 }
 
-// ── 5b. CLOTH checks — bulk (armour detector), settle, lag ──────────────────
-console.log('\n── 5. cloth: bulk silhouette (anti-armour) + settle + hem lag');
-{
-  const bulkBind = await ev('window.__atelier.bulkCheck()');
-  console.log(`  bulk @bind: shirt ${bulkBind?.shirtCm} cm vs body ${bulkBind?.bodyCm} cm → +${bulkBind?.excessCm} cm (bar ≤6) ${bulkBind?.pass ? 'PASS' : 'FAIL'}`);
-  if (!bulkBind?.pass) fail('bulk (armour detector) bind: ' + JSON.stringify(bulkBind));
-  const drape = await ev('window.__atelier.drapeCheck()');
-  console.log(`  settle from rest drop: ${drape?.settleS} s (bar <3) · hem lag on walk: ${drape?.lagCm} cm (bar >0.15) · sleeve simmer (reported): ${drape?.sleeveSimmerCmS} cm/s ${drape?.pass ? 'PASS' : 'FAIL'}`);
-  if (!drape?.pass) fail('drape: ' + JSON.stringify(drape));
-  const walkBulk = await ev(`(async () => {
-    const A = window.__atelier, av = A.avatar;
-    const M = await import('/site/model-avatars.js');
-    const res = await M.loadBVH(M.BVH_FILES.walk);
-    const p = new M.BVHPlayer(av, res);
-    p.time = p.duration * 0.5; p.update(0);
-    av.root.updateMatrixWorld(true);
-    A.outfit.settle(0.45);
-    const r = await A.bulkCheck(${bulkBind?.bodyCm ?? 0}); // bind body = pose-invariant reference
-    p.stop();
-    return r;
-  })()`);
-  console.log(`  bulk @walk50%: +${walkBulk?.excessCm} cm ${walkBulk?.pass ? 'PASS' : 'FAIL'}`);
-  if (!walkBulk?.pass) fail('bulk walk@50%: ' + JSON.stringify(walkBulk));
-  const st = await ev('window.__atelier.clothStats()');
-  console.log(`  sim: ${st?.particles} particles · ${st?.constraints} constraints · ${st?.colliders} colliders · ${st?.lastMs} ms/frame · sleeping ${JSON.stringify(st?.sleeping)}`);
-}
-
 // ── ASCII sanity views (agent eyes) ─────────────────────────────────────────
 console.log('\n── ASCII bind/idle view (T=tee S=shorts W=band .=dark)');
 console.log(await ev('window.__atelier.asciiView(12)', false));
@@ -240,42 +210,19 @@ if (SHOTS) {
   for (let i = 0; i < steps; i++) {
     await ev(`window.__atelier.setBuildStep(${i})`, false);
     await ev('window.__atelier.stepFrame(1)', false);
-    await new Promise(r => setTimeout(r, 650));
-    await shotNow(`buildup_cloth_${i}`);
-    console.log(`  buildup_cloth_${i}.png`);
+    await new Promise(r => setTimeout(r, 450));
+    await shotNow(`buildup_v4_${i}`);
+    console.log(`  buildup_v4_${i}.png`);
   }
-  // full kit: front / back / 3-4 at bind (settled stand) ...
-  await ev('window.__atelier.setBuildStep(6)', false);
-  await ev('(async()=>{ window.__atelier.pause(); window.__atelier.avatar.pose("stand", 0.5); window.__atelier.outfit.settle(1.2); })()', true);
-  for (const [name, cam] of [['fullkit_cloth_front', { pos: [0, 1.15, 2.6], tgt: [0, 0.95, 0] }],
-                              ['fullkit_cloth_back', { pos: [0, 1.15, -2.6], tgt: [0, 0.95, 0] }],
-                              ['fullkit_cloth_34', { pos: [1.75, 1.3, 1.9], tgt: [0, 0.95, 0] }]] as const) {
+  // full kit front + 3/4 (sleeve + waistband visual evidence)
+  for (const [name, cam] of [['fullkit_v4_front', { pos: [0, 1.15, 2.6], tgt: [0, 0.95, 0] }],
+                              ['fullkit_v4_back', { pos: [0, 1.15, -2.6], tgt: [0, 0.95, 0] }],
+                              ['fullkit_v4_34', { pos: [1.75, 1.3, 1.9], tgt: [0, 0.95, 0] }]] as const) {
     await ev(`window.__atelier.setCam(${JSON.stringify(cam.pos)}, ${JSON.stringify(cam.tgt)})`, false);
     await new Promise(r => setTimeout(r, 500));
     await shotNow(name);
     console.log(`  ${name}.png`);
   }
-  // ... and at mid-walk (cloth mid-stride — hems swinging)
-  await ev(`(async () => {
-    const A = window.__atelier, av = A.avatar;
-    const M = await import('/site/model-avatars.js');
-    const res = await M.loadBVH(M.BVH_FILES.walk);
-    const p = new M.BVHPlayer(av, res);
-    p.time = p.duration * 0.5; p.update(0);
-    av.root.updateMatrixWorld(true);
-    A.outfit.settle(0.5);
-    window.__walkPlayer = p;
-  })()`, true);
-  await new Promise(r => setTimeout(r, 200));
-  for (const [name, cam] of [['fullkit_cloth_walk_front', { pos: [0, 1.15, 2.6], tgt: [0, 0.95, 0] }],
-                              ['fullkit_cloth_walk_back', { pos: [0, 1.15, -2.6], tgt: [0, 0.95, 0] }],
-                              ['fullkit_cloth_walk_34', { pos: [1.75, 1.3, 1.9], tgt: [0, 0.95, 0] }]] as const) {
-    await ev(`window.__atelier.setCam(${JSON.stringify(cam.pos)}, ${JSON.stringify(cam.tgt)})`, false);
-    await new Promise(r => setTimeout(r, 350));
-    await shotNow(name);
-    console.log(`  ${name}.png`);
-  }
-  await ev('window.__walkPlayer?.stop(); undefined', false);
   await ev('window.__atelier.homeCam()', false);
 }
 

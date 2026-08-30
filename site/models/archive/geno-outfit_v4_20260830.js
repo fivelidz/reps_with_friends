@@ -1242,7 +1242,7 @@ export function nearestDistanceFactory(cloud, cell = 0.05) {
   }
   return (x, y, z) => {
     const ci = Math.floor(x / cell), cj = Math.floor(y / cell), ck = Math.floor(z / cell);
-    for (const ring of [1, 2, 4, 8, 12]) { // cloth hems swing 20-60 cm off the body mid-stride
+    for (const ring of [1, 2, 4]) {
       let best = Infinity;
       for (let di = -ring; di <= ring; di++) for (let dj = -ring; dj <= ring; dj++) for (let dk = -ring; dk <= ring; dk++) {
         const a = grid.get(key(ci + di, cj + dj, ck + dk));

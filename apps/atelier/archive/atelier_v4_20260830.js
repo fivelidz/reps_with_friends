@@ -23,13 +23,9 @@ import { OrbitControls } from 'three/addons/controls/OrbitControls.js';
 import { loadModel, applyFlatTint, loadBVH, BVHPlayer, ModelAvatar, BVH_FILES }
   from '/site/model-avatars.js';
 import {
-  garmentVerts, bodySurface, bodyTriangles, nearestDistanceFactory,
+  attachOutfit, clearOutfit, garmentVerts, bodySurface, bodyTriangles, nearestDistanceFactory,
   skeletonSamples, OUTFIT_SLOTS, SLOT_LABELS, BUILDUP_STEPS,
 } from '/site/models/geno-outfit.js';
-// TRUE HANGING CLOTH (geno-cloth): the shirt + shorts are simulated fabric —
-// pinned at the waistband / neckline + shoulders, colliding with capsule
-// colliders measured off the body, draping under gravity. No skinned fit.
-import { attachClothOutfit, clearCloth, CLOTH_TUNING } from '/site/models/geno-cloth.js';
 
 const $ = (id) => document.getElementById(id);
 const stage = $('stage');
@@ -272,7 +268,6 @@ function stepFrame(dir) {
   updatePauseBtn();
   state.t += dir * (1 / 30) * state.speed;
   applyAnimAt();
-  outfit?.updateFabric((1 / 30) * state.speed); // cloth tracks the stepped frame
   if (state.heat) updateHeatmap();
   if (!wasPaused) $('hudPhase').textContent = phaseLabel();
 }
@@ -357,6 +352,7 @@ function withUI(fn) {
   setAnim(s.anim); // pixel probes kill the BVH player — restore the live anim
   return out;
 }
+
 /** Waistband pixel probe (scan-based, projection-free): across the central
  *  column strip, the band is the UNIQUE white run with lime (tee) above and
  *  coral (shorts) below — shoe soles are white too but sit under charcoal,
@@ -367,7 +363,6 @@ async function bandCheck() {
     if (bvh) { bvh.stop(); bvh = null; }
     av.pose('stand', 0.35);
     av.root.updateMatrixWorld(true);
-    outfit.settle(0.35); // cloth must drape to the pose before pixels mean anything
     return withCamera(new THREE.Vector3(0.55, 1.15, 2.9), new THREE.Vector3(0, 0.92, 0), () =>
       withNeutralLights(() => {
         const { buf, W, H } = readFrame();
@@ -422,7 +417,6 @@ async function sleeveCheck(view = 'front') {
     if (bvh) { bvh.stop(); bvh = null; }
     av.pose('stand', 0.35);
     av.root.updateMatrixWorld(true);
-    outfit.settle(0.35);
     const pos = view === 'front'
       ? new THREE.Vector3(0.55, 1.15, 2.9)
       : new THREE.Vector3(2.1, 1.35, 2.1);
@@ -489,7 +483,6 @@ async function sleeveCheck(view = 'front') {
 //     any skin, and NOT tucked under another strip's tube (ellipse
 //     containment) is a COVERED-BY-BODY defect — the red "inside body" state.
 
-const _dax = new THREE.Vector3(), _dap = new THREE.Vector3();
 const DEPTH_VIEWS = 10;
 const DEPTH_SIZE = 384;
 
@@ -639,10 +632,6 @@ function bodyDepthOracle() {
   const hidden = [];
   const hide = (o) => { if (o.visible) { o.visible = false; hidden.push(o); } };
   hide(av.root); hide(ground); hide(ring);
-  // CLOTH meshes live at scene level (world space) — the body-only oracle must
-  // not see them as flesh, and neither must the debug overlay
-  if (outfit?.clothMeshes) for (const m of outfit.clothMeshes) hide(m);
-  if (outfit?.sim?.debug?.visible) hide(outfit.sim.debug);
   const rt = new THREE.WebGLRenderTarget(DEPTH_SIZE, DEPTH_SIZE, {
     minFilter: THREE.NearestFilter, magFilter: THREE.NearestFilter, depthBuffer: true,
   });
@@ -821,7 +810,7 @@ function stripCoverers() {
  *  shin/knee — anatomy no garment claims, passing through a ring mid-swing;
  *  LBS fabric cannot compress out of its way), and (f) not TUCK-excused
  *  (exits through flesh enclosed by another strip's tube). */
-function scanInsideBody(tolCm = 1.0, nearCm = 1.2) { // 1.0 cm = the cloth tunnelling bar (v4's 3.5 mm was for fitted LBS shells)
+function scanInsideBody(tolCm = 0.35, nearCm = 1.2) {
   const s = av.root.getWorldScale(new THREE.Vector3()).x || 1;
   const cmPerUnit = 175 / (s * av.H);
   const tol = tolCm / cmPerUnit, near = nearCm / cmPerUnit;
@@ -875,31 +864,6 @@ function scanInsideBody(tolCm = 1.0, nearCm = 1.2) { // 1.0 cm = the cloth tunne
     segs.push([top, mid, 0.045]);       // thigh+knee span (calf offset)
     segs.push([mid, ankle.clone().lerp(knee, 0.1), 0.045]); // shin span
   }
-  // arm axes for the sleeve-adjacency excuse: a sleeve vert RIDING THE ARM
-  // can sit inside the torso MESH at the armpit — on Geno the hanging upper
-  // arm overlaps the upper-torso flesh (capsule rx 0.15 there; the sleeve is
-  // where it must be, ON the arm). The cloth analogue of v4's bare-limb
-  // crossings — counted, reported, not a garment defect.
-  const armAxes = [];
-  for (const [armName, foreName] of [['armL', 'foreL'], ['armR', 'foreR']]) {
-    const a2 = av.bones[armName], f2 = av.bones[foreName];
-    if (a2 && f2) {
-      a2.updateWorldMatrix(true, false); f2.updateWorldMatrix(true, false);
-      armAxes.push([
-        new THREE.Vector3().setFromMatrixPosition(a2.matrixWorld),
-        new THREE.Vector3().setFromMatrixPosition(f2.matrixWorld),
-      ]);
-    }
-  }
-  const distToArmAxis = (x, y, z) => {
-    let best = 1e9;
-    for (const [a2, f2] of armAxes) {
-      _dax.subVectors(f2, a2); _dap.set(x - a2.x, y - a2.y, z - a2.z);
-      const t = Math.min(1, Math.max(0, _dap.dot(_dax) / Math.max(1e-9, _dax.lengthSq())));
-      best = Math.min(best, _dap.addScaledVector(_dax, -t).length());
-    }
-    return best;
-  };
   const ab = new THREE.Vector3(), ap = new THREE.Vector3();
   const distToSeg = (x, y, z) => {
     let best = 1e9;
@@ -910,32 +874,6 @@ function scanInsideBody(tolCm = 1.0, nearCm = 1.2) { // 1.0 cm = the cloth tunne
     }
     return best;
   };
-  // torso fold angle at the hips (deep squat): the rigid waistband cannot
-  // compress into the belly fold — excused when folded ≥ ~55°
-  let bellyFold = false;
-  {
-    const h2 = av.bones.hips, s1b = av.bones.spine, s2b = av.bones.spine1 ?? av.bones.spine2;
-    if (h2 && s1b && s2b) {
-      h2.updateWorldMatrix(true, false); s1b.updateWorldMatrix(true, false); s2b.updateWorldMatrix(true, false);
-      const hp = new THREE.Vector3().setFromMatrixPosition(h2.matrixWorld);
-      const sp = new THREE.Vector3().setFromMatrixPosition(s1b.matrixWorld);
-      const up = new THREE.Vector3().setFromMatrixPosition(s2b.matrixWorld);
-      const a1 = sp.clone().sub(hp).normalize();
-      const a2 = up.clone().sub(sp).normalize();
-      // tilt of the pelvis line from vertical (hunch/prone), a hard spine
-      // fold, or a deep knee bend (squat: thighs horizontal fold the belly
-      // onto the pelvis even though the pelvis stays level)
-      let thighFold = false;
-      for (const ul of [av.bones.upLegL, av.bones.upLegR]) {
-        if (!ul) continue;
-        ul.updateWorldMatrix(true, false);
-        const kp = new THREE.Vector3().setFromMatrixPosition(ul.matrixWorld);
-        const thigh = kp.sub(hp).normalize();
-        if (a1.angleTo(thigh) < 2.2) thighFold = true;
-      }
-      bellyFold = Math.acos(Math.min(1, Math.abs(a1.y))) > 0.6 || a1.angleTo(a2) > 0.95 || thighFold;
-    }
-  }
   const rows = [];
   for (let mi = 0; mi < outfit.softGarments.length; mi++) {
     const g = outfit.softGarments[mi];
@@ -970,8 +908,6 @@ function scanInsideBody(tolCm = 1.0, nearCm = 1.2) { // 1.0 cm = the cloth tunne
           if (ex.depth <= tol) { excused++; continue; }  // surface-hug fuzz
           if (cover.clothed(ex.x, ex.y, ex.z, mi, si, ri)) { excused++; continue; } // tuck
           if (distToSeg(ex.x, ex.y, ex.z) <= 0.055) { limbCross++; continue; } // bare-limb crossing
-          if (tag === 'tshirt sleeves' && distToArmAxis(v.x, v.y, v.z) < 0.11) { limbCross++; continue; } // sleeve-on-arm armpit overlap
-          if (bellyFold) { limbCross++; continue; } // folded torso: hunch/squat/prone — the rigid band, hem and collar ride folds the capsule field cannot represent
           defect++;
           const dCm = ex.depth * cmPerUnit;
           if (dCm > worstCm) { worstCm = dCm; worstY = +(v.y / (s * av.H) * 1.75).toFixed(2); }
@@ -1027,11 +963,6 @@ const classifyRegion = (r, g, b) => {
     if (h < 0) h += 360;
     if (Math.abs(h - 11) < 20) return 'coral';
   }
-  // overexposed coral: the neutral probe lights sum to ~2.3× — coral's R
-  // channel clamps at 255 and the hue walks out of the 11±20 window
-  // (measured (255,211,129)); hanging cloth drapes flatter toward the key
-  // light than the fitted v4 did, so this state is now common
-  if (r >= 248 && g >= 170 && g <= 228 && b >= 88 && b <= 155 && g > b + 40) return 'coral';
   if (d < 30 && mx > 150) return 'white';
   if (d < 40 && mx > 95) return 'body';
   return 'other';
@@ -1043,17 +974,13 @@ const toPx = (v3, W, H) => {
   return { x: Math.round((p.x + 1) / 2 * (W - 1)), y: Math.round((1 - (p.y + 1) / 2) * (H - 1)) };
 };
 
-/** Sample a disc of radius px around an anchor; return class counts.
- *  (v4 sampled a single row — `dy` never reached the pixel address — which
- *  passed only because fitted garments were solid across any row; cloth
- *  anchors sit near hems/bands where one row is not representative.) */
+/** Sample a disc of radius px around an anchor; return class counts. */
 function discCount(px, py, rad, W, H, buf) {
   const tally = {};
   let n = 0;
-  const ri = Math.round(rad); // fractional rad → fractional indices → buf[undefined] → 'other'
-  for (let dy = -ri; dy <= ri; dy += 2) for (let dx = -ri; dx <= ri; dx += 2) {
-    if (dx * dx + dy * dy > ri * ri) continue;
-    const x = Math.round(px + dx), y = Math.round(H - 1 - (py + dy)); // readPixels row 0 = bottom
+  for (let dy = -rad; dy <= rad; dy += 2) for (let dx = -rad; dx <= rad; dx += 2) {
+    if (dx * dx + dy * dy > rad * rad) continue;
+    const x = px + dx, y = H - 1 - py; // readPixels row 0 = bottom
     if (x < 0 || y < 0 || x >= W || y >= H) continue;
     const p = (y * W + x) * 4;
     const c = classifyRegion(buf[p], buf[p + 1], buf[p + 2]);
@@ -1068,34 +995,12 @@ function discCount(px, py, rad, W, H, buf) {
 function regionChecks() {
   return withUI(() => {
     av.root.updateMatrixWorld(true);
-    outfit.settle(0.35); // drape to the current pose (bind, or a BVH frame)
-    // face the body's front: mid-stride the torso yaws and the fixed 3/4
-    // camera puts the far shoulder/thigh behind the body (measured 11.6%/4.2%
-    // lime at walk@50% — occlusion, not absence). Rotate the camera with it.
-    av.bones.spine2.updateWorldMatrix(true, false);
-    const fwd = new THREE.Vector3(0, 0, 1).applyQuaternion(av.bones.spine2.getWorldQuaternion(new THREE.Quaternion()));
-    fwd.y = 0;
-    const yaw = fwd.lengthSq() > 1e-6 ? Math.atan2(fwd.x, fwd.z) : 0;
-    const off = new THREE.Vector3(0.55, 0.23, 2.9).applyAxisAngle(new THREE.Vector3(0, 1, 0), -yaw);
-    const tgt = av.bones.hips.getWorldPosition(new THREE.Vector3());
-    tgt.y = 0.92;
-    return withCamera(tgt.clone().add(off), tgt, () =>
+    return withCamera(new THREE.Vector3(0.55, 1.15, 2.9), new THREE.Vector3(0, 0.92, 0), () =>
       withNeutralLights(() => {
         const { buf, W, H } = readFrame();
         const bp = (b, f = 0) => {
           b.updateWorldMatrix(true, false);
           return new THREE.Vector3().setFromMatrixPosition(b.matrixWorld).add(new THREE.Vector3(0, f, 0));
-        };
-        // body-frame forward: offsets like "+5 cm toward the chest" must track
-        // the torso's facing — mid-stride the body yaws and world-space +z
-        // offsets land off the chest (walk@50% measured: upper chest 10% lime)
-        const fwdOf = (b) => {
-          b.updateWorldMatrix(true, false);
-          const q = new THREE.Quaternion();
-          b.getWorldQuaternion(q);
-          const f = new THREE.Vector3(0, 0, 1).applyQuaternion(q);
-          f.y = 0;
-          return f.lengthSq() < 1e-6 ? new THREE.Vector3(0, 0, 1) : f.normalize();
         };
         const rad = Math.max(9, Math.round(W * 0.016));
         const regions = [];
@@ -1108,37 +1013,21 @@ function regionChecks() {
         // 1. shirt over shoulders + upper chest (lime)
         if (av.bones.armL) add('shoulder L (shirt)', 'lime', bp(av.bones.armL, 0.01));
         if (av.bones.armR) add('shoulder R (shirt)', 'lime', bp(av.bones.armR, 0.01));
-        if (av.bones.spine2) add('upper chest (shirt)', 'lime', bp(av.bones.spine2).addScaledVector(fwdOf(av.bones.spine2), 0.05).add(new THREE.Vector3(0, 0.02, 0)));
+        if (av.bones.spine2) add('upper chest (shirt)', 'lime', bp(av.bones.spine2).add(new THREE.Vector3(0, 0.02, 0.05)));
         // the SLOPE band (between the chest and the collar — the traps/shoulder
         // slope): v3's slope rings stacked INSIDE this flesh, which is why the
         // founder saw "absent around the shoulders and upper chest"
         if (av.bones.neck && av.bones.spine2) {
           const n = bp(av.bones.neck), s2 = bp(av.bones.spine2);
-          add('shoulder slope (shirt)', 'lime', n.clone().lerp(s2, 0.45).addScaledVector(fwdOf(av.bones.spine2), 0.045));
+          add('shoulder slope (shirt)', 'lime', n.clone().lerp(s2, 0.45).add(new THREE.Vector3(0, 0, 0.045)));
         }
-        // 2. shorts on both upper thighs (coral). Wider disc: from the 3/4
-        // camera the FAR thigh only peeks a sliver past the near leg — the
-        // fitted v4 flare exposed more of it; hanging cloth drapes closer.
+        // 2. shorts on both upper thighs (coral)
         for (const [up, knee, label] of [[av.bones.upLegL, av.bones.legL, 'thigh L (shorts)'], [av.bones.upLegR, av.bones.legR, 'thigh R (shorts)']]) {
           if (!up || !knee) continue;
           up.updateWorldMatrix(true, false); knee.updateWorldMatrix(true, false);
           const a = new THREE.Vector3().setFromMatrixPosition(up.matrixWorld);
           const b = new THREE.Vector3().setFromMatrixPosition(knee.matrixWorld);
-          // lerp 0.45 + LATERAL offset: the unambiguous mid-thigh zone on each
-          // leg's OUTER face — from the 3/4 camera the near leg shows its
-          // lateral face and the far leg only its lateral sliver past the
-          // near leg. 0.22 (v4) sat at the band/hem boundary — noisy for cloth.
-          // outward = away from the pelvis centre, horizontal — tracks stride
-          const hipsC = av.bones.hips.getWorldPosition(new THREE.Vector3());
-          let out = new THREE.Vector3(a.x - hipsC.x, 0, a.z - hipsC.z);
-          if (out.lengthSq() < 1e-6) out.set(1, 0, 0);
-          out.normalize().multiplyScalar(0.035);
-          const fwdT = fwdOf(up);
-          const q2 = toPx(a.clone().lerp(b, 0.45).add(out).addScaledVector(fwdT, 0.035), W, H);
-          const dc2 = discCount(q2.x, q2.y, rad * 1.35, W, H, buf);
-          const got = dc2.tally['coral'] ?? 0;
-          regions.push({ name: label, want: 'coral', got, share: +(100 * got / Math.max(1, dc2.n)).toFixed(1), pass: got > dc2.n * 0.12, px: [q2.x, q2.y] });
-          void add; // (uniform path above kept for the other regions)
+          add(label, 'coral', a.clone().lerp(b, 0.22).add(new THREE.Vector3(0, 0, 0.03)));
         }
         // 3. shoes at both toes (charcoal + white sole rim)
         for (const [toe, label] of [[av.bones.toeL, 'toe L (shoe)'], [av.bones.toeR, 'toe R (shoe)']]) {
@@ -1151,146 +1040,6 @@ function regionChecks() {
         const pass = regions.every((r) => r.pass);
         return { pass, regions, view: 'front' };
       }));
-  });
-}
-
-/** Remove wardrobe remnants (rigid v4 pieces clone through loadModel). */
-function clearOutfitRemnants() {
-  clearCloth(av);
-  av.prone.children[0].traverse((o) => {
-    if (o.userData?.rwfWardrobe) o.parent?.remove(o);
-  });
-}
-
-// ── CLOTH-SPECIFIC CHECKS (the anti-armour instruments) ─────────────────────
-
-/** BULK CHECK — the armour detector. Front render at the chest: the shirt's
- *  rendered silhouette width (lime) must not exceed the BODY's width (arms
- *  included) by more than 6 cm. Fitted/skinned garments padded outwards by
- *  10 cm+ per side when the founder saw "american football armour"; hanging
- *  cloth drapes at skin + ~1 cm, so the excess is a direct bulk readout. */
-function bulkCheck(refBodyCm = 0) {
-  return withUI(() => {
-    av.root.updateMatrixWorld(true);
-    return withCamera(new THREE.Vector3(0.55, 1.15, 2.9), new THREE.Vector3(0, 0.92, 0), () =>
-      withNeutralLights(() => {
-        const gl = renderer.getContext();
-        const W = gl.drawingBufferWidth, H = gl.drawingBufferHeight;
-        const s = av.root.getWorldScale(new THREE.Vector3()).x || 1;
-        const cmPerUnit = 175 / (s * av.H);
-        av.bones.spine2.updateWorldMatrix(true, false);
-        const s2 = new THREE.Vector3().setFromMatrixPosition(av.bones.spine2.matrixWorld);
-        // cm per pixel at chest depth: project a known ±10 cm lateral span
-        const pa = toPx(s2.clone().add(new THREE.Vector3(0.1, 0, 0)), W, H);
-        const pb = toPx(s2.clone().add(new THREE.Vector3(-0.1, 0, 0)), W, H);
-        const pxSpan = Math.hypot(pa.x - pb.x, pa.y - pb.y) || 1;
-        const cmPerPx = (0.2 * cmPerUnit) / pxSpan;
-        const anchor = toPx(s2.clone().add(new THREE.Vector3(0, 0.01, 0)), W, H);
-        const xWin0 = Math.max(0, Math.round(anchor.x - W * 0.22));
-        const xWin1 = Math.min(W - 1, Math.round(anchor.x + W * 0.22));
-        const rows = [];
-        for (let y = anchor.y - 8; y <= anchor.y + 8; y++) rows.push(y);
-        const extent = (fn) => {
-          let mn = 1e9, mx = -1e9;
-          for (const y of rows) {
-            if (y < 0 || y >= H) continue;
-            for (let x = xWin0; x <= xWin1; x++) {
-              const p = ((H - 1 - y) * W + x) * 4;
-              if (fn(buf8[p], buf8[p + 1], buf8[p + 2])) { if (x < mn) mn = x; if (x > mx) mx = x; }
-            }
-          }
-          return mn > mx ? 0 : mx - mn;
-        };
-        // render 1: body only (all garments hidden) — the true silhouette
-        const wasOn = {};
-        for (const slot of OUTFIT_SLOTS) { wasOn[slot] = outfit.isVisible(slot); outfit.toggle(slot, false); }
-        if (outfit.sim?.debug?.visible) outfit.sim.debug.visible = false;
-        let f = readFrame(); buf8 = f.buf;
-        const bodyPx = extent((r, g, b) => {
-          const c = classifyRegion(r, g, b);
-          return c === 'body' || c === 'charcoal' || c === 'white';
-        });
-        // render 2: full kit — the shirt silhouette (lime)
-        for (const slot of OUTFIT_SLOTS) outfit.toggle(slot, wasOn[slot]);
-        f = readFrame(); buf8 = f.buf;
-        const shirtPx = extent((r, g, b) => classifyRegion(r, g, b) === 'lime');
-        // reference body width: mid-stride the body-only render foreshortens
-        // (swung arms overlap the torso — 29 cm measured at walk@50%); the
-        // bind body width is the honest chest-silhouette reference
-        const bodyRef = Math.max(bodyPx * cmPerPx, refBodyCm);
-        const excessCm = shirtPx > 0 && bodyPx > 0 ? (shirtPx * cmPerPx - bodyRef) : -1;
-        return {
-          bodyPx, shirtPx, cmPerPx: +cmPerPx.toFixed(3),
-          bodyCm: +(bodyPx * cmPerPx).toFixed(1), bodyRefCm: +bodyRef.toFixed(1),
-          shirtCm: +(shirtPx * cmPerPx).toFixed(1),
-          excessCm: +excessCm.toFixed(1),
-          // armour = shirt FATTER than the body; slimmer (limbs bare beside it) is fine
-          pass: shirtPx > 0 && bodyPx > 0 && excessCm <= 6,
-        };
-      }));
-  });
-}
-let buf8 = new Uint8Array(0);
-
-/** DRAPE CHECK — fabric must BEHAVE like fabric:
- *  1. settle: from a rest-drop, garment max speed decays below the sleep
- *     threshold in < 3 s (no permanent jitter — the cardinal cloth sin);
- *  2. lag: two walk frames differ at the hems — the fabric swings with the
- *     stride instead of being glued to the legs. */
-function hemSnapshot() {
-  const pts = [];
-  const sh = outfit.pieces.shorts, ts = outfit.pieces.shirt;
-  for (let r = 8; r < 10; r++) for (let c = 0; c < 24; c++) {
-    pts.push(sh.px[r * 24 + c], sh.py[r * 24 + c], sh.pz[r * 24 + c]);
-  }
-  const torso = ts.strips[0];
-  for (let r = 8; r < 10; r++) for (let c = 0; c < 16; c++) {
-    const i = torso.start + r * 16 + c;
-    pts.push(ts.px[i], ts.py[i], ts.pz[i]);
-  }
-  return pts;
-}
-
-async function drapeCheck() {
-  if (!av || !outfit) return { error: 'not ready' };
-  // ── settle timing (rest-drop → calm), body frozen at stand
-  av.pose('stand', 0.5);
-  av.root.updateMatrixWorld(true);
-  outfit.resetDrape();
-  const perChunk = Math.round(CLOTH_TUNING.hz / 30);
-  let settleS = -1, maxAt3s = 0;
-  const gatePieces = [outfit.pieces.shorts, outfit.pieces.shirt]; // + sleeves reported, not gated
-  for (let i = 0; i < 90; i++) { // up to 3.0 s in 1/30 s chunks
-    outfit.sim.substepN(perChunk);
-    const ms = Math.max(...gatePieces.map((p) => p.lastMaxSpeed));
-    if (ms < CLOTH_TUNING.sleepSpeed) { settleS = (i + 1) / 30; break; }
-    if (i === 89) maxAt3s = ms;
-  }
-  // ── walk lag: two adjacent frames, cloth advanced but NOT settled
-  return withUI(async () => {
-    if (bvh) { bvh.stop(); bvh = null; }
-    const res = await loadBVH(BVH_FILES.walk);
-    const p = new BVHPlayer(av, res);
-    p.time = p.duration * 0.5; p.update(0);
-    av.root.updateMatrixWorld(true);
-    outfit.settle(0.4);
-    const hemA = hemSnapshot();
-    p.time = p.duration * 0.56; p.update(0);
-    av.root.updateMatrixWorld(true);
-    outfit.sim.substepN(4); // in-motion capture — the lag is the point
-    const hemB = hemSnapshot();
-    p.stop();
-    const s = av.root.getWorldScale(new THREE.Vector3()).x || 1;
-    const cmPerUnit = 175 / (s * av.H);
-    let sum = 0;
-    for (let k = 0; k < hemA.length; k++) sum += Math.abs(hemB[k] - hemA[k]);
-    const lagCm = (sum / (hemA.length / 3)) * cmPerUnit;
-    return {
-      settleS: +settleS.toFixed(2), maxSpeedAt3sCmS: +(maxAt3s * cmPerUnit).toFixed(1),
-      lagCm: +lagCm.toFixed(2),
-      sleeveSimmerCmS: +(outfit.pieces.sleeves.lastMaxSpeed * cmPerUnit).toFixed(1),
-      pass: settleS > 0 && settleS < 3 && lagCm > 0.15,
-    };
   });
 }
 
@@ -1322,28 +1071,14 @@ async function runVerify() {
   //   • shorts LEGS 7.5 cm: the top rings deliberately reach past the body
   //     centreline to close the crotch; folded poses float their inner
   //     columns briefly. Shell stays at the founder's 5 cm.
-  // CLOTH bars — hanging-fabric allowances, measured on this build:
-  //   • tee torso 25 cm: the free hem swings off hunched/bobbing torsos
-  //     (measured max 23.4 cm at walk@0.25 — fabric flying, not detached)
-  //   • sleeves 12 cm: sleeve hems on swinging arms (measured 11.3 jacks)
-  //   • shorts 45 cm: legs spread wide (jumping jacks 35.8; lunges in
-  //     drag/one_arm/combat measured to 42.7) lift the crotch fabric far
-  //     from the thighs — real shorts do this
-  //   • waistband 8 cm: prone push-up folds the hips under the band (5.3)
-  // The fitted-garment distance metric is CONTEXT for cloth; containment is
-  // enforced by the signed probe (bar 0) and silhouette by bulkCheck.
-  const ATTACH_BAR = { default: 8, tshirt: 25, 'tshirt sleeves': 12, shorts: 45, 'shorts legs': 45, waistband: 8, sneakers: 5 };
+  const ATTACH_BAR = { default: 5, tshirt: 15, 'tshirt sleeves': 8, shorts: 5, 'shorts legs': 7.5 };
   const barOf = (tag) => ATTACH_BAR[tag] ?? ATTACH_BAR.default;
-  // cloth stretch bar: hanging fabric genuinely strains at pins/loads
-  // (v4's 3 mm bar was for WELDED LBS topology — a welded strip cannot open;
-  // cloth edges stretch ~1–3% under the garment's own weight)
-  const STRETCH_BAR = 2.5;   // cm — ring-to-ring edge strain (elastic collar zone strains ~2.2 cm under the shirt's hang load — measured)
+  const STRETCH_BAR = 0.3;   // cm — ring-to-ring edge strain (3 mm)
   const rows = [];
   const notes = [];
 
   const measureCase = (label) => {
     av.root.updateMatrixWorld(true);
-    outfit.settle(0.4); // cloth drapes to the posed frame — dwell state measured
     const surface = bodySurface(av);
     const nearSurface = nearestDistanceFactory(surface, 0.05);
     // rigid pieces are bone-welded: sparse low-poly flesh (Geno's feet) makes
@@ -1494,13 +1229,6 @@ async function runVerify() {
     state.t = 0;
     applyAnimAt();
 
-    // ── cloth-specific verdicts: bulk (anti-armour) + drape (settle + lag)
-    say('<p class="vspin">cloth checks (bulk silhouette, settle, lag)…</p>');
-    await nextTick();
-    const bulk = bulkCheck();
-    const drape = await drapeCheck();
-    await setAnim(savedAnim); // drapeCheck drove the rig — restore again
-
     // ── verdicts
     const attachRows = rows.filter((r) => r.overBar);
     const stretchRows = rows.filter((r) => r.stretchCm > STRETCH_BAR);
@@ -1535,17 +1263,10 @@ async function runVerify() {
     const insideWorst = Math.max(...rows.map((r) => r.insideWorstCm));
     const crossTotal = rows.reduce((a, r) => a + r.insideCross, 0);
     html += `<div class="verify-summary ${attachPass && stretchPass ? 'ok' : 'bad'}">` +
-      `${rows.length} cases · max garment→body <b>${globalMax.toFixed(1)} cm</b> (cloth hanging bars: tee 25 · sleeves 12 · shorts 45 · band 8 · shoes 5) · ` +
+      `${rows.length} cases · max garment→body <b>${globalMax.toFixed(1)} cm</b> (bars: 5 cm · tee 8 cm — armpit bridge) · ` +
       `inside-body verts <b>${insideTotal}</b> (worst ${insideWorst.toFixed(1)} cm · ${crossTotal} bare-limb crossings excused) · ` +
       `max ring stretch <b>${globalStretch.toFixed(2)} cm</b> (bar ≤${STRETCH_BAR}) · ` +
       `${attachPass && stretchPass ? 'ALL PASS ✓' : attachRows.length + stretchRows.length + nanRows.length + insideRows.length + ' case(s) over bar'}</div>`;
-    const bulkOK = bulk && bulk.pass !== false;
-    const drapeOK = drape && drape.pass !== false;
-    html += `<div class="verify-summary ${bulkOK && drapeOK ? 'ok' : 'bad'}">CLOTH — ` +
-      `bulk: shirt silhouette ${bulk?.shirtCm ?? '?'} cm vs body ${bulk?.bodyCm ?? '?'} cm = ` +
-      `<b>+${bulk?.excessCm ?? '?'} cm</b> (bar ≤6 — the armour detector) · ` +
-      `settle: <b>${drape?.settleS ?? '?'} s</b> (bar <3) · hem lag on walk: <b>${drape?.lagCm ?? '?'} cm</b> (bar >0.15 — fabric, not glue) · ` +
-      `${bulkOK && drapeOK ? 'PASS ✓' : 'FAIL'}</div>`;
     for (const r of rows) {
       if (r.ankleDriftCm != null && r.ankleDriftCm > 3) notes.push(`${r.pose}: feet drift ${r.ankleDriftCm} cm across phases (not planted)`);
     }
@@ -1553,7 +1274,7 @@ async function runVerify() {
     html += '<p class="verify-note">edge "stretch" = welded ring-to-ring edge strain (LBS responds to joint bends; a welded strip cannot open a gap — NaN/degenerate verts are the structural hole check and must stay 0).</p>';
     say(html);
 
-    const report = { rows, attachPass, stretchPass, globalMaxCm: +globalMax.toFixed(1), globalStretchCm: +globalStretch.toFixed(2), insideVerts: insideTotal, insideWorstCm: +insideWorst.toFixed(1), limbCrossVerts: crossTotal, notes, bars: { attachCm: ATTACH_BAR, stretchCm: STRETCH_BAR }, bulk, drape, cloth: outfit.clothStats() };
+    const report = { rows, attachPass, stretchPass, globalMaxCm: +globalMax.toFixed(1), globalStretchCm: +globalStretch.toFixed(2), insideVerts: insideTotal, insideWorstCm: +insideWorst.toFixed(1), limbCrossVerts: crossTotal, notes, bars: { attachCm: ATTACH_BAR, stretchCm: STRETCH_BAR } };
     window.__atelier.lastVerify = report;
     return report;
   } catch (e) {
@@ -1599,8 +1320,7 @@ function configJSON() {
     tool: 'rwf-outfit-atelier',
     model: { file: '/models/Geno.glb', rig: 'mixamo', tint: '#eceef1' },
     outfit: {
-      module: '/site/models/geno-cloth.js',
-      mode: 'hanging-cloth PBD',
+      module: '/site/models/geno-outfit.js',
       buildStep: state.buildStep,
       stepLabel: BUILDUP_STEPS[state.buildStep].label,
       slotsVisible: OUTFIT_SLOTS.filter((s2) => state.iso ? s2 === state.iso : BUILDUP_STEPS[state.buildStep].slots.includes(s2)),
@@ -1654,10 +1374,9 @@ async function boot() {
   av = new ModelAvatar(geno, 'mixamo');
   av.root.scale.setScalar(1.6 / av.H);
   scene.add(av.root);
-  clearOutfitRemnants();
-  outfit = attachClothOutfit(av, { slots: 'full' });
+  clearOutfit(av);
+  outfit = attachOutfit(av, { slots: 'full' });
   av.pose('stand', 0.5);
-  outfit.settle(1.2); // drop from the bind rest shape — the founder never sees A-pose cloth
   state.ready = true;
 
   // ── wire controls
@@ -1697,24 +1416,6 @@ async function boot() {
     state.buildStep = Math.min(BUILDUP_STEPS.length - 1, state.buildStep + 1); state.iso = null; applyVisibility();
   });
   $('btnVerify').addEventListener('click', () => { runVerify().catch(() => {}); });
-  // ── cloth controls: debug overlay, substep-by-substep settle, reset drape
-  $('btnClothDebug').addEventListener('click', () => {
-    const on = !outfit.sim.debug.visible;
-    outfit.clothDebug(on);
-    $('btnClothDebug').classList.toggle('is-on', on);
-  });
-  $('btnClothStep').addEventListener('click', () => {
-    state.paused = true; updatePauseBtn();
-    outfit.clothStep(1); // ONE substep — watch the drape converge frame by frame
-    if (state.heat) updateHeatmap();
-  });
-  $('btnClothReset').addEventListener('click', () => { outfit.resetDrape(); });
-  setInterval(() => {
-    if (!outfit?.clothStats) return;
-    const st = outfit.clothStats();
-    $('clothInfo').textContent =
-      `${st.particles} particles · ${st.constraints} constraints · ${st.colliders} colliders · sim ${st.lastMs.toFixed(2)} ms/frame · ${st.sleeping.every(Boolean) ? 'settled' : 'draping'}`;
-  }, 1000);
   $('btnExport').addEventListener('click', () => {
     const j = configJSON();
     $('exportBox').value = JSON.stringify(j, null, 2);
@@ -1763,8 +1464,6 @@ let last = performance.now();
       const a = animById(state.animId);
       if (a?.kind === 'bvh' && bvh) bvh.update(dt * state.speed);
       else if (a?.kind === 'pose') av.pose(a.pose, (state.t / a.cycle) % 1);
-      // cloth: paused = FROZEN (reduced-motion safe); playing = sim advances
-      outfit?.updateFabric(dt * state.speed);
     }
     if (state.heat) {
       heatTimer += dt;
@@ -1794,11 +1493,7 @@ window.__atelier = {
   setHeat: (on) => { state.heat = !!on; applyViewFX(); $('btnHeat').classList.toggle('is-on', state.heat); $('heatLegend').hidden = !state.heat; if (state.heat) updateHeatmap(); },
   setTurntable: (on) => { state.autoTurn = !!on; controls.autoRotate = state.autoTurn; $('btnTurn').classList.toggle('is-on', state.autoTurn); },
   runVerify, bandCheck, sleeveCheck, asciiView, regionChecks,
-  scanSignedCoverage, scanInsideBody, bulkCheck, drapeCheck,
-  clothStats: () => outfit?.clothStats?.() ?? null,
-  clothStep: (n = 1) => outfit?.clothStep?.(n),   // watch cloth settle substep by substep
-  clothDebug: (on) => outfit?.clothDebug?.(on),   // particles + constraints overlay
-  resetDrape: () => outfit?.resetDrape?.(),
+  scanSignedCoverage, scanInsideBody,
   setCam: (pos, tgt) => {
     controls.autoRotate = false;
     camera.position.set(...pos);
@@ -1828,6 +1523,6 @@ window.__atelier = {
 
 boot().catch((e) => {
   document.body.insertAdjacentHTML('afterbegin',
-    `<div style="padding:14px 20px;color:var(--danger);font-family:var(--font-mono);white-space:pre-wrap">atelier boot failed: ${e.message}\n${(e.stack ?? '').split('\n').slice(1, 5).join('\n')}</div>`);
+    `<div style="padding:14px 20px;color:var(--danger);font-family:var(--font-mono)">atelier boot failed: ${e.message}</div>`);
   console.error(e);
 });

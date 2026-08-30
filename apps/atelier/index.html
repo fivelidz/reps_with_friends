@@ -27,13 +27,14 @@
   <p class="at-sub">
     One avatar, up close. The instrument for judging garments with human eyes:
     zoom, slow-mo, x-ray, seam heatmap, build-up, isolation. Geno + the
-    canonical outfit (<code>geno-outfit.js</code>) — the gallery switches after
-    founder approval.
+    canonical outfit — now as <b>TRUE HANGING CLOTH</b> (<code>geno-cloth.js</code>):
+    the shirt and shorts are simulated fabric, pinned at the waistband and
+    shoulders, colliding with the body, draped by gravity.
   </p>
   <div class="at-fixbar" title="the founder's defect report this page exists to answer">
-    <span class="fix-chip">fixing: holes in shirt &amp; shorts</span>
-    <span class="fix-chip">shirt must be a T-SHIRT, not a singlet</span>
-    <span class="fix-chip">waistband must be VISIBLE</span>
+    <span class="fix-chip">fixing: "american football armour" bulk</span>
+    <span class="fix-chip">hanging fabric over the model, colliding — not skinned</span>
+    <span class="fix-chip">no sizing war: collision + gravity is the fit</span>
     <span class="fix-chip">must hold through all animations</span>
   </div>
 </header>
@@ -113,11 +114,21 @@
     </section>
 
     <section class="rail-sec">
+      <h2>Cloth <span class="hud-dim">(PBD sim)</span></h2>
+      <div class="btn-row wrap">
+        <button class="rwf-btn" id="btnClothDebug" type="button" title="particles (red = pinned) + constraint lines over the render">◌ Cloth debug</button>
+        <button class="rwf-btn" id="btnClothStep" type="button" title="advance the cloth ONE substep (1/240 s) — watch it settle frame by frame while paused">▸ Substep</button>
+        <button class="rwf-btn" id="btnClothReset" type="button" title="drop the cloth from its rest shape again">↺ Reset drape</button>
+      </div>
+      <p class="ctl-hint" id="clothInfo">shirt + shorts hang from pins (waistband, neckline + shoulders, sleeve tops) and collide with capsule colliders measured off the body. Pause freezes the sim.</p>
+    </section>
+
+    <section class="rail-sec">
       <h2>Verify <span class="hud-dim">(programmatic)</span></h2>
       <button class="rwf-btn rwf-btn--primary" id="btnVerify" type="button">▶ Run attachment probe</button>
-      <p class="ctl-hint">Poses every clip × 4 phases + every exercise × 3 phases, then measures
-        garment→body distance (bar: ≤5 cm) and ring-by-ring continuity (bar: no
-        edge stretched &gt;3 mm).</p>
+      <p class="ctl-hint">Poses every clip × 4 phases + every exercise × 3 phases (cloth settled to each frame), then measures
+        garment→body distance (bar: ≤5 cm), ring continuity, inside-body verts (bar 0) — plus the cloth checks:
+        silhouette bulk ≤ body+6 cm (the armour detector), settle &lt;3 s, hem lag &gt;0 on walk.</p>
       <div class="verify-out" id="verifyOut"><p class="hud-dim">No run yet.</p></div>
     </section>
 
