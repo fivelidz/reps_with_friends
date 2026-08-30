@@ -28,18 +28,15 @@
     One avatar, up close. The instrument for judging garments with human eyes:
     zoom, slow-mo, x-ray, seam heatmap, build-up, isolation. Geno wearing
     <b>SKIN-DERIVED GARMENTS</b> (<code>geno-derived.js</code>): the shirt and
-    shorts are the body's own triangles offset along their normals by graded
-    millimetres (+5 mm collar → +9 chest → +12 hem — hanging a tiny bit loose),
-    with CONTOUR hems — level cuts, regular rings, finished-edge bands. Same
-    skeleton, same weights: they deform identically to the flesh through every
-    clip and pose, with the frog head riding the Head bone. No cloth solver,
-    no sizing war, no idle cost.
+    shorts are the body's own triangles offset +6 mm along their normals —
+    same skeleton, same weights, so they deform identically to the flesh
+    through every clip and pose. No cloth solver, no sizing war, no idle cost.
   </p>
   <div class="at-fixbar" title="the founder's defect report this page exists to answer">
-    <span class="fix-chip">contour hems — no more torn, shredded ends</span>
-    <span class="fix-chip">graded +5→+12 mm — hangs loose, never armour</span>
+    <span class="fix-chip">the body's own triangles, +6 mm — not an approximation</span>
+    <span class="fix-chip">cannot be inside the flesh · cannot be armour</span>
     <span class="fix-chip">deforms identically to the body (shared skinning)</span>
-    <span class="fix-chip">frog head + crown in the full kit</span>
+    <span class="fix-chip">stationary = silent (dirty-flag render loop)</span>
   </div>
 </header>
 
@@ -89,23 +86,12 @@
     </section>
 
     <section class="rail-sec">
-      <h2>Garment slots</h2>
-      <div class="chip-row" id="slotRow"></div>
-      <div class="ctl" style="margin-top:10px">
-        <label class="ctl-label">Head</label>
-        <div class="btn-row wrap" id="headRow">
-          <button class="rwf-btn head-btn is-on" data-species="frog" type="button" title="frog head WITH crown — the founder's pick">🐸 Frog <span class="hud-dim">(crown)</span></button>
-          <button class="rwf-btn head-btn" data-species="goblin" type="button">👺 Goblin</button>
-          <button class="rwf-btn head-btn" data-species="robot" type="button">🤖 Robot</button>
-          <button class="rwf-btn head-btn" data-species="none" type="button">∅ None</button>
-        </div>
-        <div class="btn-row wrap" id="frogSkins" style="margin-top:6px">
-          <button class="rwf-btn frog-skin is-on" data-skin="green" type="button" title="default frog green">● green</button>
-          <button class="rwf-btn frog-skin" data-skin="azure" type="button">● azure</button>
-          <button class="rwf-btn frog-skin" data-skin="sunset" type="button">● sunset</button>
-        </div>
+      <h2>Garment mode</h2>
+      <div class="btn-row wrap">
+        <button class="rwf-btn is-on" id="btnModeDerived" type="button" title="the body's own triangles + 6 mm, sharing the skeleton — the canonical system">◍ Skin-derived <span class="hud-dim">(default)</span></button>
+        <button class="rwf-btn" id="btnModeCloth" type="button" title="simulated hanging fabric (PBD) — experimental comparison path, OFF by default">≈ Cloth sim <span class="hud-dim">(experimental)</span></button>
       </div>
-      <p class="ctl-hint">Skin-derived garments (contour hems, graded +5→+12 mm) + the species head on the Head bone. A species head swallows the headband — it hides while a head is active (the crown is the decoration).</p>
+      <p class="ctl-hint">Skin-derived = the body's own triangles offset +6 mm (collar 3 mm, waistband 9 mm), hems dropped + flared. Cloth sim = the archived PBD experiment — kept for comparison, not the default.</p>
     </section>
 
     <section class="rail-sec">
@@ -138,11 +124,21 @@
     </section>
 
     <section class="rail-sec">
+      <h2>Cloth sim <span class="hud-dim">(experimental · cloth mode only)</span></h2>
+      <div class="btn-row wrap">
+        <button class="rwf-btn" id="btnClothDebug" type="button" title="particles (red = pinned) + constraint lines over the render">◌ Cloth debug</button>
+        <button class="rwf-btn" id="btnClothStep" type="button" title="advance the cloth ONE substep (1/240 s) — watch it settle frame by frame while paused">▸ Substep</button>
+        <button class="rwf-btn" id="btnClothReset" type="button" title="drop the cloth from its rest shape again">↺ Reset drape</button>
+      </div>
+      <p class="ctl-hint" id="clothInfo">ARCHIVED EXPERIMENT (OFF by default). Switch "Garment mode" to "Cloth sim" to re-enable these controls.</p>
+    </section>
+
+    <section class="rail-sec">
       <h2>Verify <span class="hud-dim">(programmatic)</span></h2>
       <button class="rwf-btn rwf-btn--primary" id="btnVerify" type="button">▶ Run attachment probe</button>
-      <p class="ctl-hint">Poses every clip × 4 phases + every exercise × 3 phases, then measures garment→body distance (region verts ≈ the graded 5–12 mm; hem lips to ~4 cm by construction),
-        inside-body verts (bar 0), Δsource attachment (garment verts track their body verts), edge strain vs the body's own,
-        plus the silhouette bulk check (shirt ≤ body+1.5 cm at the chest — the armour detector), hem regularity (the torn-end detector) and the frog-head tracker.</p>
+      <p class="ctl-hint">Poses every clip × 4 phases + every exercise × 3 phases, then measures garment→body distance (region verts ≈ the 6 mm offset; hem lips to 3.2 cm by construction),
+        inside-body verts (bar 0), Δsource attachment (garment verts track their body verts, bar &lt;1 cm), edge strain vs the body's own,
+        plus the silhouette bulk check: shirt ≤ body+6 cm (the armour detector).</p>
       <div class="verify-out" id="verifyOut"><p class="hud-dim">No run yet.</p></div>
     </section>
 

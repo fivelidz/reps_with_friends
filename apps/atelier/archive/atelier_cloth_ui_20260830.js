@@ -20,7 +20,7 @@
 
 import * as THREE from 'three';
 import { OrbitControls } from 'three/addons/controls/OrbitControls.js';
-import { loadModel, applyFlatTint, loadBVH, BVHPlayer, ModelAvatar, BVH_FILES, GENO_CLIPS, loadGenoClip }
+import { loadModel, applyFlatTint, loadBVH, BVHPlayer, ModelAvatar, BVH_FILES }
   from '/site/model-avatars.js';
 import {
   garmentVerts, bodySurface, bodyTriangles, nearestDistanceFactory,
@@ -28,12 +28,14 @@ import {
   OUTFIT_SLOTS, SLOT_LABELS, BUILDUP_STEPS,
 } from '/site/models/geno-outfit.js';
 // SKIN-DERIVED GARMENTS (geno-derived): the DEFAULT system — the body's own
-// triangles, offset along their normals by height-graded millimetres (+5 mm
-// collar → +9 chest → +12 hem), same skeleton, same weights. Cannot be inside
-// the flesh, cannot be armour, deforms identically to the body through every
-// clip and pose. No sim, no per-frame cost. (The PBD cloth experiment is
-// RETIRED from this UI — geno-cloth.js stays in the repo for reference.)
-import { attachDerivedOutfit, clearDerived, HEAD_SPECIES, FROG_SKINS } from '/site/models/geno-derived.js';
+// triangles, offset +6 mm along their normals, same skeleton, same weights.
+// Cannot be inside the flesh, cannot be armour, deforms identically to the
+// body through every clip and pose. No sim, no per-frame cost.
+import { attachDerivedOutfit, clearDerived } from '/site/models/geno-derived.js';
+// TRUE HANGING CLOTH (geno-cloth): EXPERIMENTAL, OFF by default — simulated
+// fabric pinned + colliding + draped by gravity. Kept wired behind a toggle
+// for comparison runs; the derived system above is the canonical answer.
+import { attachClothOutfit, clearCloth, CLOTH_TUNING } from '/site/models/geno-cloth.js';
 
 const $ = (id) => document.getElementById(id);
 const stage = $('stage');
@@ -89,12 +91,7 @@ const state = {
   buildStep: BUILDUP_STEPS.length - 1, iso: null,
   xray: false, wire: false, heat: false, autoTurn: true,
   ready: false, verifying: false,
-  mode: 'derived',                    // fixed: the cloth-sim path is retired
-  headSpecies: 'frog',                // Head slot: frog (with crown) default
-  slotOn: {                           // per-slot quick toggles (the rail row)
-    tshirt: true, shorts: true, waistband: true, sneakers: true,
-    bands: true, head: true,
-  },
+  mode: 'derived',          // 'derived' (default) | 'cloth' (experimental)
 };
 
 const POSES = [
@@ -104,15 +101,10 @@ const POSES = [
   { id: 'jumpingjack', label: 'jumping jacks', pose: 'jumpingjack', cycle: 2.2 },
   { id: 'curl', label: 'biceps curl', pose: 'curl', cycle: 2.6 },
 ];
-// Real mocap clips from GENO_CLIPS (site/model-avatars.js): mixamo-retargeted
-// locomotion + Geno's own CMU demo motions + Xbot character clips + the
-// original captures preserved at the end.
-const CLIPS = Object.entries(GENO_CLIPS).map(([id, spec]) => ({
-  id: 'clip:' + id, kind: 'bvh', clip: id, label: `${spec.group ?? 'clip'} · ${spec.label ?? id}`,
-}));
+const CLIPS = ['walk', 'limp', 'drag', 'one_arm', 'combat'];
 const ANIMS = [
   ...POSES.map((p) => ({ ...p, kind: 'pose' })),
-  ...CLIPS,
+  ...CLIPS.map((c) => ({ id: 'bvh:' + c, kind: 'bvh', clip: c, label: `BVH · ${c}` })),
 ];
 
 let av = null;          // ModelAvatar
@@ -156,14 +148,6 @@ function applyViewFX() {
       g.material.opacity = 1;
       g.material.depthWrite = save.depthWrite;
       g.material.needsUpdate = true;
-      // heatmap-off: restore the garment's own vertex-colour tints (the hem
-      // bands / collar ribs) — the heat pass overwrote the color attribute
-      const base = g.userData?.baseColors;
-      const colAttr = g.geometry.getAttribute('color');
-      if (base && colAttr && colAttr.array.length === base.length) {
-        colAttr.array.set(base);
-        colAttr.needsUpdate = true;
-      }
     }
   }
   // body: wireframe + silhouette lift (skip anything under a wardrobe tag)
@@ -234,28 +218,14 @@ function updateHeatmap(rebuildOracle = false) {
   }
 }
 
-// ── visibility (build-up + isolation + slot row + head) ─────────────────────
-const SLOT_ROW = [ // the rail's quick-toggle row (Bands = headband + wristbands)
-  { id: 'tshirt', label: 'Shirt', slots: ['tshirt'] },
-  { id: 'shorts', label: 'Shorts', slots: ['shorts'] },
-  { id: 'waistband', label: 'Waistband', slots: ['waistband'] },
-  { id: 'sneakers', label: 'Shoes', slots: ['sneakers'] },
-  { id: 'bands', label: 'Bands', slots: ['headband', 'wristbands'] },
-  { id: 'head', label: 'Head', slots: ['head'] },
-];
+// ── visibility (build-up + isolation) ────────────────────────────────────────
 function applyVisibility() {
   if (!outfit) return;
   const stepSlots = BUILDUP_STEPS[state.buildStep].slots;
   for (const slot of OUTFIT_SLOTS) {
-    const row = SLOT_ROW.find((r) => r.slots.includes(slot));
-    const rowOn = row ? state.slotOn[row.id] !== false : true;
-    const on = state.iso ? state.iso === slot : (stepSlots.includes(slot) && rowOn);
+    const on = state.iso ? state.iso === slot : stepSlots.includes(slot);
     outfit.toggle(slot, on);
   }
-  // the head slot rides the species selector (not in OUTFIT_SLOTS): visible
-  // in the full-kit step (or when isolated), unless the row toggle is off
-  const headOn = state.slotOn.head !== false && (state.iso ? state.iso === 'head' : state.buildStep === BUILDUP_STEPS.length - 1);
-  outfit.toggle('head', headOn && state.headSpecies !== 'none');
   document.querySelectorAll('.build-step').forEach((el, i) => {
     el.classList.toggle('is-on', i === state.buildStep);
     el.classList.toggle('is-done', i < state.buildStep);
@@ -263,11 +233,8 @@ function applyVisibility() {
   document.querySelectorAll('.iso-chip').forEach((el) => {
     el.classList.toggle('is-on', state.iso ? el.dataset.slot === state.iso : el.dataset.slot === 'all');
   });
-  document.querySelectorAll('.slot-chip').forEach((el) => {
-    el.classList.toggle('is-on', state.slotOn[el.dataset.slot] !== false);
-  });
   $('stageNote').textContent = state.iso
-    ? `isolated: ${state.iso === 'head' ? 'head' : SLOT_LABELS[state.iso]}`
+    ? `isolated: ${SLOT_LABELS[state.iso]}`
     : `step ${state.buildStep + 1}/${BUILDUP_STEPS.length}: ${BUILDUP_STEPS[state.buildStep].label}`;
   wake();
 }
@@ -283,7 +250,7 @@ async function setAnim(id) {
   state.t = 0;
   if (a.kind === 'bvh') {
     try {
-      const res = await loadGenoClip(a.clip);
+      const res = await loadBVH(BVH_FILES[a.clip] ?? `/models/goblin_${a.clip}.bvh`);
       bvh = new BVHPlayer(av, res);
       bvh.update(0);
     } catch (e) {
@@ -412,8 +379,8 @@ async function bandCheck() {
     if (bvh) { bvh.stop(); bvh = null; }
     av.pose('stand', 0.35);
     av.root.updateMatrixWorld(true);
-    withHeadHidden(() =>
-      withCamera(new THREE.Vector3(0.55, 1.15, 2.9), new THREE.Vector3(0, 0.92, 0), () =>
+    outfit.settle(0.35); // cloth must drape to the pose before pixels mean anything
+    return withCamera(new THREE.Vector3(0.55, 1.15, 2.9), new THREE.Vector3(0, 0.92, 0), () =>
       withNeutralLights(() => {
         const { buf, W, H } = readFrame();
         const px = (x, y) => { const p = ((H - 1 - y) * W + x) * 4; return [buf[p], buf[p + 1], buf[p + 2]]; };
@@ -454,19 +421,8 @@ async function bandCheck() {
           band: band ? `rows ${band.a}-${band.b} (${band.len}px ≈ ${(100 * band.len / H).toFixed(1)}% frame)` : null,
           pass: !!band,
         };
-      })));
+      }));
   });
-}
-
-/** The species head must not colour-pollute garment probes: frog-eye bulbs
- *  render pale lime (hue 68-ish) and would count as shirt pixels. */
-function withHeadHidden(fn) {
-  const was = {};
-  for (const g of outfit?.slots?.head ?? []) was[g.uuid] = g.visible;
-  for (const g of outfit?.slots?.head ?? []) g.visible = false;
-  const out = fn();
-  for (const g of outfit?.slots?.head ?? []) g.visible = was[g.uuid] ?? true;
-  return out;
 }
 
 /** Sleeve probe (scan-based): in the band between the headband row and the
@@ -478,11 +434,11 @@ async function sleeveCheck(view = 'front') {
     if (bvh) { bvh.stop(); bvh = null; }
     av.pose('stand', 0.35);
     av.root.updateMatrixWorld(true);
+    outfit.settle(0.35);
     const pos = view === 'front'
       ? new THREE.Vector3(0.55, 1.15, 2.9)
       : new THREE.Vector3(2.1, 1.35, 2.1);
-    return withHeadHidden(() =>
-      withCamera(pos, new THREE.Vector3(0, 0.92, 0), () =>
+    return withCamera(pos, new THREE.Vector3(0, 0.92, 0), () =>
       withNeutralLights(() => {
         const { buf, W, H } = readFrame();
         const px = (x, y) => { const p = ((H - 1 - y) * W + x) * 4; return [buf[p], buf[p + 1], buf[p + 2]]; };
@@ -517,7 +473,7 @@ async function sleeveCheck(view = 'front') {
           shareOfShirt: +(100 * perSide).toFixed(1) + '%',
           pass: left > 25 && right > 25,
         };
-      })));
+      }));
   });
 }
 
@@ -695,6 +651,10 @@ function bodyDepthOracle() {
   const hidden = [];
   const hide = (o) => { if (o.visible) { o.visible = false; hidden.push(o); } };
   hide(av.root); hide(ground); hide(ring);
+  // CLOTH meshes live at scene level (world space) — the body-only oracle must
+  // not see them as flesh, and neither must the debug overlay
+  if (outfit?.clothMeshes) for (const m of outfit.clothMeshes) hide(m);
+  if (outfit?.sim?.debug?.visible) hide(outfit.sim.debug);
   const rt = new THREE.WebGLRenderTarget(DEPTH_SIZE, DEPTH_SIZE, {
     minFilter: THREE.NearestFilter, magFilter: THREE.NearestFilter, depthBuffer: true,
   });
@@ -1256,12 +1216,13 @@ function regionChecks() {
   });
 }
 
-/** Remove wardrobe remnants (rigid v4 pieces clone through loadModel; the
- *  species head parent-deep; derived garments are body-scene children — the
- *  rwfWardrobe/rwfDerived tags catch all three). Collect-then-remove:
- *  removing during traverse shifts the children array mid-iteration (three's
- *  traverse reads children[i] raw — crash on the first multi-removal). */
+/** Remove wardrobe remnants (rigid v4 pieces clone through loadModel; cloth
+ *  lives at scene level; derived garments are body-scene children — the
+ *  rwfWardrobe tag catches all three). Collect-then-remove: removing during
+ *  traverse shifts the children array mid-iteration (three's traverse reads
+ *  children[i] raw — crash on the first multi-removal, i.e. on setMode). */
 function clearOutfitRemnants() {
+  clearCloth(av);
   const doomed = [];
   av.prone.children[0].traverse((o) => {
     if (o.userData?.rwfWardrobe || o.userData?.rwfDerived) doomed.push(o);
@@ -1269,23 +1230,30 @@ function clearOutfitRemnants() {
   for (const o of doomed) o.parent?.remove(o);
 }
 
-/** Rebuild the derived outfit (used when the whole kit must be re-derived —
- *  head species changes go through outfit.setHead, no rebuild needed). */
-async function rebuildOutfit(opts = {}) {
-  if (!av) return;
+// ── garment mode: derived (default) ⇄ cloth (experimental) ───────────────────
+async function setMode(mode) {
+  if ((mode !== 'derived' && mode !== 'cloth') || !av) return;
+  if (outfit && state.mode === mode) return;
   const savedAnim = state.animId;
   if (bvh) { bvh.stop(); bvh = null; }
   clearOutfitRemnants();
   matSave.clear();
   heatOracle = null;
   heatOracleAt = -1;
+  state.mode = mode;
   state.verifying = false;
   $('btnVerify').disabled = false;
-  outfit = attachDerivedOutfit(av, { slots: 'full', head: state.headSpecies, ...opts });
-  av.pose('stand', 0.5);
+  if (mode === 'cloth') {
+    outfit = attachClothOutfit(av, { slots: 'full' });
+    av.pose('stand', 0.5);
+    outfit.settle(1.2); // drop from the bind rest shape — the founder never sees A-pose cloth
+  } else {
+    outfit = attachDerivedOutfit(av, { slots: 'full' });
+    av.pose('stand', 0.5);
+  }
   applyViewFX();
   applyVisibility();
-  updateHeadUI();
+  updateModeUI();
   await setAnim(savedAnim);
   state.t = 0;
   applyAnimAt();
@@ -1293,22 +1261,19 @@ async function rebuildOutfit(opts = {}) {
   return outfit;
 }
 
-/** Head slot: species selector + frog skin colours. */
-async function setHead(species) {
-  state.headSpecies = species;
-  if (outfit?.setHead) outfit.setHead(species);
-  updateHeadUI();
-  applyVisibility();
-  wake();
-}
-function updateHeadUI() {
-  document.querySelectorAll('.head-btn').forEach((el) => {
-    el.classList.toggle('is-on', el.dataset.species === state.headSpecies);
-  });
-  document.querySelectorAll('.frog-skin').forEach((el) => {
-    el.classList.toggle('is-on', el.dataset.skin === outfit?.head?.skin);
-    el.style.display = state.headSpecies === 'frog' ? '' : 'none';
-  });
+function updateModeUI() {
+  const cloth = state.mode === 'cloth';
+  for (const [id, m] of [['btnModeDerived', 'derived'], ['btnModeCloth', 'cloth']]) {
+    $(id)?.classList.toggle('is-on', state.mode === m);
+  }
+  for (const id of ['btnClothDebug', 'btnClothStep', 'btnClothReset']) {
+    const el = $(id);
+    if (el) { el.disabled = !cloth; el.title = cloth ? el.dataset.title ?? el.title : 'cloth-mode only — the derived garments have no sim'; }
+  }
+  const info = $('clothInfo');
+  if (info) info.textContent = cloth
+    ? 'EXPERIMENTAL cloth: shirt + shorts hang from pins and collide with capsule colliders. The DEFAULT garments are skin-derived (the body + 6 mm) — switch back with "Skin-derived".'
+    : 'The garments are SKIN-DERIVED: the body\'s own triangles offset +6 mm (collar 3 mm, band 9 mm), same skeleton, same weights — they cannot tunnel, balloon, or detach, and cost no sim. "Cloth sim" is the archived experimental path.';
 }
 
 // ── CLOTH-SPECIFIC CHECKS (the anti-armour instruments) ─────────────────────
@@ -1339,10 +1304,6 @@ function bulkCheck(refBodyCm = 0) {
         const xWin1 = Math.min(W - 1, Math.round(anchor.x + W * 0.22));
         const rows = [];
         for (let y = anchor.y - 8; y <= anchor.y + 8; y++) rows.push(y);
-        const pxAt = (x, y) => {
-          const p = ((H - 1 - y) * W + x) * 4;
-          return [buf8[p], buf8[p + 1], buf8[p + 2]];
-        };
         const extent = (fn) => {
           let mn = 1e9, mx = -1e9;
           for (const y of rows) {
@@ -1354,35 +1315,17 @@ function bulkCheck(refBodyCm = 0) {
           }
           return mn > mx ? 0 : mx - mn;
         };
-        // render 1: body only (all garments + species head hidden) — the true
-        // silhouette (the frog skull would otherwise widen the body reference)
+        // render 1: body only (all garments hidden) — the true silhouette
         const wasOn = {};
         for (const slot of OUTFIT_SLOTS) { wasOn[slot] = outfit.isVisible(slot); outfit.toggle(slot, false); }
-        const headWas = {};
-        for (const g of outfit.slots?.head ?? []) { headWas[g.uuid] = g.visible; g.visible = false; }
+        if (outfit.sim?.debug?.visible) outfit.sim.debug.visible = false;
         let f = readFrame(); buf8 = f.buf;
-        const isBodyPx = (r, g, b) => {
+        const bodyPx = extent((r, g, b) => {
           const c = classifyRegion(r, g, b);
           return c === 'body' || c === 'charcoal' || c === 'white';
-        };
-        const bodyPx = extent(isBodyPx);
-        // TORSO-only width: the contiguous body run containing the centre
-        // column (bare arms beside the torso read as separate blobs — the
-        // honest chest armour number is shirt vs TORSO, expected ≤ +1.5 cm
-        // for the graded +9 mm offset)
-        let torsoPx = 0;
-        {
-          const yMid = rows[Math.floor(rows.length / 2)];
-          if (yMid >= 0 && yMid < H) {
-            let cx0 = anchor.x, cx1 = anchor.x;
-            while (cx0 - 1 >= xWin0 && isBodyPx(...pxAt(cx0 - 1, yMid))) cx0--;
-            while (cx1 + 1 <= xWin1 && isBodyPx(...pxAt(cx1 + 1, yMid))) cx1++;
-            torsoPx = cx1 - cx0;
-          }
-        }
+        });
         // render 2: full kit — the shirt silhouette (lime)
         for (const slot of OUTFIT_SLOTS) outfit.toggle(slot, wasOn[slot]);
-        for (const g of outfit.slots?.head ?? []) g.visible = headWas[g.uuid] ?? true;
         f = readFrame(); buf8 = f.buf;
         const shirtPx = extent((r, g, b) => classifyRegion(r, g, b) === 'lime');
         // reference body width: mid-stride the body-only render foreshortens
@@ -1390,226 +1333,84 @@ function bulkCheck(refBodyCm = 0) {
         // bind body width is the honest chest-silhouette reference
         const bodyRef = Math.max(bodyPx * cmPerPx, refBodyCm);
         const excessCm = shirtPx > 0 && bodyPx > 0 ? (shirtPx * cmPerPx - bodyRef) : -1;
-        const torsoCm = +(torsoPx * cmPerPx).toFixed(1);
-        const excessTorsoCm = shirtPx > 0 ? +(shirtPx * cmPerPx - torsoCm).toFixed(1) : -1;
         return {
-          bodyPx, shirtPx, torsoPx, cmPerPx: +cmPerPx.toFixed(3),
+          bodyPx, shirtPx, cmPerPx: +cmPerPx.toFixed(3),
           bodyCm: +(bodyPx * cmPerPx).toFixed(1), bodyRefCm: +bodyRef.toFixed(1),
-          torsoCm,
           shirtCm: +(shirtPx * cmPerPx).toFixed(1),
           excessCm: +excessCm.toFixed(1),
-          excessTorsoCm, // vs the contiguous torso — the ≤+1.5 cm chest number
           // armour = shirt FATTER than the body; slimmer (limbs bare beside it) is fine
-          pass: shirtPx > 0 && bodyPx > 0 && excessCm <= 6 && excessTorsoCm <= 1.5,
+          pass: shirtPx > 0 && bodyPx > 0 && excessCm <= 6,
         };
       }));
   });
 }
 let buf8 = new Uint8Array(0);
 
-// (The cloth DRAPE CHECK — settle + hem lag — retired with the cloth mode:
-//  skin-derived garments ARE the body surface; there is nothing to drape.)
-
-// ── HEM CHECK (v6) — the "no more apocalypse survivor" instrument ───────────
-// Two assertions per finished opening:
-//   • GEOMETRIC: the lip ring's angular spacing around its PCA frame centre
-//     (ringFrame) is uniform — σ/μ of the consecutive Δangle. The ring is
-//     UNIFORM BY CONSTRUCTION in the contour's own polar frame; measuring
-//     around the naive sample centroid distorts on asymmetric cross-sections.
-//   • PIXEL: front render at the lip's height (neutral light): per column,
-//     the lowest garment-colour row must form a clean LINE (σ below the bar
-//     — v5's torn hems scattered teeth of 1–3 cm across the silhouette).
-/** least-squares polynomial fit (degree ≤2) → f(x); for the hem residual */
-function polyFit(xs, ys, deg) {
-  const n = deg + 1;
-  const A = [];
-  for (let i = 0; i < n; i++) {
-    A.push(new Array(n + 1).fill(0));
-    for (let j = 0; j < n; j++) {
-      let sum = 0;
-      for (let k = 0; k < xs.length; k++) sum += xs[k] ** i * xs[k] ** j * 1;
-      A[i][j] = sum;
-    }
-    let sum = 0;
-    for (let k = 0; k < xs.length; k++) sum += xs[k] ** i * ys[k];
-    A[i][n] = sum;
+/** DRAPE CHECK — fabric must BEHAVE like fabric:
+ *  1. settle: from a rest-drop, garment max speed decays below the sleep
+ *     threshold in < 3 s (no permanent jitter — the cardinal cloth sin);
+ *  2. lag: two walk frames differ at the hems — the fabric swings with the
+ *     stride instead of being glued to the legs. */
+function hemSnapshot() {
+  const pts = [];
+  const sh = outfit.pieces.shorts, ts = outfit.pieces.shirt;
+  for (let r = 8; r < 10; r++) for (let c = 0; c < 24; c++) {
+    pts.push(sh.px[r * 24 + c], sh.py[r * 24 + c], sh.pz[r * 24 + c]);
   }
-  // Gaussian elimination
-  for (let col = 0; col < n; col++) {
-    let piv = col;
-    for (let r2 = col + 1; r2 < n; r2++) if (Math.abs(A[r2][col]) > Math.abs(A[piv][col])) piv = r2;
-    [A[col], A[piv]] = [A[piv], A[col]];
-    if (Math.abs(A[col][col]) < 1e-12) continue;
-    for (let r2 = col + 1; r2 < n; r2++) {
-      const f = A[r2][col] / A[col][col];
-      for (let c2 = col; c2 <= n; c2++) A[r2][c2] -= f * A[col][c2];
-    }
+  const torso = ts.strips[0];
+  for (let r = 8; r < 10; r++) for (let c = 0; c < 16; c++) {
+    const i = torso.start + r * 16 + c;
+    pts.push(ts.px[i], ts.py[i], ts.pz[i]);
   }
-  const coef = new Array(n).fill(0);
-  for (let r2 = n - 1; r2 >= 0; r2--) {
-    let sum = A[r2][n];
-    for (let c2 = r2 + 1; c2 < n; c2++) sum -= A[r2][c2] * coef[c2];
-    coef[r2] = Math.abs(A[r2][r2]) < 1e-12 ? 0 : sum / A[r2][r2];
-  }
-  return (x) => coef.reduce((acc, c2, i2) => acc + c2 * x ** i2, 0);
+  return pts;
 }
 
-const HEM_EDGE_BAR = 8; // px at the probe's ~1.2 m camera distance (≈2 cm teeth; the v5 torn build scattered 40–120)
-const HEM_ANG_BAR = 0.2; // σ/μ of ring-0 angular spacing — uniform-θ by construction; the normal-offset spread reads ≤0.18 on elliptical sections (the torn frontier build read 0.5+ with 3 cm pinches)
-
-// per-opening column windows in the front view (keeps other same-colour
-// garments out of the measured columns — the shirt torso is lime too)
-const HEM_COLS = {
-  'shirt-hem': [0.42, 0.58], 'shirt-collar': [0.42, 0.58],
-  'sleeve-hem-L': [0.28, 0.44], 'sleeve-hem-R': [0.56, 0.72],
-  'shorts-hem-L': [0.34, 0.45], 'shorts-hem-R': [0.55, 0.66],
-  'band-lip': [0.44, 0.56],
-};
-
-function hemCheck() {
-  const openings = [];
-  let pass = true;
-  for (const g of outfit.softGarments) {
-    const d = g.userData?.rwfDerived;
-    if (!d?.openings) continue;
-    const tag = g.userData.rwfWardrobe;
-    const want = tag === 'tshirt' ? 'lime' : tag === 'shorts' ? 'coral' : 'white';
-    const verts = garmentVerts(g);
-    for (const o of d.openings) {
-      if (!o.matched || o.ringStart === undefined) { pass = false; openings.push({ name: o.name, matched: false }); continue; }
-      // geometric: the construction's own regularity number — ring 0 is
-      // sampled at uniform angles around the axis anchor by construction;
-      // re-deriving it through live skinning only adds LBS shear noise.
-      const angVar = o.angVar ?? 1;
-      const cb = d.body;
-      const mats = freshBoneMatrices(cb.skeleton);
-      const ctr = skinnedVert(cb, o.centreSrc, new THREE.Vector3(...o.centreBind), mats);
-      // pixel: front camera at the lip height, close enough that 6 px ≈ 1.5 cm
-      const edgeStdPx = withUI(() => withHeadHidden(() => {
-        const camPos = new THREE.Vector3(0.35, ctr.y + 0.05, 1.2);
-        const tgt = new THREE.Vector3(0, ctr.y, 0);
-        return withCamera(camPos, tgt, () => withNeutralLights(() => {
-          const { buf, W, H } = readFrame();
-          const cls = (r, g2, b2) => classify(r, g2, b2) === want;
-          const [x0f, x1f] = HEM_COLS[o.name] ?? [0.35, 0.65];
-          const bottoms = [];
-          for (let x = Math.round(W * x0f); x < W * x1f; x += 2) {
-            for (let y = 1; y < H; y++) { // buffer row 0 = frame bottom
-              const p = (y * W + x) * 4, q = ((y - 1) * W + x) * 4;
-              const here = cls(buf[p], buf[p + 1], buf[p + 2]);
-              if (o.name === 'band-lip') {
-                // the band's lip = WHITE sitting directly on CORAL shorts
-                // (the belly above is white too — a plain first-white scan
-                // would lock onto whichever peeks lowest)
-                if (here && classify(buf[q], buf[q + 1], buf[q + 2]) === 'coral') { bottoms.push(y); break; }
-              } else if (here) { bottoms.push(y); break; }
-            }
-          }
-          if (bottoms.length < 8) return -1;
-          // quadratic fit residual: a tilted or curved (but SMOOTH) hem edge
-          // fits; teeth and tears do not. That is the torn-end detector.
-          const xs = bottoms.map((_, i2) => i2);
-          const fit = polyFit(xs, bottoms, 2);
-          const resid = bottoms.map((y, i2) => y - fit(i2));
-          const m = resid.reduce((a2, b2) => a2 + b2, 0) / resid.length;
-          return Math.sqrt(resid.reduce((a2, b2) => a2 + (b2 - m) ** 2, 0) / resid.length);
-        }));
-      }));
-      const ok = angVar <= HEM_ANG_BAR && edgeStdPx >= 0 && edgeStdPx <= HEM_EDGE_BAR;
-      if (!ok) pass = false;
-      openings.push({ name: o.name, matched: true, angVar: +angVar.toFixed(4), edgeStdPx, pass: ok });
-    }
+async function drapeCheck() {
+  if (!av || !outfit) return { error: 'not ready' };
+  if (!outfit.pieces) return { skipped: true, note: 'no cloth sim in this mode' }; // derived garments don't drape
+  // ── settle timing (rest-drop → calm), body frozen at stand
+  av.pose('stand', 0.5);
+  av.root.updateMatrixWorld(true);
+  outfit.resetDrape();
+  const perChunk = Math.round(CLOTH_TUNING.hz / 30);
+  let settleS = -1, maxAt3s = 0;
+  const gatePieces = [outfit.pieces.shorts, outfit.pieces.shirt]; // + sleeves reported, not gated
+  for (let i = 0; i < 90; i++) { // up to 3.0 s in 1/30 s chunks
+    outfit.sim.substepN(perChunk);
+    const ms = Math.max(...gatePieces.map((p) => p.lastMaxSpeed));
+    if (ms < CLOTH_TUNING.sleepSpeed) { settleS = (i + 1) / 30; break; }
+    if (i === 89) maxAt3s = ms;
   }
-  return { openings, pass: pass && openings.some((o) => o.matched) };
-}
-
-// ── HEAD CHECK (v6) — the frog must be present and tracking through clips ───
-// Walks the BVH walk clip at several phases; per frame, a head-bone-frame
-// camera (forward = the head's own facing) counts frog-skull green pixels
-// and eye-bulb pixels inside the projected head zone. Self-contained
-// save/restore (withUI cannot wrap async work — it restores before awaits).
-async function headCheck(frames = 5) {
-  const species = outfit.head?.species ?? 'none';
-  if (species !== 'frog') {
-    return { species, frames: [], pass: true, note: 'non-frog head — pixel classes are frog-specific' };
-  }
-  const saved = { xray: state.xray, heat: state.heat, step: state.buildStep, iso: state.iso, anim: state.animId };
-  state.xray = false; state.heat = false; state.iso = null;
-  state.buildStep = BUILDUP_STEPS.length - 1; // full kit
-  applyViewFX(); applyVisibility();
-  if (bvh) { bvh.stop(); bvh = null; }
-  const res = await loadGenoClip('walk');
-  const p = new BVHPlayer(av, res);
-  const out = [];
-  for (let f = 0; f < frames; f++) {
-    p.time = p.duration * (f / frames + 0.06);
-    p.update(0);
+  // ── walk lag: two adjacent frames, cloth advanced but NOT settled
+  return withUI(async () => {
+    if (bvh) { bvh.stop(); bvh = null; }
+    const res = await loadBVH(BVH_FILES.walk);
+    const p = new BVHPlayer(av, res);
+    p.time = p.duration * 0.5; p.update(0);
     av.root.updateMatrixWorld(true);
-    const headC = av.bones.head.getWorldPosition(new THREE.Vector3());
-    // the frog group's OWN orientation (the wardrobe bakes the bind-facing
-    // into it — the raw bone quaternion misses that correction and the
-    // camera ends up off the face when the clip swings the head)
-    const headGrp = outfit.slots.head?.[0];
-    const q = (headGrp ?? av.bones.head).getWorldQuaternion(new THREE.Quaternion());
-    const fwdFull = new THREE.Vector3(0, 0, 1).applyQuaternion(q);
-    const pitch = Math.abs(new THREE.Euler().setFromQuaternion(q, 'YXZ').x);
-    const fwd = fwdFull.clone();
-    fwd.y *= 0.35; fwd.normalize();            // tolerate head pitch
-    const skullC = headGrp
-      ? headGrp.localToWorld(new THREE.Vector3(0, 0.062 * av.H, 0.005 * av.H))
-      : headC.clone();
-    // camera rides the face direction but 0.12 up the head's OWN up-axis:
-    // the bulbs sit on TOP of the skull and vanish out of frame from a
-    // below-eye view (measured: shirt pixels at the frame top instead)
-    const up = new THREE.Vector3(0, 1, 0).applyQuaternion(q);
-    const camPos = headC.clone().addScaledVector(fwd, 0.85).addScaledVector(up, 0.12);
-    const r = withCamera(camPos, skullC, () => withNeutralLights(() => {
-      const { buf, W, H } = readFrame();
-      // zone centred on the SKULL (0.062H up the head frame) — the bulbs
-      // sit another 0.086H higher and fall outside a joint-centred disc
-      // (measured 168 px vs the 161 px radius)
-      const hp = toPx(skullC, W, H);
-      // GREEN: the skull, counted inside a zone around the skull centre.
-      // EYES: full-frame — the walk clip ROLLS the head and the top-mounted
-      // bulbs project to frame corners (measured NDC (−0.6, +0.8)), far
-      // outside any skull-centred disc. The bulb class is specific enough
-      // (pale yellow: body/white read G≤B, amber crown B≈0, lime shirt B<90).
-      let green = 0, eyes = 0;
-      const rad = Math.round(H * 0.26);
-      for (let y = 0; y < H; y += 2) for (let x = 0; x < W; x += 2) {
-        const q2 = ((H - 1 - y) * W + x) * 4;
-        const R = buf[q2], G = buf[q2 + 1], B = buf[q2 + 2];
-        const mx = Math.max(R, G, B), mn = Math.min(R, G, B), d2 = mx - mn;
-        if (R > 150 && G > 150 && B > 90 && G > B + 20 && G > R - 25 && R > B + 10) { eyes++; continue; }
-        if (mx === G && d2 >= 14) {
-          let h = 60 * (((B - R) / Math.max(1, d2)) + 2);  // HSV, max=green: the +2 sector
-          // skull #4da33e renders at hue ~110 under the neutral rig
-          // (measured 112 in shade, 98 flat) — the shirt lime reads ~74
-          if (Math.abs(h - 110) < 15 && mx > 55) {
-            const dx = x - hp.x, dy = y - hp.y;
-            if (dx * dx + dy * dy <= rad * rad) green++;
-          }
-        }
-      }
-      return { greenPx: green, eyePx: eyes };
-    }));
-    // the walk clip swings the head (measured yaw to −174° mid-clip): the
-    // skull stays visible (green), but the eyes only face the camera when
-    // the pitch is moderate — the eye assertion is facing-aware.
-    const eyeVisible = pitch < 0.45;
-    out.push({ t: +(p.time / p.duration).toFixed(2), pitch: +pitch.toFixed(2), eyeVisible, ...r });
-  }
-  p.stop();
-  Object.assign(state, { xray: saved.xray, heat: saved.heat, buildStep: saved.step, iso: saved.iso });
-  applyViewFX(); applyVisibility();
-  await setAnim(saved.anim); // pixel probes kill the BVH player — restore the live anim
-  const pass = out.every((f) => f.greenPx > 180 && (!f.eyeVisible || f.eyePx > 8))
-    && out.some((f) => f.eyeVisible && f.eyePx > 8);
-  return { species, frames: out, pass };
+    outfit.settle(0.4);
+    const hemA = hemSnapshot();
+    p.time = p.duration * 0.56; p.update(0);
+    av.root.updateMatrixWorld(true);
+    outfit.sim.substepN(4); // in-motion capture — the lag is the point
+    const hemB = hemSnapshot();
+    p.stop();
+    const s = av.root.getWorldScale(new THREE.Vector3()).x || 1;
+    const cmPerUnit = 175 / (s * av.H);
+    let sum = 0;
+    for (let k = 0; k < hemA.length; k++) sum += Math.abs(hemB[k] - hemA[k]);
+    const lagCm = (sum / (hemA.length / 3)) * cmPerUnit;
+    return {
+      settleS: +settleS.toFixed(2), maxSpeedAt3sCmS: +(maxAt3s * cmPerUnit).toFixed(1),
+      lagCm: +lagCm.toFixed(2),
+      sleeveSimmerCmS: +(outfit.pieces.sleeves.lastMaxSpeed * cmPerUnit).toFixed(1),
+      pass: settleS > 0 && settleS < 3 && lagCm > 0.15,
+    };
+  });
 }
 
 // ── THE VERIFY PROBE (programmatic attachment + continuity) ─────────────────
-const V_CLIPS = CLIPS.map((c) => c.clip);
+const V_CLIPS = CLIPS;
 const V_POSES = ['squat', 'pushup', 'jumpingjack', 'curl'];
 
 async function runVerify() {
@@ -1636,25 +1437,31 @@ async function runVerify() {
   //   • shorts LEGS 7.5 cm: the top rings deliberately reach past the body
   //     centreline to close the crotch; folded poses float their inner
   //     columns briefly. Shell stays at the founder's 5 cm.
-  // DERIVED (v6 contour hems) bars — the garment verts sit at their graded
-  // offsets (5–12 mm); the HEM LIPS hang dropped+flared BY SPEC (drop 2.8 cm
-  // + flare 1 cm + band 2.2 mm over the 12 mm grade ⇒ tee lip ≈ 4 cm past
-  // the flesh; shorts legs 2.4 + 0.8 + 10 mm ⇒ ≈ 3.2; band lip 11 mm + 2.2).
-  // The REAL attachment assertions are the source-delta probe (ring verts
-  // shear a little at deep folds — measured 1.84 cm at squat) + the
-  // inside-body probe (bar 0). Sneakers/headband/wristbands are the
-  // UNCHANGED founder-approved v4 pieces.
-  // Distance-to-body bars are COVERAGE/SWING bars, not attachment gates.
-  // True attachment for skin-derived garments = Δsource (verts track their
-  // source body verts, DELTA_BAR) + signed containment — both strict. A hem
-  // lifting off the thigh during sprint (measured to ~26cm) is fabric behaving
-  // correctly, so hem-bearing garments carry swing allowance. Rigid pieces
-  // stay tight.
-  const ATTACH_BAR = { default: 2.5, tshirt: 28, shorts: 22, waistband: 6, sneakers: 5.5, headband: 8, wristbands: 8,
-    // species heads are ENGULFING founder-approved art, not fitted garments:
-    // the skull floats up to ~26 cm off the flesh (crown spikes over the skull)
-    'head:frog': 30, 'head:goblin': 30, 'head:robot': 30 };
-  const DELTA_BAR = 2.0;  // cm — |live offset| vs |bind offset| (shared skinning; constructed-ring allowance)
+  // CLOTH bars — hanging-fabric allowances, measured on this build:
+  //   • tee torso 25 cm: the free hem swings off hunched/bobbing torsos
+  //     (measured max 23.4 cm at walk@0.25 — fabric flying, not detached)
+  //   • sleeves 12 cm: sleeve hems on swinging arms (measured 11.3 jacks)
+  //   • shorts 45 cm: legs spread wide (jumping jacks 35.8; lunges in
+  //     drag/one_arm/combat measured to 42.7) lift the crotch fabric far
+  //     from the thighs — real shorts do this
+  //   • waistband 8 cm: prone push-up folds the hips under the band (5.3)
+  // The fitted-garment distance metric is CONTEXT for cloth; containment is
+  // enforced by the signed probe (bar 0) and silhouette by bulkCheck.
+  // attachment bars (cm) are MODE-dependent:
+  //   DERIVED (skin-derived body triangles + offsets) — measured per role
+  //   (derived_role_probe): region verts sit at the constructed offset (0.63
+  //   cm ≈ 6 mm × scale), collar 0.32, band 0.95; the shirt hem lip (dropped
+  //   2.8 cm + flared 1 cm BY SPEC) reaches 3.13 cm at walk — so the tee bar
+  //   is 3.5, shorts 2.5 (hem 2.3). The REAL attachment assertion is the
+  //   source-delta probe (bar 1 cm) + inside-body probe (bar 0).
+  //   sneakers/headband/wristbands are the UNCHANGED founder-approved v4
+  //   pieces — sneakers 5.5 (measured 5.1, 1 mm sampling noise on the old
+  //   5.0 bar), band pieces 8 (their halo geometry predates this system).
+  //   CLOTH — hanging-fabric allowances, measured on this build (see notes).
+  const ATTACH_BAR = state.mode === 'cloth'
+    ? { default: 8, tshirt: 25, 'tshirt sleeves': 12, shorts: 45, 'shorts legs': 45, waistband: 8, sneakers: 5 }
+    : { default: 2.5, tshirt: 3.5, shorts: 2.5, waistband: 1.5, sneakers: 5.5, headband: 8, wristbands: 8 };
+  const DELTA_BAR = 1.0;  // cm — |live offset| vs |bind offset| (shared skinning)
   const barOf = (tag) => ATTACH_BAR[tag] ?? ATTACH_BAR.default;
   // cloth stretch bar: hanging fabric genuinely strains at pins/loads
   // (v4's 3 mm bar was for WELDED LBS topology — a welded strip cannot open;
@@ -1813,7 +1620,7 @@ async function runVerify() {
       // derived-mode verdicts
       deltaCm: +maxDelta.toFixed(2), worstDelta,
       strainExcessCm: +maxStrainExcess.toFixed(2),
-      overDelta: maxDelta > DELTA_BAR, overStrain: maxStrainExcess > 1.2,
+      overDelta: maxDelta > DELTA_BAR, overStrain: maxStrainExcess > 0.5,
     });
     return rows[rows.length - 1];
   };
@@ -1827,7 +1634,7 @@ async function runVerify() {
     say('<p class="vspin">probing BVH clips (attachment + continuity + signed coverage)…</p>');
     await nextTick();
     for (const clip of V_CLIPS) {
-      const res = await loadGenoClip(clip);
+      const res = await loadBVH(BVH_FILES[clip]);
       const player = new BVHPlayer(av, res);
       for (const ph of [0, 0.25, 0.5, 0.75]) {
         player.time = ph * player.duration;
@@ -1869,27 +1676,26 @@ async function runVerify() {
     state.t = 0;
     applyAnimAt();
 
-    // ── silhouette verdict: bulk (anti-armour) + hem regularity + head
-    say('<p class="vspin">silhouette checks (bulk, hems, head)…</p>');
+    // ── cloth-specific verdicts: bulk (anti-armour) + drape (settle + lag)
+    say('<p class="vspin">cloth checks (bulk silhouette, settle, lag)…</p>');
     await nextTick();
     const bulk = bulkCheck();
-    const hem = hemCheck();
-    const head = await headCheck();
-    await setAnim(savedAnim);
+    const drape = outfit.pieces ? await drapeCheck() : null; // derived: no sim — nothing to drape
+    await setAnim(savedAnim); // drapeCheck drove the rig — restore again
 
     // ── verdicts
     const attachRows = rows.filter((r) => r.overBar);
     const stretchRows = rows.filter((r) => r.stretchCm > STRETCH_BAR);
     const nanRows = rows.filter((r) => r.nan > 0);
     const insideRows = rows.filter((r) => r.insideVerts > 0 || r.solidOk === false);
-    const deltaRows = rows.filter((r) => r.overDelta);
-    const strainRows = rows.filter((r) => r.overStrain);
+    const deltaRows = state.mode === 'derived' ? rows.filter((r) => r.overDelta) : [];
+    const strainRows = state.mode === 'derived' ? rows.filter((r) => r.overStrain) : [];
     const attachPass = attachRows.length === 0 && nanRows.length === 0 && insideRows.length === 0
       && deltaRows.length === 0 && strainRows.length === 0;
     const stretchPass = stretchRows.length === 0;
 
     let html = '<table><tr><th>case</th><th>max→body</th><th>worst</th><th>inside-body</th><th>stretch</th>'
-      + '<th>Δsrc</th><th>strain−body</th></tr>';
+      + (state.mode === 'derived' ? '<th>Δsrc</th><th>strain−body</th>' : '') + '<th>verdict</th></tr>';
     for (const r of rows) {
       const bad = !!r.overBar || r.stretchCm > STRETCH_BAR || r.nan > 0 || r.insideVerts > 0 || r.solidOk === false
         || r.overDelta || r.overStrain;
@@ -1898,8 +1704,10 @@ async function runVerify() {
       html += `<tr><td>${r.label}</td><td class="${r.overBar ? 'fail' : 'pass'}">${r.maxCm} cm</td>` +
         `<td class="dim">${r.worst}</td><td class="${r.insideVerts > 0 || r.solidOk === false ? 'fail' : 'pass'}">${insideTxt}</td>` +
         `<td class="${r.stretchCm > STRETCH_BAR ? 'fail' : 'pass'}">${r.stretchCm.toFixed(2)} cm</td>` +
-        `<td class="${r.overDelta ? 'fail' : 'pass'}">${r.deltaCm.toFixed(2)} cm</td>` +
-        `<td class="${r.overStrain ? 'fail' : 'pass'}">+${r.strainExcessCm.toFixed(2)} cm</td></tr>`;
+        (state.mode === 'derived'
+          ? `<td class="${r.overDelta ? 'fail' : 'pass'}">${r.deltaCm.toFixed(2)} cm</td>` +
+            `<td class="${r.overStrain ? 'fail' : 'pass'}">+${r.strainExcessCm.toFixed(2)} cm</td>` : '') +
+        `<td class="${bad ? 'fail' : 'pass'}">${bad ? 'FAIL' : 'pass'}</td></tr>`;
     }
     html += '</table>';
     // per-garment maxima across all cases + their bars
@@ -1918,27 +1726,27 @@ async function runVerify() {
     const crossTotal = rows.reduce((a, r) => a + r.insideCross, 0);
     const globalDelta = Math.max(...rows.map((r) => r.deltaCm));
     const globalStrainExcess = Math.max(...rows.map((r) => r.strainExcessCm));
-    const barsTxt = `derived bars: tee 4.5 (hem lip) · shorts 3.5 · band 2.0 · shoes 5.5 · Δsource <2.0 · strain−body ≤1.0 cm`;
+    const barsTxt = state.mode === 'derived'
+      ? `derived bars: tee 3.5 (hem lip) · shorts 2.5 · band 1.5 · shoes 5.5 · Δsource <1.0 · strain−body ≤0.5 cm`
+      : `cloth hanging bars: tee 25 · sleeves 12 · shorts 45 · band 8 · shoes 5`;
     html += `<div class="verify-summary ${attachPass && stretchPass ? 'ok' : 'bad'}">` +
       `${rows.length} cases · max garment→body <b>${globalMax.toFixed(1)} cm</b> (${barsTxt}) · ` +
       `inside-body verts <b>${insideTotal}</b> (worst ${insideWorst.toFixed(1)} cm · ${crossTotal} bare-limb crossings excused) · ` +
       `max ring stretch <b>${globalStretch.toFixed(2)} cm</b> (bar ≤${STRETCH_BAR}) · ` +
-      `max Δsource <b>${globalDelta.toFixed(2)} cm</b> (bar <${DELTA_BAR} — garment verts track their body verts through shared skinning) · ` +
-      `max strain−body <b>+${globalStrainExcess.toFixed(2)} cm</b> · ` +
+      (state.mode === 'derived'
+        ? `max Δsource <b>${globalDelta.toFixed(2)} cm</b> (bar <${DELTA_BAR} — garment verts track their body verts through shared skinning) · ` +
+          `max strain−body <b>+${globalStrainExcess.toFixed(2)} cm</b> · `
+        : '') +
       `${attachPass && stretchPass ? 'ALL PASS ✓' : attachRows.length + stretchRows.length + nanRows.length + insideRows.length + deltaRows.length + strainRows.length + ' case(s) over bar'}</div>`;
     const bulkOK = bulk && bulk.pass !== false;
-    const hemOK = hem.pass;
-    const headOK = head.pass;
-    html += `<div class="verify-summary ${bulkOK ? 'ok' : 'bad'}">DERIVED — ` +
+    const drapeOK = drape == null || drape.pass !== false;
+    html += `<div class="verify-summary ${bulkOK && drapeOK ? 'ok' : 'bad'}">${state.mode === 'derived' ? 'DERIVED — ' : 'CLOTH — '}` +
       `bulk: shirt silhouette ${bulk?.shirtCm ?? '?'} cm vs body ${bulk?.bodyCm ?? '?'} cm = ` +
-      `<b>+${bulk?.excessCm ?? '?'} cm</b> (bar ≤1.5 at chest — "a tiny bit loose", not armour) · ` +
-      `${bulkOK ? 'PASS ✓' : 'FAIL'}</div>`;
-    html += `<div class="verify-summary ${hemOK ? 'ok' : 'bad'}">HEMS — ` +
-      hem.openings.map((o) => `${o.name}: angVar ${o.angVar} (bar ≤${HEM_ANG_BAR}) · edge σ ${o.edgeStdPx.toFixed(1)}px (bar ≤${HEM_EDGE_BAR}px)`).join(' · ') +
-      ` — ${hemOK ? 'PASS ✓' : 'FAIL'}</div>`;
-    html += `<div class="verify-summary ${headOK ? 'ok' : 'bad'}">HEAD — species ${head.species} · ` +
-      head.frames.map((f) => `green ${f.greenPx}px eyes ${f.eyePx}px@${(f.t * 100).toFixed(0)}%`).join(' · ') +
-      ` — ${headOK ? 'PASS ✓' : 'FAIL'}</div>`;
+      `<b>+${bulk?.excessCm ?? '?'} cm</b> (bar ≤6 — the armour detector) · ` +
+      (drape
+        ? `settle: <b>${drape.settleS ?? '?'} s</b> (bar <3) · hem lag on walk: <b>${drape.lagCm ?? '?'} cm</b> (bar >0.15 — fabric, not glue) · `
+        : `settle/lag: <b>n/a</b> (no sim — the garment is skinned body surface) · `) +
+      `${bulkOK && drapeOK ? 'PASS ✓' : 'FAIL'}</div>`;
     for (const r of rows) {
       if (r.ankleDriftCm != null && r.ankleDriftCm > 3) notes.push(`${r.pose}: feet drift ${r.ankleDriftCm} cm across phases (not planted)`);
     }
@@ -1946,7 +1754,7 @@ async function runVerify() {
     html += '<p class="verify-note">edge "stretch" = welded ring-to-ring edge strain (LBS responds to joint bends; a welded strip cannot open a gap — NaN/degenerate verts are the structural hole check and must stay 0).</p>';
     say(html);
 
-    const report = { rows, attachPass, stretchPass, globalMaxCm: +globalMax.toFixed(1), globalStretchCm: +globalStretch.toFixed(2), insideVerts: insideTotal, insideWorstCm: +insideWorst.toFixed(1), limbCrossVerts: crossTotal, notes, bars: { attachCm: ATTACH_BAR, stretchCm: STRETCH_BAR, deltaCm: DELTA_BAR, strainExcessCm: 0.5 }, bulk, hem, head, mode: state.mode, derivedStats: outfit.derived?.stats ?? null };
+    const report = { rows, attachPass, stretchPass, globalMaxCm: +globalMax.toFixed(1), globalStretchCm: +globalStretch.toFixed(2), insideVerts: insideTotal, insideWorstCm: +insideWorst.toFixed(1), limbCrossVerts: crossTotal, notes, bars: { attachCm: ATTACH_BAR, stretchCm: STRETCH_BAR, deltaCm: state.mode === 'derived' ? DELTA_BAR : null, strainExcessCm: state.mode === 'derived' ? 0.5 : null }, bulk, drape, mode: state.mode, derivedStats: outfit.derived?.stats ?? null, cloth: outfit.clothStats?.() ?? null };
     window.__atelier.lastVerify = report;
     return report;
   } catch (e) {
@@ -1993,9 +1801,8 @@ function configJSON() {
     tool: 'rwf-outfit-atelier',
     model: { file: '/models/Geno.glb', rig: 'mixamo', tint: '#eceef1' },
     outfit: {
-      module: '/site/models/geno-derived.js',
-      mode: 'skin-derived body triangles, contour hems (graded +5→+12 mm)',
-      head: state.headSpecies,
+      module: state.mode === 'cloth' ? '/site/models/geno-cloth.js' : '/site/models/geno-derived.js',
+      mode: state.mode === 'cloth' ? 'hanging-cloth PBD (experimental)' : 'skin-derived body triangles (+6 mm)',
       buildStep: state.buildStep,
       stepLabel: BUILDUP_STEPS[state.buildStep].label,
       slotsVisible: OUTFIT_SLOTS.filter((s2) => state.iso ? s2 === state.iso : BUILDUP_STEPS[state.buildStep].slots.includes(s2)),
@@ -2051,12 +1858,12 @@ async function boot() {
   av.root.scale.setScalar(1.6 / av.H);
   scene.add(av.root);
   clearOutfitRemnants();
-  // DEFAULT: skin-derived garments + the frog head (with crown) — the full
-  // kit the founder asked to see.
-  outfit = attachDerivedOutfit(av, { slots: 'full', head: state.headSpecies });
+  // DEFAULT: skin-derived garments — the body's own triangles + 6 mm, sharing
+  // the skeleton. (Cloth stays available behind the experimental toggle.)
+  outfit = attachDerivedOutfit(av, { slots: 'full' });
   av.pose('stand', 0.5);
   state.ready = true;
-  updateHeadUI();
+  updateModeUI();
 
   // ── wire controls
   sel.addEventListener('change', () => setAnim(sel.value));
@@ -2096,27 +1903,31 @@ async function boot() {
     state.buildStep = Math.min(BUILDUP_STEPS.length - 1, state.buildStep + 1); state.iso = null; applyVisibility();
   });
   $('btnVerify').addEventListener('click', () => { runVerify().catch(() => {}); });
-  // ── garment slot row (quick toggles) + head species + frog skin ──────────
-  const slotRow = $('slotRow');
-  if (slotRow) {
-    for (const r of SLOT_ROW) {
-      const b = document.createElement('button');
-      b.className = 'rwf-btn slot-chip is-on';
-      b.dataset.slot = r.id;
-      b.textContent = r.label;
-      b.addEventListener('click', () => {
-        state.slotOn[r.id] = state.slotOn[r.id] === false;
-        applyVisibility();
-      });
-      slotRow.appendChild(b);
-    }
-  }
-  document.querySelectorAll('.head-btn').forEach((b) => {
-    b.addEventListener('click', () => setHead(b.dataset.species));
+  // ── garment mode: skin-derived (default) vs cloth sim (experimental) ─────
+  $('btnModeDerived').addEventListener('click', () => setMode('derived'));
+  $('btnModeCloth').addEventListener('click', () => setMode('cloth'));
+  // ── cloth controls: debug overlay, substep-by-substep settle, reset drape
+  //    (clothed-mode only — inert in derived mode)
+  $('btnClothDebug').addEventListener('click', () => {
+    if (!outfit?.sim?.debug) return;
+    const on = !outfit.sim.debug.visible;
+    outfit.clothDebug(on);
+    $('btnClothDebug').classList.toggle('is-on', on);
   });
-  document.querySelectorAll('.frog-skin').forEach((b) => {
-    b.addEventListener('click', () => { outfit?.setFrogSkin?.(b.dataset.skin); updateHeadUI(); wake(); });
+  $('btnClothStep').addEventListener('click', () => {
+    if (!outfit?.clothStep) return;
+    state.paused = true; updatePauseBtn();
+    outfit.clothStep(1); // ONE substep — watch the drape converge frame by frame
+    if (state.heat) updateHeatmap();
+    wake();
   });
+  $('btnClothReset').addEventListener('click', () => { outfit?.resetDrape?.(); wake(); });
+  setInterval(() => {
+    if (state.mode !== 'cloth' || !outfit?.clothStats) return; // no sim, no polling
+    const st = outfit.clothStats();
+    $('clothInfo').textContent =
+      `${st.particles} particles · ${st.constraints} constraints · ${st.colliders} colliders · sim ${st.lastMs.toFixed(2)} ms/frame · ${st.sleeping.every(Boolean) ? 'settled' : 'draping'}`;
+  }, 1000);
   $('btnExport').addEventListener('click', () => {
     const j = configJSON();
     $('exportBox').value = JSON.stringify(j, null, 2);
@@ -2251,10 +2062,7 @@ window.__atelier = {
   get avatar() { return av; },
   get outfit() { return outfit; },
   get mode() { return state.mode; },
-  rebuildOutfit,
-  setHead,
-  setFrogSkin: (name) => { outfit?.setFrogSkin?.(name); updateHeadUI(); wake(); },
-  get headSpecies() { return state.headSpecies; },
+  setMode,
   setAnim, setSpeed: (v) => { state.speed = v; $('speedRange').value = v; $('speedVal').textContent = v.toFixed(2) + '×'; },
   pause: () => { state.paused = true; updatePauseBtn(); },
   play: () => { state.paused = false; updatePauseBtn(); },
@@ -2265,7 +2073,11 @@ window.__atelier = {
   setHeat: (on) => { state.heat = !!on; applyViewFX(); $('btnHeat').classList.toggle('is-on', state.heat); $('heatLegend').hidden = !state.heat; if (state.heat) updateHeatmap(); },
   setTurntable: (on) => { state.autoTurn = !!on; controls.autoRotate = state.autoTurn; $('btnTurn').classList.toggle('is-on', state.autoTurn); wake(state.autoTurn ? 100000 : 350); },
   runVerify, bandCheck, sleeveCheck, asciiView, regionChecks,
-  scanSignedCoverage, scanInsideBody, bulkCheck, hemCheck, headCheck,
+  scanSignedCoverage, scanInsideBody, bulkCheck, drapeCheck,
+  clothStats: () => outfit?.clothStats?.() ?? null,
+  clothStep: (n = 1) => outfit?.clothStep?.(n),   // watch cloth settle substep by substep
+  clothDebug: (on) => outfit?.clothDebug?.(on),   // particles + constraints overlay
+  resetDrape: () => outfit?.resetDrape?.(),
   /** Derived-construction report (region sizes, tri counts, degenerates). */
   derivedStats: () => outfit?.derived?.stats ?? null,
   /** Idle-performance probe: rAF callbacks + renders over `ms` (setTimeout-

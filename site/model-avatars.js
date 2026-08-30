@@ -72,17 +72,17 @@ export const MODELS = [
   { id: 'geno-athlete', name: 'Geno — athlete tier', file: '/models/Geno.glb', rig: 'mixamo', native: [], tint: 'athlete' },
   { id: 'geno-goblin', name: 'Geno — goblin green', file: '/models/Geno.glb', rig: 'mixamo', native: [], tint: 'goblin' },
   { id: 'geno-human', name: 'Geno — human skin', file: '/models/Geno.glb', rig: 'mixamo', native: [], tint: 'human' },
-  { id: 'geno-bvh', name: 'Geno — BVH mocap', file: '/models/Geno.glb', rig: 'mixamo', native: [], bvh: ['walk', 'limp', 'drag', 'one_arm', 'combat'], bvhAuto: 'walk' },
+  { id: 'geno-bvh', name: 'Geno — mocap (source: AI4Animation)', file: '/models/Geno.glb', rig: 'mixamo', native: [], tint: '#eceef1', bvh: ['walk', 'run', 'idle', 'demo_walk', 'demo_run', 'sprint', 'swagger', 'agree', 'headshake', 'sad', 'sneak', 'goblin_walk', 'goblin_limp', 'goblin_drag', 'goblin_arm', 'goblin_combat'], bvhAuto: 'walk' },
   // ── Geno Wardrobe: SKINNED clothes + species heads (geno-wardrobe.js).
   // Tank/shorts are SkinnedMeshes bound to Geno's own skeleton (smooth weight
-  // ramps across the joint chains), so BVH mocap and exercise poses deform
+  // ramps across the joint chains), so mocap and exercise poses deform
   // them like skin — no gapping at bent joints. Cards carry the FULL
-  // animation coverage: all 5 BVH captures + the 4 exercise poses.
-  { id: 'geno-wardrobe', name: 'Geno Wardrobe — dressed', file: '/models/Geno.glb', rig: 'mixamo', native: [], tint: '#eceef1', wardrobe: 'full', wardrobeToggle: true, bvh: ['walk', 'limp', 'drag', 'one_arm', 'combat'], bvhAuto: 'walk' },
-  { id: 'geno-frog', name: 'Geno Frog — BVH mocap walk', file: '/models/Geno.glb', rig: 'mixamo', native: [], tint: '#86c05a', head: 'frog', bvh: ['walk', 'limp', 'drag', 'one_arm', 'combat'], bvhAuto: 'walk' },
+  // animation coverage: real mocap + legacy captures + the 4 exercise poses.
+  { id: 'geno-wardrobe', name: 'Geno Wardrobe — dressed', file: '/models/Geno.glb', rig: 'mixamo', native: [], tint: '#eceef1', wardrobe: 'full', wardrobeToggle: true, bvh: ['walk', 'run', 'idle', 'demo_walk', 'sprint', 'swagger', 'agree', 'sad', 'goblin_walk', 'goblin_limp', 'goblin_drag', 'goblin_arm', 'goblin_combat'], bvhAuto: 'walk' },
+  { id: 'geno-frog', name: 'Geno Frog — mocap walk', file: '/models/Geno.glb', rig: 'mixamo', native: [], tint: '#86c05a', head: 'frog', bvh: ['walk', 'run', 'idle', 'demo_walk', 'sprint', 'swagger', 'agree', 'sad', 'sneak'], bvhAuto: 'walk' },
   { id: 'geno-goblinhead', name: 'Geno Goblin — species head', file: '/models/Geno.glb', rig: 'mixamo', native: [], tint: 'goblin', head: 'goblin' },
   { id: 'geno-robot', name: 'Geno Robot — species head', file: '/models/Geno.glb', rig: 'mixamo', native: [], tint: '#c9ced4', head: 'robot' },
-  { id: 'geno-fullkit', name: 'Geno Full Kit — crowned frog, BVH', file: '/models/Geno.glb', rig: 'mixamo', native: [], tint: '#86c05a', head: 'frog-crown', wardrobe: 'full', bvh: ['walk', 'limp', 'drag', 'one_arm', 'combat'], bvhAuto: 'walk' },
+  { id: 'geno-fullkit', name: 'Geno Full Kit — crowned frog, mocap', file: '/models/Geno.glb', rig: 'mixamo', native: [], tint: '#86c05a', head: 'frog-crown', wardrobe: 'full', bvh: ['walk', 'run', 'idle', 'demo_walk', 'sprint', 'swagger', 'agree', 'sad', 'goblin_walk', 'goblin_combat'], bvhAuto: 'walk' },
   // ── anyCreature compiled (spec → skinned GLB, vertex-coloured + AO-baked).
   // creature: true → native-anim playback only, no exercise retarget (the rigs
   // are creature skeletons, not mixamo/rigify humanoids).
@@ -368,13 +368,14 @@ function poseAim(rig, exercise, p) {
   }
 
   if (exercise === 'squat') {
-    // hips drop + sit back; feet stay planted via leg IK
+    // hips drop + SIT BACK (hip hinge); feet stay planted via leg IK
     const hips = B.hips;
     const restHips = rig.rrest(hips);
     const cur = rig.rpos(hips, _v1);
     const H = rig.av.H;
-    rig.shift(hips, 0, (restHips.y - 0.26 * H * d) - cur.y, (restHips.z - 0.055 * H * d) - cur.z);
-    // torso leans forward with depth, distributed over the spine
+    rig.shift(hips, 0, (restHips.y - 0.29 * H * d) - cur.y, (restHips.z - 0.075 * H * d) - cur.z);
+    // torso leans forward with depth, distributed over the spine (neutral
+    // lumbar — no rounding)
     const lean = 0.55 * d;
     rig.bend(B.spine, XAX, lean * 0.25);
     rig.bend(B.spine1, XAX, lean * 0.35);
@@ -409,65 +410,82 @@ function poseAim(rig, exercise, p) {
   }
 
   if (exercise === 'pushup') {
-    // The prone container (set up in ModelAvatar.pose) pivots the figure at
-    // the TOES: flat at the bottom of the rep, inclined ~18° at the top (the
-    // real push-up geometry — arms straighten as the body rises). Here: hands
-    // PLANTED on the ground under the shoulders, elbows back along the ribs.
-    const shL = rig.rpos(B.armL, new THREE.Vector3());
-    const shR = rig.rpos(B.armR, new THREE.Vector3());
-    const fwd = 0.16 * rig.armTotal, hy = 0.05 * rig.armTotal;
-    const handL = new THREE.Vector3(shL.x + fwd, hy, shL.z * 0.82);
-    const handR = new THREE.Vector3(shR.x + fwd, hy, shR.z * 0.82);
-    rig.ik2('armL', handL, new THREE.Vector3(-1, 0, 0.3), rig.len.armL, rig.len.foreL);
-    rig.ik2('armR', handR, new THREE.Vector3(-1, 0, -0.3), rig.len.armR, rig.len.foreR);
+    // REFERENCE FORM (NSCA / exRx push-up standards):
+    //  · rigid plank — ankles, knees, hips, shoulders, ears on ONE line
+    //    (glutes braced; no pike, no sag). The legs and spine here are the
+    //    UNTOUCHED bind chain, so the body line is straight by construction;
+    //    the prone container (set up in ModelAvatar.pose) supplies the rep's
+    //    rotation about the toe pivot.
+    //  · hands flat, planted under the shoulders for the WHOLE rep (slightly
+    //    wider — rig.planted, computed from the θ_top straight-arm geometry).
+    //  · elbows track BACK alongside the ribs at ~45° abduction (pole toward
+    //    the feet + a little out), never flared to 90° and never pointing at
+    //    the ceiling.
+    //  · scapula: "push the floor away" at the top, settle at the bottom.
+    //  · head: neutral cervical spine — in line with the body, gaze ahead.
+    const P = rig.planted;
+    if (!P) return;
+    // elbows point toward the FEET: the body axis in root space runs toe→head
+    const headPt = rig.pt(B.head, _v1);
+    const hipsPt = rig.pt(B.hips, _v2);
+    const backDir = new THREE.Vector3().subVectors(hipsPt, headPt).normalize(); // toward feet
+    const outL = new THREE.Vector3().subVectors(rig.rpos(B.armL, _v3), rig.rpos(B.spine2, new THREE.Vector3()));
+    outL.y = 0;
+    if (outL.lengthSq() < 1e-8) outL.set(0, 0, -1);
+    outL.normalize();
+    const poleL = backDir.clone().addScaledVector(outL, 0.45).normalize();
+    const poleR = backDir.clone().addScaledVector(outL, -0.45).normalize();
+    rig.ik2('armL', P.L, poleL, rig.len.armL, rig.len.foreL);
+    rig.ik2('armR', P.R, poleR, rig.len.armR, rig.len.foreR);
     rig.sync();
-    rig.aim(B.foreL, new THREE.Vector3().copy(handL).sub(rig.rpos(B.foreL, _v1)).normalize());
-    rig.aim(B.foreR, new THREE.Vector3().copy(handR).sub(rig.rpos(B.foreR, _v1)).normalize());
-    // legs stay aligned with the rigid body line: IK to the prone-transformed
-    // rest ankles (toes pinned at the pivot on the ground)
-    const ankleL = rig.pt(B.footL), ankleR = rig.pt(B.footR);
-    rig.ik2('upLegL', ankleL, new THREE.Vector3(0, -1, 0), rig.len.thighL, rig.len.shinL);
-    rig.ik2('upLegR', ankleR, new THREE.Vector3(0, -1, 0), rig.len.thighR, rig.len.shinR);
-    rig.sync();
-    rig.aim(B.legL, new THREE.Vector3().copy(ankleL).sub(rig.rpos(B.legL, _v1)).normalize());
-    rig.aim(B.legR, new THREE.Vector3().copy(ankleR).sub(rig.rpos(B.legR, _v1)).normalize());
-    rig.sync();
-    // feet extended: aim from the live ankle toward the pinned toe position
-    const toeL = rig.pt(B.toeL), toeR = rig.pt(B.toeR);
-    const footDirL = new THREE.Vector3().copy(toeL).sub(rig.rpos(B.footL, _v1)).normalize();
-    const footDirR = new THREE.Vector3().copy(toeR).sub(rig.rpos(B.footR, _v1)).normalize();
-    rig.aim(B.footL, footDirL); rig.aim(B.footR, footDirR);
-    rig.aim(B.toeL, footDirL); rig.aim(B.toeR, footDirR);
-    // slight scapular collapse at the bottom of the rep
-    rig.bend(B.spine2, new THREE.Vector3(0, 0, 1), 0.1 * d);
-    // head looks ahead, not at the floor
-    rig.aim(B.neck, new THREE.Vector3(0.95, 0.3, 0));
-    rig.aim(B.head, new THREE.Vector3(0.92, 0.25, 0.28));
+    rig.aim(B.foreL, new THREE.Vector3().subVectors(P.L, rig.rpos(B.foreL, _v1)).normalize());
+    rig.aim(B.foreR, new THREE.Vector3().subVectors(P.R, rig.rpos(B.foreR, _v2)).normalize());
+    // hands: straight wrists, flat along the forearm line
+    const flatL = new THREE.Vector3().subVectors(P.L, rig.rpos(B.foreL, _v1)).normalize();
+    const flatR = new THREE.Vector3().subVectors(P.R, rig.rpos(B.foreR, _v2)).normalize();
+    rig.aim(B.handL, flatL); rig.aim(B.handR, flatR);
+    // scapular rhythm: slight protraction at the top of the press (d→0)
+    rig.bend(B.spine2, new THREE.Vector3(0, 0, 1), 0.08 * (1 - d));
+    // head: part of the body line, gaze slightly ahead of the hands
+    const gaze = backDir.clone().multiplyScalar(-1).normalize(); // toward head
+    rig.aim(B.neck, new THREE.Vector3(gaze.x, gaze.y + 0.25, gaze.z).normalize());
+    rig.aim(B.head, new THREE.Vector3(gaze.x, gaze.y + 0.42, gaze.z).normalize());
     return;
   }
 
   if (exercise === 'jumpingjack') {
     const s = t;
-    // legs: IK to the planted rest ankles (feet never move), knees slightly
-    // out; hips dip a touch as the legs spread
-    const ankleL = rig.rrest(B.footL), ankleR = rig.rrest(B.footR);
-    rig.shift(B.hips, 0, -0.03 * rig.av.H * s, 0);
-    rig.ik2('upLegL', ankleL, new THREE.Vector3(0.5, 0, 0.35), rig.len.thighL, rig.len.shinL);
-    rig.ik2('upLegR', ankleR, new THREE.Vector3(-0.5, 0, 0.35), rig.len.thighR, rig.len.shinR);
+    // REAL jack geometry: feet jump out to ~1.5× shoulder width, knees and
+    // toes track slightly OUT, feet land flat; arms sweep the FRONTAL plane
+    // from thighs to overhead. Feet MOVE here by definition of the exercise —
+    // they lift a touch while travelling (no floor scrape) and land flat.
+    const H = rig.av.H;
+    const spread = 0.22 * H * s;                    // each foot outward
+    const travel = 0.02 * H;                        // slight lift while in motion
+    const restL = rig.rrest(B.footL), restR = rig.rrest(B.footR);
+    const outL = Math.sign(restL.x || -1), outR = Math.sign(restR.x || 1);
+    const ankleL = restL.clone().add(_v1.set(outL * spread, travel, 0));
+    const ankleR = restR.clone().add(_v2.set(outR * spread, travel, 0));
+    // hips dip slightly as the legs spread (weight shift)
+    rig.shift(B.hips, 0, -0.035 * H * s, 0);
+    rig.ik2('upLegL', ankleL, new THREE.Vector3(0.5, 0, 0.45), rig.len.thighL, rig.len.shinL);
+    rig.ik2('upLegR', ankleR, new THREE.Vector3(-0.5, 0, 0.45), rig.len.thighR, rig.len.shinR);
     rig.sync();
-    rig.aim(B.legL, new THREE.Vector3().copy(ankleL).sub(rig.rpos(B.legL, _v1)).normalize());
-    rig.aim(B.legR, new THREE.Vector3().copy(ankleR).sub(rig.rpos(B.legR, _v1)).normalize());
+    rig.aim(B.legL, new THREE.Vector3().subVectors(ankleL, rig.rpos(B.legL, _v1)).normalize());
+    rig.aim(B.legR, new THREE.Vector3().subVectors(ankleR, rig.rpos(B.legR, _v2)).normalize());
     rig.sync();
+    // feet FLAT at landing, toes tracking the knees (out at the spread)
     const footL = rig.dir0.get(B.footL), footR = rig.dir0.get(B.footR);
-    rig.aim(B.footL, new THREE.Vector3().copy(footL).applyAxisAngle(UP, 0.1 + 0.2 * s));
-    rig.aim(B.footR, new THREE.Vector3().copy(footR).applyAxisAngle(UP, -(0.1 + 0.2 * s)));
-    rig.aim(B.toeL, new THREE.Vector3().copy(footL).applyAxisAngle(UP, 0.25 + 0.25 * s));
-    rig.aim(B.toeR, new THREE.Vector3().copy(footR).applyAxisAngle(UP, -(0.25 + 0.25 * s)));
-    // arms sweep sides → overhead in the frontal plane
-    const aD = lerpDir(new THREE.Vector3(0.18, -0.98, 0.04), new THREE.Vector3(0.3, 0.95, 0), s);
+    rig.aim(B.footL, new THREE.Vector3().copy(footL).applyAxisAngle(UP, 0.15 + 0.25 * s));
+    rig.aim(B.footR, new THREE.Vector3().copy(footR).applyAxisAngle(UP, -(0.15 + 0.25 * s)));
+    rig.aim(B.toeL, new THREE.Vector3().copy(footL).applyAxisAngle(UP, 0.2 + 0.3 * s));
+    rig.aim(B.toeR, new THREE.Vector3().copy(footR).applyAxisAngle(UP, -(0.2 + 0.3 * s)));
+    // arms sweep sides → overhead in the frontal plane, palms facing in
+    const aD = lerpDir(new THREE.Vector3(0.18, -0.98, 0.04), new THREE.Vector3(0.22, 0.965, 0), s);
     rig.aim(B.armL, aD); rig.aim(B.armR, mirrorX(aD));
     rig.sync();
-    rig.aim(B.foreL, aD); rig.aim(B.foreR, mirrorX(aD));
+    const fD = lerpDir(new THREE.Vector3(0.14, -0.985, 0.06), aD, 0.85 + 0.15 * s);
+    rig.aim(B.foreL, fD); rig.aim(B.foreR, mirrorX(fD));
     rig.aim(B.neck, new THREE.Vector3(0, 0.98, 0.2));   // was (0,0.35,0.94): 70° head fold
     rig.aim(B.head, new THREE.Vector3(0, 0.92, 0.4));
     return;
@@ -569,6 +587,21 @@ export class ModelAvatar {
       theta = Math.max(Math.PI / 2 - 0.55, theta - (clear - minY) / (span * 0.55));
       setProne(theta);
     }
+    // ── planted hands (real push-up geometry) ──
+    // Hands are FIXED on the ground for the whole rep, directly under the
+    // shoulders at the top-of-rep incline (straight-arm support). As θ tips
+    // the body toward the floor, the elbows bend to keep them planted — the
+    // arms absorb the rep, the body stays a rigid plank. Compute the plant
+    // from the θ_top geometry, then restore the frame's θ.
+    setProne(thetaTop);
+    this.prone.updateMatrix();
+    const hy = 0.03 * arm;
+    const zL = rig.pt(rig.B.armL, _v2).z, zR = rig.pt(rig.B.armR, _v2).z;
+    rig.planted = {
+      L: new THREE.Vector3(rig.pt(rig.B.armL, _v1).x, hy, zL + Math.sign(zL || 1) * 0.02 * this.H),
+      R: new THREE.Vector3(rig.pt(rig.B.armR, _v1).x, hy, zR + Math.sign(zR || -1) * 0.02 * this.H),
+    };
+    setProne(theta);
     poseAim(rig, exercise, p); // shared aim/IK path (both rig families)
   }
 }
@@ -682,18 +715,29 @@ export class BVHPlayer {
     this.mixer = new THREE.AnimationMixer(this.holder);
     this.action = this.mixer.clipAction(bvh.clip);
     this.action.play();
+    // pose "clips" (Xbot sad_pose/sneak_pose etc.) are two-key settles under
+    // 0.25s — looping them flickers. Play once and hold the end pose instead.
+    // Sources can force this with `hold: true` (GENO_CLIPS spec).
+    this.hold = bvh.hold ?? bvh.clip.duration < 0.25;
+    if (this.hold) {
+      this.action.setLoop(THREE.LoopOnce, 1);
+      this.action.clampWhenFinished = true;
+    }
 
     const byName = new Map();
-    bvh.skeleton.bones.forEach((b) => byName.set(b.name, b));
+    // normalised keys: BVH rigs use plain names, mixamo GLBs arrive as
+    // `mixamorig:Hips`→`mixamorigHips` — normBone folds both onto the key
+    // space Geno's plain names already live in.
+    bvh.skeleton.bones.forEach((b) => byName.set(normBone(b.name), b));
     this.bvhHips = byName.get('Hips') ?? bvh.skeleton.bones[0];
 
-    // matched (geno bone, bvh bone) pairs in top-down hierarchy order
+    // matched (geno bone, source bone) pairs in top-down hierarchy order
     const scene = avatar.prone.children[0];
     this.pairs = [];
     this.pairIndex = new Map();
     scene.traverse((o) => {
       if (!o.isBone) return;
-      const b = byName.get(o.name);
+      const b = byName.get(normBone(o.name));
       if (b) { this.pairIndex.set(o, this.pairs.length); this.pairs.push([o, b]); }
     });
     if (!this.pairs.length) throw new Error('BVHPlayer: no joint-name overlap with the model');
@@ -727,7 +771,7 @@ export class BVHPlayer {
         E.push((p != null && p < i) ? E[p].clone() : new THREE.Quaternion());
         continue;
       }
-      const bChild = byName.get(child.name);
+      const bChild = byName.get(normBone(child.name));
       const dg = child.position.clone().normalize();
       const db = bChild.position.clone().normalize();
       if (dg.lengthSq() < 0.5 || db.lengthSq() < 0.5) { E.push(new THREE.Quaternion()); continue; }
@@ -749,21 +793,52 @@ export class BVHPlayer {
     this._hq = new THREE.Quaternion();
     this._hp = new THREE.Vector3();
 
-    // hips translation: capture-cm → model-units, Y only (walk in place).
-    // The BVH rig is bare Bones (no geometry), so measure its height from
-    // JOINT world positions at frame 0, not Box3.setFromObject.
+    // ── source world-frame alignment + scale ──
+    // GLB sources bake their exporter's axes into the skeleton's world frame
+    // (Soldier.glb is Z-up: height lives on world Z, world Y is sideways), and
+    // the retarget copies WORLD quaternions — without correction Geno would
+    // follow those axes and tip onto its side. R_align rigidly rotates the
+    // source's own up axis (toe-midpoint → head, at frame 0) onto +Y; it is
+    // identity for Y-up rigs (BVH, Xbot, the exported demo loops).
     this.mixer.setTime(0);
     this.holder.updateMatrixWorld(true);
-    let lo = Infinity, hi = -Infinity;
-    bvh.skeleton.bones.forEach((b) => {
-      const p = b.getWorldPosition(new THREE.Vector3());
-      if (p.y < lo) lo = p.y;
-      if (p.y > hi) hi = p.y;
-    });
-    this.scale = avatar.H / Math.max(1e-6, hi - lo);
+    const srcW = (name, out) => { const b = byName.get(name); return b ? b.getWorldPosition(out) : null; };
+    const srcHips = this.bvhHips.getWorldPosition(new THREE.Vector3());
+    const srcHead = srcW('Head', new THREE.Vector3());
+    const srcToe = new THREE.Vector3();
+    let toeN = 0;
+    for (const n of ['LeftToeBase', 'RightToeBase']) { const t = srcW(n, new THREE.Vector3()); if (t) { srcToe.add(t); toeN++; } }
+    this.srcUp = new THREE.Vector3(0, 1, 0);
+    if (srcHead && toeN) {
+      const up = srcHead.sub(srcToe.divideScalar(toeN));
+      if (up.lengthSq() > 1e-4) this.srcUp.copy(up.normalize());
+    }
+    this.Ralign = new THREE.Quaternion().setFromUnitVectors(this.srcUp, UP);
+    // scale from the LEG CHAIN (hips→ankle distance): a rigid length, so it is
+    // axis-independent and immune to hips-translation track unit mismatches.
+    const srcAnkleB = byName.get('LeftFoot') ?? byName.get('RightFoot');
+    let sc = 0;
+    if (srcAnkleB && avatar.bones.hips && (avatar.bones.footL ?? avatar.bones.footR)) {
+      const srcLeg = srcAnkleB.getWorldPosition(new THREE.Vector3()).distanceTo(srcHips);
+      const gH = avatar.bones.hips.getWorldPosition(new THREE.Vector3());
+      const gLeg = (avatar.bones.footL ?? avatar.bones.footR).getWorldPosition(new THREE.Vector3()).distanceTo(gH);
+      if (srcLeg > 1e-6) sc = gLeg / srcLeg;
+    }
+    if (!(sc > 1e-6)) {
+      // fallback: overall joint span along the rig's own up axis
+      let lo = Infinity, hi = -Infinity;
+      const _sp = new THREE.Vector3();
+      bvh.skeleton.bones.forEach((b) => {
+        const p = b.getWorldPosition(_sp).dot(this.srcUp);
+        if (p < lo) lo = p;
+        if (p > hi) hi = p;
+      });
+      sc = avatar.H / Math.max(1e-6, hi - lo);
+    }
+    this.scale = sc;
     this.hips = avatar.bones.hips;
     this.hipsRest = this.hips.position.clone();   // bind (aimrig.reset above)
-    this.hipsRefY = this.bvhHips.getWorldPosition(new THREE.Vector3()).y;
+    this.hipsRefY = srcHips.dot(this.srcUp);
 
     // ── apply frame 0, then fit the figure to the card ──
     const s0 = avatar.root.scale.x || 1;
@@ -810,15 +885,132 @@ export class BVHPlayer {
     this._dv = new THREE.Vector3();
 
     this.time = 0;
+
+    // ── stance-foot pinning (anti-skating) ──
+    // The mixamo "in-place" clips (and root-travel-dropped captures) carry
+    // the treadmill artifact: the stance foot slides backward at gait speed.
+    // Each frame, the LOWER ankle (when near the ground) is pinned where it
+    // last planted by a live 2-bone IK on thigh+shin — the leg reaches back
+    // to its plant instead of skating. XZ only; ankle height keeps following
+    // the retargeted capture (heel-toe roll stays).
+    const B = avatar.bones;
+    this._legs = [B.upLegL && B.legL && B.footL ? { up: B.upLegL, knee: B.legL, ankle: B.footL } : null,
+                  B.upLegR && B.legR && B.footR ? { up: B.upLegR, knee: B.legR, ankle: B.footR } : null];
+    this._pins = [null, null];      // planted XZ per leg (model units)
+    this._support = null;           // sticky support foot (0/1/null)
+    this._fmin = [Infinity, Infinity]; // per-foot ankle-height running min
+    this._fmax = [-Infinity, -Infinity];
   }
 
-  /** solve Geno locals from the BVH rig's current world quaternions */
+  /** rotate a posed bone so its CURRENT chain direction aims at targetDir
+   *  (unit, model space) — live version of AimRig.aim, no rest assumptions */
+  _aimLive(bone, child, targetDir) {
+    bone.getWorldQuaternion(_q1);
+    const d0 = _v1.copy(child.position).applyQuaternion(_q1);
+    if (d0.lengthSq() < 1e-10) return;
+    d0.normalize();
+    const dq = _q2.setFromUnitVectors(d0, targetDir);
+    const nw = _q1.premultiply(dq);
+    bone.parent.getWorldQuaternion(_q3);
+    bone.quaternion.copy(_q3.invert().multiply(nw));
+  }
+
+  /** pin the support leg's ankle to its planted XZ (live 2-link IK) */
+  _pinStance() {
+    if (!this._legs[0] && !this._legs[1]) return;
+    const s = this.av.root.scale.x || 1;
+    const rpos = (b) => b.getWorldPosition(new THREE.Vector3()).divideScalar(s);
+    const a0 = this._legs[0] ? rpos(this._legs[0].ankle) : null;
+    const a1 = this._legs[1] ? rpos(this._legs[1].ankle) : null;
+    const H = this.av.H;
+    // per-foot adaptive stance gate: an ankle is a stance candidate while it
+    // sits near its own running minimum height (self-tunes per clip — walk
+    // swings low, run swings high). Bounds tighten instantly and relax
+    // slowly so step-to-step variation doesn't trip them.
+    const cand = [false, false];
+    for (let j = 0; j < 2; j++) {
+      const a = j === 0 ? a0 : a1;
+      if (!a) continue;
+      this._fmin[j] = Math.min(this._fmin[j] + 0.004 * H, a.y);
+      this._fmax[j] = Math.max(this._fmax[j] - 0.004 * H, a.y);
+      cand[j] = a.y < this._fmin[j] + 0.45 * Math.max(1e-3, this._fmax[j] - this._fmin[j]);
+    }
+    // pin EVERY planted foot (double support pins both); a foot that lifts
+    // out of its stance band is released and its pin discarded
+    let any = false;
+    for (let j = 0; j < 2; j++) {
+      const leg = this._legs[j];
+      const a = j === 0 ? a0 : a1;
+      if (!leg || !a) continue;
+      if (cand[j]) {
+        any = true;
+        let pin = this._pins[j];
+        if (!pin || Math.hypot(a.x - pin.x, a.z - pin.z) > 0.35 * H) {
+          this._pins[j] = new THREE.Vector3(a.x, a.y, a.z); // fresh plant
+          continue;
+        }
+        this._pinLeg(leg, a, pin.x, pin.z, a.y);
+      } else {
+        this._pins[j] = null;
+        // scrape guard: a swinging foot whose ankle drags its own floor
+        // while moving gets a small knee-lift clearance
+        if (a.y < this._fmin[j] + 0.012 * H) {
+          this._pinLeg(leg, a, a.x, a.z, this._fmin[j] + 0.02 * H);
+        }
+      }
+    }
+    if (!any) this._support = null;
+  }
+
+  /** live 2-link IK: pull leg's ankle toward (tx,tz) — stance pins reuse the
+   *  current ankle height; the scrape guard overrides y to lift the foot */
+  _pinLeg(leg, a, tx, tz, ty) {
+    const s = this.av.root.scale.x || 1;
+    const rpos = (b) => b.getWorldPosition(new THREE.Vector3()).divideScalar(s);
+    // 80% of the slide is corrected per frame (soft — no pops)
+    tx = a.x + 0.9 * (tx - a.x); tz = a.z + 0.9 * (tz - a.z);
+    const hip = rpos(leg.up), kneeP = rpos(leg.knee);
+    const L1 = hip.distanceTo(kneeP), L2 = kneeP.distanceTo(a);
+    if (L1 < 1e-6 || L2 < 1e-6) return;
+    const target = new THREE.Vector3(tx, ty, tz);
+    const to = target.clone().sub(hip);
+    const dist = Math.min(L1 + L2 - 1e-4, Math.max(Math.abs(L1 - L2) + 1e-4, to.length()));
+    to.normalize();
+    // bend plane: keep the knee on its current side (pole = knee offset
+    // projected off the hip→target line)
+    const pole = kneeP.clone().sub(hip);
+    pole.addScaledVector(to, -pole.dot(to));
+    if (pole.lengthSq() < 1e-8) pole.set(0, 0, 1);
+    pole.normalize();
+    const cosA = Math.min(1, Math.max(-1, (L1 * L1 + dist * dist - L2 * L2) / (2 * L1 * dist)));
+    const n = to.clone().cross(pole);
+    if (n.lengthSq() < 1e-8) return;
+    const mid = to.clone().applyAxisAngle(n.normalize(), Math.acos(cosA)).multiplyScalar(L1).add(hip);
+    this._aimLive(leg.up, leg.knee, mid.sub(hip).normalize());
+    this.av.root.updateMatrixWorld(true);
+    const knee2 = rpos(leg.knee);
+    this._aimLive(leg.knee, leg.ankle, target.sub(knee2).normalize());
+  }
+
+  /** when a foot is planted, nothing below the ankle may sit under the
+   *  ground: lift the hips (a Y offset on the bob channel) by the sink */
+  _groundClamp() {
+    const B = this.av.bones;
+    const js = [B.toeL, B.toeR, B.footL, B.footR].filter(Boolean);
+    if (!js.length) return 0;
+    const s = this.av.root.scale.x || 1;
+    let minY = Infinity;
+    for (const j of js) minY = Math.min(minY, j.getWorldPosition(_v3).divideScalar(s).y);
+    return minY < -0.015 * this.av.H ? -minY : 0; // positive lift needed
+  }
+
+  /** solve Geno locals from the source rig's current world quaternions */
   _solve() {
-    const { pairs, Einv, _gworld, _bq, _tq, _pq, _hq } = this;
+    const { pairs, Einv, Ralign, _gworld, _bq, _tq, _pq, _hq } = this;
     for (let i = 0; i < pairs.length; i++) {
       const g = pairs[i][0], b = pairs[i][1];
       b.getWorldQuaternion(_bq);
-      _tq.copy(_bq).multiply(Einv[i]);              // target world quaternion
+      _tq.copy(_bq).multiply(Einv[i]).premultiply(Ralign); // target world quaternion
       const parent = g.parent;
       let pq;
       if (parent && this.pairIndex.has(parent)) pq = _gworld[this.pairIndex.get(parent)];
@@ -839,18 +1031,157 @@ export class BVHPlayer {
     if (this.rootYaw) this.av.root.rotation.y -= this.rootYaw;
   }
 
+  /** apply a world-space Y delta to the hips through the parent-frame transform */
+  _hipsWorldY(delta) {
+    const s = this.av.root.scale.x || 1;
+    this._dv.set(0, (delta * s) / (this._ps0.y || s), 0)
+      .applyQuaternion(this._invQ.copy(this._pq0).invert());
+    this.hips.position.add(this._dv);
+  }
+
   update(dt) {
     if (this.dead) return;
-    this.time = (this.time + dt) % this.duration;
+    if (this.hold) this.time = Math.min(this.time + dt, this.duration);
+    else this.time = (this.time + dt) % this.duration;
     this.mixer.setTime(this.time);
     this.holder.updateMatrixWorld(true);
     this._solve();
-    // hips Y bob + ground fix: world-space delta → hips-parent local
-    // (X/Z travel dropped so the figure walks in place inside a card)
-    const dy = (this.bvhHips.getWorldPosition(this._hp).y - this.hipsRefY) * this.scale + this.groundFix;
-    const s = this.av.root.scale.x || 1;
-    this._dv.set(0, (dy * s) / (this._ps0.y || s), 0)
-      .applyQuaternion(this._invQ.copy(this._pq0).invert());
-    this.hips.position.copy(this.hipsRest).add(this._dv);
+    // hips bob (projected on the source's up axis) + ground fix: world-space
+    // delta → hips-parent local (X/Z travel dropped so the figure walks in
+    // place inside a card)
+    const dy = (this.bvhHips.getWorldPosition(this._hp).dot(this.srcUp) - this.hipsRefY) * this.scale + this.groundFix;
+    this.hips.position.copy(this.hipsRest);
+    this._hipsWorldY(dy);
+    this._pinStance(); // support foot stays planted (anti-skating)
+    const lift = this._groundClamp(); // planted feet must not sink
+    if (lift > 0) this._hipsWorldY(0.85 * lift);
   }
+}
+
+// ── Real mocap for Geno: embedded GLB clips + the source repo's own motions ──
+// Geno ships WITHOUT animations — but its source project does not. Geno is
+// byte-identical to facebookresearch/ai4animationpy `Demos/_ASSETS_/Geno/
+// Model.glb` (md5 match), where it is driven by real CMU-derived mocap, and
+// the site already carries mixamo-convention GLBs with embedded human mocap:
+// Soldier.glb (Idle/Walk/Run/TPose) and Xbot.glb (agree/headShake/idle/run/
+// sad_pose/sneak_pose/walk). Their skeletons use the same mixamo joint names
+// as Geno (modulo the `mixamorig:` prefix), so the BVHPlayer's world-quaternion
+// retarget transfers them exactly: per bone, E(b) maps the SOURCE rig's local
+// chain direction onto Geno's, then Geno's locals are solved top-down.
+//
+// `scripts/avatars/geno_npz_export.py` additionally extracts looping cycles
+// from Geno's OWN demo motions (the 23-joint world-space npz captures shipped
+// in the source repo's _ASSETS_/Geno/Motions/) into compact JSON clips with
+// the same rig shape. RobotExpressive.glb was probed too — its skeleton is
+// NOT mixamo-named (Bone/Foot.L/Body/… + morph targets), so it is not
+// retargetable this way and is left for its own native playback.
+
+const gltfAnimCache = new Map();
+async function gltfWithAnims(file) {
+  if (!gltfAnimCache.has(file)) gltfAnimCache.set(file, await loader.loadAsync(file));
+  return gltfAnimCache.get(file);
+}
+
+/** Deep-copy only the Bone chain under `src` (bind transforms, no meshes). */
+function cloneBoneTree(src) {
+  const out = new THREE.Bone();
+  out.name = src.name;
+  out.position.copy(src.position);
+  out.quaternion.copy(src.quaternion);
+  out.scale.copy(src.scale);
+  for (const c of src.children) if (c.isBone) out.add(cloneBoneTree(c));
+  return out;
+}
+
+const flatBones = (root) => { const a = []; root.traverse((o) => { if (o.isBone) a.push(o); }); return a; };
+
+/** GLB → { skeleton, clip } shaped like the BVH result (bare bone rig bound
+ *  to the clip's tracks) so BVHPlayer retargets it unchanged. The rig is a
+ *  fresh bare-bone clone per call — mixers mutate, and the cached source
+ *  scene must never be. */
+export async function loadGLTFClip(file, clipName) {
+  const gltf = await gltfWithAnims(file);
+  const clip = THREE.AnimationClip.findByName(gltf.animations, clipName);
+  if (!clip) throw new Error(`clip "${clipName}" not in ${file}`);
+  let root = null;
+  gltf.scene.traverse((o) => { if (!root && o.isBone && !(o.parent && o.parent.isBone)) root = o; });
+  if (!root) throw new Error(`no bone hierarchy in ${file}`);
+  const rig = cloneBoneTree(root);
+  const bones = flatBones(rig);
+  // the bare rig only carries the skeleton's Bone nodes; mixamo exports also
+  // animate non-skeleton helper nodes (leaf *3/*4 fingers) whose tracks have
+  // no target here — drop them so the mixer logs no binding warnings.
+  const names = new Set(bones.map((b) => b.name));
+  const tracks = clip.tracks.filter((t) => names.has(t.name.slice(0, t.name.indexOf('.'))));
+  const slim = tracks.length === clip.tracks.length ? clip
+    : new THREE.AnimationClip(clip.name, clip.duration, tracks);
+  return { skeleton: { bones }, clip: slim };
+}
+
+/** Exported Geno demo-motion JSON (see scripts/avatars/geno_npz_export.py)
+ *  → { skeleton, clip }: a bare bone rig built from the capture's rest
+ *  offsets plus quaternion tracks (local, per bone) and a Hips position
+ *  track. Loop is baked (endpoints pose-matched + yaw de-trended). */
+const jsonClipCache = new Map();
+export async function loadJSONClip(file) {
+  if (!jsonClipCache.has(file)) {
+    const data = await (await fetch(file)).json();
+    const proto = data.names.map((name, i) => {
+      const b = new THREE.Bone();
+      b.name = name;
+      b.position.fromArray(data.offsets[i]);
+      return b;
+    });
+    data.parents.forEach((p, i) => { if (p >= 0) proto[p].add(proto[i]); });
+    const times = data.times;
+    const tracks = [];
+    for (const name of data.names) {
+      tracks.push(new THREE.QuaternionKeyframeTrack(`${name}.quaternion`, times, data.quats[name]));
+    }
+    tracks.push(new THREE.VectorKeyframeTrack(`${data.names[0]}.position`, times, data.hipsPos));
+    const clip = new THREE.AnimationClip(file, times[times.length - 1], tracks);
+    jsonClipCache.set(file, { bones: proto, clip });
+  }
+  const cached = jsonClipCache.get(file);
+  return { skeleton: { bones: flatBones(cloneBoneTree(cached.bones[0])) }, clip: cached.clip };
+}
+
+// The unified Geno clip list: real mocap first (the default `walk` is proper
+// locomotion), the original AI4Animation demo captures preserved at the end.
+export const GENO_CLIPS = {
+  // mixamo-convention GLB clips (Soldier = neutral soldier mocap)
+  walk:      { label: 'walk',        group: 'mocap',    type: 'glb', file: '/models/Soldier.glb', clip: 'Walk' },
+  run:       { label: 'run',         group: 'mocap',    type: 'glb', file: '/models/Soldier.glb', clip: 'Run' },
+  idle:      { label: 'idle',        group: 'mocap',    type: 'glb', file: '/models/Soldier.glb', clip: 'Idle' },
+  // Geno's own demo motions (CMU-derived, exported from the source repo)
+  demo_walk: { label: 'demo walk',   group: 'mocap',    type: 'json', file: '/models/geno_npz_walk.json' },
+  demo_run:  { label: 'demo run',    group: 'mocap',    type: 'json', file: '/models/geno_npz_run.json' },
+  sprint:    { label: 'sprint',      group: 'mocap',    type: 'json', file: '/models/geno_npz_sprint.json' },
+  // Xbot character clips (mixamo re-targeted acting mocap)
+  swagger:   { label: 'swagger walk', group: 'character', type: 'glb', file: '/models/Xbot.glb', clip: 'walk' },
+  agree:     { label: 'nod yes',     group: 'character', type: 'glb', file: '/models/Xbot.glb', clip: 'agree' },
+  headshake: { label: 'shake head',  group: 'character', type: 'glb', file: '/models/Xbot.glb', clip: 'headShake' },
+  sad:       { label: 'sad',         group: 'character', type: 'glb', file: '/models/Xbot.glb', clip: 'sad_pose', hold: true },
+  sneak:     { label: 'sneak',       group: 'character', type: 'glb', file: '/models/Xbot.glb', clip: 'sneak_pose', hold: true },
+  // the original AI4Animation demo captures (formerly the whole "BVH" list)
+  goblin_walk:  { label: 'stick walk (old)', group: 'captures', type: 'bvh', file: '/models/goblin_walk_stick.bvh' },
+  goblin_limp:  { label: 'limp (old)',       group: 'captures', type: 'bvh', file: '/models/goblin_limp.bvh' },
+  goblin_drag:  { label: 'drag (old)',       group: 'captures', type: 'bvh', file: '/models/goblin_drag.bvh' },
+  goblin_arm:   { label: 'one arm (old)',    group: 'captures', type: 'bvh', file: '/models/goblin_one_arm.bvh' },
+  goblin_combat:{ label: 'combat (old)',     group: 'captures', type: 'bvh', file: '/models/goblin_combat.bvh' },
+};
+
+/** Resolve a GENO_CLIPS id (or legacy BVH_FILES key / direct path) into the
+ *  { skeleton, clip } pair BVHPlayer retargets. */
+export async function loadGenoClip(id) {
+  const spec = GENO_CLIPS[id];
+  if (spec) {
+    if (spec.type === 'bvh') return loadBVH(spec.file);
+    if (spec.type === 'json') return loadJSONClip(spec.file);
+    const res = await loadGLTFClip(spec.file, spec.clip);
+    if (spec.hold) res.hold = true;
+    return res;
+  }
+  if (BVH_FILES[id]) return loadBVH(BVH_FILES[id]);
+  return loadBVH(id); // bare path (legacy behaviour)
 }

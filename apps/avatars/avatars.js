@@ -573,7 +573,7 @@ window.__rwfStudio = {
 // ─────────────────────────────────────────────────────────────────────────────
 const modelGrid = $('modelGrid');
 if (modelGrid) {
-  const { MODELS, loadModel, ModelAvatar, applyFlatTint, GENO_TINTS, BVH_FILES, loadBVH, BVHPlayer } = await import('/site/model-avatars.js');
+  const { MODELS, loadModel, ModelAvatar, applyFlatTint, GENO_TINTS, BVH_FILES, loadBVH, BVHPlayer, GENO_CLIPS, loadGenoClip } = await import('/site/model-avatars.js');
   const { attachWardrobe, attachHead, clearWardrobe, WARDROBE_SLOTS, SLOT_LABELS } = await import('/site/models/geno-wardrobe.js');
   const { applyColorway, applySoldierPalette, COLORWAYS } = await import('/site/model-recolor.js');
 
@@ -587,10 +587,10 @@ if (modelGrid) {
       <div class="style-stage"></div>
       <div class="style-meta">
         <h3>${M.name}</h3>
-        <p class="style-blurb">${M.rig} rig · ${M.native.length ? 'native anims: ' + M.native.join(', ') : 'no anims — posed live'}${M.bvh ? ' · BVH mocap: ' + M.bvh.join(', ') : ''}${way ? ' · palette remap' : ''}${M.palette ? ' · flat-colour treatment' : ''}${M.tint ? ' · flat tint' : ''}${M.wardrobe ? ' · wardrobe: ' + (M.wardrobe === 'full' ? 'full outfit' : M.wardrobe.join(', ')) : ''}${M.head ? ' · ' + M.head.replace('-', ' ') + ' head' : ''}</p>
+        <p class="style-blurb">${M.rig} rig · ${M.native.length ? 'native anims: ' + M.native.join(', ') : 'no anims — posed live'}${M.bvh ? ' · mocap: ' + M.bvh.slice(0, 4).map((n) => GENO_CLIPS[n]?.label ?? n).join(', ') + (M.bvh.length > 4 ? ` +${M.bvh.length - 4} more` : '') : ''}${way ? ' · palette remap' : ''}${M.palette ? ' · flat-colour treatment' : ''}${M.tint ? ' · flat tint' : ''}${M.wardrobe ? ' · wardrobe: ' + (M.wardrobe === 'full' ? 'full outfit' : M.wardrobe.join(', ')) : ''}${M.head ? ' · ' + M.head.replace('-', ' ') + ' head' : ''}</p>
         <div class="model-btns">
           ${M.native.map((n) => `<button class="rwf-btn btn--xs" data-native="${n}">${n}</button>`).join('')}
-          ${(M.bvh ?? []).map((n) => `<button class="rwf-btn btn--xs" data-bvh="${n}">${n}</button>`).join('')}
+          ${(M.bvh ?? []).map((n) => `<button class="rwf-btn btn--xs" data-bvh="${n}" title="${GENO_CLIPS[n]?.group === 'captures' ? 'legacy AI4Animation capture' : 'real mocap retarget'}">${GENO_CLIPS[n]?.label ?? n}</button>`).join('')}
           ${M.wardrobeToggle ? WARDROBE_SLOTS.map((s) => `<button class="rwf-btn btn--xs is-on" data-slot="${s}" title="toggle ${s}">${SLOT_LABELS[s]}</button>`).join('') : ''}
           ${M.wardrobe ? ['squat', 'pushup', 'jumpingjack', 'curl'].map((n) => `<button class="rwf-btn btn--xs" data-ex="${n}" title="pose ${n} — stress-test the clothes">${n === 'pushup' ? 'push-up' : n === 'jumpingjack' ? 'jack' : n}</button>`).join('') : ''}
           <button class="rwf-btn btn--xs" data-native="">exercise</button>
@@ -777,10 +777,12 @@ if (modelGrid) {
         entry.exercise = null;
         card.querySelectorAll('[data-ex]').forEach((b) => b.classList.remove('is-on'));
       };
-      // BVH mocap buttons (Geno): world-space retarget of the game's mocap
-      // captures onto this card's skeleton. Lazy-loaded on demand — the walk
-      // capture is 33 MB, so it is fetched only when the card is first
-      // scrolled into view (auto) or a clip button is clicked.
+      // mocap buttons (Geno): world-space retarget of real animation onto
+      // this card's skeleton — mixamo GLB clips (Soldier/Xbot), loops exported
+      // from Geno's own AI4Animation demo motions, and the legacy BVH
+      // captures. Lazy-loaded on demand — the heaviest capture is 33 MB, so
+      // clips are fetched only when the card is first scrolled into view
+      // (auto) or a clip button is clicked.
       const startBVH = async (name) => {
         entry.bvhRequested = true;
         if (entry.mixer) { entry.mixer.stopAllAction(); entry.mixer = null; entry.action = null; }
@@ -788,11 +790,11 @@ if (modelGrid) {
         clearCardExercise();
         if (!name) { av.pose(galState.exercise, 0.5); return; }
         try {
-          const res = await loadBVH(BVH_FILES[name] ?? name);
+          const res = await loadGenoClip(name);
           if (entry.bvh) entry.bvh.stop();
           entry.bvh = new BVHPlayer(av, res);
         } catch (e) {
-          card.querySelector('.style-blurb').textContent = 'BVH failed: ' + e.message;
+          card.querySelector('.style-blurb').textContent = 'mocap failed: ' + e.message;
         }
       };
       card.querySelectorAll('[data-bvh]').forEach((btn) => {
