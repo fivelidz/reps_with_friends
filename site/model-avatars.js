@@ -200,6 +200,14 @@ class AimRig {
       this.restQ.set(b, b.quaternion.clone());
       this.restP.set(b, b.position.clone());
     }
+    // FULL-skeleton bind snapshot (v7 FIX 4): aim/bend drive only the LOGICAL
+    // bone map above, but BVH clips pose EVERY joint (62 on Geno — Spine3,
+    // Neck1, fingers…). reset() must restore the whole skeleton or clip
+    // residue survives on unmapped joints and bleeds into the next pose.
+    this.allBones = [];
+    avatar.prone.children[0].traverse((o) => { if (o.isBone) this.allBones.push(o); });
+    this.allRestQ = this.allBones.map((b) => b.quaternion.clone());
+    this.allRestP = this.allBones.map((b) => b.position.clone());
     this.capture();
   }
   capture() {
@@ -232,8 +240,10 @@ class AimRig {
   }
   reset() {
     this.s = this.av.root.scale.x || 1; // root has no parent; gallery scale is uniform
-    for (const [b, q] of this.restQ) b.quaternion.copy(q);
-    for (const [b, p] of this.restP) b.position.copy(p);
+    for (let i = 0; i < this.allBones.length; i++) {
+      this.allBones[i].quaternion.copy(this.allRestQ[i]);
+      this.allBones[i].position.copy(this.allRestP[i]);
+    }
     this.av.root.updateMatrixWorld(true);
   }
   sync() { this.av.root.updateMatrixWorld(true); }
@@ -780,12 +790,14 @@ export class BVHPlayer {
     this.E = E;
     this.Einv = E.map((q) => q.clone().invert());
 
-    // ── bind-pose snapshot (for stop()) ──
-    // aimrig.reset() restores the logical bones; the rest were never posed.
+    // ── bind-pose snapshot ──
+    // Players can be constructed while a POSE is live (headCheck does it) —
+    // snap the FULL skeleton back to bind first so every capture below
+    // (hipsRest, ground refs) is a bind quantity. (v7: aimrig.reset() now
+    // restores every joint, not just the logical map.)
     avatar.aimrig.reset();
     avatar.prone.rotation.set(0, 0, 0);
     avatar.prone.position.set(0, 0, 0);
-    this.restQ = this.pairs.map(([g]) => g.quaternion.clone());
     this._gworld = this.pairs.map(() => new THREE.Quaternion());
     this._bq = new THREE.Quaternion();
     this._tq = new THREE.Quaternion();
@@ -1025,8 +1037,14 @@ export class BVHPlayer {
     if (this.dead) return;
     this.dead = true;
     this.mixer.stopAllAction();
-    // restore the bind pose + facing so exercise posing resumes cleanly
-    this.pairs.forEach(([g], i) => g.quaternion.copy(this.restQ[i]));
+    // FULL bind restore (v7 FIX 4): every joint — including the ones outside
+    // the logical bone map — back to bind, plus the prone container, so the
+    // exercise-pose path resumes from a clean bind no matter what the clip
+    // (or a late-arriving player) touched. hips + rootYaw were the only
+    // other channels update() writes.
+    this.av.aimrig.reset();
+    this.av.prone.rotation.set(0, 0, 0);
+    this.av.prone.position.set(0, 0, 0);
     if (this.hips) this.hips.position.copy(this.hipsRest);
     if (this.rootYaw) this.av.root.rotation.y -= this.rootYaw;
   }

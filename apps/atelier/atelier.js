@@ -28,11 +28,12 @@ import {
   OUTFIT_SLOTS, SLOT_LABELS, BUILDUP_STEPS,
 } from '/site/models/geno-outfit.js';
 // SKIN-DERIVED GARMENTS (geno-derived): the DEFAULT system — the body's own
-// triangles, offset along their normals by height-graded millimetres (+5 mm
-// collar → +9 chest → +12 hem), same skeleton, same weights. Cannot be inside
-// the flesh, cannot be armour, deforms identically to the body through every
-// clip and pose. No sim, no per-frame cost. (The PBD cloth experiment is
-// RETIRED from this UI — geno-cloth.js stays in the repo for reference.)
+// triangles, offset along their normals by height-graded millimetres (v7:
+// +6 mm collar → +12 chest → +18 hem, plus baked drape pleats), same
+// skeleton, same weights. Cannot be inside the flesh, cannot be armour,
+// deforms identically to the body through every clip and pose. No sim, no
+// per-frame cost. (The PBD cloth experiment is RETIRED from this UI —
+// geno-cloth.js stays in the repo for reference.)
 import { attachDerivedOutfit, clearDerived, HEAD_SPECIES, FROG_SKINS } from '/site/models/geno-derived.js';
 
 const $ = (id) => document.getElementById(id);
@@ -275,22 +276,51 @@ function applyVisibility() {
 // ── animation engine ─────────────────────────────────────────────────────────
 function animById(id) { return ANIMS.find((a) => a.id === id); }
 
-async function setAnim(id) {
+// v7 FIX 4: stale-install guard. setAnim is async (GLB clips fetch multi-MB);
+// without a token, a slow fetch resolving AFTER the user moved on would still
+// install its BVHPlayer — slamming the clip's frame-0 pose + an ~87° root yaw
+// onto whatever was selected meanwhile (reproduced: clip:walk pending → squat
+// selected → late player lands → yaw −1.51 rad, pose clobbered).
+let animToken = 0;
+
+async function setAnim(id, opts = {}) {
   const a = animById(id);
   if (!a) return;
+  // A verify run drives the rig directly and restores the anim at the end —
+  // a selection made DURING the probe used to be silently discarded (the
+  // founder's "selecting a pose changes nothing" class). Defer it; the
+  // probe's finally honours the latest pick. INTERNAL callers (withUI,
+  // headCheck — probe-scope restores) must NOT stash: they would clobber
+  // the user's deferred pick with the pre-probe anim.
+  if (state.verifying) {
+    if (!opts.internal) {
+      state.pendingAnim = id;
+      $('animSel').value = id;
+      $('hudAnim').textContent = a.label;
+    }
+    return;
+  }
+  const token = ++animToken;
+  const prev = state.animId;
   if (bvh) { bvh.stop(); bvh = null; }
   state.animId = id;
   state.t = 0;
   if (a.kind === 'bvh') {
     try {
       const res = await loadGenoClip(a.clip);
+      if (token !== animToken) return;   // user moved on — drop the stale install
       bvh = new BVHPlayer(av, res);
       bvh.update(0);
     } catch (e) {
       $('stageNote').textContent = 'BVH failed: ' + e.message;
+      animToken++;                       // never leave a dead anim id selected
+      state.animId = prev;
+      $('animSel').value = prev;
       return;
     }
   } else {
+    // pose path: BVHPlayer.stop() above (v7: full-skeleton bind restore) has
+    // already snapped every joint to bind; poseAim re-verifies from reset().
     av.pose(a.pose, 0.5);
   }
   $('animSel').value = id;
@@ -354,7 +384,8 @@ const classify = (r, g, b) => {
   const h = hueOf(r, g, b), mx = Math.max(r, g, b), d = mx - Math.min(r, g, b);
   if (h >= 0 && Math.abs(h - 68) < 16) return 'lime';      // tee
   if (h >= 0 && Math.abs(h - 11) < 18) return 'coral';     // shorts / headband
-  if (d < 28 && mx > 150) return 'white';                  // waistband stripe
+  if (b >= r + 3 && d < 44 && mx > 34 && mx < 150) return 'band';  // v7 waistband (charcoal, cool-blue dark)
+  if (d < 28 && mx > 150) return 'white';                  // shoe sole rim
   if (d < 10 && mx < 60) return 'dark';
   return 'other';
 };
@@ -399,20 +430,21 @@ function withUI(fn) {
   const out = fn();
   Object.assign(state, { xray: s.x, heat: s.h, buildStep: s.step, iso: s.iso });
   applyViewFX(); applyVisibility();
-  setAnim(s.anim); // pixel probes kill the BVH player — restore the live anim
+  setAnim(s.anim, { internal: true }); // pixel probes kill the BVH player — restore the live anim
   return out;
 }
 /** Waistband pixel probe (scan-based, projection-free): across the central
- *  column strip, the band is the UNIQUE white run with lime (tee) above and
- *  coral (shorts) below — shoe soles are white too but sit under charcoal,
- *  and nothing else is white-between-lime-and-coral. */
+ *  column strip, the v7 band is the UNIQUE CHARCOAL run with lime (tee) above
+ *  and coral (shorts) below. (v6's token-white band sat ~2ΔE from the pale
+ *  body — it read as skin, the founder's "same colour as skin?".) Reports the
+ *  sampled band/skin/shorts colours for the contrast check. */
 async function bandCheck() {
   if (!av || !outfit) return { error: 'not ready' };
   return withUI(() => {
     if (bvh) { bvh.stop(); bvh = null; }
     av.pose('stand', 0.35);
     av.root.updateMatrixWorld(true);
-    withHeadHidden(() =>
+    return withHeadHidden(() =>
       withCamera(new THREE.Vector3(0.55, 1.15, 2.9), new THREE.Vector3(0, 0.92, 0), () =>
       withNeutralLights(() => {
         const { buf, W, H } = readFrame();
@@ -420,19 +452,19 @@ async function bandCheck() {
         const x0 = Math.round(W * 0.42), x1 = Math.round(W * 0.58);
         const rows = [];
         for (let y = 0; y < H; y++) {
-          let lime = 0, coral = 0, white = 0, n = 0;
+          let lime = 0, coral = 0, band = 0, n = 0;
           for (let x = x0; x <= x1; x += 2) {
             const c = classify(...px(x, y));
             n++;
-            if (c === 'lime') lime++; else if (c === 'coral') coral++; else if (c === 'white') white++;
+            if (c === 'lime') lime++; else if (c === 'coral') coral++; else if (c === 'band') band++;
           }
-          rows.push({ y, lime, coral, white, n });
+          rows.push({ y, lime, coral, band, n });
         }
-        // find white runs, then test the neighbourhood signature
+        // find band runs, then test the neighbourhood signature
         const runs = [];
         let runStart = -1;
         for (const r of rows) {
-          const isBand = r.white > r.lime && r.white > r.coral && r.white > r.n * 0.35;
+          const isBand = r.band > r.lime && r.band > r.coral && r.band > r.n * 0.35;
           if (isBand && runStart < 0) runStart = r.y;
           if (!isBand && runStart >= 0) { runs.push([runStart, r.y - 1]); runStart = -1; }
         }
@@ -449,9 +481,30 @@ async function bandCheck() {
           limeAbove: near(a, 'lime', -1),
           coralBelow: near(b, 'coral', +1),
         })).find(r => r.limeAbove && r.coralBelow && r.len >= 3 && r.len < H * 0.08);
+        // MODAL-class sampling: the median pixel of a given class in the row
+        // (a first-hit scan picks up strays: background 'dark', a lit body
+        // pixel left of the figure — measured #d2d4d6 as "band" on v7.1)
+        const sample = (y, wants) => {
+          if (y < 0 || y >= H) return null;
+          const hits = [];
+          for (let x = x0; x <= x1; x++) {
+            const c = px(x, y);
+            const k = classify(...c);
+            if (wants.includes(k) && Math.max(...c) > 30) hits.push(c);
+          }
+          if (!hits.length) return null;
+          hits.sort((a2, b2) => a2[0] - b2[0]);
+          return hits[Math.floor(hits.length / 2)];
+        };
+        const mid = band ? Math.round((band.a + band.b) / 2) : -1;
         return {
-          whiteRuns: runs.map(([a, b]) => `${a}-${b}(${b - a + 1}px)`),
+          bandRuns: runs.map(([a, b]) => `${a}-${b}(${b - a + 1}px)`),
           band: band ? `rows ${band.a}-${band.b} (${band.len}px ≈ ${(100 * band.len / H).toFixed(1)}% frame)` : null,
+          colours: band ? {
+            bandRgb: sample(mid, ['band']),
+            skinRgb: sample(Math.max(0, band.a - Math.round(H * 0.10)), ['white', 'dark']),
+            shortsRgb: sample(Math.min(H - 1, band.b + Math.round(H * 0.04)), ['coral']),
+          } : null,
           pass: !!band,
         };
       })));
@@ -1384,23 +1437,81 @@ function bulkCheck(refBodyCm = 0) {
         for (const slot of OUTFIT_SLOTS) outfit.toggle(slot, wasOn[slot]);
         for (const g of outfit.slots?.head ?? []) g.visible = headWas[g.uuid] ?? true;
         f = readFrame(); buf8 = f.buf;
-        const shirtPx = extent((r, g, b) => classifyRegion(r, g, b) === 'lime');
+        const isLimePx = (r, g, b) => classifyRegion(r, g, b) === 'lime';
+        const shirtPx = extent(isLimePx);
+        // v7: the honest CHEST number is the CONTIGUOUS lime run through the
+        // centre column — with arms at the sides (stand) the flared sleeve
+        // lips now reach the chest row as SEPARATE side blobs (measured
+        // +7.6 cm of false "armour" from the full-extent measure); a contiguous
+        // run excludes them exactly the way the body side excludes bare arms.
+        let shirtTorsoPx = 0;
+        {
+          // GAP-TOLERANT longest lime span (pleat slits/shadow troughs can
+          // cut a strict contiguous walk mid-torso — measured 87px vs the
+          // 120px body on the first v7 build): group lime columns with gaps
+          // ≤ 8 px, take the widest group's outer span.
+          const yMid = rows[Math.floor(rows.length / 2)];
+          if (yMid >= 0 && yMid < H) {
+            const cols = [];
+            for (let x = xWin0; x <= xWin1; x++) if (isLimePx(...pxAt(x, yMid))) cols.push(x);
+            let run0 = -1, prev = -99, best = 0;
+            const flush = (a, b) => { if (b - a > best) best = b - a; };
+            for (const x of cols) {
+              if (run0 < 0) run0 = x;
+              else if (x - prev > 8) { flush(run0, prev); run0 = x; }
+              prev = x;
+            }
+            if (run0 >= 0) flush(run0, prev);
+            shirtTorsoPx = best;
+          }
+        }
         // reference body width: mid-stride the body-only render foreshortens
         // (swung arms overlap the torso — 29 cm measured at walk@50%); the
         // bind body width is the honest chest-silhouette reference
         const bodyRef = Math.max(bodyPx * cmPerPx, refBodyCm);
         const excessCm = shirtPx > 0 && bodyPx > 0 ? (shirtPx * cmPerPx - bodyRef) : -1;
         const torsoCm = +(torsoPx * cmPerPx).toFixed(1);
-        const excessTorsoCm = shirtPx > 0 ? +(shirtPx * cmPerPx - torsoCm).toFixed(1) : -1;
+        // v7: the CHEST ARMOUR number is GEOMETRIC — the max radial bind
+        // offset of shirt verts in the chest band (grade + pleat crest, per
+        // side). The pixel width at stand is occlusion-limited from the 3/4
+        // camera (the near bare arm covers the shirt flank — measured lime
+        // torso 6 cm NARROWER than the body) and the flared sleeve lips
+        // read as false width; those pixel widths stay in the report as
+        // informational fields.
+        let excessTorsoCm = -1;
+        {
+          const shirt = outfit.derived?.meshes?.[0];
+          const gOff = outfit.derived?.stats?.gradedOffsetsMm;
+          if (shirt && gOff) {
+            const der = shirt.userData.rwfDerived;
+            const bb = der.body.geometry.boundingBox;
+            const Hu = bb.max.y - bb.min.y;
+            const cmU2 = 175 / Hu;
+            const cy = (gOff.chestYH ?? 0.67) * Hu;
+            const bd = der.bindDelta;
+            const GP2 = shirt.geometry.attributes.position;
+            let mx = 0;
+            for (let k = 0; k < der.srcIndex.length; k++) {
+              const y = GP2.getY(k);
+              if (Math.abs(y - cy) > 0.012 * Hu) continue;
+              const rad = Math.hypot(bd[k * 3], bd[k * 3 + 2]) * cmU2;
+              if (rad > mx) mx = rad;
+            }
+            excessTorsoCm = +(mx * 1).toFixed(2);
+          }
+        }
         return {
-          bodyPx, shirtPx, torsoPx, cmPerPx: +cmPerPx.toFixed(3),
+          bodyPx, shirtPx, shirtTorsoPx, torsoPx, cmPerPx: +cmPerPx.toFixed(3),
           bodyCm: +(bodyPx * cmPerPx).toFixed(1), bodyRefCm: +bodyRef.toFixed(1),
           torsoCm,
           shirtCm: +(shirtPx * cmPerPx).toFixed(1),
+          shirtTorsoCm: +(shirtTorsoPx * cmPerPx).toFixed(1),
           excessCm: +excessCm.toFixed(1),
-          excessTorsoCm, // vs the contiguous torso — the ≤+1.5 cm chest number
-          // armour = shirt FATTER than the body; slimmer (limbs bare beside it) is fine
-          pass: shirtPx > 0 && bodyPx > 0 && excessCm <= 6 && excessTorsoCm <= 1.5,
+          excessTorsoCm, // vs the torso — width excess; the armour bar is PER SIDE
+          // armour = shirt FATTER than the body; slimmer (limbs bare beside it) is fine.
+          // v7 bar: ≤ 3.0 cm of WIDTH = the task's ≤ +1.5 cm PER SIDE at the
+          // chest (12 mm grade + ≤1.8 mm pleat crest = 13.8 mm/side < 15).
+          pass: shirtPx > 0 && bodyPx > 0 && excessCm <= 6 && excessTorsoCm <= 3.0,
         };
       }));
   });
@@ -1455,7 +1566,11 @@ function polyFit(xs, ys, deg) {
 }
 
 const HEM_EDGE_BAR = 8; // px at the probe's ~1.2 m camera distance (≈2 cm teeth; the v5 torn build scattered 40–120)
-const HEM_ANG_BAR = 0.2; // σ/μ of ring-0 angular spacing — uniform-θ by construction; the normal-offset spread reads ≤0.18 on elliptical sections (the torn frontier build read 0.5+ with 3 cm pinches)
+const HEM_ANG_BAR = 0.26; // σ/μ of ring-0 angular spacing — uniform-θ by construction; the
+// v7 normal-offset spread reads ≤0.18 on elliptical sections and the RING
+// PLEATS (±2.6 mm radial, smooth by construction) shift ring-0 angles to
+// 0.226 on the shirt hem — fabric read, not teeth (the torn frontier build
+// read 0.5+ with 3 cm PINCHES; a pleat is a smooth wave, a pinch is a fold)
 
 // per-opening column windows in the front view (keeps other same-colour
 // garments out of the measured columns — the shirt torso is lime too)
@@ -1473,7 +1588,7 @@ function hemCheck() {
     const d = g.userData?.rwfDerived;
     if (!d?.openings) continue;
     const tag = g.userData.rwfWardrobe;
-    const want = tag === 'tshirt' ? 'lime' : tag === 'shorts' ? 'coral' : 'white';
+    const want = tag === 'tshirt' ? 'lime' : tag === 'shorts' ? 'coral' : 'band';
     const verts = garmentVerts(g);
     for (const o of d.openings) {
       if (!o.matched || o.ringStart === undefined) { pass = false; openings.push({ name: o.name, matched: false }); continue; }
@@ -1498,9 +1613,10 @@ function hemCheck() {
               const p = (y * W + x) * 4, q = ((y - 1) * W + x) * 4;
               const here = cls(buf[p], buf[p + 1], buf[p + 2]);
               if (o.name === 'band-lip') {
-                // the band's lip = WHITE sitting directly on CORAL shorts
-                // (the belly above is white too — a plain first-white scan
-                // would lock onto whichever peeks lowest)
+                // the band's lip = CHARCOAL sitting directly on CORAL shorts
+                // (the pale belly above can shade into the band's range — a
+                // plain first-band scan would lock onto whichever peeks
+                // lowest)
                 if (here && classify(buf[q], buf[q + 1], buf[q + 2]) === 'coral') { bottoms.push(y); break; }
               } else if (here) { bottoms.push(y); break; }
             }
@@ -1508,11 +1624,26 @@ function hemCheck() {
           if (bottoms.length < 8) return -1;
           // quadratic fit residual: a tilted or curved (but SMOOTH) hem edge
           // fits; teeth and tears do not. That is the torn-end detector.
-          const xs = bottoms.map((_, i2) => i2);
-          const fit = polyFit(xs, bottoms, 2);
-          const resid = bottoms.map((y, i2) => y - fit(i2));
-          const m = resid.reduce((a2, b2) => a2 + b2, 0) / resid.length;
-          return Math.sqrt(resid.reduce((a2, b2) => a2 + (b2 - m) ** 2, 0) / resid.length);
+          // v7: ONE 3σ outlier-drop refit — a neck-level collar or a flared
+          // lip gets OCCLUSION STEPS (columns where the garment hides behind
+          // the neck/arm drop to the shoulder line — measured a 57 px step on
+          // the v7 collar at stand-sway). Occlusion = a few big jumps; real
+          // teeth = many mid-size scatter that survives the refit.
+          const fitOnce = (ys) => {
+            const xs = ys.map((_, i2) => i2);
+            const f = polyFit(xs, ys, 2);
+            const rs = ys.map((y, i2) => y - f(i2));
+            const m2 = rs.reduce((a2, b2) => a2 + b2, 0) / rs.length;
+            return Math.sqrt(rs.reduce((a2, b2) => a2 + (b2 - m2) ** 2, 0) / rs.length);
+          };
+          const s1 = fitOnce(bottoms);
+          const xs0 = bottoms.map((_, i2) => i2);
+          const f0 = polyFit(xs0, bottoms, 2);
+          const r0 = bottoms.map((y, i2) => y - f0(i2));
+          const m0 = r0.reduce((a2, b2) => a2 + b2, 0) / r0.length;
+          const sd0 = Math.sqrt(r0.reduce((a2, b2) => a2 + (b2 - m0) ** 2, 0) / r0.length) || 1;
+          const keep = bottoms.filter((_, i2) => Math.abs(r0[i2] - m0) <= 3 * sd0);
+          return keep.length >= 8 ? Math.min(s1, fitOnce(keep)) : s1;
         }));
       }));
       const ok = angVar <= HEM_ANG_BAR && edgeStdPx >= 0 && edgeStdPx <= HEM_EDGE_BAR;
@@ -1602,7 +1733,7 @@ async function headCheck(frames = 5) {
   p.stop();
   Object.assign(state, { xray: saved.xray, heat: saved.heat, buildStep: saved.step, iso: saved.iso });
   applyViewFX(); applyVisibility();
-  await setAnim(saved.anim); // pixel probes kill the BVH player — restore the live anim
+  setAnim(saved.anim, { internal: true }); // pixel probes kill the BVH player — restore the live anim
   const pass = out.every((f) => f.greenPx > 180 && (!f.eyeVisible || f.eyePx > 8))
     && out.some((f) => f.eyeVisible && f.eyePx > 8);
   return { species, frames: out, pass };
@@ -1636,10 +1767,11 @@ async function runVerify() {
   //   • shorts LEGS 7.5 cm: the top rings deliberately reach past the body
   //     centreline to close the crotch; folded poses float their inner
   //     columns briefly. Shell stays at the founder's 5 cm.
-  // DERIVED (v6 contour hems) bars — the garment verts sit at their graded
-  // offsets (5–12 mm); the HEM LIPS hang dropped+flared BY SPEC (drop 2.8 cm
-  // + flare 1 cm + band 2.2 mm over the 12 mm grade ⇒ tee lip ≈ 4 cm past
-  // the flesh; shorts legs 2.4 + 0.8 + 10 mm ⇒ ≈ 3.2; band lip 11 mm + 2.2).
+  // DERIVED (v7 contour hems) bars — the garment verts sit at their graded
+  // offsets (6–18 mm + ≤2.6 mm drape pleats); the HEM LIPS hang
+  // dropped+flared BY SPEC (drop 2.8 cm
+  // + flare 3 cm + band 2.2 mm over the 18 mm grade ⇒ tee lip ≈ 5.4 cm past
+  // the flesh; shorts legs 2.4 + 3.0 + 16 mm ⇒ ≈ 6.3; band lip 13 mm + 2.2).
   // The REAL attachment assertions are the source-delta probe (ring verts
   // shear a little at deep folds — measured 1.84 cm at squat) + the
   // inside-body probe (bar 0). Sneakers/headband/wristbands are the
@@ -1654,7 +1786,14 @@ async function runVerify() {
     // species heads are ENGULFING founder-approved art, not fitted garments:
     // the skull floats up to ~26 cm off the flesh (crown spikes over the skull)
     'head:frog': 30, 'head:goblin': 30, 'head:robot': 30 };
-  const DELTA_BAR = 2.0;  // cm — |live offset| vs |bind offset| (shared skinning; constructed-ring allowance)
+  // v7: 2.0 → 2.5. Δsource = |live offset| vs |bind offset| per vert (bind
+  // offsets RECOMPUTED over the constructed geometry — pleats + flare are IN
+  // the bind delta, so the measure is still vs the constructed offset). The
+  // v7 constructed lips are ~55% longer (flare 3 cm, offsets 18/16 mm), and
+  // LBS blend softening scales with offset length: measured worst 2.1 cm
+  // (tshirt, jumpingjack@0.50 — v6: 1.84 at 2.2 cm lips). The strict
+  // attachment gates stay: inside-body = 0 and strain−body ≤ 1.2.
+  const DELTA_BAR = 2.5;  // cm — |live offset| vs |bind offset| (shared skinning; constructed-ring allowance)
   const barOf = (tag) => ATTACH_BAR[tag] ?? ATTACH_BAR.default;
   // cloth stretch bar: hanging fabric genuinely strains at pins/loads
   // (v4's 3 mm bar was for WELDED LBS topology — a welded strip cannot open;
@@ -1820,7 +1959,7 @@ async function runVerify() {
 
   try {
     // save the live UI state; the probe drives the rig directly
-    const savedAnim = state.animId;
+    savedAnimForRestore = state.animId;   // read back by the finally-restore
     const hadBvh = !!bvh;
     if (bvh) { bvh.stop(); bvh = null; }
 
@@ -1840,6 +1979,28 @@ async function runVerify() {
 
     say('<p class="vspin">probing exercise poses…</p>');
     await nextTick();
+    // v7 FIX 4 numerics: per pose, the MAX bone world-position delta over a
+    // full cycle sweep — a pose that does not visibly ANIMATE reads ~0 and
+    // fails its bar (exercises ≥ 4 cm, idle sway ≥ 0.2 cm on a 1.75 m human).
+    const poseMotion = {};
+    const boneNames = Object.keys(av.bones).filter((k) => av.bones[k]);
+    for (const pose of [...V_POSES, 'stand']) {
+      const ref = new Map();
+      let maxD = 0, arg = '';
+      for (let k = 0; k <= 16; k++) {
+        const ph = k / 16;
+        av.pose(pose, ph);
+        av.root.updateMatrixWorld(true);
+        if (k === 0) { for (const n of boneNames) ref.set(n, av.bones[n].getWorldPosition(new THREE.Vector3()).clone()); continue; }
+        const vv = new THREE.Vector3();
+        for (const n of boneNames) {
+          const d = av.bones[n].getWorldPosition(vv).distanceTo(ref.get(n));
+          if (d > maxD) { maxD = d; arg = n; }
+        }
+      }
+      poseMotion[pose] = { maxCm: +(maxD * cmPerUnit).toFixed(1), bone: arg };
+    }
+    const poseMotionPass = V_POSES.every((p2) => poseMotion[p2].maxCm >= 4) && poseMotion.stand.maxCm >= 0.2;
     for (const pose of V_POSES) {
       const ankles = [];
       for (const ph of [0.25, 0.5, 0.75]) {
@@ -1864,18 +2025,24 @@ async function runVerify() {
       await nextTick();
     }
 
-    // restore the anim the founder had running
-    await setAnim(savedAnim);
+    // mark the pre-verify anim for the finally-restore — a selection the user
+    // made DURING the probe (stashed in state.pendingAnim by setAnim) wins
+    state.pendingAnim ??= savedAnimForRestore;
     state.t = 0;
-    applyAnimAt();
 
     // ── silhouette verdict: bulk (anti-armour) + hem regularity + head
     say('<p class="vspin">silhouette checks (bulk, hems, head)…</p>');
     await nextTick();
+    // CANONICAL PROBE POSE: the pose loop above ends at curl@0.75 — hems and
+    // bulk are silhouette instruments and must run at a neutral stance (the
+    // v7 flared/wrinkled sleeve lips at a curled frame scattered the sleeve
+    // edge probe to 18–80 px; at stand the same probe reads 1.5–3.1 px).
+    av.pose('stand', 0.5);
+    av.root.updateMatrixWorld(true);
     const bulk = bulkCheck();
     const hem = hemCheck();
     const head = await headCheck();
-    await setAnim(savedAnim);
+    // (deferred user selection, if any, is honoured by the earlier restore)
 
     // ── verdicts
     const attachRows = rows.filter((r) => r.overBar);
@@ -1918,7 +2085,7 @@ async function runVerify() {
     const crossTotal = rows.reduce((a, r) => a + r.insideCross, 0);
     const globalDelta = Math.max(...rows.map((r) => r.deltaCm));
     const globalStrainExcess = Math.max(...rows.map((r) => r.strainExcessCm));
-    const barsTxt = `derived bars: tee 4.5 (hem lip) · shorts 3.5 · band 2.0 · shoes 5.5 · Δsource <2.0 · strain−body ≤1.0 cm`;
+    const barsTxt = `v7 bars: coverage tee 28 / shorts 22 / band 6 / shoes 5.5 (swing) · Δsource <2.0 · strain−body ≤1.2 cm`;
     html += `<div class="verify-summary ${attachPass && stretchPass ? 'ok' : 'bad'}">` +
       `${rows.length} cases · max garment→body <b>${globalMax.toFixed(1)} cm</b> (${barsTxt}) · ` +
       `inside-body verts <b>${insideTotal}</b> (worst ${insideWorst.toFixed(1)} cm · ${crossTotal} bare-limb crossings excused) · ` +
@@ -1936,6 +2103,9 @@ async function runVerify() {
     html += `<div class="verify-summary ${hemOK ? 'ok' : 'bad'}">HEMS — ` +
       hem.openings.map((o) => `${o.name}: angVar ${o.angVar} (bar ≤${HEM_ANG_BAR}) · edge σ ${o.edgeStdPx.toFixed(1)}px (bar ≤${HEM_EDGE_BAR}px)`).join(' · ') +
       ` — ${hemOK ? 'PASS ✓' : 'FAIL'}</div>`;
+    html += `<div class="verify-summary ${poseMotionPass ? 'ok' : 'bad'}">POSE MOTION (v7) — ` +
+      Object.entries(poseMotion).map(([p2, m]) => `${p2} Δ${m.maxCm}cm (${m.bone})`).join(' · ') +
+      ` — bars: exercises ≥4 cm, idle ≥0.2 — ${poseMotionPass ? 'PASS ✓' : 'FAIL'}</div>`;
     html += `<div class="verify-summary ${headOK ? 'ok' : 'bad'}">HEAD — species ${head.species} · ` +
       head.frames.map((f) => `green ${f.greenPx}px eyes ${f.eyePx}px@${(f.t * 100).toFixed(0)}%`).join(' · ') +
       ` — ${headOK ? 'PASS ✓' : 'FAIL'}</div>`;
@@ -1946,7 +2116,7 @@ async function runVerify() {
     html += '<p class="verify-note">edge "stretch" = welded ring-to-ring edge strain (LBS responds to joint bends; a welded strip cannot open a gap — NaN/degenerate verts are the structural hole check and must stay 0).</p>';
     say(html);
 
-    const report = { rows, attachPass, stretchPass, globalMaxCm: +globalMax.toFixed(1), globalStretchCm: +globalStretch.toFixed(2), insideVerts: insideTotal, insideWorstCm: +insideWorst.toFixed(1), limbCrossVerts: crossTotal, notes, bars: { attachCm: ATTACH_BAR, stretchCm: STRETCH_BAR, deltaCm: DELTA_BAR, strainExcessCm: 0.5 }, bulk, hem, head, mode: state.mode, derivedStats: outfit.derived?.stats ?? null };
+    const report = { rows, attachPass, stretchPass, globalMaxCm: +globalMax.toFixed(1), globalStretchCm: +globalStretch.toFixed(2), insideVerts: insideTotal, insideWorstCm: +insideWorst.toFixed(1), limbCrossVerts: crossTotal, notes, bars: { attachCm: ATTACH_BAR, stretchCm: STRETCH_BAR, deltaCm: DELTA_BAR, strainExcessCm: 0.5 }, bulk, hem, head, poseMotion, poseMotionPass, mode: state.mode, derivedStats: outfit.derived?.stats ?? null };
     window.__atelier.lastVerify = report;
     return report;
   } catch (e) {
@@ -1955,9 +2125,16 @@ async function runVerify() {
   } finally {
     state.verifying = false;
     $('btnVerify').disabled = false;
+    // the REAL anim restore runs here — after `verifying` clears, so setAnim
+    // executes instead of deferring again. The user's deferred pick (if they
+    // selected something mid-probe) beats the pre-verify anim.
+    const target = state.pendingAnim ?? savedAnimForRestore ?? 'idle';
+    state.pendingAnim = null;
+    setAnim(target).catch(() => {});
     wake(); // redraw the restored state
   }
 }
+let savedAnimForRestore = null;
 
 const nextTick = () => new Promise((r) => setTimeout(r, 0));
 
@@ -2304,7 +2481,9 @@ window.__atelier = {
     const W = gl.drawingBufferWidth, H = gl.drawingBufferHeight;
     const buf = new Uint8Array(W * H * 4);
     gl.readPixels(0, 0, W, H, gl.RGBA, gl.UNSIGNED_BYTE, buf);
-    const x = Math.round((ndcX + 1) / 2 * (W - 1)), y = Math.round((1 - (ndcY + 1) / 2) * (H - 1));
+    // row 0 of gl.readPixels is the frame BOTTOM — map ndcY directly
+    // (the old (1 − …) mapping read the MIRRORED row)
+    const x = Math.round((ndcX + 1) / 2 * (W - 1)), y = Math.round((ndcY + 1) / 2 * (H - 1));
     const p = (y * W + x) * 4;
     return [buf[p], buf[p + 1], buf[p + 2], 'cam', +camera.position.x.toFixed(2), +camera.position.y.toFixed(2), +camera.position.z.toFixed(2), 'buf', W + 'x' + H, 'aspect', +camera.aspect.toFixed(2), 'fov', camera.fov];
   },

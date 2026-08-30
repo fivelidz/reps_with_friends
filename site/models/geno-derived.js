@@ -47,9 +47,23 @@
 // Δsource probe ("garment verts track their body verts") stays meaningful
 // and measures ≈0 through shared skinning.
 //
-// Slots: tshirt (torso + sleeves, one mesh) · shorts · waistband (+9→11 mm,
-// always proud) · head (SPECIES HEADS ported from geno-wardrobe.js: frog
-// with crown by default, goblin/robot secondary) · sneakers/headband/
+// ── v7 (the founder's four fixes) ────────────────────────────────────────────
+//   • COLLAR AT THE NECK BASE: the collar line is measured from the anatomy
+//     (flesh cross-sections — the narrow ring above the trapezius flare),
+//     not a spine-top heuristic. v6 cut 2.2%H below the Neck joint, which on
+//     Geno sat ~4 cm down the traps ("around the shoulders, not the neck").
+//   • WAISTBAND CHARCOAL: token-white (#e8ebef) was ~2ΔE from the body tint
+//     (#eceef1) — the band read as flesh. It is now solid charcoal, no
+//     vertex tint, distinct from both the pale body and the coral shorts.
+//   • LOOSER + DRAPE: graded offsets up (collar 6 → chest 12 → hem 18 mm;
+//     sleeves 8→12; shorts 10→16; band stays proud at 12/13), hem flare
+//     3 cm, and low-frequency vertical PLEATS + sag bias baked into the
+//     bind offset (DERIVED_SPEC.wrinkle) — a fabric read at zero runtime
+//     cost (skinning unchanged, Δsource measures vs the constructed offset).
+//
+// Slots: tshirt (torso + sleeves, one mesh) · shorts · waistband (solid
+// charcoal, always proud) · head (SPECIES HEADS ported from geno-wardrobe.js:
+// frog with crown by default, goblin/robot secondary) · sneakers/headband/
 // wristbands stay the founder-approved v4 pieces from geno-outfit.js.
 // A species head swallows the headband — the headband auto-hides while a
 // head is active (the crown is the head decoration).
@@ -67,30 +81,48 @@ import { attachHead } from './geno-wardrobe.js';
 
 // ── construction constants (metric — converted via the model's own height) ──
 export const DERIVED_SPEC = {
-  // height-graded offsets (mm) — "hanging loose a tiny bit out from the skin"
-  shirt: { collarMm: 5, chestMm: 9, hemMm: 12 },   // a tee hangs looser lower
-  sleeve: { topMm: 6, hemMm: 8 },                  // grade along the arm
-  shorts: { waistMm: 8, hemMm: 10 },               // graded slack down the leg
-  band: { topMm: 9, bottomMm: 11 },                // waistband rides proud
+  // v7 height-graded offsets (mm) — "all clothes should hang or be loose like
+  // fabric": collar +6 → chest +12 → hem +18 (v6 was 5/9/12). Anti-armour
+  // still holds: chest 12 mm + ≤1.8 mm of wrinkle crest < the +15 mm bar.
+  shirt: { collarMm: 6, chestMm: 12, hemMm: 18 },   // a tee hangs looser lower
+  sleeve: { topMm: 8, hemMm: 12 },                  // grade along the arm
+  shorts: { waistMm: 10, hemMm: 16 },               // graded slack down the leg
+  band: { topMm: 12, bottomMm: 13 },                // stays PROUD of the 10 mm shorts shell
   // contour-hem construction
   ringSamples: 64,       // uniform angular samples per ring
   contourBins: 64,       // polar bins for the smoothed cross-section profile
   hemDropCm: 2.8,        // shirt hem ring drop
-  hemFlareCm: 1.0,       // shirt hem outward flare at the lip
+  hemFlareCm: 3.0,       // v7: shirt hem outward flare at the lip (was 1.0) —
+  //                         openings visibly stand off the body
   sleeveDropCm: 2.0,     // sleeve hem drop along the arm axis
-  sleeveFlareCm: 0.8,
+  sleeveFlareCm: 2.0,    // was 0.8
   legDropCm: 2.4,        // shorts leg hem drop
-  legFlareCm: 0.8,
+  legFlareCm: 3.0,       // was 0.8
   lipDropCm: 1.0,        // waistband bottom lip drop
   bandHcm: 1.4,          // finished-edge band height (folded-hem strip)
   bandExtraMm: 2.2,      // band bulge at the lip (double-thickness read)
-  bandTint: 0.82,        // band vertex-colour multiplier (tone darker)
+  bandTint: 1,           // v7: the waistband is a SOLID charcoal — no vertex
+  //                         tint (the old 0.82 tint over a near-body white
+  //                         read as flesh; see colors.waistband below)
   collarRibMm: 3.0,      // ribbed collar band offset
   collarRibStepMm: 0.4,  // alternating rib bulge
   collarRibHcm: 1.5,     // rib band height (3 rings up the neck line)
   ribTint: 0.86,
+  // v7 FIX 1: the collar is cut at the MEASURED NECK BASE — the narrow flesh
+  // ring above the trapezius flare (profiled from the body's own
+  // cross-sections at build) — plus this much clearance above the flare line.
+  collarRiseCm: 0.4,
+  // v7 FIX 3: DRAPE WRINKLES — purely geometric, baked into the bind offset
+  // (zero runtime cost, inherited skinning unchanged). Low-frequency vertical
+  // pleats: radial sin around the garment axis, amplitude deeper near the hem
+  // and fading to 0 at the collar/seams, plus a slight vertical sag bias.
+  wrinkle: {
+    shirtPleats: 10, shirtAmpMm: 2.6, shirtSagMm: 2.0,
+    sleevePleats: 8, sleeveAmpMm: 2.2, sleeveSagMm: 1.2,
+    shortsPleats: 11, shortsAmpMm: 2.6, shortsSagMm: 1.6,
+    envPow: 1.3,         // envelope curvature: slow build, deep at the hem
+  },
   // region geometry (v5 values — the approved fit planes)
-  collarDropH: 0.022,    // collar line: this far BELOW the neck joint (×H)
   bandTopH: 0.0047,      // band top below the spine/waist joint (×H, v4 value)
   bandHcmWaist: 2.5,     // waistband height
   shirtHemH: 0.018,      // shirt region bottom above the band top
@@ -406,6 +438,8 @@ function extractGarment(body, inRegion, plan, tag, mat, ctx) {
   const pos = [], nrm = [], si4 = [], sw4 = [], tint = [];
   const roles = new Array(nBase);
   const v = new THREE.Vector3(), nv = new THREE.Vector3(), out = new THREE.Vector3();
+  const wOut = new THREE.Vector3();
+  let wrinkleCalls = 0, wrinkleMag = 0;   // instrumented (v7): wrinkle reach
   for (let k = 0; k < nBase; k++) {
     const i = src[k];
     v.fromBufferAttribute(P, i);
@@ -414,6 +448,14 @@ function extractGarment(body, inRegion, plan, tag, mat, ctx) {
     roles[k] = role.kind;
     if (role.snap) v.copy(role.snap(v));            // cut at the smooth plane
     out.copy(v).addScaledVector(nv, role.offMm * mm);
+    // v7 DRAPE WRINKLE: radial pleats + vertical sag, purely geometric at
+    // bind (see DERIVED_SPEC.wrinkle). Baked into the offset — skinning and
+    // the Δsource probe see it as part of the constructed bind offset.
+    if (plan.wrinkleAt) {
+      plan.wrinkleAt(rep[i], nv, v, wOut);
+      out.add(wOut);
+      wrinkleCalls++; wrinkleMag = Math.max(wrinkleMag, wOut.length());
+    }
     pos.push(out.x, out.y, out.z);
     nrm.push(nv.x, nv.y, nv.z);
     for (let j = 0; j < 4; j++) {
@@ -636,6 +678,14 @@ function extractGarment(body, inRegion, plan, tag, mat, ctx) {
         const p = pt.clone()
           .addScaledVector(opening.dropDir, lay.dCm * cm)
           .addScaledVector(n2, (opening.gMm + lay.extra) * mm + (opening.flareCm ?? 0) * sK * cm);
+        // v7 drape: the hem lips wrinkle too (full envelope at the opening) so
+        // the zipper seam between the cut boundary and ring 0 stays smooth —
+        // the boundary verts carry the same sin(kθ) at env 1.
+        if (opening.wrinkle) {
+          const w = opening.wrinkle;
+          p.addScaledVector(n2, w.ampMm * Math.sin(w.pleats * th + (w.phase ?? 0)) * mm);
+          p.y -= w.sagMm * mm;
+        }
         row.push(addVert(p, n2, nearest(pt), opening.tint ?? 1));
       }
       ringIdx.push(row);
@@ -742,6 +792,7 @@ function extractGarment(body, inRegion, plan, tag, mat, ctx) {
   m.userData.rwfDerived = {
     body, srcIndex: Int32Array.from(src), bindDelta,
     regionVerts: count.region, frontierVerts: nBase - count.region,
+    wrinkleCalls, wrinkleMagMaxUnits: +wrinkleMag.toFixed(5),
     tris: tris.length / 3, degenerate,
     roles,
     openings: openingsReport,
@@ -781,7 +832,13 @@ export function attachDerivedOutfit(avatar, opts = {}) {
 
   const colors = {
     shorts: OUTFIT_TOKENS.coral,
-    waistband: OUTFIT_TOKENS.white,
+    // v7 FIX 2: the waistband is SOLID CHARCOAL. The old token-white
+    // (#e8ebef) sits ~2ΔE from the body tint (#eceef1) — with the band's
+    // 0.82–0.92 vertex tints over it, the strip read as FLESH ("same colour
+    // as skin?"). Charcoal is unambiguous against BOTH the pale body and the
+    // coral shorts (it is the founder-approved sneaker tone), and the band
+    // now carries NO vertex tint — material colour only.
+    waistband: OUTFIT_TOKENS.charcoal,
     tshirt: OUTFIT_TOKENS.lime,
     headband: OUTFIT_TOKENS.coral,
     wristbands: OUTFIT_TOKENS.lime,
@@ -828,8 +885,60 @@ export function attachDerivedOutfit(avatar, opts = {}) {
   const armLs = bp(B.armL), armLe = bp(B.foreL), armRs = bp(B.armR), armRe = bp(B.foreR);
   const legLs = bp(B.upLegL), legLe = bp(B.legL), legRs = bp(B.upLegR), legRe = bp(B.legR);
 
+  // per-vertex body data (needed by the neck profile below — declared early)
+  const dom = dominantBones(body);
+  const P = body.geometry.attributes.position;
+  const vTmp = new THREE.Vector3();
+  const yOf = (i) => P.getY(i);
+  const DOWN = new THREE.Vector3(0, -1, 0);
+
   // heights (body-local y)
-  const collarY = neckP.y - S.collarDropH * H;
+  // v7 FIX 1 — the collar line is the MEASURED NECK BASE, not a spine-top
+  // heuristic. The old collarDropH cut 2.2%H below the Neck joint, which on
+  // Geno lands ~4 cm down the trapezius shelf (measured: joint 147.8 cm,
+  // narrow neck ring 150 cm r≈9.4 cm, flare starts ≈148.6 cm — the cut sat
+  // at 143.9 cm, r≈17.6 cm = ON the shoulders). Profile the upper-torso
+  // flesh around the hips→neck axis; the neck is the narrow cylinder near
+  // the joint; the base is where the section flares past 1.28× that radius
+  // walking DOWN. The ribbed band then rings the base and rises above it.
+  const neckBaseY = (() => {
+    const upperNames = new Set(['Neck', 'Neck1', 'Head', 'Spine3', 'Spine2', 'LeftShoulder', 'RightShoulder']);
+    const upper = new Set();
+    skin.skeleton.bones.forEach((b) => { if (upperNames.has(rawName(b.name))) upper.add(b); });
+    const yLo = (B.spine2 ? bp(B.spine2).y : hipsP.y) + 0.04 * H;   // chest up
+    const yHi = neckP.y + 0.045 * H;                                 // mid-neck up
+    const NB = 36, bh = (yHi - yLo) / NB;
+    const binR = new Array(NB).fill(0);
+    const vv = new THREE.Vector3();
+    for (let i = 0; i < P.count; i++) {
+      const b = skin.skeleton.bones[dom[i]];
+      if (!b || !upper.has(b)) continue;
+      vv.fromBufferAttribute(P, i);
+      if (vv.y < yLo || vv.y >= yHi) continue;
+      const t = (vv.y - hipsP.y) / ((neckP.y - hipsP.y) || 1);
+      const ax = hipsP.x + (neckP.x - hipsP.x) * t, az = hipsP.z + (neckP.z - hipsP.z) * t;
+      const bi = Math.min(NB - 1, Math.max(0, Math.floor((vv.y - yLo) / bh)));
+      const r = Math.hypot(vv.x - ax, vv.z - az);
+      if (r > binR[bi]) binR[bi] = r;
+    }
+    // neck radius: the narrowest section in the joint's neighbourhood
+    const w0 = neckP.y - 0.008 * H, w1 = neckP.y + 0.03 * H;
+    let neckR = Infinity;
+    for (let b = 0; b < NB; b++) {
+      const y = yLo + (b + 0.5) * bh;
+      if (y >= w0 && y <= w1) neckR = Math.min(neckR, binR[b] || Infinity);
+    }
+    if (!isFinite(neckR) || neckR < 1e-4) neckR = 0.075;   // degenerate fallback
+    const thr = neckR * 1.28;
+    let base = neckP.y;                                // default: at the joint
+    for (let b = NB - 1; b >= 0; b--) {                // walk DOWN from above
+      const y = yLo + (b + 0.5) * bh;
+      if (y <= neckP.y + 0.002 * H && binR[b] > thr) { base = y + bh * 0.5; break; }
+    }
+    const floor = (B.spine2 ? bp(B.spine2).y : hipsP.y) + 0.08 * H;
+    return Math.min(neckP.y + 0.03 * H, Math.max(floor, base));
+  })();
+  const collarY = neckBaseY + S.collarRiseCm * cm;
   const bandTop = spineP.y - S.bandTopH * H;
   const bandBot = bandTop - S.bandHcmWaist * cm;
   const hipY = bandTop + S.shirtHemH * H;              // shirt region bottom
@@ -848,12 +957,6 @@ export function attachDerivedOutfit(avatar, opts = {}) {
     return (legLs.y + S.thighT * (legLe.y - legLs.y) + legRs.y + S.thighT * (legRe.y - legRs.y)) / 2;
   }
   const legCut = legCutY();
-
-  const dom = dominantBones(body);
-  const P = body.geometry.attributes.position;
-  const vTmp = new THREE.Vector3();
-  const yOf = (i) => P.getY(i);
-  const DOWN = new THREE.Vector3(0, -1, 0);
 
   // ── limb envelopes (measured from the mesh, bind space) ──────────────────
   // The whole-triangle rule pulls frontier verts of NEIGHBOUR bones into the
@@ -929,6 +1032,59 @@ export function attachDerivedOutfit(avatar, opts = {}) {
   };
   const inBand = (i) => inShorts(i) && yOf(i) >= bandBot;
 
+  // ── v7 drape wrinkles (FIX 3) ─────────────────────────────────────────────
+  // Low-frequency vertical pleats, PURELY GEOMETRIC at bind: radial
+  // sin(pleats·θ) around the garment's own axis + a slight world-down sag
+  // bias, amplitude deeper near the hem and fading to 0 at the collar and
+  // the top seams. Baked into the constructed offset → skinning, Δsource and
+  // the runtime cost are exactly what they were. θ uses the SAME planeBasis
+  // + axis-anchor convention as the ring builders, so the cut boundary and
+  // ring 0 wrinkle coherently and the zipper seam stays smooth.
+  const WK = S.wrinkle;
+  const envOf = (u) => Math.pow(Math.min(1, Math.max(0, u)), WK.envPow);
+  const upBasis = planeBasis(UP.clone());               // torso/leg ring basis
+  const sleeveBasis = { 1: planeBasis(armAxisV(1).clone().negate()), 2: planeBasis(armAxisV(2).clone().negate()) };
+  const thetaAround = (p, centre, basis) => {
+    const dx = p.x - centre.x, dy = p.y - centre.y, dz = p.z - centre.z;
+    return Math.atan2(dx * basis.e2.x + dy * basis.e2.y + dz * basis.e2.z,
+                      dx * basis.e1.x + dy * basis.e1.y + dz * basis.e1.z);
+  };
+  const armPointAt = (side, t) => new THREE.Vector3().lerpVectors(side === 1 ? armLs : armRs, side === 1 ? armLe : armRe, t);
+  const legPointAt = (side, t) => new THREE.Vector3().lerpVectors(side === 1 ? legLs : legRs, side === 1 ? legLe : legRe, t);
+  /** shirt wrinkle: sleeves by arm-axis t, torso by height (0 at collar →
+   *  1 at hem). Writes the displacement (model units) into `out2`. */
+  const shirtWrinkleAt = (i, nv, v, out2) => {
+    out2.set(0, 0, 0);
+    for (const side of [1, 2]) {
+      const info = axisInfo(side === 1 ? armLs : armRs, side === 1 ? armLe : armRe, v);
+      if (info.t < -0.05 || info.t > 1.1 || info.r > sleeveEnv[side]) continue;
+      const env = envOf((info.t - 0.12) / Math.max(1e-4, S.sleeveT - 0.12));
+      const th = thetaAround(v, armPointAt(side, info.t), sleeveBasis[side]);
+      out2.addScaledVector(nv, WK.sleeveAmpMm * env * Math.sin(WK.sleevePleats * th) * mm);
+      out2.y -= WK.sleeveSagMm * env * mm;
+      return;
+    }
+    // NOTE: the span is SIGNED (collarY > hipY) — write both terms the same
+    // way round, never Math.max-clamp the denominator (a negative span clamped
+    // to +1e-4 zeroed this envelope for the whole torso in the first v7 build)
+    const env = envOf((collarY - v.y) / Math.max(1e-4, collarY - hipY));
+    const th = thetaAround(v, spineAnchor(v.y), upBasis);
+    out2.addScaledVector(nv, WK.shirtAmpMm * env * Math.sin(WK.shirtPleats * th + 0.35) * mm);
+    out2.y -= WK.shirtSagMm * env * mm;
+  };
+  /** shorts wrinkle: 0 at the waistband → full at the leg hems; legs around
+   *  their own axis, pelvis around the spine axis. */
+  const shortsWrinkleAt = (i, nv, v, out2) => {
+    out2.set(0, 0, 0);
+    const env = envOf((bandTop - v.y) / Math.max(1e-4, bandTop - legCut));
+    const side = sideOfLeg(i);
+    const th = side
+      ? thetaAround(v, legPointAt(side, 0.5), upBasis)
+      : thetaAround(v, spineAnchor(v.y), upBasis);
+    out2.addScaledVector(nv, WK.shortsAmpMm * env * Math.sin(WK.shortsPleats * th + 1.1) * mm);
+    out2.y -= WK.shortsSagMm * env * mm;
+  };
+
   // ── openings (cut planes + regular-ring specs) ───────────────────────────
   const spineAnchor = (y) => new THREE.Vector3(hipsP.x + (neckP.x - hipsP.x) * ((y - hipsP.y) / (neckP.y - hipsP.y || 1)), y, hipsP.z + (neckP.z - hipsP.z) * ((y - hipsP.y) / (neckP.y - hipsP.y || 1)));
 
@@ -938,8 +1094,11 @@ export function attachDerivedOutfit(avatar, opts = {}) {
       P: new THREE.Vector3(0, hipY, 0), n: UP.clone(), dropDir: DOWN.clone(),
       dropCm: S.hemDropCm, flareCm: S.hemFlareCm, gMm: S.shirt.hemMm,
       anchor: spineAnchor(hipY), tol: 0.9 * cm, tint: S.bandTint,
+      wrinkle: { pleats: WK.shirtPleats, ampMm: WK.shirtAmpMm, sagMm: WK.shirtSagMm, phase: 0.35 },
     },
-    { // collar — level plane; ribbed rings rise above it
+    { // collar — level plane at the MEASURED NECK BASE (v7); ribbed rings
+      // rise above it and ring the neck. No wrinkle: the collar is a snug
+      // elastic band (amplitude fades to 0 here by the envelope anyway).
       name: 'shirt-collar', kind: 'collar',
       P: new THREE.Vector3(0, collarY, 0), n: UP.clone(), dropDir: UP.clone(),
       ribMm: S.collarRibMm, gMm: S.collarRibMm,
@@ -953,6 +1112,7 @@ export function attachDerivedOutfit(avatar, opts = {}) {
       P: P0.clone(), n: ax.clone().negate(), dropDir: ax.clone(),
       dropCm: S.sleeveDropCm, flareCm: S.sleeveFlareCm, gMm: S.sleeve.hemMm,
       anchor: P0.clone(), tol: 0.9 * cm, tint: S.bandTint,
+      wrinkle: { pleats: WK.sleevePleats, ampMm: WK.sleeveAmpMm, sagMm: WK.sleeveSagMm, phase: 0 },
     });
   }
   const shortsOpenings = [1, 2].map((side) => ({
@@ -961,12 +1121,13 @@ export function attachDerivedOutfit(avatar, opts = {}) {
     dropCm: S.legDropCm, flareCm: S.legFlareCm, gMm: S.shorts.hemMm,
     anchor: new THREE.Vector3((side === 1 ? legLs : legRs).x, legCut, (side === 1 ? legLs : legRs).z),
     tol: 0.9 * cm, tint: S.bandTint,
+    wrinkle: { pleats: WK.shortsPleats, ampMm: WK.shortsAmpMm, sagMm: WK.shortsSagMm, phase: 1.1 },
   }));
   const bandOpenings = [{
     name: 'band-lip', kind: 'lip',
     P: new THREE.Vector3(0, bandBot, 0), n: UP.clone(), dropDir: DOWN.clone(),
     dropCm: S.lipDropCm, gMm: S.band.bottomMm,
-    anchor: spineAnchor(bandBot), tol: 0.9 * cm, tint: 0.92,
+    anchor: spineAnchor(bandBot), tol: 0.9 * cm, tint: 1,   // v7: solid charcoal, untinted
   }];
 
   // ── per-vertex roles: graded offset + cut-plane snaps ────────────────────
@@ -1050,8 +1211,8 @@ export function attachDerivedOutfit(avatar, opts = {}) {
     return y >= bandBot - 0.006 && y <= bandTop + 0.006
       && !/Hand|Arm|Shoulder|Neck|Head/.test(rawName(skin.skeleton.bones[dom[i]].name));
   };
-  const shirtMesh = extractGarment(body, inShirtAll, { vertRole: shirtRole, openings: shirtOpenings, territory: shirtTerritory }, 'tshirt', lam(colors.tshirt), ctx);
-  const shortsMesh = extractGarment(body, inShorts, { vertRole: shortsRole, openings: shortsOpenings, territory: shortsTerritory }, 'shorts', lam(colors.shorts), ctx);
+  const shirtMesh = extractGarment(body, inShirtAll, { vertRole: shirtRole, openings: shirtOpenings, territory: shirtTerritory, wrinkleAt: shirtWrinkleAt }, 'tshirt', lam(colors.tshirt), ctx);
+  const shortsMesh = extractGarment(body, inShorts, { vertRole: shortsRole, openings: shortsOpenings, territory: shortsTerritory, wrinkleAt: shortsWrinkleAt }, 'shorts', lam(colors.shorts), ctx);
   const bandMesh = extractGarment(body, inBand, { vertRole: bandRole, openings: bandOpenings, territory: bandTerritory }, 'waistband', lam(colors.waistband), ctx);
   for (const m of [shirtMesh, shortsMesh, bandMesh]) {
     skin.scene.add(m);
@@ -1137,7 +1298,11 @@ export function attachDerivedOutfit(avatar, opts = {}) {
       collarY: +(collarY / H).toFixed(4), bandTop: +(bandTop / H).toFixed(4),
       bandBot: +(bandBot / H).toFixed(4), hipY: +(hipY / H).toFixed(4),
       legCutY: +(legCut / H).toFixed(4), crotchY: +(crotchY / H).toFixed(4),
+      // v7 FIX 1: the neck-base measurement the collar is cut from
+      neckBaseY: +(neckBaseY / H).toFixed(4), neckJointY: +(neckP.y / H).toFixed(4),
+      collarCmAboveJoint: +((collarY - neckP.y) / cm).toFixed(2),
     },
+    wrinkle: WK,
   };
 
   return {
