@@ -61,10 +61,34 @@
 //     bind offset (DERIVED_SPEC.wrinkle) — a fabric read at zero runtime
 //     cost (skinning unchanged, Δsource measures vs the constructed offset).
 //
+// ── v8 (the founder's next note: "proper clothing separate fabric meshes")
+// ────────────────────────────────────────────────────────────────────────────
+//   • FABRIC MODE (default): the shirt and shorts are CONSTRUCTED garments
+//     with their OWN ring-lattice topology — clothing patterns, not body
+//     contours. Each ring is a REGULARISED section: the body's exact
+//     cross-section is low-passed in polar coordinates (lats, pecs and the
+//     spine groove smoothed away), lifted to dominate the raw flesh by the
+//     graded offset in EVERY direction, and — below the chest — held at the
+//     running max from the chest (real shirts hang STRAIGHT from the chest:
+//     the side seam is near-vertical, no waist tuck). Sleeves are tapered
+//     cylinders on the arm axis (+13→10 mm over the arm, not bicep-traced),
+//     capped at the shoulder. Every fabric vert still copies skin weights
+//     from its NEAREST body vert (srcIndex + bindDelta) — the Δsource gate
+//     and the signed containment probe ride exactly the v7 machinery.
+//   • FITTED MODE (fallback): the v7 body-triangle garments, verbatim.
+//   • SHOES REBUILT (both modes): the v4 skinned sneakers are retired — the
+//     upper is now the FOOT'S OWN TRIANGLES + 6.5 mm (wedge and toe tips
+//     included by construction — the toe box ENCLOSES), and the sole is a
+//     REAL slab: a flat bottom 8 mm under the foot, a perimeter wall that
+//     wraps the ground outline (max-per-direction — the toe slab included)
+//     8 mm proud of the upper, taller at the heel (counter) and toe box,
+//     white against the charcoal upper.
+//
 // Slots: tshirt (torso + sleeves, one mesh) · shorts · waistband (solid
 // charcoal, always proud) · head (SPECIES HEADS ported from geno-wardrobe.js:
-// frog with crown by default, goblin/robot secondary) · sneakers/headband/
-// wristbands stay the founder-approved v4 pieces from geno-outfit.js.
+// frog with crown by default, goblin/robot secondary) · sneakers (v8
+// foot-derived) / headband / wristbands (founder-approved v4 pieces from
+// geno-outfit.js).
 // A species head swallows the headband — the headband auto-hides while a
 // head is active (the crown is the head decoration).
 //
@@ -74,8 +98,8 @@
 
 import * as THREE from 'three';
 import {
-  OUTFIT_TOKENS, genoSkin, bodyCloud, waistPlan,
-  buildSneakers, buildHeadband, buildWristbands,
+  OUTFIT_TOKENS, genoSkin, waistPlan,
+  buildHeadband, buildWristbands,
 } from './geno-outfit.js';
 import { attachHead } from './geno-wardrobe.js';
 
@@ -98,7 +122,9 @@ export const DERIVED_SPEC = {
   sleeveFlareCm: 2.0,    // was 0.8
   legDropCm: 2.4,        // shorts leg hem drop
   legFlareCm: 3.0,       // was 0.8
-  lipDropCm: 1.0,        // waistband bottom lip drop
+  lipDropCm: 1.6,        // waistband bottom lip drop (v8: 1.0→1.6 — the deeper lip
+    //                         occludes the shorts-tube junction from above-cameras;
+    //                         at 1.0 a sliver of belly read between lip and coral)
   bandHcm: 1.4,          // finished-edge band height (folded-hem strip)
   bandExtraMm: 2.2,      // band bulge at the lip (double-thickness read)
   bandTint: 1,           // v7: the waistband is a SOLID charcoal — no vertex
@@ -132,6 +158,37 @@ export const DERIVED_SPEC = {
   // yields one merged horseshoe loop and the polar profile puts ring verts
   // on the far leg — measured 16 cm off the flesh)
   crotchH: 0.088,        // pelvis region reaches below the hip joint
+  // ── v8 FABRIC MODE — constructed garment topology ──────────────────────
+  // The founder: "proper clothing separate fabric meshes". Rings of their
+  // OWN topology; sections REGULARISED from the body cross-section (low-pass
+  // in polar coords + a lift so the fabric dominates the flesh by the graded
+  // offset in every direction); below the chest the section is the running
+  // max from the chest — the shirt HANGS STRAIGHT, sides near-vertical.
+  fabric: {
+    torsoRings: 22, torsoSamples: 64,
+    sectionPasses: 6,    // polar low-pass — kills pec/lats/groove detail (k≥6
+    //                    harmonics), KEEPS the body's elliptic proportions
+    hemFlareCm: 2.4,     // the lip must stand clear of the waistband — the band
+    hemBandCm: 1.3,      // folded-hem band height (fabric)
+    sleeveRings: 10, sleeveSamples: 48,
+    sleeveTopMm: 13, sleeveHemMm: 10,   // +10–14 over the arm, tapering to hem
+    sleeveFlareCm: 0.5,
+    pelvisRings: 8, legRings: 9, legSamples: 48,
+    legFlareCm: 1.5,
+    gussetDropCm: 0.6,   // the pelvis shell's crotch-gusset lip
+    gussetFlareCm: 0.8,
+    // shoes (v8): the upper = the foot's own triangles + upperMm; the sole
+    // = a real slab: flat bottom, perimeter wall around the ground outline
+    // (max-per-direction), proud of the upper, wall taller at heel/toe.
+    shoe: {
+      upperMm: 6.5, soleThickMm: 8, soleRimMm: 8,
+      shinH: 0.030,            // the ankle cut (×H above the Foot joint)
+      collarDropCm: 1.0,       // the collar band rises above the cut
+      collarMm: 4,
+      wallHeelCm: 3.4, wallMidCm: 1.5, wallToeCm: 2.6,
+      soleSamples: 40,
+    },
+  },
 };
 
 const UP = new THREE.Vector3(0, 1, 0);
@@ -351,6 +408,306 @@ function contourPoint(prof, centre, e1, e2, theta) {
   const radial = new THREE.Vector3().subVectors(p, centre);
   if (n2.dot(radial) < 0) n2.negate(); // outward, always
   return { p, n2 };
+}
+
+// ── FABRIC SECTIONS (v8) — clothing patterns, not body contours ──────────────
+
+/** Circular [0.25, 0.5, 0.25] low-pass, `passes` times (in place semantics:
+ *  returns a new Float32Array). */
+function smoothCircular(src, passes) {
+  const n = src.length;
+  let a = Float32Array.from(src), b = new Float32Array(n);
+  for (let p = 0; p < passes; p++) {
+    for (let i = 0; i < n; i++) {
+      b[i] = 0.25 * a[(i - 1 + n) % n] + 0.5 * a[i] + 0.25 * a[(i + 1) % n];
+    }
+    const t = a; a = b; b = t;
+  }
+  return a;
+}
+
+/** Plane cross-section of a geometry as a polar MAX profile around `centre`
+ *  (exported for the atelier verify suites). `which`: 'nearest' — the loop
+ *  whose centroid is nearest `centre` (the torso loop, not the arms the same
+ *  plane also cuts); 'union' — max-per-bin over the loops whose centroid is
+ *  within `maxC` of `centre` (bridges both thighs at the crotch: the shorts'
+ *  pelvis shell covers the horseshoe — while the bind A-pose HANDS at 0.5
+ *  units lateral stay excluded; the first v8 build swallowed them and put
+ *  the pelvis tube 22 cm in front of the belly). */
+export function sectionProfile(geo, P0, n, centre, e1, e2, bins, which = 'nearest', maxC = 0.30) {
+  const loops = planeLoops(geo, P0, n);
+  let use = loops;
+  if (which === 'union') {
+    const c = new THREE.Vector3();
+    use = loops.filter((loop) => {
+      c.set(0, 0, 0);
+      for (const p of loop) c.add(p);
+      c.divideScalar(loop.length);
+      return c.distanceTo(centre) <= maxC;
+    });
+  } else if (loops.length > 1) {
+    use = [loopForOpening(loops, { P: P0.clone(), n: n.clone(), anchor: centre, tol: 1e9 })].filter(Boolean);
+  }
+  const r = new Float32Array(bins);
+  const w = new Uint8Array(bins);
+  for (const loop of use) {
+    for (const p of loop) {
+      const dx = p.x - centre.x, dy = p.y - centre.y, dz = p.z - centre.z;
+      const a = dx * e1.x + dy * e1.y + dz * e1.z;
+      const b2 = dx * e2.x + dy * e2.y + dz * e2.z;
+      const bi = Math.min(bins - 1, Math.max(0, Math.round((Math.atan2(b2, a) + Math.PI) / (2 * Math.PI) * bins))) % bins;
+      const rad = Math.hypot(a, b2);
+      if (rad > r[bi]) r[bi] = rad;
+      w[bi] = 1;
+    }
+  }
+  for (let i = 0; i < bins; i++) {   // fill empty bins from the nearest hit
+    if (w[i]) continue;
+    for (let k = 1; k < bins; k++) {
+      const lo = (i - k + bins) % bins, hi = (i + k) % bins;
+      if (w[lo] || w[hi]) { r[i] = w[lo] && w[hi] ? Math.max(r[lo], r[hi]) : (w[lo] ? r[lo] : r[hi]); break; }
+    }
+  }
+  return r;
+}
+
+/** A FABRIC section: the raw section low-passed, then floored POINTWISE at
+ *  raw + needU. Where the flesh is CONVEX (pec shelf, lats) the floor holds
+ *  the fabric at the graded offset; where it is CONCAVE (spine groove,
+ *  sternum dip, waist) the smoothed profile wins — fabric CANNOT dip into
+ *  grooves, it bridges them. Net: the section reads as cloth draped over
+ *  the body (its convex envelope + the offset), keeps the body's elliptic
+ *  proportions (a circle-fit would balloon the front by 5 cm — measured on
+ *  the first v8 build), and the delta to flesh never exceeds the graded
+ *  offset + the smoothing lift at concavities (a few mm). */
+function fabricSection(raw, needU, passes) {
+  const sm = smoothCircular(raw, passes);
+  const out = new Float32Array(sm.length);
+  for (let i = 0; i < out.length; i++) out[i] = Math.max(sm[i], raw[i] + needU);
+  return out;
+}
+
+/** Interpolated radius of a binned profile at angle θ (same convention as
+ *  contourPoint: bin k holds angle −π + k·2π/bins). */
+function profAt(prof, th) {
+  const bins = prof.length;
+  const t = (((th + Math.PI) % (2 * Math.PI)) + 2 * Math.PI) % (2 * Math.PI);
+  const f = t / (2 * Math.PI) * bins;
+  const i0 = Math.floor(f) % bins, i1 = (i0 + 1) % bins;
+  return prof[i0] + (prof[i1] - prof[i0]) * (f - Math.floor(f));
+}
+
+/**
+ * Ring-lattice garment builder — fabric meshes with their OWN topology.
+ * `tubes`: [{ rings: [{ pts: [Vector3 × samples], c: ring centre, tint }],
+ *   axis (for the outward quad refs + caps), cap?: { at: 0|'last', dir } }]
+ * Every vert copies skin weights from its NEAREST body vert (recorded as
+ * srcIndex; bindDelta is measured against it — the Δsource gate rides this).
+ * Returns the SkinnedMesh with userData.rwfDerived in the v7 shape.
+ */
+function fabricLattice(body, tag, mat, tubes, srcRadius = 0.5) {
+  const geo = body.geometry;
+  const P = geo.attributes.position;
+  const SI = geo.attributes.skinIndex;
+  const SW = geo.attributes.skinWeight;
+  const pos = [], si4 = [], sw4 = [], tint = [], src = [], roles = [];
+  const tris = [];
+  const A = new THREE.Vector3(), Bv = new THREE.Vector3(), Cv = new THREE.Vector3();
+  const R = new THREE.Vector3();
+  const emitTri = (a, b, c, refDir) => {
+    A.fromArray(pos, a * 3); Bv.fromArray(pos, b * 3); Cv.fromArray(pos, c * 3);
+    const cr = new THREE.Vector3().subVectors(Bv, A).cross(new THREE.Vector3().subVectors(Cv, A));
+    if (cr.lengthSq() < 1e-14) { skipped++; return; }   // capped-wall slivers (centreline cap)
+    if (cr.dot(refDir) < 0) tris.push(a, c, b); else tris.push(a, b, c);
+  };
+  let skipped = 0;
+  const ringStarts = [];   // per tube: [startIdx per ring]
+  for (const tube of tubes) {
+    // candidate body verts near this tube (nearest-weight sourcing)
+    const lo = new THREE.Vector3(1e9, 1e9, 1e9), hi = new THREE.Vector3(-1e9, -1e9, -1e9);
+    for (const ring of tube.rings) for (const p of ring.pts) { lo.min(p); hi.max(p); }
+    lo.addScalar(-srcRadius); hi.addScalar(srcRadius);
+    const cands = [];
+    for (let i = 0; i < P.count; i++) {
+      const x = P.getX(i), y = P.getY(i), z = P.getZ(i);
+      if (x < lo.x || x > hi.x || y < lo.y || y > hi.y || z < lo.z || z > hi.z) continue;
+      if (tube.srcFilter && !tube.srcFilter(i)) continue;
+      cands.push(i);
+    }
+    const nearest = (p) => {
+      let best = 0, bd = Infinity;
+      for (const i of cands) {
+        const dx = P.getX(i) - p.x, dy = P.getY(i) - p.y, dz = P.getZ(i) - p.z;
+        const d2 = dx * dx + dy * dy + dz * dz;
+        if (d2 < bd) { bd = d2; best = i; }
+      }
+      return best;
+    };
+    const starts = tube.rings.map((ring) => {
+      const s0 = pos.length / 3;
+      for (const p of ring.pts) {
+        const k = nearest(p);
+        pos.push(p.x, p.y, p.z);
+        for (let j = 0; j < 4; j++) {
+          si4.push(SI.getComponent(k, j));
+          sw4.push(SW.getComponent(k, j));
+        }
+        const t = ring.tint ?? 1;
+        tint.push(t, t, t);
+        src.push(k);
+        roles.push('ring');
+      }
+      return s0;
+    });
+    // optional intra-tube weight blur (v4 blurRingWeights precedent): the
+    // first `blurTopN` rings of a tube blend each vert's skin weights with
+    // its ring neighbours' — edges crossing a JOINT (the hip, for the shorts'
+    // top rings) strain beyond the body's own when they sit on constructed
+    // offsets; shared blended weights make the boundary behave like one
+    // panel. Δsource still measures vs each vert's own src (recorded before
+    // the blur — the blend is a ≤1-ring local average).
+    if (tube.blurTopN > 1 && starts) {
+      const S2 = tube.rings[0].pts.length;
+      const blurRings = Math.min(tube.blurTopN, tube.rings.length - 1);
+      const readW = (vi) => {
+        const m = new Map();
+        for (let j = 0; j < 4; j++) {
+          const b = si4[vi * 4 + j], w = sw4[vi * 4 + j];
+          if (w > 0.003) m.set(b, (m.get(b) ?? 0) + w);
+        }
+        return m;
+      };
+      for (let ri = 0; ri < blurRings; ri++) {
+        for (let s = 0; s < S2; s++) {
+          const acc = new Map();
+          const collect = (vi) => { for (const [b, w] of readW(vi)) acc.set(b, (acc.get(b) ?? 0) + w); };
+          for (const rN of [ri - 1, ri, ri + 1]) {
+            if (rN < 0 || rN >= tube.rings.length) continue;
+            collect(starts[rN] + s);
+            collect(starts[rN] + (s + 1) % S2);
+            collect(starts[rN] + (s - 1 + S2) % S2);
+          }
+          const sorted = [...acc.entries()].sort((x, y) => y[1] - x[1]).slice(0, 4);
+          const sum = sorted.reduce((a2, [, w]) => a2 + w, 0) || 1;
+          const vi = starts[ri] + s;
+          for (let j = 0; j < 4; j++) {
+            si4[vi * 4 + j] = sorted[j]?.[0] ?? 0;
+            sw4[vi * 4 + j] = sorted[j] ? sorted[j][1] / sum : 0;
+          }
+        }
+      }
+    }
+    // quads between consecutive rings (outward refs: in-plane radial)
+    const axis = tube.axis ?? UP;
+    for (let r2 = 0; r2 + 1 < tube.rings.length; r2++) {
+      const S = tube.rings[r2].pts.length;
+      const cMid = new THREE.Vector3().add(tube.rings[r2].c).add(tube.rings[r2 + 1].c).multiplyScalar(0.5);
+      for (let s = 0; s < S; s++) {
+        const s2 = (s + 1) % S;
+        const a = starts[r2] + s, b = starts[r2] + s2;
+        const c = starts[r2 + 1] + s2, d = starts[r2 + 1] + s;
+        R.set(0, 0, 0).add(tube.rings[r2].pts[s]).add(tube.rings[r2 + 1].pts[s]).multiplyScalar(0.5).sub(cMid);
+        R.addScaledVector(axis, -R.dot(axis));
+        if (R.lengthSq() < 1e-12) R.copy(tube.rings[r2].c).sub(cMid).addScaledVector(axis, -(tube.rings[r2].c.clone().sub(cMid).dot(axis)));
+        if (R.lengthSq() < 1e-12) R.set(1, 0, 0);
+        R.normalize();
+        emitTri(a, b, c, R);
+        emitTri(a, c, d, R);
+      }
+    }
+    // cap: fan a disc over the first/last ring (sleeve shoulder caps close
+    // the tube end; the sole's bottom closes the slab flat)
+    if (tube.cap) {
+      const ri = tube.cap.at === 'last' ? tube.rings.length - 1 : 0;
+      const ring = tube.rings[ri];
+      const S = ring.pts.length;
+      const c0 = new THREE.Vector3().copy(ring.c);
+      const centreIdx = pos.length / 3;
+      pos.push(c0.x, c0.y, c0.z);
+      const k0 = nearest(c0);
+      for (let j = 0; j < 4; j++) { si4.push(SI.getComponent(k0, j)); sw4.push(SW.getComponent(k0, j)); }
+      tint.push(1, 1, 1); src.push(k0); roles.push('ring');
+      for (let s = 0; s < S; s++) {
+        emitTri(centreIdx, starts[ri] + s, starts[ri] + (s + 1) % S, tube.cap.dir);
+      }
+    }
+    ringStarts.push(starts);
+  }
+  // degenerates (report)
+  let degenerate = 0;
+  for (let t = 0; t < tris.length; t += 3) {
+    A.fromArray(pos, tris[t] * 3); Bv.fromArray(pos, tris[t + 1] * 3); Cv.fromArray(pos, tris[t + 2] * 3);
+    if (new THREE.Vector3().subVectors(Bv, A).cross(new THREE.Vector3().subVectors(Cv, A)).lengthSq() < 1e-14) degenerate++;
+  }
+  const bindDelta = new Float32Array(src.length * 3);
+  for (let k = 0; k < src.length; k++) {
+    bindDelta[k * 3] = pos[k * 3] - P.getX(src[k]);
+    bindDelta[k * 3 + 1] = pos[k * 3 + 1] - P.getY(src[k]);
+    bindDelta[k * 3 + 2] = pos[k * 3 + 2] - P.getZ(src[k]);
+  }
+  const g = new THREE.BufferGeometry();
+  g.setAttribute('position', new THREE.Float32BufferAttribute(pos, 3));
+  g.setAttribute('color', new THREE.Float32BufferAttribute(tint, 3));
+  g.setAttribute('skinIndex', new THREE.Uint16BufferAttribute(new Uint16Array(si4), 4));
+  g.setAttribute('skinWeight', new THREE.Float32BufferAttribute(sw4, 4));
+  g.setIndex(tris);
+  g.computeVertexNormals();
+  const m = new THREE.SkinnedMesh(g, mat);
+  m.userData.rwfWardrobe = tag;
+  m.userData.baseColors = Float32Array.from(tint);
+  m.userData.rwfDerived = {
+    body, srcIndex: Int32Array.from(src), bindDelta,
+    regionVerts: 0, frontierVerts: 0,
+    fabric: true, skippedTris: skipped,
+    tris: tris.length / 3, degenerate,
+    roles,
+    openings: [],       // populated by the garment builders (finish rings)
+    tuckLoops: [],
+  };
+  m.frustumCulled = false;
+  return { mesh: m, ringStarts };
+}
+
+/** Ring point cloud from a polar profile + fabric finishes (pleats, sag,
+ *  flare, bulge). All offsets are in MODEL UNITS. */
+function fabricRingPts(c, e1, e2, prof, S, o = {}) {
+  const pts = [];
+  const dir = new THREE.Vector3();
+  for (let s = 0; s < S; s++) {
+    const th = (s / S) * 2 * Math.PI;
+    const rr = profAt(prof, th);
+    dir.set(0, 0, 0).addScaledVector(e1, Math.cos(th)).addScaledVector(e2, Math.sin(th)).normalize();
+    const p = c.clone().addScaledVector(dir, rr);
+    if (o.pleat && o.pleat.env > 0) {
+      p.addScaledVector(dir, o.pleat.ampU * Math.sin(o.pleat.k * th + (o.pleat.phase ?? 0)) * o.pleat.env);
+    }
+    if (o.sagU) p.y -= o.sagU * (o.env ?? 1);
+    if (o.flareU) p.addScaledVector(dir, o.flareU);
+    if (o.bulgeU) p.addScaledVector(dir, o.bulgeU);
+    pts.push(p);
+  }
+  return pts;
+}
+
+/** Opening report entry for a fabric finish (the hemCheck angVar + ringStart
+ *  contract the v7 openings carry — centreSrc is the body vert whose skin
+ *  weights sit nearest the opening's axis centre; hemCheck skins it live to
+ *  aim its camera). Angles are measured IN THE RING'S OWN PLANE (e1,e2) —
+ *  XZ-projection angles are meaningless on tilted (arm-axis) rings. */
+function fabricOpening(name, centreSrc, centre, ringStart, rings, lipPts, c, e1, e2) {
+  const angOf = (p) => {
+    const dx = p.x - c.x, dy = p.y - c.y, dz = p.z - c.z;
+    return Math.atan2(dx * e2.x + dy * e2.y + dz * e2.z, dx * e1.x + dy * e1.y + dz * e1.z);
+  };
+  const angs = lipPts.map(angOf).sort((a, b) => a - b);
+  const gaps = angs.map((a, i) => ((angs[(i + 1) % angs.length] - a) + 2 * Math.PI) % (2 * Math.PI));
+  const mean = gaps.reduce((x, y) => x + y, 0) / gaps.length;
+  const sd = Math.sqrt(gaps.reduce((x, y) => x + (y - mean) ** 2, 0) / gaps.length) / mean;
+  return {
+    name, matched: true, samples: lipPts.length, rings, ringStart,
+    angVar: +sd.toFixed(4), lipStart: ringStart,
+    centreBind: [c.x, c.y, c.z], centreSrc,
+  };
 }
 
 // ── the garment builder (v6) ──────────────────────────────────────────────────
@@ -802,6 +1159,468 @@ function extractGarment(body, inRegion, plan, tag, mat, ctx) {
   return m;
 }
 
+// ── v8 FABRIC BUILDERS — the constructed garments ────────────────────────────
+
+/** Nearest body vertex to a point (full scan; used for opening centreSrc). */
+function nearestBodyVert(body, p) {
+  const P = body.geometry.attributes.position;
+  let best = 0, bd = Infinity;
+  for (let i = 0; i < P.count; i++) {
+    const dx = P.getX(i) - p.x, dy = P.getY(i) - p.y, dz = P.getZ(i) - p.z;
+    const d2 = dx * dx + dy * dy + dz * dz;
+    if (d2 < bd) { bd = d2; best = i; }
+  }
+  return best;
+}
+
+/**
+ * FABRIC SHIRT — constructed topology: a ribbed collar ring stack, a torso
+ * tube of REGULARISED sections (low-passed + dominated by the graded offset,
+ * hung STRAIGHT from the chest: below the chest ring each section is the
+ * running max from the chest — the side seam is near-vertical, no waist
+ * tuck), a folded hem band with a flared lip, and tapered-cylinder sleeves
+ * (+13→10 mm over the arm — never bicep-traced) capped at the shoulder.
+ */
+function buildFabricShirt(body, anc, mat) {
+  const S = DERIVED_SPEC, F = S.fabric, WK = S.wrinkle;
+  const bins = S.contourBins, ST = F.torsoSamples;
+  const up = planeBasis(UP.clone());   // e1 ≈ +Z (depth), e2 ≈ +X (lateral)
+  const envAt = (y) => anc.envOf((anc.collarY - y) / Math.max(1e-4, anc.collarY - anc.hemLipY));
+  const pleatOf = (env) => ({ k: WK.shirtPleats, ampU: WK.shirtAmpMm * anc.mm, phase: 0.35, env });
+
+  // ── torso sections: raw → fabric, then the straight hang below the chest
+  const N = F.torsoRings;
+  const yTop = anc.collarY, yPre = anc.hemLipY - F.hemBandCm * anc.cm;
+  const ys = [];
+  for (let i = 0; i < N; i++) ys.push(yTop + (yPre - yTop) * Math.pow(i / (N - 1), 1.25)); // crowd the collar
+  const sectionAt = (y) => {
+    const c = anc.spineAnchor(y);
+    const raw = sectionProfile(body.geometry, new THREE.Vector3(c.x, y, c.z), UP, c, up.e1, up.e2, bins, 'nearest');
+    return { c, raw, reg: fabricSection(raw, anc.shirtMm(y) * anc.mm, F.sectionPasses) };
+  };
+  const secs = ys.map(sectionAt);
+  let chestIdx = 0, bestD = Infinity;
+  for (let i = 0; i < N; i++) { const d = Math.abs(ys[i] - anc.chestY); if (d < bestD) { bestD = d; chestIdx = i; } }
+  for (let i = chestIdx + 1; i < N; i++) {           // STRAIGHT HANG (running max from the chest)
+    for (let b = 0; b < bins; b++) secs[i].reg[b] = Math.max(secs[i].reg[b], secs[i - 1].reg[b]);
+  }
+
+  // ── the ring stack (one tube: collar ribs → torso → hem band; no seams)
+  const rings = [];
+  for (let k = 0; k < 4; k++) {                       // ribbed collar (snug)
+    const y = anc.collarY + k * (S.collarRibHcm / 3) * anc.cm;
+    const s = sectionAt(y);
+    const prof = fabricSection(s.raw, (S.collarRibMm + (k % 2 ? S.collarRibStepMm : 0)) * anc.mm, F.sectionPasses);
+    rings.push({ pts: fabricRingPts(s.c, up.e1, up.e2, prof, ST), c: s.c, tint: S.ribTint });
+  }
+  for (let i = 0; i < N; i++) {                       // torso (pleated drape)
+    const y = ys[i], env = envAt(y);
+    rings.push({
+      pts: fabricRingPts(secs[i].c, up.e1, up.e2, secs[i].reg, ST, {
+        pleat: pleatOf(env), sagU: WK.shirtSagMm * anc.mm * env, env,
+      }),
+      c: secs[i].c,
+    });
+  }
+  // The hem finish TAPERS from the hanging prism to a SNUG lip (+collar-class
+  // offset at the lip, no flare): the waistband (proud 13 mm + its own
+  // drooping +2.2 mm lip) then reads BELOW the shirt hem — v7's silhouette.
+  // A prism-width lip (+18 mm) hides the band behind the shirt wall from any
+  // camera above the waist (measured: the band-lip edge probe lost its
+  // charcoal-with-coral-below transition entirely).
+  const lipProf = secs[N - 1].reg;
+  const snugAt = (y) => {
+    const s = sectionAt(y);
+    return fabricSection(s.raw, 0.011, F.sectionPasses);   // +11 mm at the lip
+  };
+  const hemFin = [
+    { dCm: F.hemBandCm * 0.6, bulgeMm: 1.0, mix: 0.55 },
+    { dCm: 0, bulgeMm: S.bandExtraMm, mix: 1 },
+  ].map((f) => {
+    const y = anc.hemLipY - f.dCm * anc.cm, env = envAt(y);
+    const c = anc.spineAnchor(y);
+    const snug = snugAt(y);
+    const prof = new Float32Array(bins);
+    for (let b = 0; b < bins; b++) prof[b] = lipProf[b] * (1 - f.mix) + snug[b] * f.mix;
+    return {
+      pts: fabricRingPts(c, up.e1, up.e2, prof, ST, {
+        pleat: pleatOf(env), sagU: WK.shirtSagMm * anc.mm * env, env,
+        bulgeU: f.bulgeMm * anc.mm,
+      }),
+      c,
+    };
+  });
+  rings.push(...hemFin);
+
+  // ── sleeves: tapered cylinders on the arm axes, capped at the shoulder
+  const SS = F.sleeveSamples;
+  const sleeveTubes = [];
+  for (const side of [1, 2]) {
+    const a0 = side === 1 ? anc.armLs : anc.armRs, a1 = side === 1 ? anc.armLe : anc.armRe;
+    const ax = new THREE.Vector3().subVectors(a1, a0).normalize();
+    const basis = planeBasis(ax.clone());
+    const t0 = 0.05, t1 = S.sleeveT;
+    const secT = (t) => {
+      const c = new THREE.Vector3().lerpVectors(a0, a1, t);
+      const raw = sectionProfile(body.geometry, c, ax, c, basis.e1, basis.e2, bins, 'nearest');
+      return { raw, reg: fabricSection(raw, F.sleeveHemMm * anc.mm, F.sectionPasses) };
+    };
+    const sTop = secT(t0), sHem = secT(t1);
+    const sRings = [];
+    for (let i = 0; i < F.sleeveRings; i++) {
+      const t = t0 + (t1 - t0) * i / (F.sleeveRings - 1);
+      const u = (t - t0) / (t1 - t0);
+      const c = new THREE.Vector3().lerpVectors(a0, a1, t);
+      const here = secT(t);
+      const prof = new Float32Array(bins);            // LINEAR taper — a truncated cone
+      for (let b = 0; b < bins; b++) {                // (only lifts where the bicep pokes)
+        const lin = (sTop.reg[b] + F.sleeveTopMm * anc.mm) * (1 - u) + (sHem.reg[b] + F.sleeveHemMm * anc.mm) * u;
+        prof[b] = Math.max(lin, here.reg[b]);
+      }
+      const env = anc.envOf(u);
+      sRings.push({
+        pts: fabricRingPts(c, basis.e1, basis.e2, prof, SS, {
+          pleat: { k: WK.sleevePleats, ampU: WK.sleeveAmpMm * anc.mm, phase: 0, env },
+          sagU: WK.sleeveSagMm * anc.mm * env, env,
+        }),
+        c,
+      });
+    }
+    const dt = (S.sleeveDropCm * anc.cm) / a0.distanceTo(a1);   // drop along the arm axis
+    const fin = [
+      { d: 0.45, bulgeMm: 1.0, flareCm: F.sleeveFlareCm * 0.4 },
+      { d: 1.0, bulgeMm: S.bandExtraMm, flareCm: F.sleeveFlareCm },
+    ].map((f) => {
+      const t = t1 + dt * f.d;
+      const c = new THREE.Vector3().lerpVectors(a0, a1, t);
+      const env = 1;
+      return {
+        pts: fabricRingPts(c, basis.e1, basis.e2, sHem.reg, SS, {
+          pleat: { k: WK.sleevePleats, ampU: WK.sleeveAmpMm * anc.mm, phase: 0, env },
+          sagU: WK.sleeveSagMm * anc.mm, env,
+          bulgeU: f.bulgeMm * anc.mm, flareU: f.flareCm * anc.cm,
+        }),
+        c,
+      };
+    });
+    sRings.push(...fin);
+    sleeveTubes.push({ rings: sRings, axis: ax.clone(), cap: { at: 0, dir: ax.clone().negate() }, side });
+  }
+
+  const { mesh, ringStarts } = fabricLattice(body, 'tshirt', mat, [
+    { rings, axis: UP.clone() },
+    ...sleeveTubes.map((t) => ({ rings: t.rings, axis: t.axis, cap: t.cap })),
+  ], 0.4);
+
+  // opening reports (hemCheck + the v7 collar probe contracts)
+  const d = mesh.userData.rwfDerived;
+  const cC = anc.spineAnchor(anc.collarY);
+  const hemStart = ringStarts[0][4 + N];              // first hem finish ring
+  const cHem = anc.spineAnchor(anc.hemLipY);
+  const openings = [
+    fabricOpening('shirt-collar', nearestBodyVert(body, cC), cC, 0, 4, rings[3].pts, cC, up.e1, up.e2),
+    fabricOpening('shirt-hem', nearestBodyVert(body, cHem), cHem, hemStart, 2, rings[rings.length - 1].pts, cHem, up.e1, up.e2),
+  ];
+  sleeveTubes.forEach((t, ti) => {
+    const starts = ringStarts[1 + ti];
+    const lipRing = t.rings[t.rings.length - 1];
+    const basis = planeBasis(t.axis.clone());
+    openings.push(fabricOpening(t.side === 1 ? 'sleeve-hem-L' : 'sleeve-hem-R',
+      nearestBodyVert(body, lipRing.c), lipRing.c, starts[starts.length - 2], 2, lipRing.pts, lipRing.c, basis.e1, basis.e2));
+  });
+  d.openings = openings;
+  d.fabric = { torsoRings: N, samples: ST, chestIdx, sleeveRings: F.sleeveRings, sleeveSamples: SS };
+  return mesh;
+}
+
+/**
+ * FABRIC SHORTS — a pelvis shell of UNION sections (bridges both thighs at
+ * the crotch — the horseshoe covered, gusset lip at the bottom) plus one
+ * STRAIGHT cylinder per leg (running max from the top of the thigh: no
+ * thigh-taper trace) with folded, flared hems. Tucked under the waistband
+ * and the shirt lip at the top. The waistband itself is unchanged (v7).
+ */
+function buildFabricShorts(body, anc, mat) {
+  const S = DERIVED_SPEC, F = S.fabric, WK = S.wrinkle;
+  const bins = S.contourBins;
+  const LS = F.legSamples;
+  const up = planeBasis(UP.clone());
+  // ONE LEVEL-RING TUBE PER LEG (the v4 architecture, fabric topology):
+  // rings are LEVEL sections around the leg's own centreline, dense through
+  // the waist/hip zone (the wall hugs each height's own contour — sparse or
+  // tilted rings let the belly bulge poke through: measured), the top rings
+  // tucked INSIDE the waistband shell (coral meets charcoal with no gap),
+  // the hem rings level at the v7 landing. NO bridging pelvis block: a panel
+  // spanning both thighs sources weights from both legs and tears at a
+  // stride (measured 13.7–19 cm edge strain), while pelvis-rigid weights
+  // shear at folds (Δsource 5.9 cm). One tube per leg, same-limb weights:
+  // strain−body ≈ 0 by construction. The crotch closes the v4 way — each
+  // tube's inner wall is CAPPED just past the body centreline (x ∓1.5 cm),
+  // the two tubes' inner walls OVERLAP at the centre front/back (the
+  // centre-seam look of real shorts), and the open top is CAPPED (hidden
+  // under the band — an open mouth shows the belly through the ring gap).
+  const legLipY = anc.legCut - S.legDropCm * anc.cm;
+  const envOfY = (y) => anc.envOf((anc.bandTop - y) / Math.max(1e-4, anc.bandTop - legLipY));
+  // each tube sources weights from ITS leg's flesh ONLY (thigh + shin): the
+  // centreline-capped verts sit over the crotch, where the nearest flesh is
+  // the STABLE Hips/crotch — an edge between a crotch-sourced vert and its
+  // thigh-sourced neighbour tears ~20 cm when the thigh swings at a stride
+  // (measured 22 cm garment strain at sprint@0.75). One bone family per tube
+  // = the tube rides its limb; verbatim weights keep Δsource ≈ 0.
+  const boneNameOf = (i) => rawName(anc.skin.skeleton.bones[anc.dom[i]].name);
+  const sameSideThigh = (side) => {
+    const pfx = side === 1 ? 'Left' : 'Right';
+    return (i) => {
+      const n = boneNameOf(i);
+      return n.startsWith(pfx + 'UpLeg') || n === pfx + 'Leg';
+    };
+  };
+  const legTubes = [];
+  for (const side of [1, 2]) {
+    const l0 = side === 1 ? anc.legLs : anc.legRs, l1 = side === 1 ? anc.legLe : anc.legRe;
+    const legAnchor = (y) => new THREE.Vector3().lerpVectors(l0, l1, Math.min(1, Math.max(0, (y - l0.y) / (l1.y - l0.y || 1))));
+    const signX = Math.sign(l0.x) || 1;
+    const boundX = -signX * 0.015;
+    const yTop = Math.min(l0.y + 3.2 * anc.cm, anc.bandTop - 0.1 * anc.cm);   // inside the band shell
+    // DENSE stations through the waist/hip zone, sparser down the thigh
+    const ys = [];
+    {
+      const waistLo = l0.y - 1.5 * anc.cm;
+      for (let i = 0; i <= 5; i++) ys.push(yTop - (yTop - waistLo) * i / 5);
+      const nThigh = F.legRings - 1;
+      for (let i = 1; i <= nThigh; i++) ys.push(waistLo - (waistLo - legLipY) * i / nThigh);
+    }
+    const regs = ys.map((y) => {
+      const c = legAnchor(y);
+      const raw = sectionProfile(body.geometry, new THREE.Vector3(c.x, y, c.z), UP, c, up.e1, up.e2, bins, 'nearest');
+      return fabricSection(raw, anc.shortsMm(y) * anc.mm, F.sectionPasses);
+    });
+    for (let i = 1; i < regs.length; i++) {          // STRAIGHT LEG (running max down)
+      for (let b = 0; b < bins; b++) regs[i][b] = Math.max(regs[i][b], regs[i - 1][b]);
+    }
+    const ringAt = (prof, y, extra) => {
+      const c = legAnchor(y);
+      const env = envOfY(y);
+      const pts = fabricRingPts(c, up.e1, up.e2, prof, LS, {
+        pleat: { k: WK.shortsPleats, ampU: WK.shortsAmpMm * anc.mm, phase: 1.1, env },
+        sagU: WK.shortsSagMm * anc.mm * env, env,
+        bulgeU: (extra?.bulgeMm ?? 0) * anc.mm,
+        flareU: (extra?.flareCm ?? 0) * anc.cm,
+      });
+      // the CENTRELINE CAP: pull any point that crosses the centre bound
+      // back along its own in-plane radial (the inner wall is a wall).
+      const dir = new THREE.Vector3();
+      for (const p of pts) {
+        if (signX * p.x > signX * boundX) continue;
+        dir.subVectors(p, c);
+        if (dir.lengthSq() < 1e-12) continue;
+        dir.normalize();
+        if (dir.x * signX >= 0) continue;            // pointing outward — no cap
+        const rMax = (boundX - c.x) / dir.x;         // reach exactly the centre bound
+        const r = p.distanceTo(c);
+        if (r > rMax && rMax > 0) p.copy(c).addScaledVector(dir, rMax);
+      }
+      return { pts, c };
+    };
+    const rings = ys.map((y, i) => ringAt(regs[i], y));
+    const fin = [
+      { dCm: S.legDropCm * 0.4, bulgeMm: 1.0, flareCm: F.legFlareCm * 0.4 },
+      { dCm: S.legDropCm, bulgeMm: S.bandExtraMm, flareCm: F.legFlareCm },
+    ].map((f) => ringAt(regs[regs.length - 1], anc.legCut - f.dCm * anc.cm, f));
+    rings.push(...fin);
+    legTubes.push({ rings, side, srcFilter: sameSideThigh(side) });
+  }
+
+  const { mesh, ringStarts } = fabricLattice(body, 'shorts', mat,
+    legTubes.map((t) => ({
+      rings: t.rings, axis: UP.clone(), srcFilter: t.srcFilter, blurTopN: 6,
+      cap: { at: 'first', dir: new THREE.Vector3(0, 1, 0) },
+    })), 0.4);
+
+  const d = mesh.userData.rwfDerived;
+  const openings = legTubes.map((t, ti) => {
+    const starts = ringStarts[ti];
+    const lip = t.rings[t.rings.length - 1];
+    return fabricOpening(t.side === 1 ? 'shorts-hem-L' : 'shorts-hem-R',
+      nearestBodyVert(body, lip.c), lip.c, starts[starts.length - 2], 2, lip.pts, lip.c, up.e1, up.e2);
+  });
+  d.openings = openings;
+  d.fabric = { legRings: F.legRings + 2, samples: LS, centreCapCm: 1.5, slantedTubes: true };
+  return mesh;
+}
+
+/**
+ * v8 SNEAKERS — the v4 skinned rings retired. The upper is the FOOT'S OWN
+ * TRIANGLES + 6.5 mm (the wedge and toe tips included by construction — the
+ * toe box ENCLOSES, the heel is wrapped), cut at the ankle with an elastic
+ * collar band; the sole is a REAL slab: flat bottom 8 mm under the foot, a
+ * perimeter wall around the ground outline (max-per-direction — the toe slab
+ * measured per axis) 8 mm proud of the upper, taller at the heel (counter)
+ * and the toe box, white against the charcoal upper. All verts copy foot
+ * flesh weights — the shoe bends with the foot through toe-off.
+ */
+function buildDerivedSneakers(body, anc, upperMat, soleMat) {
+  const S = DERIVED_SPEC, SH = S.fabric.shoe;
+  const geo = body.geometry;
+  const P = geo.attributes.position;
+  const sk = anc.skin;
+  const out = [];
+  for (const side of [1, 2]) {
+    const footBone = side === 1 ? anc.B.footL : anc.B.footR;
+    const toeBone = side === 1 ? anc.B.toeL : anc.B.toeR;
+    if (!footBone || !toeBone) continue;
+    const fp = anc.bp(footBone), tp = anc.bp(toeBone);
+    const axis = new THREE.Vector3().subVectors(tp, fp);
+    const Lf = axis.length(); axis.normalize();
+    const sidePfx = side === 1 ? 'Left' : 'Right';
+    // The region includes the LOWER SHIN (Leg bone) up to the cut: the whole-
+    // triangle rule + territory can only extend a region by ONE ring of
+    // triangles (a triangle joins only with a region vert in it), so the
+    // calf flesh up to the collar line must be IN the region — that is also
+    // honest: the collar wraps the ankle, the shoe ENDS at the cut.
+    const isFootFlesh = (i) => {
+      const n = rawName(sk.skeleton.bones[anc.dom[i]].name);
+      return n === sidePfx + 'Foot' || n === sidePfx + 'Leg' || n.startsWith(sidePfx + 'Toe');
+    };
+    // unclamped axis parameter + radial distance from the infinite axis line
+    const axisRaw = (p) => {
+      const dx = p.x - fp.x, dy = p.y - fp.y, dz = p.z - fp.z;
+      const t = (dx * axis.x + dy * axis.y + dz * axis.z) / (Lf || 1e-9);
+      const cx = dx - axis.x * t, cy = dy - axis.y * t, cz = dz - axis.z * t;
+      return { t, r: Math.hypot(cx, cy, cz) };
+    };
+    // measure the envelope from the foot's own verts (wedge + toe tips)
+    let footEnv = 0, footMinY = Infinity, fwdMin = Infinity, fwdMax = -Infinity;
+    const footPts = [];
+    for (let i = 0; i < P.count; i++) {
+      const n = rawName(sk.skeleton.bones[anc.dom[i]].name);
+      if (n !== sidePfx + 'Foot' && !n.startsWith(sidePfx + 'Toe')) continue;   // foot bones only (envelope truth)
+      const p = new THREE.Vector3().fromBufferAttribute(P, i);
+      const info = axisRaw(p);
+      if (info.t < -0.6 || info.t > 1.6) continue;
+      footEnv = Math.max(footEnv, info.r);
+      if (p.y < footMinY) footMinY = p.y;
+      footPts.push(p);
+    }
+    footEnv += 0.012;                                // capture frontier strays (≈1.2 cm)
+    const fwd = axis.clone(); fwd.y = 0; fwd.normalize();
+    for (const p of footPts) {
+      const f = (p.x - fp.x) * fwd.x + (p.z - fp.z) * fwd.z;
+      fwdMin = Math.min(fwdMin, f); fwdMax = Math.max(fwdMax, f);
+    }
+    const shinCutY = fp.y + SH.shinH * anc.H;
+    const v3 = new THREE.Vector3();
+
+    // ── UPPER: the foot's own triangles + offset, collar at the ankle cut
+    const inFoot = (i) => {
+      if (!isFootFlesh(i)) return false;
+      const p = v3.fromBufferAttribute(P, i);
+      if (p.y > shinCutY + 0.012) return false;      // the shoe never covers the shin above the cut
+      const info = axisRaw(p);
+      return info.t >= -0.55 && info.t <= 1.55 && info.r <= footEnv;
+    };
+    const territory = (i) => {
+      const p = v3.fromBufferAttribute(P, i);
+      const info = axisRaw(p);
+      if (info.t < -0.55 || info.t > 1.55 || info.r > footEnv + 0.012) return false;
+      if (p.y > shinCutY || p.y < footMinY - 0.012) return false;
+      return !/Hand|Arm|Head|Neck|Spine/.test(rawName(sk.skeleton.bones[anc.dom[i]].name));
+    };
+    const snapY = (yPlane) => (p) => new THREE.Vector3(p.x, yPlane, p.z);
+    // the collar axis point: the foot axis (ankle→toe) points DOWN-forward —
+    // extrapolating it to heights ABOVE the ankle lands 12 cm behind the heel
+    // (measured: the collar ring locked onto a bogus loop out at z −0.27).
+    // Heights above the ankle extrapolate along the SHIN axis (ankle→knee).
+    const kneeP = side === 1 ? anc.legLe : anc.legRe;   // the Leg joint = the knee
+    const axisPt = (y) => {
+      if (y >= fp.y) {
+        return new THREE.Vector3().lerpVectors(fp, kneeP, (y - fp.y) / ((kneeP.y - fp.y) || 1e-9));
+      }
+      return new THREE.Vector3().lerpVectors(fp, tp, (y - fp.y) / ((tp.y - fp.y) || 1e-9));
+    };
+    const collarAnchor = axisPt(shinCutY);
+    const collar = {
+      name: `shoe-collar-${side === 1 ? 'L' : 'R'}`, kind: 'hem',
+      P: new THREE.Vector3(collarAnchor.x, shinCutY, collarAnchor.z), n: UP.clone(),
+      dropDir: UP.clone(), dropCm: SH.collarDropCm, flareCm: -0.15, gMm: SH.collarMm,
+      anchor: collarAnchor.clone(), tol: 0.9 * anc.cm, tint: 1,
+    };
+    const upper = extractGarment(body, inFoot, {
+      vertRole: (i) => {
+        const p = v3.fromBufferAttribute(P, i);
+        if (p.y > shinCutY) {
+          return { kind: 'snap', offMm: SH.upperMm, snap: snapY(shinCutY) };
+        }
+        // TOE BUMPER: a graded proud cap over the last stretch of the foot —
+        // the toe box reads ENCLOSED (the v4 rings read 45–60% at the toes;
+        // the bumper + the foot's own triangles fix it)
+        const bump = 3.5 * Math.min(1, Math.max(0, (axisRaw(p).t - 0.72) / 0.5));
+        return { kind: 'region', offMm: SH.upperMm + bump };
+      },
+      openings: [collar],
+      territory,
+    }, 'sneakers', upperMat, anc.ctx);
+    out.push(upper);
+
+    // ── SOLE: real slab — wall around the ground outline + flat bottom cap
+    const lat = new THREE.Vector3().crossVectors(UP, fwd).normalize();
+    const c0 = new THREE.Vector3();
+    for (const p of footPts) c0.add(p);
+    c0.divideScalar(footPts.length);
+    const SS = SH.soleSamples;
+    const outlineRaw = new Float32Array(SS);
+    const ow = new Uint8Array(SS);
+    for (const p of footPts) {
+      const dx = p.x - c0.x, dz = p.z - c0.z;
+      const a = dx * fwd.x + dz * fwd.z, b = dx * lat.x + dz * lat.z;
+      const bi = Math.min(SS - 1, Math.max(0, Math.round((Math.atan2(b, a) + Math.PI) / (2 * Math.PI) * SS))) % SS;
+      const rad = Math.hypot(a, b);
+      if (rad > outlineRaw[bi]) outlineRaw[bi] = rad;
+      ow[bi] = 1;
+    }
+    for (let i = 0; i < SS; i++) {
+      if (ow[i]) continue;
+      for (let k = 1; k < SS; k++) {
+        const lo = (i - k + SS) % SS, hi = (i + k) % SS;
+        if (ow[lo] || ow[hi]) { outlineRaw[i] = ow[lo] && ow[hi] ? Math.max(outlineRaw[lo], outlineRaw[hi]) : (ow[lo] ? outlineRaw[lo] : outlineRaw[hi]); break; }
+      }
+    }
+    const outline = smoothCircular(outlineRaw, 3);
+    const rim = SH.soleRimMm * anc.mm;
+    // wall height profile: tall at the heel (counter) and toe box, low at the waist
+    const hTopOf = (th) => {
+      const ell = (Math.cos(th) + 1) / 2;            // 0 = heel direction, 1 = toe
+      const seg = (a, b, ha, hb) => ha + (hb - ha) * Math.min(1, Math.max(0, (ell - a) / (b - a)));
+      if (ell < 0.3) return seg(0, 0.3, SH.wallHeelCm, SH.wallMidCm);
+      if (ell < 0.7) return SH.wallMidCm;
+      return seg(0.7, 1, SH.wallMidCm, SH.wallToeCm);
+    };
+    const soleBottom = footMinY - SH.soleThickMm * anc.mm;
+    const soleRing = (yOf, rAdj) => {
+      const pts = [];
+      for (let s = 0; s < SS; s++) {
+        const th = (s / SS) * 2 * Math.PI;
+        const dir = new THREE.Vector3().addScaledVector(fwd, Math.cos(th)).addScaledVector(lat, Math.sin(th)).normalize();
+        const p = new THREE.Vector3(c0.x, 0, c0.z).addScaledVector(dir, profAt(outline, th) + rim + (rAdj ?? 0));
+        p.y = yOf(th);
+        pts.push(p);
+      }
+      const cy = pts.reduce((a, p) => a + p.y, 0) / pts.length;   // representative height (quad refs)
+      return { pts, c: new THREE.Vector3(c0.x, cy, c0.z) };
+    };
+    const wallRings = [
+      soleRing((th) => footMinY + hTopOf(th) * anc.cm, -0.001),   // lip, tucked under the upper
+      soleRing(() => footMinY + 0.7 * anc.cm, 0),                 // mid wall
+      soleRing(() => soleBottom, 0),                              // bottom edge (flat plane)
+    ];
+    const { mesh: sole } = fabricLattice(body, 'sneakers', soleMat,
+      [{ rings: wallRings, axis: UP.clone(), cap: { at: 'last', dir: new THREE.Vector3(0, -1, 0) } }], 0.3);
+    sole.userData.rwfDerived.fabric = { sole: true, samples: SS, rimMm: SH.soleRimMm, thickMm: SH.soleThickMm };
+    out.push(sole);
+  }
+  return out;
+}
+
 // ── the outfit ───────────────────────────────────────────────────────────────
 
 /** Species heads ported from geno-wardrobe.js (founder-approved rigid
@@ -818,11 +1637,14 @@ function removeSpeciesHead(avatar) {
 }
 
 /**
- * Attach the skin-derived outfit (DEFAULT garment system for /atelier).
+ * Attach the outfit (DEFAULT garment system for /atelier).
  * opts.head: HEAD_SPECIES entry (default 'frog' = frog WITH crown).
+ * opts.mode: 'fabric' (default — v8 constructed garment topology) or
+ *   'fitted' (the v7 body-triangle garments, kept as the fallback).
+ * Shoes are v8 foot-derived in BOTH modes.
  * Returns the atelier outfit object: { slots, toggle, isVisible, softGarments,
- * rigidPieces, plan, mode:'derived', derived, setHead, head, updateFabric,
- * settle } — updateFabric/settle are no-ops (there is no sim).
+ * rigidPieces, plan, mode:'derived', garment, derived, setHead, head,
+ * updateFabric, settle } — updateFabric/settle are no-ops (there is no sim).
  */
 export function attachDerivedOutfit(avatar, opts = {}) {
   const B = avatar.bones;
@@ -832,12 +1654,10 @@ export function attachDerivedOutfit(avatar, opts = {}) {
 
   const colors = {
     shorts: OUTFIT_TOKENS.coral,
-    // v7 FIX 2: the waistband is SOLID CHARCOAL. The old token-white
-    // (#e8ebef) sits ~2ΔE from the body tint (#eceef1) — with the band's
-    // 0.82–0.92 vertex tints over it, the strip read as FLESH ("same colour
-    // as skin?"). Charcoal is unambiguous against BOTH the pale body and the
-    // coral shorts (it is the founder-approved sneaker tone), and the band
-    // now carries NO vertex tint — material colour only.
+    // v7 FIX 2: the waistband is SOLID CHARCOAL (#2a3038 renders in the
+    // pixel-classifier's 'band' window under the probe rig's neutral light —
+    // verified by differential render; the v8 band-lip probe failure was the
+    // BELLY showing through the shorts tube's open top, not the colour).
     waistband: OUTFIT_TOKENS.charcoal,
     tshirt: OUTFIT_TOKENS.lime,
     headband: OUTFIT_TOKENS.coral,
@@ -1211,17 +2031,64 @@ export function attachDerivedOutfit(avatar, opts = {}) {
     return y >= bandBot - 0.006 && y <= bandTop + 0.006
       && !/Hand|Arm|Shoulder|Neck|Head/.test(rawName(skin.skeleton.bones[dom[i]].name));
   };
-  const shirtMesh = extractGarment(body, inShirtAll, { vertRole: shirtRole, openings: shirtOpenings, territory: shirtTerritory, wrinkleAt: shirtWrinkleAt }, 'tshirt', lam(colors.tshirt), ctx);
-  const shortsMesh = extractGarment(body, inShorts, { vertRole: shortsRole, openings: shortsOpenings, territory: shortsTerritory, wrinkleAt: shortsWrinkleAt }, 'shorts', lam(colors.shorts), ctx);
+  // ── build. v8: 'fabric' mode (default) constructs the shirt + shorts with
+  //    their OWN ring-lattice topology; 'fitted' keeps the v7 body-triangle
+  //    garments verbatim (the fallback). The waistband is unchanged (v7).
+  const garmentMode = opts.mode === 'fitted' ? 'fitted' : 'fabric';
+  // the lip LANDS ON the band (2 mm overlap): a clearance gap between the
+  // shirt lip and the band top shows the dark scene through backfaces from
+  // any slightly-below camera (measured 1.5 cm of see-through on v8 build 1)
+  const hemLipY = bandTop - 0.2 * cm;
+  const anc = {
+    B, skin, dom, P, ctx, H, mm, cm, bp,
+    collarY, chestY, hipY, hemLipY, bandTop, bandBot, crotchY, legCut,
+    spineAnchor, armLs, armLe, armRs, armRe, legLs, legLe, legRs, legRe,
+    shirtMm, shortsMm, envOf,
+  };
+  let shirtMesh, shortsMesh, pelvisFlap = null;
+  if (garmentMode === 'fabric') {
+    shirtMesh = buildFabricShirt(body, anc, lam(colors.tshirt));
+    shortsMesh = buildFabricShorts(body, anc, lam(colors.shorts));
+    // PELVIS FLAP (body-derived, v7 technology): a pelvis-band shell over
+    // the waist/hip zone. The fabric leg tubes' inner walls ride THIGH
+    // weights — after any clip, pose('stand') leaves the legs at a stale
+    // rotation and the walls swing back ~3 cm, letting the BELLY BULGE poke
+    // through between them (measured post-verify). The flap IS the belly
+    // +12 mm (inherited topology — tracks the flesh through every pose,
+    // strain−body ≈ 0), sits 2 mm PROUD of the tubes (+10 mm), and its
+    // bottom lip TUCKS inward under them. The crotch keeps the v7
+    // founder-approved body-triangle cover.
+    const flapBotY = bandBot - 1.6 * cm;
+    pelvisFlap = extractGarment(body, (i) => inShorts(i) && yOf(i) >= flapBotY, {
+      vertRole: (i) => {
+        const y = yOf(i);
+        return y < flapBotY + 0.25 * cm
+          ? { kind: 'snap', offMm: 12, snap: (p) => new THREE.Vector3(p.x, flapBotY + 0.25 * cm, p.z) }
+          : { kind: 'region', offMm: 12 };
+      },
+      openings: [{
+        name: 'flap-lip', kind: 'hem',
+        P: new THREE.Vector3(0, flapBotY + 0.25 * cm, 0), n: UP.clone(), dropDir: DOWN.clone(),
+        dropCm: 0.6, flareCm: -0.45, gMm: 12,
+        anchor: spineAnchor(flapBotY), tol: 0.9 * cm, tint: 1,
+      }],
+      territory: (i) => shortsTerritory(i) && yOf(i) >= flapBotY - 0.006,
+    }, 'shorts', lam(colors.shorts), ctx);
+  } else {
+    shirtMesh = extractGarment(body, inShirtAll, { vertRole: shirtRole, openings: shirtOpenings, territory: shirtTerritory, wrinkleAt: shirtWrinkleAt }, 'tshirt', lam(colors.tshirt), ctx);
+    shortsMesh = extractGarment(body, inShorts, { vertRole: shortsRole, openings: shortsOpenings, territory: shortsTerritory, wrinkleAt: shortsWrinkleAt }, 'shorts', lam(colors.shorts), ctx);
+  }
   const bandMesh = extractGarment(body, inBand, { vertRole: bandRole, openings: bandOpenings, territory: bandTerritory }, 'waistband', lam(colors.waistband), ctx);
-  for (const m of [shirtMesh, shortsMesh, bandMesh]) {
+  // v8 sneakers: foot's own triangles + a real sole slab (both modes — the
+  // v4 ring shoes are retired; buildSneakers stays in geno-outfit.js).
+  const sneakers = buildDerivedSneakers(body, anc, lam(colors.sneakers), lam(OUTFIT_TOKENS.white));
+  const shortsPieces = pelvisFlap ? [pelvisFlap, shortsMesh] : [shortsMesh];
+  for (const m of [shirtMesh, ...shortsPieces, bandMesh, ...sneakers]) {
     skin.scene.add(m);
     m.bind(skin.skeleton, new THREE.Matrix4());
   }
 
-  // v4 rigid pieces (founder-approved): skinned sneakers, headband, wristbands.
-  const rigidEnv = { skin, cloud: bodyCloud(skin) };
-  const sneakers = buildSneakers(avatar, colors, plan, rigidEnv);
+  // v4 rigid pieces (founder-approved): headband, wristbands.
   const headband = buildHeadband(avatar, colors);
   const wristbands = buildWristbands(avatar, colors);
 
@@ -1231,7 +2098,7 @@ export function attachDerivedOutfit(avatar, opts = {}) {
   let frogSkin = 'green';
   const slots = {
     tshirt: [shirtMesh],
-    shorts: [shortsMesh],
+    shorts: shortsPieces,
     waistband: [bandMesh],
     sneakers,
     headband: [headband],
@@ -1261,7 +2128,7 @@ export function attachDerivedOutfit(avatar, opts = {}) {
   }
   setHead(opts.head ?? 'frog');
 
-  const softGarments = [shirtMesh, shortsMesh, bandMesh, ...sneakers];
+  const softGarments = [shirtMesh, ...shortsPieces, bandMesh, ...sneakers];
   const rigidPieces = [];
   for (const root of [headband, ...wristbands, ...(headGroup ? [headGroup] : [])]) {
     if (root.isMesh) rigidPieces.push(root);
@@ -1278,7 +2145,8 @@ export function attachDerivedOutfit(avatar, opts = {}) {
   const stats = {
     garmentVerts: softGarments.reduce((a, m) => a + m.geometry.attributes.position.count, 0),
     garmentTris: softGarments.reduce((a, m) => a + m.geometry.index.count / 3, 0),
-    perGarment: Object.fromEntries([shirtMesh, shortsMesh, bandMesh].map((m) => {
+    // (flap first so the TUBES' stats win the 'shorts' key — ringVerts, openings)
+    perGarment: Object.fromEntries([shirtMesh, ...shortsPieces, bandMesh].map((m) => {
       const d = m.userData.rwfDerived;
       return [m.userData.rwfWardrobe, {
         verts: m.geometry.attributes.position.count, tris: d.tris,
@@ -1303,11 +2171,22 @@ export function attachDerivedOutfit(avatar, opts = {}) {
       collarCmAboveJoint: +((collarY - neckP.y) / cm).toFixed(2),
     },
     wrinkle: WK,
+    // v8: which garment construction shipped + the shoe build
+    garmentMode,
+    fabric: garmentMode === 'fabric' ? {
+      shirt: shirtMesh.userData.rwfDerived.fabric ?? null,
+      shorts: shortsMesh.userData.rwfDerived.fabric ?? null,
+      shoe: sneakers.filter((m) => m.userData.rwfDerived?.fabric?.sole)
+        .map((m) => ({ samples: m.userData.rwfDerived.fabric.samples })),
+      shoeUpper: sneakers.filter((m) => !m.userData.rwfDerived?.fabric?.sole)
+        .map((m) => ({ verts: m.geometry.attributes.position.count, openings: m.userData.rwfDerived.openings.map((o) => o.name + ':' + (o.matched ? 'ok' : 'MISS')) })),
+    } : null,
   };
 
   return {
     slots,
     mode: 'derived',
+    garment: garmentMode,
     head: { get species() { return headSpecies; }, get skin() { return frogSkin; } },
     setHead,
     setFrogSkin(name) { frogSkin = name; applyFrogSkin(); return frogSkin; },
@@ -1320,7 +2199,7 @@ export function attachDerivedOutfit(avatar, opts = {}) {
       for (const g of slots[slot] ?? []) g.visible = !!on;
       if (slot === 'headband') for (const h of slots.headband) h.visible = !!on && !headGroup;
     },
-    updateFabric() {},   // the garment IS skinned body surface — nothing to step
+    updateFabric() {},   // the garments are skinned constructed meshes — nothing to step
     settle() {},         // no drape to converge
   };
 }

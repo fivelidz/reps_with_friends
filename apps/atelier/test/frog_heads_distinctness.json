@@ -1,0 +1,401 @@
+[
+  {
+    "expr": "happy",
+    "eyes": {
+      "expression": "happy",
+      "skin": "green",
+      "sideP1": {
+        "palePx": 1534,
+        "skinPx": 187
+      },
+      "sideM1": {
+        "palePx": 2627,
+        "skinPx": 378
+      }
+    },
+    "geo": {
+      "expression": "happy",
+      "skin": "green",
+      "accessory": "none",
+      "lidCoverage": [
+        0.04,
+        0.04
+      ],
+      "lidRotX": [
+        -0.482,
+        -0.482
+      ],
+      "browRotZ": [
+        0,
+        0
+      ],
+      "browY": [
+        0.17,
+        0.17
+      ],
+      "tilt": [
+        -0.05,
+        0
+      ],
+      "eyeScale": 1,
+      "mouth": {
+        "kind": "arc",
+        "w": 0.15,
+        "cornerP": 0.01,
+        "cornerM": 0.01,
+        "mid": -0.006,
+        "curvature": 0.016
+      }
+    },
+    "mouth": {
+      "kind": "arc",
+      "cornerP1": {
+        "x": 648,
+        "y": 545,
+        "ink": 1183
+      },
+      "mid": {
+        "x": 450,
+        "y": 591,
+        "ink": 1369
+      },
+      "cornerM1": {
+        "x": 258,
+        "y": 544,
+        "ink": 1369
+      },
+      "curvaturePx": -46.5,
+      "reads": true
+    }
+  },
+  {
+    "expr": "grumpy",
+    "eyes": {
+      "expression": "grumpy",
+      "skin": "green",
+      "sideP1": {
+        "palePx": 0,
+        "skinPx": 4798
+      },
+      "sideM1": {
+        "palePx": 0,
+        "skinPx": 4935
+      }
+    },
+    "geo": {
+      "expression": "grumpy",
+      "skin": "green",
+      "accessory": "none",
+      "lidCoverage": [
+        0.55,
+        0.55
+      ],
+      "lidRotX": [
+        0.385,
+        0.385
+      ],
+      "browRotZ": [
+        0.42,
+        -0.42
+      ],
+      "browY": [
+        0.158,
+        0.158
+      ],
+      "tilt": [
+        0.05,
+        0
+      ],
+      "eyeScale": 1,
+      "mouth": {
+        "kind": "arc",
+        "w": 0.105,
+        "cornerP": -0.007,
+        "cornerM": -0.007,
+        "mid": 0.005,
+        "curvature": -0.012
+      }
+    },
+    "mouth": {
+      "kind": "arc",
+      "cornerP1": {
+        "x": 588,
+        "y": 602,
+        "ink": 1369
+      },
+      "mid": {
+        "x": 449,
+        "y": 591,
+        "ink": 1369
+      },
+      "cornerM1": {
+        "x": 318,
+        "y": 601,
+        "ink": 1369
+      },
+      "curvaturePx": 10.5,
+      "reads": true
+    }
+  },
+  {
+    "expr": "surprised",
+    "eyes": {
+      "expression": "surprised",
+      "skin": "green",
+      "sideP1": {
+        "palePx": 1942,
+        "skinPx": 0
+      },
+      "sideM1": {
+        "palePx": 3347,
+        "skinPx": 0
+      }
+    },
+    "geo": {
+      "expression": "surprised",
+      "skin": "green",
+      "accessory": "none",
+      "lidCoverage": [
+        -0.18,
+        -0.18
+      ],
+      "lidRotX": [
+        -0.856,
+        -0.856
+      ],
+      "browRotZ": [
+        -0.1,
+        0.1
+      ],
+      "browY": [
+        0.186,
+        0.186
+      ],
+      "tilt": [
+        -0.08,
+        0
+      ],
+      "eyeScale": 1.12,
+      "mouth": {
+        "kind": "open",
+        "r": 0.021
+      }
+    },
+    "mouth": {
+      "kind": "open",
+      "r": 0.021,
+      "midPx": [
+        450,
+        584
+      ],
+      "inkMid": 1369
+    }
+  },
+  {
+    "expr": "sleepy",
+    "eyes": {
+      "expression": "sleepy",
+      "skin": "green",
+      "sideP1": {
+        "palePx": 0,
+        "skinPx": 4482
+      },
+      "sideM1": {
+        "palePx": 0,
+        "skinPx": 4668
+      }
+    },
+    "geo": {
+      "expression": "sleepy",
+      "skin": "green",
+      "accessory": "none",
+      "lidCoverage": [
+        0.82,
+        0.82
+      ],
+      "lidRotX": [
+        0.844,
+        0.844
+      ],
+      "browRotZ": [
+        0.05,
+        -0.05
+      ],
+      "browY": [
+        0.172,
+        0.172
+      ],
+      "tilt": [
+        0.07,
+        0.02
+      ],
+      "eyeScale": 1,
+      "mouth": {
+        "kind": "arc",
+        "w": 0.075,
+        "cornerP": 0.001,
+        "cornerM": 0.001,
+        "mid": 0.0005,
+        "curvature": 0.0005
+      }
+    },
+    "mouth": {
+      "kind": "arc",
+      "cornerP1": {
+        "x": 550,
+        "y": 594,
+        "ink": 1369
+      },
+      "mid": {
+        "x": 449,
+        "y": 605,
+        "ink": 1369
+      },
+      "cornerM1": {
+        "x": 351,
+        "y": 597,
+        "ink": 1369
+      },
+      "curvaturePx": -9.5,
+      "reads": true
+    }
+  },
+  {
+    "expr": "cheeky",
+    "eyes": {
+      "expression": "cheeky",
+      "skin": "green",
+      "sideP1": {
+        "palePx": 0,
+        "skinPx": 4538
+      },
+      "sideM1": {
+        "palePx": 2045,
+        "skinPx": 1189
+      }
+    },
+    "geo": {
+      "expression": "cheeky",
+      "skin": "green",
+      "accessory": "none",
+      "lidCoverage": [
+        1,
+        0.05
+      ],
+      "lidRotX": [
+        1.15,
+        -0.465
+      ],
+      "browRotZ": [
+        -0.26,
+        -0.14
+      ],
+      "browY": [
+        0.178,
+        0.166
+      ],
+      "tilt": [
+        -0.03,
+        0.05
+      ],
+      "eyeScale": 1,
+      "mouth": {
+        "kind": "arc",
+        "w": 0.128,
+        "cornerP": 0.013,
+        "cornerM": -0.001,
+        "mid": -0.003,
+        "curvature": 0.016
+      }
+    },
+    "mouth": {
+      "kind": "arc",
+      "cornerP1": {
+        "x": 649,
+        "y": 530,
+        "ink": 1139
+      },
+      "mid": {
+        "x": 481,
+        "y": 584,
+        "ink": 1369
+      },
+      "cornerM1": {
+        "x": 320,
+        "y": 578,
+        "ink": 1369
+      },
+      "curvaturePx": -30,
+      "reads": true
+    }
+  },
+  {
+    "expr": "determined",
+    "eyes": {
+      "expression": "determined",
+      "skin": "green",
+      "sideP1": {
+        "palePx": 131,
+        "skinPx": 2484
+      },
+      "sideM1": {
+        "palePx": 13,
+        "skinPx": 2950
+      }
+    },
+    "geo": {
+      "expression": "determined",
+      "skin": "green",
+      "accessory": "none",
+      "lidCoverage": [
+        0.3,
+        0.3
+      ],
+      "lidRotX": [
+        -0.04,
+        -0.04
+      ],
+      "browRotZ": [
+        0.52,
+        -0.52
+      ],
+      "browY": [
+        0.156,
+        0.156
+      ],
+      "tilt": [
+        0.06,
+        0
+      ],
+      "eyeScale": 1,
+      "mouth": {
+        "kind": "arc",
+        "w": 0.122,
+        "cornerP": 0.0005,
+        "cornerM": 0.0005,
+        "mid": 0.0005,
+        "curvature": 0
+      }
+    },
+    "mouth": {
+      "kind": "arc",
+      "cornerP1": {
+        "x": 611,
+        "y": 590,
+        "ink": 1369
+      },
+      "mid": {
+        "x": 448,
+        "y": 606,
+        "ink": 1369
+      },
+      "cornerM1": {
+        "x": 293,
+        "y": 589,
+        "ink": 1369
+      },
+      "curvaturePx": -16.5,
+      "reads": true
+    }
+  }
+]

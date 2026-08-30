@@ -27,14 +27,24 @@ import {
   skeletonSamples, freshBoneMatrices, skinnedVert,
   OUTFIT_SLOTS, SLOT_LABELS, BUILDUP_STEPS,
 } from '/site/models/geno-outfit.js';
-// SKIN-DERIVED GARMENTS (geno-derived): the DEFAULT system — the body's own
-// triangles, offset along their normals by height-graded millimetres (v7:
-// +6 mm collar → +12 chest → +18 hem, plus baked drape pleats), same
-// skeleton, same weights. Cannot be inside the flesh, cannot be armour,
-// deforms identically to the body through every clip and pose. No sim, no
+// GARMENTS (geno-derived v8): FABRIC MODE is the default — the shirt and
+// shorts are CONSTRUCTED ring-lattice meshes with their own topology
+// (regularised sections that smooth the anatomy, hung straight from the
+// chest, tapered sleeve cylinders, folded hems), every vert copying skin
+// weights from its nearest flesh (Δsource ≈ 0, inside-body = 0 across the
+// full clip matrix). A body-derived pelvis flap keeps the waist/crotch
+// covered through any pose. FITTED mode keeps the v7 body-triangle garments
+// as the fallback. Shoes are foot-derived with a real sole slab. No sim, no
 // per-frame cost. (The PBD cloth experiment is RETIRED from this UI —
 // geno-cloth.js stays in the repo for reference.)
 import { attachDerivedOutfit, clearDerived, HEAD_SPECIES, FROG_SKINS } from '/site/models/geno-derived.js';
+// THE FROG HEAD SYSTEM (frog-heads.js): 6 expressions × 5 skins × 4 accessories,
+// live re-posing on the Head bone. The frog species routes HERE (not through
+// geno-wardrobe's static frog); goblin/robot still route through attachHead.
+import {
+  createFrogHead, previewFrogHead,
+  FROG_SKINS as FROG_HEAD_SKINS, FROG_EXPRESSIONS, FROG_ACCESSORIES,
+} from '/site/models/frog-heads.js';
 
 const $ = (id) => document.getElementById(id);
 const stage = $('stage');
@@ -91,7 +101,11 @@ const state = {
   xray: false, wire: false, heat: false, autoTurn: true,
   ready: false, verifying: false,
   mode: 'derived',                    // fixed: the cloth-sim path is retired
-  headSpecies: 'frog',                // Head slot: frog (with crown) default
+  garmentMode: 'fabric',              // v8: 'fabric' (constructed topology) | 'fitted' (v7 body-triangles)
+  headSpecies: 'frog',                // Head slot: frog playground default
+  frogExpr: 'happy',                  // frog-heads.js expression
+  frogSkin: 'green',                  // frog-heads.js skin
+  frogAcc: 'none',                    // frog-heads.js accessory
   slotOn: {                           // per-slot quick toggles (the rail row)
     tshirt: true, shorts: true, waistband: true, sneakers: true,
     bands: true, head: true,
@@ -257,6 +271,12 @@ function applyVisibility() {
   // in the full-kit step (or when isolated), unless the row toggle is off
   const headOn = state.slotOn.head !== false && (state.iso ? state.iso === 'head' : state.buildStep === BUILDUP_STEPS.length - 1);
   outfit.toggle('head', headOn && state.headSpecies !== 'none');
+  // FROG PLAYGROUND head: rides the same slot semantics, and (like every
+  // species head) swallows the headband while it is active
+  if (frogHead) {
+    frogHead.visible = headOn && state.headSpecies === 'frog';
+    if (frogHead.visible) for (const h of outfit.slots?.headband ?? []) h.visible = false;
+  }
   document.querySelectorAll('.build-step').forEach((el, i) => {
     el.classList.toggle('is-on', i === state.buildStep);
     el.classList.toggle('is-done', i < state.buildStep);
@@ -1334,11 +1354,12 @@ async function rebuildOutfit(opts = {}) {
   heatOracleAt = -1;
   state.verifying = false;
   $('btnVerify').disabled = false;
-  outfit = attachDerivedOutfit(av, { slots: 'full', head: state.headSpecies, ...opts });
+  outfit = attachDerivedOutfit(av, { slots: 'full', head: state.headSpecies, mode: state.garmentMode, ...opts });
   av.pose('stand', 0.5);
   applyViewFX();
   applyVisibility();
   updateHeadUI();
+  installFrogHead();   // re-attach the playground frog (rebuild re-attached geno's static one)
   await setAnim(savedAnim);
   state.t = 0;
   applyAnimAt();
@@ -1346,22 +1367,231 @@ async function rebuildOutfit(opts = {}) {
   return outfit;
 }
 
-/** Head slot: species selector + frog skin colours. */
+/** Head slot: species selector. 'frog' routes to the frog-heads.js playground
+ *  (expressions/skins/accessories); goblin/robot/none route to geno-derived's
+ *  setHead (geno-wardrobe's static heads, unchanged). */
 async function setHead(species) {
   state.headSpecies = species;
-  if (outfit?.setHead) outfit.setHead(species);
+  if (species === 'frog') { installFrogHead(); buildFrogGallery(); }
+  else { removeFrogHead(); if (outfit?.setHead) outfit.setHead(species); }
   updateHeadUI();
   applyVisibility();
   wake();
 }
+
+// ── FROG HEAD PLAYGROUND (frog-heads.js) ─────────────────────────────────────
+// The frog species head is OURS: a live-re-poseable group on the Head bone,
+// swapped in over geno-derived's static frog (which only exists at attach
+// time — installFrogHead detaches it via outfit.setHead('none')). Visibility
+// rides the same 'head' slot semantics as every species head (see
+// applyVisibility), and it carries the rwfWardrobe tag so remnant-cleaners
+// catch it on rebuilds.
+
+let frogHead = null;    // the live createFrogHead group (null when not frog)
+
+function removeFrogHead() {
+  if (!frogHead) return;
+  frogHead.parent?.remove(frogHead);
+  frogHead.traverse((o) => { if (o.isMesh) o.geometry.dispose(); });
+  frogHead = null;
+}
+
+function installFrogHead() {
+  if (!av || state.headSpecies !== 'frog') return null;
+  if (outfit?.setHead) outfit.setHead('none');  // detach geno's static frog (also frees the headband slot)
+  removeFrogHead();
+  frogHead = createFrogHead(av, {
+    skin: state.frogSkin, expression: state.frogExpr, accessory: state.frogAcc,
+  });
+  applyVisibility();
+  return frogHead;
+}
+
+/** whichever species-head group is live (frog playground or geno static). */
+function activeHeadGroup() {
+  return (state.headSpecies === 'frog' && frogHead) ? frogHead : (outfit?.slots?.head?.[0] ?? null);
+}
+
+/** nominal HSV hue (0-360) of a hex colour — headCheck classifies skull
+ *  pixels against the ACTIVE skin's hue (green ≈110, azure ≈187, …). */
+function hueOfHex(hex) {
+  const c = new THREE.Color(hex);
+  const mx = Math.max(c.r, c.g, c.b), mn = Math.min(c.r, c.g, c.b);
+  const d = mx - mn;
+  if (d < 1e-6) return 0;
+  let h;
+  if (mx === c.r) h = 60 * (((c.g - c.b) / d) + 6);
+  else if (mx === c.g) h = 60 * (((c.b - c.r) / d) + 2);
+  else h = 60 * (((c.r - c.g) / d) + 4);
+  return h >= 360 ? h - 360 : h;
+}
+
+function setFrogExpression(name) {
+  if (!FROG_EXPRESSIONS.includes(name)) return state.frogExpr;
+  state.frogExpr = name;
+  frogHead?.userData.frog.setExpression(name);
+  updateHeadUI();
+  drawFrogGallery();   // move the highlight
+  wake();
+  return name;
+}
+function setFrogAccessory(name) {
+  if (!FROG_ACCESSORIES.includes(name)) return state.frogAcc;
+  state.frogAcc = name;
+  frogHead?.userData.frog.setAccessory(name);
+  updateHeadUI();
+  wake();
+  return name;
+}
+function setFrogSkin(name) {
+  if (!FROG_HEAD_SKINS[name]) return state.frogSkin;
+  state.frogSkin = name;
+  frogHead?.userData.frog.setSkin(name);
+  updateHeadUI();
+  wake();
+  return name;
+}
+
 function updateHeadUI() {
+  const isFrog = state.headSpecies === 'frog';
   document.querySelectorAll('.head-btn').forEach((el) => {
     el.classList.toggle('is-on', el.dataset.species === state.headSpecies);
   });
   document.querySelectorAll('.frog-skin').forEach((el) => {
-    el.classList.toggle('is-on', el.dataset.skin === outfit?.head?.skin);
-    el.style.display = state.headSpecies === 'frog' ? '' : 'none';
+    el.classList.toggle('is-on', el.dataset.skin === state.frogSkin);
+    el.style.display = isFrog ? '' : 'none';
   });
+  document.querySelectorAll('.frog-expr').forEach((el) => {
+    el.classList.toggle('is-on', el.dataset.expr === state.frogExpr);
+    el.style.display = isFrog ? '' : 'none';
+  });
+  document.querySelectorAll('.frog-acc').forEach((el) => {
+    el.classList.toggle('is-on', el.dataset.acc === state.frogAcc);
+    el.style.display = isFrog ? '' : 'none';
+  });
+  const gw = document.getElementById('frogGalleryWrap');
+  if (gw) gw.style.display = isFrog ? '' : 'none';
+}
+
+/** Garment construction mode (v8): 'fabric' = constructed ring-lattice
+ *  garments (default), 'fitted' = the v7 body-triangle fallback. Rebuilds
+ *  the whole outfit through the same path as every rebuild (head state,
+ *  anim, and the frog playground are preserved). */
+async function setGarmentMode(mode) {
+  if (mode !== 'fabric' && mode !== 'fitted') return outfit;
+  if (state.garmentMode === mode && outfit?.garment === mode) return outfit;
+  state.garmentMode = mode;
+  document.querySelectorAll('.mode-chip').forEach((el) => {
+    el.classList.toggle('is-on', el.dataset.mode === mode);
+  });
+  return rebuildOutfit();
+}
+
+// ── FROG GALLERY — all 6 expressions × green, as live thumbnails ─────────────
+// ZERO extra WebGL contexts: each preview head is rendered by THIS page's own
+// renderer into an offscreen WebGLRenderTarget, read back, and drawn onto one
+// wide 2D canvas. Built lazily (IntersectionObserver + first frog selection)
+// per the page's context/energy budget. Clicking a cell applies the expression.
+
+const GAL = { cells: FROG_EXPRESSIONS.length, cell: 132, pad: 8, labelH: 16, built: false, ink: null };
+
+// linear (0-255) → sRGB byte LUT — WebGLRenderTarget readbacks are linear
+const SRGB_LUT = new Uint8Array(256);
+for (let v = 0; v < 256; v++) {
+  const c = v / 255;
+  SRGB_LUT[v] = Math.round(255 * (c <= 0.0031308 ? 12.92 * c : 1.055 * Math.pow(c, 1 / 2.4) - 0.055));
+}
+
+function buildFrogGallery() {
+  const canvas = document.getElementById('frogGallery');
+  if (!canvas || GAL.built) return GAL.built;
+  const W = GAL.pad + GAL.cells * (GAL.cell + GAL.pad);
+  canvas.width = W; canvas.height = GAL.cell + GAL.labelH + GAL.pad * 2;
+  canvas.classList.add('built');
+  GAL.built = true;
+  drawFrogGallery();
+  return true;
+}
+
+function drawFrogGallery() {
+  const canvas = document.getElementById('frogGallery');
+  if (!canvas || !GAL.built) return;
+  const ctx = canvas.getContext('2d');
+  const W = canvas.width, Hh = canvas.height;
+  ctx.fillStyle = '#14171c';
+  ctx.fillRect(0, 0, W, Hh);
+
+  // offscreen render target on the MAIN renderer — no new context
+  const RT = new THREE.WebGLRenderTarget(320, 320);
+  const sc = new THREE.Scene();
+  sc.background = new THREE.Color('#1d2128');
+  sc.add(new THREE.HemisphereLight(0xffffff, 0x777b82, 1.05));
+  const dl = new THREE.DirectionalLight(0xffffff, 1.35);
+  dl.position.set(1.6, 2.6, 1.9);
+  sc.add(dl);
+  const cam = new THREE.PerspectiveCamera(34, 1, 0.01, 10);
+  cam.position.set(0.14, 0.20, 0.55);
+  cam.lookAt(0, 0.085, 0.02);
+
+  const prevRT = renderer.getRenderTarget();
+  GAL.ink = [];
+  try {
+    FROG_EXPRESSIONS.forEach((expr, i) => {
+      const { root, head } = previewFrogHead({ skin: 'green', expression: expr, accessory: 'none' });
+      sc.add(root);
+      renderer.setRenderTarget(RT);
+      renderer.clear(true, true, true);
+      renderer.render(sc, cam);
+      const px = new Uint8Array(320 * 320 * 4);
+      renderer.readRenderTargetPixels(RT, 0, 0, 320, 320, px);
+      sc.remove(root);
+      head.traverse((o) => { if (o.isMesh) o.geometry.dispose(); });
+
+      // blit (flip Y — readPixels is bottom-up; ENCODE linear→sRGB — render
+      // targets skip the canvas's output colour-space conversion, so the raw
+      // readback is linear and would draw ~4× too dark) + health ink count
+      const img = ctx.createImageData(320, 320);
+      for (let y = 0; y < 320; y++) {
+        const src = (319 - y) * 320 * 4, dst = y * 320 * 4;
+        for (let k = 0; k < 320 * 4; k += 4) {
+          img.data[dst + k]     = SRGB_LUT[px[src + k]];
+          img.data[dst + k + 1] = SRGB_LUT[px[src + k + 1]];
+          img.data[dst + k + 2] = SRGB_LUT[px[src + k + 2]];
+          img.data[dst + k + 3] = 255;
+        }
+      }
+      let ink = 0;
+      for (let p = 0; p < px.length; p += 16) {   // subsampled — just a health check
+        if (SRGB_LUT[px[p]] + SRGB_LUT[px[p + 1]] + SRGB_LUT[px[p + 2]] > 150) ink++;
+      }
+      GAL.ink.push(ink);
+      const tmp = document.createElement('canvas');
+      tmp.width = tmp.height = 320;
+      tmp.getContext('2d').putImageData(img, 0, 0);
+      const x0 = GAL.pad + i * (GAL.cell + GAL.pad);
+      ctx.drawImage(tmp, 0, 0, 320, 320, x0, GAL.pad, GAL.cell, GAL.cell);
+
+      // label + selected-cell highlight
+      ctx.font = '600 10px ui-monospace, monospace';
+      ctx.textAlign = 'center';
+      ctx.fillStyle = expr === state.frogExpr ? '#c6f32e' : '#8b93a0';
+      ctx.fillText(expr, x0 + GAL.cell / 2, GAL.pad + GAL.cell + 12);
+      if (expr === state.frogExpr) {
+        ctx.strokeStyle = '#c6f32e';
+        ctx.lineWidth = 2;
+        ctx.strokeRect(x0 - 2, GAL.pad - 2, GAL.cell + 4, GAL.cell + 4);
+      }
+    });
+  } finally {
+    renderer.setRenderTarget(prevRT);
+    RT.dispose();
+    wake();
+  }
+}
+
+function gallerySelect(index) {
+  if (index < 0 || index >= FROG_EXPRESSIONS.length) return null;
+  return setFrogExpression(FROG_EXPRESSIONS[index]);
 }
 
 // ── CLOTH-SPECIFIC CHECKS (the anti-armour instruments) ─────────────────────
@@ -1659,17 +1889,23 @@ function hemCheck() {
 // camera (forward = the head's own facing) counts frog-skull green pixels
 // and eye-bulb pixels inside the projected head zone. Self-contained
 // save/restore (withUI cannot wrap async work — it restores before awaits).
-async function headCheck(frames = 5) {
-  const species = outfit.head?.species ?? 'none';
+async function headCheck(frames = 5, clip = 'walk') {
+  // FROG PLAYGROUND: the frog may be OUR frog-heads.js group (state says frog
+  // but geno-derived's species reads 'none' because we swapped it out) — trust
+  // the page state, and classify skull pixels against the ACTIVE skin's hue
+  // (green ≈110 was the old hardcoded value; azure/sunset/golden/charcoal differ).
+  const species = state.headSpecies === 'frog' ? 'frog' : (outfit.head?.species ?? 'none');
   if (species !== 'frog') {
     return { species, frames: [], pass: true, note: 'non-frog head — pixel classes are frog-specific' };
   }
+  const skinHex = FROG_HEAD_SKINS[state.frogSkin]?.base ?? FROG_HEAD_SKINS.green.base;
+  const wantHue = hueOfHex(skinHex);
   const saved = { xray: state.xray, heat: state.heat, step: state.buildStep, iso: state.iso, anim: state.animId };
   state.xray = false; state.heat = false; state.iso = null;
   state.buildStep = BUILDUP_STEPS.length - 1; // full kit
   applyViewFX(); applyVisibility();
   if (bvh) { bvh.stop(); bvh = null; }
-  const res = await loadGenoClip('walk');
+  const res = await loadGenoClip(clip);
   const p = new BVHPlayer(av, res);
   const out = [];
   for (let f = 0; f < frames; f++) {
@@ -1680,14 +1916,15 @@ async function headCheck(frames = 5) {
     // the frog group's OWN orientation (the wardrobe bakes the bind-facing
     // into it — the raw bone quaternion misses that correction and the
     // camera ends up off the face when the clip swings the head)
-    const headGrp = outfit.slots.head?.[0];
+    const headGrp = activeHeadGroup();
     const q = (headGrp ?? av.bones.head).getWorldQuaternion(new THREE.Quaternion());
     const fwdFull = new THREE.Vector3(0, 0, 1).applyQuaternion(q);
     const pitch = Math.abs(new THREE.Euler().setFromQuaternion(q, 'YXZ').x);
     const fwd = fwdFull.clone();
     fwd.y *= 0.35; fwd.normalize();            // tolerate head pitch
+    const frog = headGrp?.userData?.frog;
     const skullC = headGrp
-      ? headGrp.localToWorld(new THREE.Vector3(0, 0.062 * av.H, 0.005 * av.H))
+      ? headGrp.localToWorld((frog?.skullCentre ?? new THREE.Vector3(0, 0.062 * av.H, 0.005 * av.H)).clone())
       : headC.clone();
     // camera rides the face direction but 0.12 up the head's OWN up-axis:
     // the bulbs sit on TOP of the skull and vanish out of frame from a
@@ -1700,7 +1937,9 @@ async function headCheck(frames = 5) {
       // sit another 0.086H higher and fall outside a joint-centred disc
       // (measured 168 px vs the 161 px radius)
       const hp = toPx(skullC, W, H);
-      // GREEN: the skull, counted inside a zone around the skull centre.
+      // SKIN: the skull, counted inside a zone around the skull centre — full
+      // HSV hue in ANY max sector (azure's max channel is blue; the old
+      // green-sector-only formula would never count it).
       // EYES: full-frame — the walk clip ROLLS the head and the top-mounted
       // bulbs project to frame corners (measured NDC (−0.6, +0.8)), far
       // outside any skull-centred disc. The bulb class is specific enough
@@ -1712,11 +1951,17 @@ async function headCheck(frames = 5) {
         const R = buf[q2], G = buf[q2 + 1], B = buf[q2 + 2];
         const mx = Math.max(R, G, B), mn = Math.min(R, G, B), d2 = mx - mn;
         if (R > 150 && G > 150 && B > 90 && G > B + 20 && G > R - 25 && R > B + 10) { eyes++; continue; }
-        if (mx === G && d2 >= 14) {
-          let h = 60 * (((B - R) / Math.max(1, d2)) + 2);  // HSV, max=green: the +2 sector
-          // skull #4da33e renders at hue ~110 under the neutral rig
-          // (measured 112 in shade, 98 flat) — the shirt lime reads ~74
-          if (Math.abs(h - 110) < 15 && mx > 55) {
+        if (d2 >= 14) {
+          let h; // HSV hue 0-360, whichever channel is max
+          if (mx === R) h = 60 * (((G - B) / d2) + 6);
+          else if (mx === G) h = 60 * (((B - R) / d2) + 2);
+          else h = 60 * (((R - G) / d2) + 4);
+          if (h >= 360) h -= 360;
+          let dh = Math.abs(h - wantHue); if (dh > 180) dh = 360 - dh;  // circular
+          // skull skin renders a few hue degrees off its hex under the neutral
+          // rig (green #4da33e measures ~112 shade / ~98 flat) — classify
+          // against the ACTIVE skin's nominal hue ±15
+          if (dh < 15 && mx > 55) {
             const dx = x - hp.x, dy = y - hp.y;
             if (dx * dx + dy * dy <= rad * rad) green++;
           }
@@ -2171,7 +2416,9 @@ function configJSON() {
     model: { file: '/models/Geno.glb', rig: 'mixamo', tint: '#eceef1' },
     outfit: {
       module: '/site/models/geno-derived.js',
-      mode: 'skin-derived body triangles, contour hems (graded +5→+12 mm)',
+      mode: state.garmentMode === 'fabric'
+        ? 'fabric ring-lattice garments (regularised sections, straight hang, graded +6→+18 mm)'
+        : 'skin-derived body triangles, contour hems (graded +5→+12 mm)',
       head: state.headSpecies,
       buildStep: state.buildStep,
       stepLabel: BUILDUP_STEPS[state.buildStep].label,
@@ -2179,6 +2426,9 @@ function configJSON() {
       isolated: state.iso,
       bandTopM: +(outfit ? outfit.plan.bandTop / av.H * 1.75 : 0).toFixed(3),
       derived: outfit?.derived?.stats ?? null,
+      frog: state.headSpecies === 'frog'
+        ? { module: '/site/models/frog-heads.js', expression: state.frogExpr, skin: state.frogSkin, accessory: state.frogAcc }
+        : null,
     },
     anim: { id: state.animId, kind: a.kind, pose: a.pose ?? null, clip: a.clip ?? null, speed: state.speed, paused: state.paused },
     view: { xray: state.xray, bodyWire: state.wire, heatmap: state.heat, autoTurntable: state.autoTurn },
@@ -2228,12 +2478,13 @@ async function boot() {
   av.root.scale.setScalar(1.6 / av.H);
   scene.add(av.root);
   clearOutfitRemnants();
-  // DEFAULT: skin-derived garments + the frog head (with crown) — the full
-  // kit the founder asked to see.
-  outfit = attachDerivedOutfit(av, { slots: 'full', head: state.headSpecies });
+  // DEFAULT: fabric garments (v8 constructed topology) + the frog head (with
+  // crown) — the full kit the founder asked to see.
+  outfit = attachDerivedOutfit(av, { slots: 'full', head: state.headSpecies, mode: state.garmentMode });
   av.pose('stand', 0.5);
   state.ready = true;
   updateHeadUI();
+  installFrogHead();   // swap geno's static frog → the playground frog (default species)
 
   // ── wire controls
   sel.addEventListener('change', () => setAnim(sel.value));
@@ -2288,12 +2539,58 @@ async function boot() {
       slotRow.appendChild(b);
     }
   }
+  // ── garment construction mode (v8): fabric = constructed ring-lattice
+  //    garments; fitted = the v7 body-triangle fallback. Rebuilds the outfit.
+  const fabricRow = $('fabricRow');
+  if (fabricRow) {
+    for (const [mode, label, title] of [
+      ['fabric', '🧵 Fabric', 'constructed garment topology — boxy sections, straight hang, own mesh'],
+      ['fitted', '🫀 Fitted', 'v7 fallback — the body\'s own triangles offset outward'],
+    ]) {
+      const b = document.createElement('button');
+      b.className = 'rwf-btn mode-chip' + (state.garmentMode === mode ? ' is-on' : '');
+      b.dataset.mode = mode;
+      b.textContent = label;
+      b.title = title;
+      b.addEventListener('click', () => setGarmentMode(mode));
+      fabricRow.appendChild(b);
+    }
+  }
   document.querySelectorAll('.head-btn').forEach((b) => {
     b.addEventListener('click', () => setHead(b.dataset.species));
   });
   document.querySelectorAll('.frog-skin').forEach((b) => {
-    b.addEventListener('click', () => { outfit?.setFrogSkin?.(b.dataset.skin); updateHeadUI(); wake(); });
+    b.addEventListener('click', () => { setFrogSkin(b.dataset.skin); });
   });
+  document.querySelectorAll('.frog-expr').forEach((b) => {
+    b.addEventListener('click', () => { setFrogExpression(b.dataset.expr); });
+  });
+  document.querySelectorAll('.frog-acc').forEach((b) => {
+    b.addEventListener('click', () => { setFrogAccessory(b.dataset.acc); });
+  });
+  // FROG GALLERY — lazy build (context/energy budget): render the strip only
+  // when the section scrolls into view or the frog is first selected; clicks
+  // land in one of the 6 cells and apply that expression.
+  {
+    const gc = document.getElementById('frogGallery');
+    if (gc) {
+      gc.addEventListener('click', (e) => {
+        const r = gc.getBoundingClientRect();
+        const x = (e.clientX - r.left) * (gc.width / r.width);
+        const i = Math.floor((x - GAL.pad) / (GAL.cell + GAL.pad));
+        const inCell = x - GAL.pad - i * (GAL.cell + GAL.pad);
+        if (i >= 0 && i < GAL.cells && inCell <= GAL.cell) gallerySelect(i);
+      });
+      if ('IntersectionObserver' in window) {
+        new IntersectionObserver((entries, obs) => {
+          if (entries.some((en) => en.isIntersecting) && state.headSpecies === 'frog') {
+            buildFrogGallery();
+            obs.disconnect();
+          }
+        }, { rootMargin: '120px' }).observe(gc);
+      } else if (state.headSpecies === 'frog') buildFrogGallery();
+    }
+  }
   $('btnExport').addEventListener('click', () => {
     const j = configJSON();
     $('exportBox').value = JSON.stringify(j, null, 2);
@@ -2428,9 +2725,152 @@ window.__atelier = {
   get avatar() { return av; },
   get outfit() { return outfit; },
   get mode() { return state.mode; },
+  garmentMode: () => state.garmentMode,
+  setGarmentMode,
   rebuildOutfit,
   setHead,
-  setFrogSkin: (name) => { outfit?.setFrogSkin?.(name); updateHeadUI(); wake(); },
+  setFrogSkin: (name) => setFrogSkin(name),
+  // ── frog playground surface (frog-heads.js) ─────────────────────────────
+  setFrogExpression: (name) => setFrogExpression(name),
+  setFrogAccessory: (name) => setFrogAccessory(name),
+  /** geometry-truth metrics for the current expression (lids, brows, mouth). */
+  frogInfo: () => frogHead?.userData.frog.metrics() ?? null,
+  frogExpressions: () => [...FROG_EXPRESSIONS],
+  frogSkins: () => Object.keys(FROG_HEAD_SKINS),
+  frogAccessories: () => [...FROG_ACCESSORIES],
+  /** smoke: every expression × skin × accessory through the LIVE head's
+   *  set* API — no NaN in any world matrix, zero throws. Returns a summary. */
+  frogSanity: () => {
+    if (!frogHead) return { error: 'no frog head installed' };
+    const f = frogHead.userData.frog;
+    let n = 0; const errs = [];
+    for (const skin of Object.keys(FROG_HEAD_SKINS)) {
+      for (const expr of FROG_EXPRESSIONS) {
+        for (const acc of FROG_ACCESSORIES) {
+          try {
+            f.setSkin(skin); f.setExpression(expr); f.setAccessory(acc);
+            frogHead.updateMatrixWorld(true);
+            frogHead.traverse((o) => {
+              for (const v of o.matrixWorld.elements) {
+                if (!Number.isFinite(v)) throw new Error('NaN in world matrix');
+              }
+            });
+            n++;
+          } catch (err) { errs.push(`${skin}/${expr}/${acc}: ${err.message}`); }
+        }
+      }
+    }
+    // restore the UI selection
+    f.setSkin(state.frogSkin); f.setExpression(state.frogExpr); f.setAccessory(state.frogAcc);
+    updateHeadUI(); wake();
+    return { combos: n, errors: errs.slice(0, 8), errorCount: errs.length };
+  },
+  /** standard front-on head framing for expression shots (consistent across
+   *  all six). LEVEL with the face and 0.85 out: a close/high camera
+   *  foreshortens the mouth's forward wrap (the mid bulges ~5 cm proud of the
+   *  corners; measured −13px of false "smile" on grumpy from 0.52/level+0.055)
+   *  — a level camera keeps the drawn curvature sign readable on screen. */
+  frogCam: () => {
+    av.root.updateMatrixWorld(true);
+    const h = activeHeadGroup() ?? av.bones.head;
+    const c = h.localToWorld((h.userData?.frog?.skullCentre ?? new THREE.Vector3(0, 0.062 * av.H, 0)).clone());
+    controls.autoRotate = false;
+    camera.position.set(c.x + 0.03, c.y - 0.005, c.z + 0.85);
+    controls.target.set(c.x, c.y + 0.012, c.z);
+    controls.update();
+    wake();
+    return { pos: camera.position.toArray().map((v) => +v.toFixed(3)), tgt: controls.target.toArray().map((v) => +v.toFixed(3)) };
+  },
+  /** render-truth eye read at the CURRENT camera: per side, pale-bulb px and
+   *  skin-lid px inside a disc around each projected eye turret — the
+   *  distinctness table's "white pixel counts" column. */
+  frogEyePixels: () => {
+    if (!frogHead) return { error: 'no frog head installed' };
+    av.root.updateMatrixWorld(true);
+    const { buf, W, H } = readFrame();
+    const f = frogHead.userData.frog;
+    const out = { expression: f.expression, skin: f.skin };
+    f.parts.turrets.forEach((t, i) => {
+      const c = t.getWorldPosition(new THREE.Vector3());
+      const p = toPx(c, W, H);
+      let pale = 0, skiny = 0;
+      const rad = Math.round(H * 0.055);
+      const skinHex = FROG_HEAD_SKINS[f.skin].base;
+      const wantHue2 = hueOfHex(skinHex);
+      for (let y = Math.max(0, p.y - rad); y <= Math.min(H - 1, p.y + rad); y++) {
+        for (let x = Math.max(0, p.x - rad); x <= Math.min(W - 1, p.x + rad); x++) {
+          const q2 = ((H - 1 - y) * W + x) * 4;
+          const R = buf[q2], G = buf[q2 + 1], B = buf[q2 + 2];
+          const dx = x - p.x, dy = y - p.y;
+          if (dx * dx + dy * dy > rad * rad) continue;
+          if (R > 150 && G > 150 && B > 90 && G > B + 20 && G > R - 25 && R > B + 10) { pale++; continue; }
+          const mx = Math.max(R, G, B), mn = Math.min(R, G, B), d2 = mx - mn;
+          if (d2 >= 14 && mx > 40) {
+            let h;
+            if (mx === R) h = 60 * (((G - B) / d2) + 6);
+            else if (mx === G) h = 60 * (((B - R) / d2) + 2);
+            else h = 60 * (((R - G) / d2) + 4);
+            if (h >= 360) h -= 360;
+            let dh = Math.abs(h - wantHue2); if (dh > 180) dh = 360 - dh;
+            if (dh < 15) skiny++;
+          }
+        }
+      }
+      out[i === 0 ? 'sideP1' : 'sideM1'] = { palePx: pale, skinPx: skiny };
+    });
+    return out;
+  },
+  buildFrogGallery,
+  gallerySelect,
+  galleryInfo: () => ({ built: GAL.built, cells: GAL.cells, inkPerCell: GAL.ink, expr: state.frogExpr }),
+  /** render-truth MOUTH read at the CURRENT camera: projects the mouth tube's
+   *  three anchor rings (corner side+1 / mid / corner side-1) and counts ink
+   *  pixels around each. curvaturePx = cornerAvgY − midY in SCREEN pixels —
+   *  NEGATIVE = mid sits lower on screen = ⌣ smile; POSITIVE = ⌢ frown. */
+  frogMouthProbe: () => {
+    if (!frogHead) return { error: 'no frog head installed' };
+    av.root.updateMatrixWorld(true);
+    const f = frogHead.userData.frog;
+    const mg = f.parts.mouthGroup;
+    const meshes = mg.children.filter((o) => o.isMesh);
+    const kind = f.metrics().mouth.kind;
+    const { buf, W, H } = readFrame();
+    const inkAt = (cx, cy, rad = 18) => {
+      let ink = 0;
+      for (let y = Math.max(0, cy - rad); y <= Math.min(H - 1, cy + rad); y++) {
+        for (let x = Math.max(0, cx - rad); x <= Math.min(W - 1, cx + rad); x++) {
+          const q = ((H - 1 - y) * W + x) * 4;
+          if (buf[q] < 70 && buf[q + 1] < 70 && buf[q + 2] < 80) ink++;
+        }
+      }
+      return ink;
+    };
+    if (kind === 'open') {
+      const c = meshes[0].getWorldPosition(new THREE.Vector3());
+      const p = toPx(c, W, H);
+      return { kind, r: f.metrics().mouth.r, midPx: [Math.round(p.x), Math.round(p.y)], inkMid: inkAt(p.x, p.y) };
+    }
+    const tube = meshes.find((mm) => mm.geometry.type === 'TubeGeometry');
+    if (!tube) return { error: 'no mouth tube (expression ' + f.expression + ')' };
+    const pos = tube.geometry.attributes.position;
+    const RINGS = 23, RV = pos.count / RINGS;   // 22 tubular segs + 1
+    const ringCentre = (r) => {
+      const v = new THREE.Vector3();
+      for (let k = 0; k < RV; k++) v.add(new THREE.Vector3().fromBufferAttribute(pos, r * RV + k));
+      return v.divideScalar(RV);
+    };
+    const anchors = { cornerP1: ringCentre(0), mid: ringCentre(11), cornerM1: ringCentre(22) };
+    const out = { kind: 'arc' };
+    for (const [name, v] of Object.entries(anchors)) {
+      const wp = tube.localToWorld(v.clone());
+      const p = toPx(wp, W, H);
+      out[name] = { x: Math.round(p.x), y: Math.round(p.y), ink: inkAt(p.x, p.y) };
+    }
+    const cornerAvgY = (out.cornerP1.y + out.cornerM1.y) / 2;
+    out.curvaturePx = +(cornerAvgY - out.mid.y).toFixed(1);  // − = ⌣ smile
+    out.reads = out.cornerP1.ink > 40 && out.cornerM1.ink > 40 && out.mid.ink > 40;
+    return out;
+  },
   get headSpecies() { return state.headSpecies; },
   setAnim, setSpeed: (v) => { state.speed = v; $('speedRange').value = v; $('speedVal').textContent = v.toFixed(2) + '×'; },
   pause: () => { state.paused = true; updatePauseBtn(); },

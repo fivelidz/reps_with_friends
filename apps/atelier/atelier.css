@@ -353,3 +353,25 @@
 
 /* signed-probe inside-body legend chip (bright red, white-cored like the heatmap) */
 .lg-inside { background: linear-gradient(90deg, #ff1f1f, #ffd9e1); color: #2a0d0d; }
+
+/* ── FROG PLAYGROUND (frog-heads.js): expression/skin/accessory + gallery ─── */
+.frog-dot {
+  display: inline-block;
+  width: 9px; height: 9px;
+  border-radius: 50%;
+  margin-right: 6px;
+  vertical-align: baseline;
+  box-shadow: 0 0 0 1px rgba(255, 255, 255, 0.18) inset;
+}
+.frog-gallery {
+  display: block;
+  width: 100%;
+  margin-top: 8px;
+  border: 1px solid var(--line-bright);
+  border-radius: var(--radius-sm);
+  background: var(--surface-2);
+  cursor: pointer;
+  image-rendering: auto;
+}
+.frog-gallery:hover { border-color: var(--lime-dim); }
+.frog-gallery.built { min-height: 96px; }
