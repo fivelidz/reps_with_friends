@@ -135,7 +135,13 @@ export const DERIVED_SPEC = {
   shirt: { collarMm: 6, chestMm: 12, hemMm: 18 },   // a tee hangs looser lower
   sleeve: { topMm: 8, hemMm: 12 },                  // grade along the arm
   shorts: { waistMm: 10, hemMm: 16 },               // graded slack down the leg
-  band: { topMm: 12, bottomMm: 13 },                // stays PROUD of the 10 mm shorts shell
+  // v9 FIX 2c ("the band never reads at stand"): the v8 12/13 mm band face sat
+  // between the shirt's snug hem lip (+11 mm) and the pelvis flap (+12 mm) —
+  // a 0.3 mm z-fight the camera tilt resolved AGAINST the band, so the front
+  // column read shirt→coral with no charcoal at all (pixel-measured). 15/16
+  // puts the band face a decisive 4-5 mm in front of both: shirt lip →
+  // CHARCOAL BAND → coral shorts, from any camera angle.
+  band: { topMm: 15, bottomMm: 16 },                // decisively PROUD of the 10-12 mm neighbours
   // contour-hem construction
   ringSamples: 64,       // uniform angular samples per ring
   contourBins: 64,       // polar bins for the smoothed cross-section profile
@@ -251,11 +257,18 @@ export const DERIVED_SPEC = {
   //     and the app renders only while it settles).
   //   • prefers-reduced-motion: reduce → disabled (pure skinned).
   physics: {
-    k: 26,                 // spring stiffness (ω≈5.1 → ~1 s settle)
+    // v9.1 tuning (measured): ω=√k, velocity-lag ≈ (2ζ/ω)·v. k=26 gave a
+    // sleeve-hem clamp-ride at 2 cm but only ~0.6 cm of SHIRT-hem lag at
+    // 0.25× slow-mo (the founder's tuning bar: "the shirt hem visibly
+    // lags the stride ~1-2 cm"). k=16 → ω=4.0, coef 0.325 s → shirt hem
+    // ≈ 0.8-1.0 cm at slow-mo, sleeves bounded by the 2 cm clamp.
+    k: 16,                 // spring stiffness (ω≈4.0 → ~1.2 s settle)
     zeta: 0.65,            // damping ratio (<1: one soft overshoot on settle)
     sagG: 0.12,            // gravity gain — ~0.5 cm droop at loose 1 (more buries
     //                       the waistband behind the shirt hem — the band must read)
-    maxDispCm: 3.0,        // hard clamp vs the skinned target (the brief's ±3 cm)
+    maxDispCm: 2.0,        // hard clamp vs the skinned target — TRUE cm (v9.1:
+    //                       3.0 construction-cm measured 3.59 true; the brief's
+    //                       band is 1.5-2.5 — "subtle flow, not flags")
     hemHystCm: 0.12,       // displacement hysteresis before a vert counts as asleep
     sleepVelMs: 0.025,     // m/s — ≈0.4 mm/frame: below this the layer sleeps
     substepHz: 60,         // fixed physics substep (accumulator, ≤4 per frame)
@@ -601,14 +614,32 @@ function fabricLattice(body, tag, mat, tubes, srcRadius = 0.5) {
     for (const ring of tube.rings) for (const p of ring.pts) { lo.min(p); hi.max(p); }
     lo.addScalar(-srcRadius); hi.addScalar(srcRadius);
     const cands = [];
+    const prefCands = [];
     for (let i = 0; i < P.count; i++) {
       const x = P.getX(i), y = P.getY(i), z = P.getZ(i);
       if (x < lo.x || x > hi.x || y < lo.y || y > hi.y || z < lo.z || z > hi.z) continue;
       if (tube.srcFilter && !tube.srcFilter(i)) continue;
       cands.push(i);
+      if (!tube.srcPrefer || tube.srcPrefer(i)) prefCands.push(i);
     }
+    // v9.1 PREFERRED SOURCING: try the preferred subset first and take it
+    // when it lands within preferRadius — otherwise fall back to the full
+    // candidate set. For the sleeves this keeps every vert that CAN source
+    // from the arm chain sourced from it (a Spine3 source 7-8 cm away —
+    // "nearest overall" near the shoulder joint — tore 4.4 cm apart from
+    // the arm-riding ring at arms-overhead, Δsource gate + strain gate).
+    const prefR2 = (tube.preferRadius ?? Infinity) ** 2;
     const nearest = (p) => {
       let best = 0, bd = Infinity;
+      if (prefCands.length && prefCands.length !== cands.length) {
+        for (const i of prefCands) {
+          const dx = P.getX(i) - p.x, dy = P.getY(i) - p.y, dz = P.getZ(i) - p.z;
+          const d2 = dx * dx + dy * dy + dz * dz;
+          if (d2 < bd) { bd = d2; best = i; }
+        }
+        if (bd <= prefR2) return best;
+      }
+      bd = Infinity;
       for (const i of cands) {
         const dx = P.getX(i) - p.x, dy = P.getY(i) - p.y, dz = P.getZ(i) - p.z;
         const d2 = dx * dx + dy * dy + dz * dz;
@@ -2052,6 +2083,11 @@ function buildFabricPhysics(root, skeleton, body, garments, allCapList, PH, unit
   };
   const omega = Math.sqrt(PH.k), damp = 2 * PH.zeta * omega;
   const h = 1 / PH.substepHz;
+  // NOTE: unitPerMmU here is TRUE units-per-mm (H/1750, passed at the call
+  // site) — NOT the construction's 0.001·1.75/H mm (which is calibrated for
+  // H=1.75-unit models and runs 1.198× large on Geno's H=1.6; fine for the
+  // approved garment offsets, wrong for a clamp that must read TRUE cm in
+  // the probe conversions 175/H). ×1000 → units per metre.
   const maxDispU = PH.maxDispCm * 0.01 * unitPerMmU * 1000;   // cm → model units
   const sagU = PH.sagG * unitPerMmU * 1000;                   // m/s² → model/s²
   const hystU = PH.hemHystCm * 0.01 * unitPerMmU * 1000;
@@ -2195,7 +2231,15 @@ function buildFabricPhysics(root, skeleton, body, garments, allCapList, PH, unit
         const ddx = px - sx, ddy = py - sy, ddz = pz - sz;
         const dLen = Math.hypot(ddx, ddy, ddz);
         const maxD = maxDispU * part.loose[k];
-        if (dLen > maxD && dLen > 1e-9) {
+        // TELEPORT SNAP: a clip seek (probe p.time jumps, setAnim swaps) can
+        // move S by tens of cm in one frame — that is not fabric physics,
+        // it is a discontinuity; springs chasing it read as a 45 cm "lag"
+        // transient (measured on the first v9 verify run). Anything past
+        // 2.5× the clamp snaps P onto S and forgets the velocity.
+        if (dLen > 2.5 * maxD) {
+          px = sx; py = sy; pz = sz;
+          vx = 0; vy = 0; vz = 0;
+        } else if (dLen > maxD && dLen > 1e-9) {
           const c2 = maxD / dLen;
           px = sx + ddx * c2; py = sy + ddy * c2; pz = sz + ddz * c2;
           // kill the outward radial velocity + damp the tangential creep
@@ -2283,6 +2327,20 @@ function buildFabricPhysics(root, skeleton, body, garments, allCapList, PH, unit
     }
     refreshWorld();           // capsule frames + skinned targets, every step
     if (!state.awake) wakeInit();
+    // TELEPORT SNAP (frame level): after ANY S refresh a clip seek can leave
+    // |P−S| in the tens of cm until the next substep runs — consumers reading
+    // displacement between substeps (the probes' dispOf, the Δsource gate)
+    // would see the transient. Snap here so the arrays are always sane.
+    for (const part of parts) {
+      for (let k = 0; k < part.n; k++) {
+        const k3 = k * 3;
+        const dx = part.P[k3] - part.S[k3], dy = part.P[k3 + 1] - part.S[k3 + 1], dz = part.P[k3 + 2] - part.S[k3 + 2];
+        if (dx * dx + dy * dy + dz * dz > (2.5 * maxDispU * part.loose[k]) ** 2) {
+          part.P[k3] = part.S[k3]; part.P[k3 + 1] = part.S[k3 + 1]; part.P[k3 + 2] = part.S[k3 + 2];
+          part.vel[k3] = 0; part.vel[k3 + 1] = 0; part.vel[k3 + 2] = 0;
+        }
+      }
+    }
     acc += Math.max(0, dt);
     let steps = 0;
     let calm = false;
@@ -2322,12 +2380,17 @@ function buildFabricPhysics(root, skeleton, body, garments, allCapList, PH, unit
   }
 
   /** world displacement (P − S) per participating vert — the Δsource probe
-   *  subtracts this so the attachment gate measures skinning, not physics. */
+   *  subtracts this so the attachment gate measures skinning, not physics.
+   *  Reports the LIVE arrays even while ASLEEP: sleep keeps the sagged
+   *  positions baked into the geometry (writeback-before-sleep), so the
+   *  probe must still subtract them (zeroing here charged the ~0.5-2 cm
+   *  resting sag to the skinning gate). Only a DISABLED layer (restback,
+   *  geometry = constructed rest) reports all-zeros. */
   function dispOf(mesh) {
     const part = parts.find((p2) => p2.mesh === mesh);
     if (!part) return null;
-    if (!state.awake) return { idx: part.idx, disp: new Float32Array(part.n * 3) };
     const disp = new Float32Array(part.n * 3);
+    if (!state.enabled) return { idx: part.idx, disp };
     for (let k = 0; k < part.n; k++) {
       disp[k * 3] = part.P[k * 3] - part.S[k * 3];
       disp[k * 3 + 1] = part.P[k * 3 + 1] - part.S[k * 3 + 1];
@@ -2871,8 +2934,8 @@ export function attachDerivedOutfit(avatar, opts = {}) {
   const reducedMotion = typeof matchMedia === 'function'
     && matchMedia('(prefers-reduced-motion: reduce)').matches;
   const phys = physGarments.length
-    ? buildFabricPhysics(avatar.root, skin.skeleton, body, physGarments, physCaps, PHP, mm)
-    : null;
+    ? buildFabricPhysics(avatar.root, skin.skeleton, body, physGarments, physCaps, PHP, H / 1750)
+    : null;   // TRUE units-per-mm — see the NOTE in buildFabricPhysics
   if (phys && reducedMotion) phys.setEnabled(false);   // reduced motion → pure skinned
 
   // v4 rigid pieces (founder-approved): headband, wristbands.

@@ -5,3 +5,6 @@ export * from "./card-image.ts";
 export * from "./ai.ts";
 export * from "./game-extras.ts";
 export * from "./digest.ts";
+export * from "./api-sync.ts";
+export * from "./transports/chat-transport.ts";
+export * from "./transports/beeper.ts";

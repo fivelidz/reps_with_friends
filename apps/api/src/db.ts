@@ -45,9 +45,17 @@ export interface Db {
   crews: CrewRecord[];
   matches: MatchRecord[];
   seasons: SeasonRecord[];
+  /**
+   * Bot mirrors (P1 — docs/22_BACKEND_CHAT_ARCHITECTURE.md): raw bot-state
+   * snapshots pushed by @rwf/bot-core's MatchStore.api() mirror, keyed by
+   * source ("bot-core", "bot-beeper", …). Crew-linked bot matches are ALSO
+   * adopted into crews/matches above so the app's GET /crews/:code sees them;
+   * this field keeps the verbatim snapshot for debugging/audit.
+   */
+  bots?: Record<string, { receivedAt: number; snapshot: unknown }>;
 }
 
-export const emptyDb = (): Db => ({ crews: [], matches: [], seasons: [] });
+export const emptyDb = (): Db => ({ crews: [], matches: [], seasons: [], bots: {} });
 
 // ── Path resolution ─────────────────────────────────────────────────────────
 // Default: <repoRoot>/.data/api-db.json (repo root = three levels up from src/).
@@ -73,6 +81,7 @@ export function loadDb(): Db {
       crews: parsed.crews ?? [],
       matches: parsed.matches ?? [],
       seasons: parsed.seasons ?? [],
+      bots: parsed.bots ?? {},
     };
   } catch {
     // Corrupt file → start empty rather than take the whole API down.

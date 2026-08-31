@@ -391,4 +391,76 @@ export const routes: Route[] = [
       return json({ season: seasonRec.season, ladder: seasonLadder(seasonRec.season) }, 201);
     },
   },
+
+  // ── Bot mirrors (P1: bots → API; docs/22_BACKEND_CHAT_ARCHITECTURE.md) ──
+  // The chat bots (Slack/WhatsApp/Beeper) push full state snapshots here via
+  // MatchStore.api(). Crew-linked bot matches are ADOPTED into the real
+  // crews/matches tables so the web app's GET /crews/:code pulls bot-played
+  // matches into the same scoreboard (blocker T5). Idempotent by match id.
+
+  {
+    method: "POST",
+    path: "/bots/state",
+    handler: ({ body }) => {
+      const source = (typeof body?.source === "string" && body.source.trim() ? body.source.trim() : "bot-core").slice(0, 40);
+      const out = mutateDb((db) => {
+        db.bots = db.bots ?? {};
+        db.bots[source] = { receivedAt: Date.now(), snapshot: body };
+
+        let crewsCreated = 0;
+        let matchesUpserted = 0;
+        const matches = (body?.matches ?? {}) as Record<string, any>;
+        for (const m of Object.values(matches)) {
+          const code = typeof m?.crewCode === "string" ? m.crewCode.toUpperCase() : null;
+          const state = m?.state;
+          if (!code || !state || typeof state?.config?.id !== "string") continue;
+          if (!Array.isArray(state.players) || !Array.isArray(state.entries)) continue;
+
+          // Ensure the crew exists (bot-linked crews can predate any app crew).
+          let crew = findCrew(db, code);
+          if (!crew) {
+            crew = { id: `crew_${code}`, code, name: `Crew ${code}`, players: [], createdAt: Date.now() };
+            db.crews.push(crew);
+            crewsCreated++;
+          }
+          // Adopt players the crew hasn't seen (bot player ids are
+          // platform-stable strings like "wa:+614…" / "beeper:@user:…").
+          for (const p of state.players) {
+            if (p && typeof p.id === "string" && !crew.players.some((x) => x.id === p.id)) {
+              crew.players.push({ id: p.id, name: String(p.name ?? p.id).slice(0, 24), tier: p.tier ?? "casual" });
+            }
+          }
+
+          // Upsert the match record — mirror semantics: bot state wins for
+          // the match itself, but API-side MVP/season flags are preserved.
+          const rec: MatchRecord = { id: state.config.id, crewCode: code, match: state };
+          const i = db.matches.findIndex((r) => r.id === rec.id);
+          if (i >= 0) db.matches[i] = { ...db.matches[i], ...rec };
+          else db.matches.push(rec);
+          matchesUpserted++;
+        }
+        return { crewsCreated, matchesUpserted };
+      });
+      return json({ ok: true, source, ...out });
+    },
+  },
+
+  {
+    method: "GET",
+    path: "/bots/state",
+    handler: () => {
+      return mutateDb((db) => {
+        const bots = db.bots ?? {};
+        const sources = Object.entries(bots).map(([source, rec]) => {
+          const snap = rec.snapshot as { matches?: Record<string, unknown> } | undefined;
+          return {
+            source,
+            receivedAt: rec.receivedAt,
+            chats: Object.keys(snap?.matches ?? {}).length,
+          };
+        });
+        return json({ sources });
+      });
+    },
+  },
 ];

@@ -41,6 +41,7 @@ import * as S from "./state.js";
 import * as E from "./engine.js";
 import * as D from "./daily.js"; // temporal loop: deadlines, danger zone, daily winners (FLOW-06/07)
 import { openCameraNote } from "./verify.js";
+import { APP_VERSION, BUILD_HASH, BUILD_DATE } from "./version.js"; // v1.0.0 surface + About
 
 /* transient form drafts (persisted only on CONTINUE / CREATE) */
 const draft = { name: "Ben the Machine", tier: "casual", battle: { name: "The Sunday Showdown", days: [1, 3, 5], pack: "bodyweight", target: "solid" } };
@@ -863,6 +864,8 @@ const SCREENS = [
           <span class="fx-card__t">Got an invite code?</span>
           <span class="fx-card__s">Paste it here to join your crew's battle</span>
         </div>
+        <div class="fx-gap8"></div>
+        ${btn("▶  WATCH THE DEMO — 75 SECONDS", "fx-btn--dark", "", 'data-demo-start')}
       </div>
       ${nav("battle-001")}`,
   },
@@ -877,6 +880,8 @@ const SCREENS = [
       <div class="fx-content">
         ${h1("READY WHEN YOU ARE", "fx-h1--30")}
         ${noBattleState()}
+        <div class="fx-gap8"></div>
+        ${btn("▶  WATCH THE DEMO — 75 SECONDS", "fx-btn--dark", "", 'data-demo-start')}
       </div>
       ${nav("battle-001")}`;
       const rows = E.standings(m);
@@ -910,6 +915,8 @@ const SCREENS = [
         <div class="fx-board">${realBoard(m, { max: 2 })}</div>
         <div class="fx-gap8"></div>
         ${btn("SEASON LADDER →", "fx-btn--dark", "season-001")}
+        <div class="fx-gap8"></div>
+        ${btn("▶  WATCH THE DEMO", "fx-btn--ghost", "", 'data-demo-start')}
       </div>
       ${nav("battle-001")}`;
     },
@@ -2062,6 +2069,7 @@ TUESDAY</div>
           ${menuRow("Friends", "social-001")}
           ${menuRow("Power-up inventory", "pwr-001")}
           ${menuRow("Settings", "set-001")}
+          ${menuRow(`ℹ️ About · v${APP_VERSION} · build ${BUILD_HASH}`, "about-001")}
         </div>
       </div>
       ${nav("profile-001")}`;
@@ -2093,6 +2101,7 @@ TUESDAY</div>
         </div>
         <p class="fx-menurow__group" style="margin-left:0">SUPPORT</p>
         <div class="fx-menu">
+          ${menuRow(`About this app · v${APP_VERSION}`, "about-001")}
           ${menuRow("Help centre")}
           ${menuRow("Report a problem")}
           ${menuRow("Terms & privacy policy")}
@@ -2174,6 +2183,35 @@ TUESDAY</div>
         </div>
         ${note("Cancelling keeps Pro until the period ends, then drops to Free — your battles and history are never deleted. We'll show one save offer, never a maze.")}
       </div>`,
+  },
+  {
+    /* v1.0.0 — the version surface: what this build is, honestly. */
+    id: "about-001", figma: "MOB-SET-001", name: "About this app", group: "Profile & Settings", next: "profile-001",
+    render: () => {
+      const t = S.stats();
+      return `
+      ${statusBar()}
+      ${topBar({ title: "Create battle", back: true })}
+      <div class="fx-content">
+        ${h1("ABOUT THIS APP", "fx-h1--24")}
+        <div class="fx-card fx-card--r14" style="text-align:center">
+          <div class="fx-wordmark fx-wordmark--sm" style="margin:8px auto 10px">REPS<i>·</i>WF</div>
+          <div style="font:400 22px/1.3 var(--font-display);text-transform:uppercase">Reps With Friends</div>
+          <div class="fx-card__s" style="margin-top:6px">prototype · v${APP_VERSION}</div>
+          <div class="fx-card__s">build ${BUILD_HASH} · ${BUILD_DATE}</div>
+        </div>
+        ${rule("What's real", "the game engine — handicaps (couch ×1.5 → athlete ×0.85), comeback ×1.2, closure bonus, power-ups, charity pots, the season ladder")}
+        ${rule("Your data", `lives on this device only · ${t.played} battle${t.played === 1 ? "" : "s"} · ${t.lifetimeReps.toLocaleString()} lifetime reps`)}
+        ${rule("Offline", "installable PWA — after first load it works with the network off")}
+        ${rule("Honesty", "screens still carrying mock content wear a DEMO chip")}
+        <div class="fx-gap8"></div>
+        ${btn("▶  WATCH THE DEMO — 75 SECONDS", "fx-btn--dark", "", 'data-demo-start')}
+        <div class="fx-gap8"></div>
+        <a class="fx-btn fx-btn--ghost" href="/wiki" target="_blank" rel="noopener" style="text-decoration:none;text-align:center">EXPLORE THE SYSTEM — THE WIKI →</a>
+        ${note("Every element, blocker and design decision, documented: rwf.qalarc.com/wiki")}
+      </div>
+      ${nav("profile-001")}`;
+    },
   },
 
   /* ── SOCIAL & INTEGRITY ×3 ───────────────────────────────────────── */
@@ -2490,7 +2528,9 @@ function renderIndex() {
       <div class="fx-gap16"></div>
       ${btn("▶  START THE REAL APP (ONBOARDING)", "fx-btn--primary", "auth-008")}
       <div class="fx-gap8"></div>
-      ${btn("Jump straight into a live battle", "fx-btn--dark", "battle-001")}
+      ${btn("▶  WATCH THE DEMO — self-playing tour", "fx-btn--dark", "", 'data-demo-start')}
+      <div class="fx-gap8"></div>
+      ${btn("Jump straight into a live battle", "fx-btn--ghost", "battle-001")}
     </div>
     ${groups}
   </div>`;
@@ -2723,6 +2763,8 @@ document.addEventListener("click", (e) => {
   const g = e.target.closest("[data-go]");
   if (g) { location.hash = g.dataset.go ? `#/${g.dataset.go}` : "#/"; closeOverlay(); return; }
   if (e.target.closest("[data-back]")) { history.back(); return; }
+  if (e.target.closest("[data-demo-start]")) { e.preventDefault(); bootDemo(); return; }
+  if (e.target.closest("[data-sw-reload]")) { location.reload(); return; }
   const theme = e.target.closest("#themeToggle");
   if (theme) {
     const html = document.documentElement;
@@ -2788,6 +2830,43 @@ try {
   const saved = localStorage.getItem("rwf-figma-theme");
   if (saved === "lime") { document.documentElement.removeAttribute("data-theme"); }
 } catch {}
+
+/* ── SW update lane (v1.0.0): old tabs must learn about new builds ──────
+   sw.js's cache name comes from version.js's BUILD_STAMP; when a new
+   build deploys, this ping installs the new worker (skipWaiting +
+   clients.claim are in sw.js), controllerchange fires here, and the user
+   gets an "APP UPDATED — RELOAD" toast instead of a stale app. */
+if ("serviceWorker" in navigator) {
+  let swToastShown = false;
+  let hadController = !!navigator.serviceWorker.controller; // false on first load
+  navigator.serviceWorker.addEventListener("controllerchange", () => {
+    const replaced = hadController; // a real UPDATE replaced the old worker
+    hadController = true;
+    if (!replaced || swToastShown) return; // first activation is not an update
+    swToastShown = true;
+    toast(`${ic("bolt")} APP UPDATED — <button data-sw-reload style="background:none;border:1px solid var(--line-bright);color:var(--lime);border-radius:999px;padding:4px 10px;font:600 11px/1.2 var(--font-body);cursor:pointer;margin-left:6px">RELOAD</button>`);
+  });
+  const ping = () => navigator.serviceWorker.ready.then((r) => r.update()).catch(() => {});
+  addEventListener("load", ping);
+  setInterval(ping, 30 * 60 * 1000); // long-lived tabs re-check every 30 min
+}
+
+/* ── demo mode entry (v1.0.0): ?demo=1 deep link + [data-demo-start] ──── */
+let demoBooted = false;
+async function bootDemo({ speed = 1 } = {}) {
+  if (demoBooted) return;
+  demoBooted = true;
+  const mod = await import("./demo.js");
+  mod.startDemo({ speed });
+}
+if (location.protocol.startsWith("http")) {
+  const q = new URLSearchParams(location.search);
+  if (q.get("demo") === "1") {
+    const speed = Number(q.get("speed")) === 2 ? 2 : 1;
+    requestAnimationFrame(() => setTimeout(() => bootDemo({ speed }), 400));
+  }
+}
+
 function route() {
   const id = location.hash.replace(/^#\//, "");
   if (!id) { renderIndex(); return; }

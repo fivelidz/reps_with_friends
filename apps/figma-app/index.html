@@ -1,12 +1,13 @@
 <!doctype html>
-<!-- RWF × FIGMA TEST APP — every Ben screen, mock data, gold theme default.
-     Static + vendored: works offline after first load (sw.js). -->
+<!-- RWF × FIGMA TEST APP — every Ben screen, real engine, gold theme default.
+     v1.0.0 · static + vendored: works offline after first load (sw.js).
+     ?demo=1 deep-links the self-playing app demo (demo.js). -->
 <html lang="en" data-theme="gold">
 <head>
   <meta charset="utf-8">
   <meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
-  <title>RWF Figma Test — Ben's design, every screen</title>
-  <meta name="description" content="Offline test app realising Ben's Figma design for Reps With Friends.">
+  <title>Reps With Friends — v1.0.0</title>
+  <meta name="description" content="Reps With Friends prototype — the real game engine behind Ben's design: battles, handicaps, power-ups, daily winners. Works offline.">
   <meta name="theme-color" content="#0b0a12">
   <link rel="manifest" href="manifest.webmanifest">
   <link rel="apple-touch-icon" href="icons/icon-192.png">
@@ -16,10 +17,13 @@
   <link rel="stylesheet" href="figma-components.css">
   <link rel="stylesheet" href="app.css">
   <link rel="stylesheet" href="daily.css"><!-- temporal loop (FLOW-06/07) -->
+  <link rel="stylesheet" href="app-demo.css"><!-- demo mode narrator (v1.0.0) -->
   <script>
     // Register the SW before anything heavy; ignore failures (file:// etc).
+    // Module worker: sw.js imports version.js (the build stamp) so its
+    // cache name changes on every deploy — no more stale caches.
     if ("serviceWorker" in navigator && location.protocol.startsWith("http")) {
-      addEventListener("load", () => navigator.serviceWorker.register("sw.js").catch(() => {}));
+      addEventListener("load", () => navigator.serviceWorker.register("sw.js", { type: "module" }).catch(() => {}));
     }
   </script>
 </head>

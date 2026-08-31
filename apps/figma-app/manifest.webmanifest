@@ -1,7 +1,8 @@
 {
-  "name": "RWF Figma Test",
-  "short_name": "RWF Test",
-  "description": "Offline test app realising Ben's Figma design for Reps With Friends — every screen, mock data, gold theme default.",
+  "name": "Reps With Friends",
+  "short_name": "RWF",
+  "version": "1.0.0",
+  "description": "Reps With Friends prototype — the real game engine behind Ben's design: battles, tier handicaps, power-ups, daily winners, seasons. Works offline.",
   "start_url": "./",
   "scope": "./",
   "display": "standalone",

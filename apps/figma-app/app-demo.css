@@ -1,0 +1,108 @@
+/* ═══════════════════════════════════════════════════════════════════════
+   RWF DEMO MODE (v1.0.0) — narrator sheet, click shield, end card.
+   The demo drives real app state; these are only the chrome pieces.
+   Layering: shield 55 < narrator 70 < toast 80 (lifted) < end card 90.
+   ═══════════════════════════════════════════════════════════════════════ */
+
+/* invisible click shield — the script owns the screen while it runs */
+.fx-demo-shield {
+  position: fixed; inset: 0; z-index: 55;
+  background: transparent;
+  cursor: not-allowed;
+}
+
+/* narrator: an elegant bottom sheet in Ben's language */
+.fx-narr {
+  position: fixed; left: 50%; transform: translateX(-50%);
+  bottom: 0; z-index: 70;
+  width: 100%; max-width: 393px;
+  background: color-mix(in srgb, var(--surface) 88%, black);
+  -webkit-backdrop-filter: blur(14px);
+  backdrop-filter: blur(14px);
+  border: 1px solid color-mix(in srgb, var(--lime) 38%, transparent);
+  border-bottom: 0;
+  border-radius: 22px 22px 0 0;
+  padding: 10px 18px calc(14px + env(safe-area-inset-bottom));
+  display: flex; flex-direction: column; gap: 8px;
+  box-shadow: 0 -18px 48px rgba(0, 0, 0, 0.55);
+  animation: fx-narr-in 0.32s cubic-bezier(0.2, 0.7, 0.2, 1);
+}
+@keyframes fx-narr-in { from { transform: translate(-50%, 40px); opacity: 0; } to { transform: translate(-50%, 0); opacity: 1; } }
+@media (prefers-reduced-motion: reduce) {
+  .fx-narr { animation: none; }
+}
+
+.fx-narr__grab {
+  width: 40px; height: 4px; border-radius: 2px;
+  background: var(--line-bright); margin: 0 auto;
+}
+.fx-narr__cap {
+  font: 400 17px/1.35 var(--font-display);
+  text-transform: uppercase; letter-spacing: 0.02em;
+  color: var(--text); text-align: center;
+}
+.fx-narr__sub {
+  font: 500 12.5px/1.45 var(--font-body);
+  color: var(--muted); text-align: center; margin-top: -2px;
+}
+.fx-narr__dots {
+  display: flex; gap: 5px; justify-content: center; margin-top: 2px;
+}
+.fx-narr__dots i {
+  width: 6px; height: 6px; border-radius: 50%;
+  background: var(--line-bright);
+  transition: background 0.2s ease, transform 0.2s ease;
+}
+.fx-narr__dots i.done { background: color-mix(in srgb, var(--lime) 45%, var(--line-bright)); }
+.fx-narr__dots i.on { background: var(--lime); transform: scale(1.25); }
+
+.fx-narr__ctl {
+  display: flex; align-items: center; justify-content: center; gap: 10px;
+  margin-top: 2px;
+}
+.fx-narr__btn {
+  height: 34px; min-width: 34px; padding: 0 10px;
+  border-radius: var(--pill);
+  border: 1px solid var(--line-bright);
+  background: var(--surface-2);
+  color: var(--text);
+  font: 600 13px/1 var(--font-body);
+  cursor: pointer;
+  display: inline-flex; align-items: center; justify-content: center;
+}
+.fx-narr__btn:active { transform: scale(0.96); }
+.fx-narr__btn--on { background: var(--lime); color: var(--bg); border-color: var(--lime); }
+.fx-narr__btn--exit { color: var(--muted); }
+.fx-narr__tag {
+  font: 700 9px/1 var(--font-body); letter-spacing: 0.14em;
+  color: var(--bg); background: var(--lime);
+  border-radius: var(--pill); padding: 5px 8px;
+  align-self: center;
+}
+
+/* while the demo runs, lift the app toast above the narrator */
+body.fx-demo-on .fx-toast--live { bottom: 252px; }
+
+/* end card */
+.fx-demo-endcard { z-index: 90; }
+.fx-demo-endcard .fx-sheet { border-radius: 28px; border: 1px solid color-mix(in srgb, var(--lime) 35%, transparent); }
+.fx-demo-endcard__wordmark {
+  font: 400 26px/1 var(--font-display); text-transform: uppercase;
+  color: var(--lime); text-align: center; letter-spacing: 0.04em;
+}
+.fx-demo-endcard__wordmark i { font-style: normal; color: var(--text); }
+.fx-demo-endcard__sub {
+  font: 500 13px/1.5 var(--font-body); color: var(--muted);
+  text-align: center; margin: 0;
+}
+.fx-demo-endcard__row { display: flex; justify-content: center; }
+.fx-demo-endcard__link {
+  font: 600 12px/1.2 var(--font-body); color: var(--lime);
+  text-decoration: none; letter-spacing: 0.04em;
+}
+.fx-demo-endcard__keep {
+  background: none; border: 1px dashed var(--line-bright);
+  border-radius: var(--pill); padding: 9px 14px;
+  color: var(--muted); font: 600 11px/1.2 var(--font-body);
+  cursor: pointer;
+}

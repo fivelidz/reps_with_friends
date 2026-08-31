@@ -520,6 +520,7 @@ const AUDIT_SCREENS = [
   "home-002", "home-003", "create-002", "create-014", "join-001", "join-003",
   "battle-001", "battle-005", "log-001", "log-002", "result-001", "result-002",
   "result-005", "profile-001", "season-001", "auth-008", "auth-010", "auth-014",
+  "about-001",
 ];
 let clippedTotal = 0;
 const clippedReport = [];

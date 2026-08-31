@@ -7,6 +7,7 @@ import { isPhotoFinish, photoFinishMargin } from "../../game-core/src/index.ts";
 import type { Player } from "../../game-core/src/index.ts";
 import { readFileSync, writeFileSync, mkdirSync } from "node:fs";
 import { dirname } from "node:path";
+import { ApiMirror, type ApiMirrorStatus, type BotStateSnapshot } from "./api-sync.ts";
 
 const DEFAULT_EXERCISES = [
   { id: "pushup", name: "Push-ups" },
@@ -78,6 +79,9 @@ export class MatchStore {
   /** Crew-vs-crew challenges. */
   private challenges: CrewChallenge[] = [];
   private file: string;
+  /** P1 seam (docs/22): optional apps/api mirror — null until .api() is called. */
+  private mirror: ApiMirror | null = null;
+  private mirrorTimer: ReturnType<typeof setTimeout> | null = null;
 
   constructor(file = ".data/bot-matches.json") {
     this.file = file;
@@ -334,6 +338,57 @@ export class MatchStore {
     return m;
   }
 
+  // ── P1: apps/api mirror (docs/22_BACKEND_CHAT_ARCHITECTURE.md) ─────────────
+
+  /**
+   * Enable the apps/api mirror: every persist() additionally pushes a state
+   * snapshot to `POST {baseUrl}/bots/state` (debounced, fire-and-forget).
+   * The JSON file stays primary — bots keep playing when apps/api is down.
+   * Chainable: `new MatchStore(f).api("http://127.0.0.1:4174")`.
+   */
+  api(baseUrl: string, opts?: { source?: string; debounceMs?: number }): this {
+    this.mirror = new ApiMirror({ baseUrl, ...opts });
+    void this.syncNow(); // catch up immediately; failures just mark status
+    return this;
+  }
+
+  /** Mirror status for ops/heartbeats (null when not enabled). */
+  apiStatus(): ApiMirrorStatus | null {
+    return this.mirror ? { ...this.mirror.status } : null;
+  }
+
+  /** Push the current state snapshot now. Returns false when the push failed
+   *  (API down, etc.) — the file store is unaffected either way. */
+  async syncNow(): Promise<boolean> {
+    if (!this.mirror) return false;
+    return this.mirror.pushSnapshot(this.buildSnapshot());
+  }
+
+  private buildSnapshot(): BotStateSnapshot {
+    const matches: Record<string, StoredMatch> = {};
+    for (const [k, v] of this.matches) matches[k] = v;
+    return {
+      source: this.mirror?.source ?? "bot-core",
+      generatedAt: Date.now(),
+      matches,
+      seasons: this.seasons,
+      spectators: this.spectators,
+      challenges: this.challenges,
+    };
+  }
+
+  private scheduleMirrorPush(): void {
+    if (!this.mirror) return;
+    if (this.mirrorTimer) clearTimeout(this.mirrorTimer);
+    this.mirrorTimer = setTimeout(
+      () => {
+        this.mirrorTimer = null;
+        void this.syncNow();
+      },
+      this.mirror.debounceMs
+    );
+  }
+
   private persist(): void {
     mkdirSync(dirname(this.file), { recursive: true });
     const obj: Record<string, unknown> = {};
@@ -342,5 +397,6 @@ export class MatchStore {
     if (Object.keys(this.spectators).length > 0) obj.spectators = this.spectators;
     if (this.challenges.length > 0) obj.challenges = this.challenges;
     writeFileSync(this.file, JSON.stringify(obj, null, 2));
+    this.scheduleMirrorPush();
   }
 }

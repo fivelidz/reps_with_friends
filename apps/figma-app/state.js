@@ -7,7 +7,15 @@
 
 import * as E from "./engine.js";
 
-export const KEY = "rwf.figma.v1";
+export const REAL_KEY = "rwf.figma.v1";
+/** Demo mode runs on a SHADOW copy of the state (the user's real save is
+ *  never touched). useKey() swaps the storage key every load/save/mutate
+ *  below reads; useKey(null) restores the real one. */
+export const DEMO_KEY = "rwf.figma.demo";
+export let KEY = REAL_KEY;
+export function useKey(k) {
+  KEY = (k === DEMO_KEY || k === REAL_KEY) ? k : REAL_KEY;
+}
 
 /* ── exercise catalogue (Ben's bodyweight pack + a few extras) ────────── */
 export const EXERCISES = [

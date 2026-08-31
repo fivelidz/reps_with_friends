@@ -124,7 +124,7 @@ const covStand2 = await ev(`(async () => {
   A.pause(); A.setTurntable(false);
   av.pose('stand', 0.35); av.root.updateMatrixWorld(true);
   A.outfit.settle(0.5);
-  return await (${coverageExpr})();
+  return await (${coverageExpr});
 })()`);
 step('DEFECT 1 — shoulder coverage ≥ 98% at stand (deltoid + upper arm live-posed)',
   covStand2?.__exc === undefined && covStand2?.pctUncovered <= 2, covStand2?.__exc ?? covStand2);
@@ -137,7 +137,7 @@ const covWalk = await ev(`(async () => {
   p.time = p.duration * 0.5; p.update(0);
   av.root.updateMatrixWorld(true);
   A.outfit.settle(0.5);
-  const out = await (${coverageExpr})();
+  const out = await (${coverageExpr});
   p.stop();
   av.pose('stand', 0.35); av.root.updateMatrixWorld(true);
   A.outfit.settle(0.5);
@@ -145,6 +145,65 @@ const covWalk = await ev(`(async () => {
 })()`);
 step('DEFECT 1 — shoulder coverage ≥ 95% at walk@50',
   covWalk?.__exc === undefined && covWalk?.pctUncovered <= 5, covWalk?.__exc ?? covWalk);
+
+// DEFECT 1, PIXEL instrument (the brief's "shoulder garment pixel coverage
+// ≥98% at bind"): front camera on each arm joint, disc r=0.10 NDC — flesh
+// or background seen through the sleeve = an invisible section.
+const shoulderPx = await ev(`(async () => {
+  const T = await import('/site/lib/three.module.js');
+  const A = window.__atelier, av = A.avatar;
+  A.pause(); A.setTurntable(false);
+  av.pose('stand', 0.35); av.root.updateMatrixWorld(true);
+  A.outfit.settle(0.5);
+  for (const g of A.outfit.slots.head ?? []) g.visible = false;
+  window.__scan ??= async () => {
+    const url = A.snapshot();
+    const img = new Image(); img.src = url; await img.decode();
+    const cv = document.createElement('canvas'); cv.width = img.width; cv.height = img.height;
+    const ctx = cv.getContext('2d', { willReadFrequently: true }); ctx.drawImage(img, 0, 0);
+    return ctx.getImageData(0, 0, cv.width, cv.height);
+  };
+  const cls = (r, g, b) => {
+    const mx = Math.max(r, g, b), mn = Math.min(r, g, b), d = mx - mn;
+    if (mx === g && d > 30 && g > 120) return 'lime';    // shirt
+    if (mx === r && d > 30 && r > 110) return 'coral';   // shorts (arm at side)
+    if (b >= r + 3 && d < 44 && mx > 34 && mx < 150) return 'band';
+    if (mx > 140 && d < 45 && b >= r - 25) return 'flesh';
+    if (d < 12 && mx < 60) return 'dark';
+    return 'other';
+  };
+  const out = {};
+  for (const [sk, bone] of Object.entries({ L: av.bones.armL, R: av.bones.armR })) {
+    const j = bone.getWorldPosition(new T.Vector3());
+    A.setCam([j.x * 0.55, j.y + 0.03, j.z + 0.92], [j.x * 0.72, j.y - 0.015, j.z]);
+    const { width: W, height: FH, data: d } = await window.__scan();
+    // project AFTER the capture — the camera state is only final once the
+    // frame is taken (projecting before snapshot measured a stale view and
+    // threw the disc into the background on the L side)
+    const cam = A.getCam();
+    const ndc = j.clone().project(cam);
+    const tally = {};
+    for (let dx = -0.10; dx <= 0.10; dx += 0.0035) for (let dy = -0.10; dy <= 0.10; dy += 0.0035) {
+      if (dx * dx + dy * dy > 0.10 * 0.10) continue;
+      const x = Math.round((ndc.x + dx + 1) / 2 * (W - 1)), y = Math.round((1 - (ndc.y + dy)) / 2 * (FH - 1));
+      const q = (y * W + x) * 4;
+      const c = cls(d[q], d[q + 1], d[q + 2]);
+      tally[c] = (tally[c] ?? 0) + 1;
+    }
+    const n = Object.values(tally).reduce((a, b) => a + b, 0);
+    out[sk] = {
+      shirtPct: +(100 * ((tally.lime ?? 0) + (tally.coral ?? 0) + (tally.band ?? 0)) / n).toFixed(1),
+      fleshPct: +(100 * (tally.flesh ?? 0) / n).toFixed(1),
+      seeThruPct: +(100 * ((tally.dark ?? 0) + (tally.other ?? 0)) / n).toFixed(1),
+    };
+  }
+  for (const g of A.outfit.slots.head ?? []) g.visible = true;
+  A.homeCam();
+  return out;
+})()`);
+step('DEFECT 1 — shoulder PIXEL coverage ≥ 98% at bind (both sides)',
+  shoulderPx?.__exc === undefined && ['L', 'R'].every((s) => (shoulderPx?.[s]?.fleshPct ?? 100) + (shoulderPx?.[s]?.seeThruPct ?? 100) <= 2),
+  shoulderPx?.__exc ?? shoulderPx);
 
 // ═══ 2. DEFECT 2 — band junction column scan (stand + walk@50) ═══
 const bandScan = await ev(`(async () => {
@@ -225,15 +284,38 @@ const lag = await ev(`(async () => {
   const shirt = A.outfit.slots.tshirt[0];
   const res = await M.loadBVH(M.BVH_FILES.walk);
   const p = new M.BVHPlayer(av, res);
-  // 2.5 s of walk at 30 Hz — max |P − S| over the run (the lag) + per-vert max
-  let maxLagCm = 0, twoFrameCm = 0;
+  // 2.5 s of walk at 30 Hz — max |P − S| over the run (the lag), the lip
+  // ring's world motion between consecutive frames (the brief's "two-frame
+  // hem displacement > 0.5 cm" = the layer visibly MOVES the hem), settle.
+  const T = await import('/site/lib/three.module.js');
+  let maxLagCm = 0, twoFrameCm = 0, hemTwoFrameCm = 0;
   let prevLip = null;
+  const sk = shirt.userData.rwfDerived.body.skeleton;
+  const mats = sk.bones.map((b, i) => new T.Matrix4().multiplyMatrices(b.matrixWorld, sk.boneInverses[i]));
+  const SI = shirt.geometry.attributes.skinIndex, SW = shirt.geometry.attributes.skinWeight;
+  const skinWorld = (vi) => {
+    const pv = new T.Vector3().fromBufferAttribute(shirt.geometry.attributes.position, vi);
+    const out = new T.Vector3();
+    for (let j = 0; j < 4; j++) {
+      const w = SW.getComponent(vi, j); if (w <= 0) continue;
+      const m = mats[SI.getComponent(vi, j)]; if (!m) continue;
+      out.addScaledVector(new T.Vector3().copy(pv).applyMatrix4(m), w);
+    }
+    return out;
+  };
+  let prevHem = null, lipVi = -1;
   for (let f = 0; f < 75; f++) {
     p.time = (f / 30) % p.duration; p.update(0);
     av.root.updateMatrixWorld(true);
+    for (let i = 0; i < mats.length; i++) mats[i].multiplyMatrices(sk.bones[i].matrixWorld, sk.boneInverses[i]);
     A.outfit.updateFabric(1 / 30);
     const pd = FP.dispOf(shirt);
-    // the LIP ring (last phys ring of the torso tube = verts 1600..1727 zone):
+    if (lipVi < 0) { for (let k = 0; k < pd.idx.length; k++) if (pd.idx[k] >= 1728 && pd.idx[k] < 1792) { lipVi = pd.idx[k]; break; } }
+    if (lipVi >= 0) {
+      const w = skinWorld(lipVi);
+      if (prevHem) hemTwoFrameCm = Math.max(hemTwoFrameCm, w.distanceTo(prevHem));
+      prevHem = w;
+    }
     // use all shirt phys verts — the max lag
     for (let k = 0; k < pd.idx.length; k++) {
       const dd = Math.hypot(pd.disp[k*3], pd.disp[k*3+1], pd.disp[k*3+2]);
@@ -242,9 +324,10 @@ const lag = await ev(`(async () => {
     if (prevLip) twoFrameCm = Math.max(twoFrameCm, Math.abs(maxLagCm - prevLip));
     prevLip = maxLagCm;
   }
-  const H = 1.7065;
+  const H = A.avatar.H * A.avatar.root.scale.x;   // LIVE height (1.6 for Geno — the stale 1.7065 under-reported every cm by 6.6%)
   maxLagCm = +(maxLagCm * 175 / H).toFixed(2);
   twoFrameCm = +(twoFrameCm * 175 / H).toFixed(2);
+  hemTwoFrameCm = +(hemTwoFrameCm * 175 / H).toFixed(2);
   // settle: stop, step physics at 30 Hz until asleep (≤ 3 s wall of patience)
   let simS = 0, frames = 0;
   while (FP.state.awake && simS < 3) { A.outfit.updateFabric(1 / 30); simS += 1 / 30; frames++; }
@@ -252,12 +335,14 @@ const lag = await ev(`(async () => {
   p.stop();
   av.pose('stand', 0.35); av.root.updateMatrixWorld(true);
   A.outfit.settle(0.5);
-  return { maxLagCm, twoFrameCm, settle };
+  return { maxLagCm, twoFrameCm, hemTwoFrameCm, settle };
 })()`);
 step('physics: hem lag measurable during walk (max |P−S| > 0.5 cm)',
   lag?.__exc === undefined && lag?.maxLagCm > 0.5, lag?.__exc ?? { lagCm: lag?.maxLagCm, twoFrame: lag?.twoFrameCm });
-step('physics: bounded — lag ≤ clamp (3 cm) + collider allowance (1.5 cm)',
-  lag?.__exc === undefined && lag?.maxLagCm <= 4.5, { lagCm: lag?.maxLagCm });
+step('physics: two-frame hem displacement > 0.5 cm during walk (the hem visibly moves)',
+  lag?.__exc === undefined && lag?.hemTwoFrameCm > 0.5, { hemTwoFrameCm: lag?.hemTwoFrameCm });
+step('physics: bounded — lag ≤ clamp (2 cm) + collider allowance (1.5 cm)',
+  lag?.__exc === undefined && lag?.maxLagCm <= 3.5, { lagCm: lag?.maxLagCm });
 step('physics: settles asleep ≤ 1.5 s after motion stops',
   lag?.__exc === undefined && lag?.settle?.awake === false && lag?.settle?.simS <= 1.5, lag?.settle);
 
@@ -281,7 +366,7 @@ const slowmo = await ev(`(async () => {
     }
   }
   p.stop(); av.pose('stand', 0.35); av.root.updateMatrixWorld(true); A.outfit.settle(0.5);
-  return { slowmoLagCm: +(maxLag * 175 / 1.7065).toFixed(2) };
+  return { slowmoLagCm: +(maxLag * 175 / (window.__atelier.avatar.H * window.__atelier.avatar.root.scale.x)).toFixed(2) };
 })()`);
 step('physics: 0.25× slow-mo lag in the 0.5-2.5 cm band (subtle flow, not flags)',
   slowmo?.__exc === undefined && slowmo?.slowmoLagCm >= 0.5 && slowmo?.slowmoLagCm <= 2.5, slowmo);
@@ -303,7 +388,7 @@ const reduced = await ev(`(async () => {
   for (let k = 0; k < pd.idx.length; k++) mx = Math.max(mx, Math.hypot(pd.disp[k*3], pd.disp[k*3+1], pd.disp[k*3+2]));
   p.stop(); av.pose('stand', 0.35); av.root.updateMatrixWorld(true);
   FP.setEnabled(was);
-  return { enabledWhileOff: FP.state.enabled, dispCmWhileOff: +(mx * 175 / 1.7065).toFixed(3), restored: was };
+  return { enabledWhileOff: FP.state.enabled, dispCmWhileOff: +(mx * 175 / (window.__atelier.avatar.H * window.__atelier.avatar.root.scale.x)).toFixed(3), restored: was };
 })()`);
 step('physics: disabled = zero displacement (reduced-motion safe)',
   reduced?.__exc === undefined && reduced?.dispCmWhileOff === 0 && reduced?.restored === true, reduced);

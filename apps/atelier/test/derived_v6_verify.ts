@@ -65,7 +65,10 @@ step('degenerate triangles ≤ 6', degens <= 6, { degenerates: degens });
 // shirt hem 12→18 mm, band bottom 11→13 mm (collar 6 / chest 12 / sleeves
 // 8-12 / shorts 10-16; DERIVED_SPEC at site/models/geno-derived.js). The gate
 // still asserts the WIRED spec equals the shipped spec.
-step('graded offsets wired', stats.gradedOffsetsMm.shirt.hemMm === 18 && stats.gradedOffsetsMm.band.bottomMm === 13, stats.gradedOffsetsMm);
+// v9.1: band bottomMm 13 → 16 (topMm 12 → 15) — the band must sit a decisive
+// 4-5 mm proud of the shirt lip (+11) and pelvis flap (+12); at 12/13 the front
+// column pixel-read shirt→coral with no charcoal at all (z-fight, camera lost).
+step('graded offsets wired', stats.gradedOffsetsMm.shirt.hemMm === 18 && stats.gradedOffsetsMm.band.bottomMm === 16, stats.gradedOffsetsMm);
 step('frog head default', stats.head.species === 'frog', stats.head);
 
 // 2. THE FULL 32-CASE PROBE (5 clips × 4 + 4 poses × 3): attachment bars,
