@@ -1,0 +1,34 @@
+{
+ "id": "01a05533-131e-744a-9f0d-beb0d0c590df",
+ "type": "text-to-3d-refine",
+ "mode": "refine",
+ "name": "",
+ "model_type": "standard",
+ "seed": 1303377596,
+ "art_style": "realistic",
+ "texture_richness": "high",
+ "prompt": "cute stylized frog character, humanoid bipedal frog standing upright in A-pose, athletic slim build, wearing a lime green tank top and black shorts, big expressive cartoon eyes on top of the head, wide friendly grin, bright green skin with pale belly, video game character asset, clean silhouette, full body, simple smooth shapes",
+ "negative_prompt": "",
+ "texture_prompt": "",
+ "texture_image_url": "",
+ "status": "SUCCEEDED",
+ "created_at": 1788135805737,
+ "progress": 100,
+ "started_at": 1788135805740,
+ "finished_at": 1788135900667,
+ "task_error": null,
+ "model_urls": {
+  "glb": "https://assets.meshy.ai/8d4320d1-3e6b-4ae6-a775-7c5db5a7f36c/tasks/01a05533-131e-744a-9f0d-beb0d0c590df/output/model.glb?Expires=4941734400&Signature=FPKgXXSGS4sOjxeEK0vWpF8cEWmmUpXTmNsQjqCMG6XmKYN4X8epSyu-Mjo91~eXZKi0WJEiVeazUDaAJsA0gO67u5UTyO2TqpLodw1X4xoxAOGz4bJwmxkXu-muDe~k5irnrhgNTyam1Yel~9RplYTYduqdTy7BvtooDj3xGP-fLzbxq8-KYcNRYQDIxfCIPrXGrb7XuBRkaHwtLMvYhE~gtFaJz1K8sogo1FAwGsZTPbulgXgGHf8CeTsWkQ4HRf3a5qoRL~hVduCLTaAgDiV7UyT54FrCEHWisVDiaM-GNbUIp86kQfBSvyyJeUK~CIV24nQm7Fm9ECoHfjCrOw__&Key-Pair-Id=K1VGYTHIYLM9UM"
+ },
+ "thumbnail_url": "https://assets.meshy.ai/8d4320d1-3e6b-4ae6-a775-7c5db5a7f36c/tasks/01a05533-131e-744a-9f0d-beb0d0c590df/output/preview.png?Expires=4941734400&Signature=MOd2txf8rauSCTLkPdR0Tz0h8yIanIVSzakkgWYWZYboosHbLGhyiOalHZsT2pSIa2-Oah6LzeGUvUhxUK1mByuwn6Fe39YQWULQuNAecEY0eonnlmdBQWPJw7jAdqUF5oU9Ya5gG3-ce~9qAiQplRdwiDxEBibXJsaVHT0M4lz3jPb7zIjNzikT91KpSEw2I61lMNSk2tBjbapoxZHWz-OPbjwDuysiv0AEmBNveoKKsR2IgNlyCnh9n1F-jOyJAKwMYix5d4np6FemWJcrLPWy113Yd517FRrAaRwRBpAgJKmeYfQe~GjO6wxWVKP0ZHlKSnZYXTaxxl4ILEo-xA__&Key-Pair-Id=K1VGYTHIYLM9UM",
+ "video_url": "",
+ "texture_urls": [
+  {
+   "base_color": "https://assets.meshy.ai/8d4320d1-3e6b-4ae6-a775-7c5db5a7f36c/tasks/01a05533-131e-744a-9f0d-beb0d0c590df/output/texture_0.png?Expires=4941734400&Signature=DZIFdnwGvYTe0aHWGdhVoSAXFbJSrs7JKNlg8SX~j-SYqZYYkqD7c71UAr7WWY4hP5K7V2Trh6fb297jbGkmStFip1eWSGTKlOu536FTotXGBdPyjb8cakgLS8vpqArur44P~JYAzmlihDxf0KXCLDd844PRgHTIB3iwnzEqDNrRXM7NjmJE07fimrPGiO1vBtbdx8k0QeopP23A-RnfH0aHrWCKHwHB-hvB802beTuy6fdzQmALGFA8hYhSFvi11nQ0Y8hXU3BsT1coTu0pgbyIodc5PDvv8E0atfBWLCJdl~SndHAinPqahZGRrkFIQ2amP0rU2Q5g2bGnKneyCg__&Key-Pair-Id=K1VGYTHIYLM9UM",
+   "metallic": "https://assets.meshy.ai/8d4320d1-3e6b-4ae6-a775-7c5db5a7f36c/tasks/01a05533-131e-744a-9f0d-beb0d0c590df/output/texture_0_metallic.png?Expires=4941734400&Signature=RYg5zSHRxs7JB1IwjAKm1b87qhG3V~Y63lZEI1VlCqIK1OGgsU136viEWmoFWu8cSoi~xAffKIiIfH6l4Exk8tsVTfTvpDP0gitmIwgAvBp7KeuuxBCKASc05yzqB4wu51sT432yRHeSNhz1~FP-QrrPQ6i~PDnD-EBY1s7W3kIUU9hmbUTlX7LOFPUWtcK~xFQ6yPgUj~VI0Pl4D9SPKLjrbU1qGtwjNN5jBaEXK0phIY3URgCZdN8w4d3rwnLLXQsekalD5MS5vLunSZZmL5ZhH1jp6sA6J00P6eIQou7h1KjIW8FC6YCIP9VxuSm8KHTzsfMdXKNtuZ73NS5aMg__&Key-Pair-Id=K1VGYTHIYLM9UM",
+   "roughness": "https://assets.meshy.ai/8d4320d1-3e6b-4ae6-a775-7c5db5a7f36c/tasks/01a05533-131e-744a-9f0d-beb0d0c590df/output/texture_0_roughness.png?Expires=4941734400&Signature=DElaQBUGYM~1f3j~uqB1g-An3SuaEysYobn8XuXeBYPYNqorXzlihKf46CKPjQHClE1B4nlmY4naw8ah0DBcMPfU~Id07JW8yjuKCpvi9bgOMB2D65Rf5EuaeD8nvDvhWz27RKQuN446lbsQYuPnUYWRQ9x5vbw8xujrJbvj6lgzswhJfW4gMBb8St63pt1qaaAESZTxb6kf8JgjhjS-lFRsEZT~jPXyjCV7K79qNY-9VTz96bzPVkfVDKaWBWooRT9OvPLFGVWCDvBQmzHW2aZgz0xrA759YqjWh-RHj2d6dFBXf4g7Z5ht00QIqr5gPo3wwQW2cGntJPhnAbTHZw__&Key-Pair-Id=K1VGYTHIYLM9UM",
+   "normal": "https://assets.meshy.ai/8d4320d1-3e6b-4ae6-a775-7c5db5a7f36c/tasks/01a05533-131e-744a-9f0d-beb0d0c590df/output/texture_0_normal.png?Expires=4941734400&Signature=UYSAY2ZtVS1VrDoD0sLeUVyGeJTB2iqPXePL924ZVm71ZTD0OWF0YJEeU6OTTB~cczPu9-TsFtSU5~F2Ai2ScvqSF-VK3jV608zJ4R42oTXhlk7v-B~QYdHRXWpJSwSvtRkbdKWsCfOoG9GQhD-UFu8KHmU~Bea3qSf4obmbCqpNC7l2WGuUql7r-xHKrjfEBs2aSqa0yTtwxXPexSzhJdHeZJYwJaHJ1Ilz6VnTRBtkJ3srSr2YNYAVEcZBWGN5ooku7cC96uB1wQCEJuuk1qPWOe2ni0~NWEeX~JOfmVWOtr1Efe~dncGFncZebLb-4~IBvetw1FeW1wKUNTz0eg__&Key-Pair-Id=K1VGYTHIYLM9UM"
+  }
+ ],
+ "consumed_credits": 10
+}

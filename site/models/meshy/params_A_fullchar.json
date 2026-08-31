@@ -1,0 +1,9 @@
+{
+  "mode": "preview",
+  "prompt": "cute stylized frog character, humanoid bipedal frog standing upright in A-pose, athletic slim build, wearing a lime green tank top and black shorts, big expressive cartoon eyes on top of the head, wide friendly grin, bright green skin with pale belly, video game character asset, clean silhouette, full body, simple smooth shapes",
+  "ai_model": "latest",
+  "pose_mode": "a-pose",
+  "should_remesh": false,
+  "target_formats": ["glb"],
+  "alpha_thumbnail": true
+}

@@ -1,0 +1,16 @@
+{
+ "request": {
+  "mode": "preview",
+  "prompt": "stylized cartoon frog head, grumpy frowning expression, heavy furrowed eyebrows, half-closed droopy eyelids over big round eyes, wide downturned mouth, bright green skin, game character head asset, clean simple shapes, front facing bust",
+  "ai_model": "latest",
+  "should_remesh": false,
+  "target_formats": [
+   "glb"
+  ],
+  "alpha_thumbnail": true
+ },
+ "status_code": 202,
+ "response": {
+  "result": "01a05533-9590-72f3-a35d-c3d2d96de96d"
+ }
+}

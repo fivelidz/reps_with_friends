@@ -1,0 +1,28 @@
+{
+ "id": "01a05533-9590-72f3-a35d-c3d2d96de96d",
+ "type": "text-to-3d-preview",
+ "mode": "preview",
+ "name": "",
+ "model_type": "standard",
+ "seed": 231069328,
+ "art_style": "realistic",
+ "texture_richness": "",
+ "prompt": "stylized cartoon frog head, grumpy frowning expression, heavy furrowed eyebrows, half-closed droopy eyelids over big round eyes, wide downturned mouth, bright green skin, game character head asset, clean simple shapes, front facing bust",
+ "negative_prompt": "",
+ "texture_prompt": "",
+ "texture_image_url": "",
+ "status": "SUCCEEDED",
+ "created_at": 1788135840226,
+ "progress": 100,
+ "started_at": 1788135840228,
+ "finished_at": 1788135889460,
+ "task_error": null,
+ "model_urls": {
+  "glb": "https://assets.meshy.ai/8d4320d1-3e6b-4ae6-a775-7c5db5a7f36c/tasks/01a05533-9590-72f3-a35d-c3d2d96de96d/output/model.glb?Expires=4941734400&Signature=bHSJYDby1Fw3tOeGSuvg1cZT~-0AGtMoHHPk0B2rya~cuVLxavdlF2Q-YHm1Zlo2iUlsYSRWJpAhDvkQ2FgtS6YwhYFgPaKNkX7-P3diBjEszFYo8pgOorE9faf40j1e3vMAQemdIJQT0WtVnQIPXm89EKZkcImZccz536QR8kxCaGcIVtFA480bWG~7-bdFmifM-7xPjoDR-JeZE9nflf2wBXOoQFvj2yVbCtmbtKvUF9SSGEgdyrQjnbgGJHLYCgqbyfySBq4k92xrruLqbAoNVJ4wnnGqyem16t6hlnsqVaXBZ~M1AAvOT09nRXFy3ZBFvx1yqzzBirMfL9xbbA__&Key-Pair-Id=K1VGYTHIYLM9UM"
+ },
+ "thumbnail_url": "https://assets.meshy.ai/8d4320d1-3e6b-4ae6-a775-7c5db5a7f36c/tasks/01a05533-9590-72f3-a35d-c3d2d96de96d/output/preview.png?Expires=4941734400&Signature=gvrlDROnKhPsUr~TlNlnX8QHKXtEzc1lMuQQ6IFuCxF5Lf0oNLAiqdjLD1oZRVVmkRkjA4IYFFExJVe9nULc3RzzASOh1F-iThnUYu2v6r929ZU1lBP27Q7cIZJrCdWRSpDwB7MVDwg1v9YcCi3fk3vj6DKR2zOhK63Mw4tsbKo7H8TbiD1jqh3lFV3ALcASpuv0ubPAN-5BWOW4Pu5DWFlps~WP6BQhR8PwNcjzS2qin5nEpBbzWfgfBZILgO~e-KGUt1lWXEFwyPvyvO4QQSgNRkVjdfEy0GPz1FoOgbTpk42Zs0ikjnHvtV23JR36xf7SmGCjd189fLwVlY~KDg__&Key-Pair-Id=K1VGYTHIYLM9UM",
+ "alpha_thumbnail_url": "https://assets.meshy.ai/8d4320d1-3e6b-4ae6-a775-7c5db5a7f36c/tasks/01a05533-9590-72f3-a35d-c3d2d96de96d/output/preview_alpha.png?Expires=4941734400&Signature=GHtWjTQfnuP64LbMrYsUxFCf32-~1LuGJjhZsrVVQ3-CZ5okFB-IVqIMPLIpami3qqxAthmsXrrX9N2Ygv4TtRIh9a8PK~9k40XG1hDnIfz5LyvjiygX8YnG96RsG7eEJFNi41f3zLeZFgk1h-ZiPCCUro6uF8NNYc53PMgA-o87tGx9hlDI7~zK7a5j1~qmXZPkiJIIfu7M5-RUuGIcejp1zCm0RgUVxpy-WMObZohk1RwgIkcoSXbFGHOXoskRrzmUzz0Ir~WdnH56qakn29pgTf22MFJUoxfPyGU4-2~GhqAhLZrcVUhS8aLNE32sTMw2lw66GoWngv8uFpRg6w__&Key-Pair-Id=K1VGYTHIYLM9UM",
+ "video_url": "",
+ "texture_urls": [],
+ "consumed_credits": 20
+}

@@ -294,7 +294,8 @@ const verify = await ev('window.__atelier.runVerify()');
 if (!verify || (verify as any).__exc) {
   step('full-case probe', false, (verify as any)?.__exc ?? 'no result');
 } else {
-  step('full-case probe ran (16 clips × 4 + 4 poses × 3)', (verify as any).rows.length === 76, { cases: (verify as any).rows.length });
+  // v9: the clip list grows with concurrent workstreams — count is a floor
+  step('full-case probe ran (clips × 4 + 4 poses × 3, ≥ 76)', (verify as any).rows.length >= 76, { cases: (verify as any).rows.length });
   step('inside-body verts = 0 across all cases', (verify as any).insideVerts === 0,
     { inside: (verify as any).insideVerts, worstCm: (verify as any).insideWorstCm, excused: (verify as any).limbCrossVerts });
   step('attachment/coverage bars', (verify as any).attachPass, { globalMaxCm: (verify as any).globalMaxCm });

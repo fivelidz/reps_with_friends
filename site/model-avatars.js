@@ -80,6 +80,12 @@ export const MODELS = [
   // animation coverage: real mocap + legacy captures + the 4 exercise poses.
   { id: 'geno-wardrobe', name: 'Geno Wardrobe — dressed', file: '/models/Geno.glb', rig: 'mixamo', native: [], tint: '#eceef1', wardrobe: 'full', wardrobeToggle: true, bvh: ['walk', 'run', 'idle', 'demo_walk', 'sprint', 'swagger', 'agree', 'sad', 'goblin_walk', 'goblin_limp', 'goblin_drag', 'goblin_arm', 'goblin_combat'], bvhAuto: 'walk' },
   { id: 'geno-frog', name: 'Geno Frog — mocap walk', file: '/models/Geno.glb', rig: 'mixamo', native: [], tint: '#86c05a', head: 'frog', bvh: ['walk', 'run', 'idle', 'demo_walk', 'sprint', 'swagger', 'agree', 'sad', 'sneak'], bvhAuto: 'walk' },
+  // ── Meshy frog (meshy.ai text-to-3d 2026-08-31, see site/models/meshy/):
+  // full stylized frog character, auto-rigged by Meshy to a standard mixamo
+  // skeleton (unprefixed names; Spine01/02/neck folded onto Spine1/2/Neck by
+  // meshy/rename_bones.py so BVH retargeting pairs with Geno's captures).
+  // Real PBR textures — NO tint/palette treatment. 26 joints, no fingers.
+  { id: 'meshy-frog', name: 'Frog — meshy.ai rigged', file: '/models/meshy_frog_full.glb', rig: 'mixamo', native: [], bvh: ['walk', 'run', 'idle', 'demo_walk', 'sprint', 'swagger', 'agree', 'sad'], bvhAuto: 'walk' },
   { id: 'geno-goblinhead', name: 'Geno Goblin — species head', file: '/models/Geno.glb', rig: 'mixamo', native: [], tint: 'goblin', head: 'goblin' },
   { id: 'geno-robot', name: 'Geno Robot — species head', file: '/models/Geno.glb', rig: 'mixamo', native: [], tint: '#c9ced4', head: 'robot' },
   { id: 'geno-fullkit', name: 'Geno Full Kit — crowned frog, mocap', file: '/models/Geno.glb', rig: 'mixamo', native: [], tint: '#86c05a', head: 'frog-crown', wardrobe: 'full', bvh: ['walk', 'run', 'idle', 'demo_walk', 'sprint', 'swagger', 'agree', 'sad', 'goblin_walk', 'goblin_combat'], bvhAuto: 'walk' },

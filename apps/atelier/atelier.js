@@ -45,6 +45,10 @@ import {
   createFrogHead, previewFrogHead,
   FROG_SKINS as FROG_HEAD_SKINS, FROG_EXPRESSIONS, FROG_ACCESSORIES,
 } from '/site/models/frog-heads.js';
+// MESHY HEAD CANDIDATES (2026-08-31 experiment): static GLB frog heads from
+// the meshy.ai text-to-3d API, loaded through the same GLTFLoader the model
+// cards use (site/lib/). See the MESHY_HEADS registry below.
+import { GLTFLoader } from '/site/lib/GLTFLoader.js';
 
 const $ = (id) => document.getElementById(id);
 const stage = $('stage');
@@ -276,6 +280,11 @@ function applyVisibility() {
   if (frogHead) {
     frogHead.visible = headOn && state.headSpecies === 'frog';
     if (frogHead.visible) for (const h of outfit.slots?.headband ?? []) h.visible = false;
+  }
+  // MESHY candidate heads: identical slot semantics
+  if (meshyHead) {
+    meshyHead.visible = headOn && !!MESHY_HEADS[state.headSpecies];
+    if (meshyHead.visible) for (const h of outfit.slots?.headband ?? []) h.visible = false;
   }
   document.querySelectorAll('.build-step').forEach((el, i) => {
     el.classList.toggle('is-on', i === state.buildStep);
@@ -1360,6 +1369,7 @@ async function rebuildOutfit(opts = {}) {
   applyVisibility();
   updateHeadUI();
   installFrogHead();   // re-attach the playground frog (rebuild re-attached geno's static one)
+  if (MESHY_HEADS[state.headSpecies]) installMeshyHead(state.headSpecies);   // …or the live meshy candidate
   await setAnim(savedAnim);
   state.t = 0;
   applyAnimAt();
@@ -1368,12 +1378,14 @@ async function rebuildOutfit(opts = {}) {
 }
 
 /** Head slot: species selector. 'frog' routes to the frog-heads.js playground
- *  (expressions/skins/accessories); goblin/robot/none route to geno-derived's
+ *  (expressions/skins/accessories); meshy-* route to the static GLB
+ *  candidates (MESHY_HEADS above); goblin/robot/none route to geno-derived's
  *  setHead (geno-wardrobe's static heads, unchanged). */
 async function setHead(species) {
   state.headSpecies = species;
   if (species === 'frog') { installFrogHead(); buildFrogGallery(); }
-  else { removeFrogHead(); if (outfit?.setHead) outfit.setHead(species); }
+  else if (MESHY_HEADS[species]) { await installMeshyHead(species); }
+  else { removeFrogHead(); removeMeshyHead(); if (outfit?.setHead) outfit.setHead(species); }
   updateHeadUI();
   applyVisibility();
   wake();
@@ -1407,9 +1419,94 @@ function installFrogHead() {
   return frogHead;
 }
 
-/** whichever species-head group is live (frog playground or geno static). */
+/** whichever species-head group is live (frog playground, meshy GLB, or geno static). */
 function activeHeadGroup() {
-  return (state.headSpecies === 'frog' && frogHead) ? frogHead : (outfit?.slots?.head?.[0] ?? null);
+  if (state.headSpecies === 'frog' && frogHead) return frogHead;
+  if (MESHY_HEADS[state.headSpecies] && meshyHead) return meshyHead;
+  return (outfit?.slots?.head?.[0] ?? null);
+}
+
+// ── MESHY HEAD CANDIDATES (meshy.ai text-to-3d, 2026-08-31) ──────────────────
+// Static GLB frog heads generated via the Meshy API — prompts, task ids and
+// credit spend live in site/models/meshy/manifest.json. They mount EXACTLY
+// like the procedural frog: a group on the Head bone in the geno-wardrobe
+// head frame (+Y up from the neck, +Z face-forward, authored world-at-bind),
+// normalised to the procedural head's envelope (~0.26H tall, skull centre
+// ~0.06H above the bone origin) so each candidate swallows Geno's skull the
+// same way the procedural head does. ONE static expression per candidate —
+// these exist to compare against the procedural frog's live 6-expression
+// system. Tuning per candidate (h: target height ×H, cy/cz: bbox-centre
+// placement ×H in the head frame) — the busts ship with neck/shoulders, so
+// cz rides slightly back and the neck tucks into the body.
+const MESHY_HEADS = {
+  // 'meshy-a' (the athletic FULL CHARACTER) is deliberately not a head mount —
+  // it went to the mixamo auto-rig experiment instead; see
+  // site/models/meshy/manifest.json.
+  'meshy-b': { file: '/models/meshy_frog_head_b.glb', h: 0.26, cy: 0.060, cz: -0.015, label: 'meshy B — head bust' },
+  'meshy-c': { file: '/models/meshy_frog_head_c.glb', h: 0.26, cy: 0.060, cz: -0.015, label: 'meshy C — grumpy' },
+};
+let meshyHead = null;   // the live GLB candidate group (null when not a meshy species)
+const meshyLoader = new GLTFLoader();
+const meshyCache = new Map();   // file → pristine scene (clones per install; no disposal)
+
+function removeMeshyHead() {
+  if (!meshyHead) return;
+  meshyHead.parent?.remove(meshyHead);
+  meshyHead = null;   // geometry/materials are shared with the cache — never disposed
+}
+
+// head-frame helpers — local mirror of frog-heads.js frameOnBone/headUp
+// (which do not export them; kept in sync by eye, ~15 lines)
+function meshyHeadFrame(avatar) {
+  const bone = avatar.bones.head;
+  bone.updateWorldMatrix(true, false);
+  const a = (avatar.bones.neck ?? avatar.bones.head).getWorldPosition(new THREE.Vector3());
+  const upW = avatar.bones.head.getWorldPosition(new THREE.Vector3()).sub(a);
+  if (upW.lengthSq() < 1e-9) upW.set(0, 1, 0);
+  upW.normalize();
+  const invQ = bone.getWorldQuaternion(new THREE.Quaternion()).invert();
+  const up = upW.clone().applyQuaternion(invQ).normalize();
+  const fwd = new THREE.Vector3(0, 0, 1).applyQuaternion(invQ);
+  fwd.addScaledVector(up, -fwd.dot(up));
+  if (fwd.lengthSq() < 1e-8) fwd.set(0, 0, 1).applyQuaternion(invQ);
+  fwd.normalize();
+  const right = new THREE.Vector3().crossVectors(up, fwd).normalize();
+  fwd.crossVectors(right, up).normalize();
+  const g = new THREE.Group();
+  g.quaternion.setFromRotationMatrix(new THREE.Matrix4().makeBasis(right, up, fwd));
+  bone.add(g);
+  return g;
+}
+
+async function installMeshyHead(species) {
+  const spec = MESHY_HEADS[species];
+  if (!av || !spec) return null;
+  if (outfit?.setHead) outfit.setHead('none');   // same slot semantics as the frog playground
+  removeFrogHead();
+  removeMeshyHead();
+  try {
+    if (!meshyCache.has(spec.file)) {
+      meshyCache.set(spec.file, (await meshyLoader.loadAsync(spec.file)).scene);
+    }
+  } catch (e) {
+    console.warn('meshy head load failed', spec.file, e);
+    return null;
+  }
+  const H = av.H ?? 1;
+  const model = meshyCache.get(spec.file).clone(true);
+  const box = new THREE.Box3().setFromObject(model);
+  const size = box.getSize(new THREE.Vector3());
+  const s = (spec.h * H) / (size.y || 1);        // normalise to the procedural head envelope
+  model.scale.setScalar(s);
+  const c = box.getCenter(new THREE.Vector3()).multiplyScalar(s);
+  model.position.set(-c.x, spec.cy * H - c.y, (spec.cz ?? 0) * H - c.z);
+  const g = meshyHeadFrame(av);
+  g.userData.rwfWardrobe = 'head:frog';          // remnant-cleaner catches it on rebuilds
+  g.userData.meshy = { species, file: spec.file, label: spec.label };
+  g.add(model);
+  meshyHead = g;
+  applyVisibility();
+  return g;
 }
 
 /** nominal HSV hue (0-360) of a hex colour — headCheck classifies skull
@@ -2082,16 +2179,45 @@ async function runVerify() {
         const src = der.srcIndex, bd = der.bindDelta;
         const bodyLive = new Array(src.length);
         let devMax = 0;
+        // v9 fabric physics: participating hem verts carry the intended
+        // secondary motion (bounded ≤3 cm) — subtract the layer's own world
+        // displacement so Δsource keeps measuring SKINNING fidelity for
+        // every vert, and report the physics verts as their own class
+        // (physDeltaCm) instead of loosening the core gate.
+        const pd = outfit?.fabricPhysics?.dispOf?.(g) ?? null;
+        const dispMap = pd ? new Map() : null;
+        if (pd) for (let i = 0; i < pd.idx.length; i++) dispMap.set(pd.idx[i], i);
+        // v9 TUCK CLASS: the shorts' top rings ride under the band + flap
+        // (hidden by construction) with thigh-sourced weights — deep folds
+        // shear them past the core bar; they are REPORTED as tuckDeltaCm
+        // (bar: 8 cm documented) instead of loosening the core gate.
+        const tuckSet = new Set();
+        for (const tr of der.tuckRings ?? []) for (let i = 0; i < tr.samples; i++) tuckSet.add(tr.start + i);
+        let physDevMax = 0, tuckDevMax = 0;
         for (let k = 0; k < src.length && k < verts.length; k++) {
           bodyLive[k] = skinnedVert(der.body, src[k], new THREE.Vector3(), mats).clone();
-          const dl = verts[k].distanceTo(bodyLive[k]);        // live offset length
+          let vx = verts[k].x, vy = verts[k].y, vz = verts[k].z;
+          if (dispMap && dispMap.has(k)) {
+            const j = dispMap.get(k);
+            vx -= pd.disp[j * 3]; vy -= pd.disp[j * 3 + 1]; vz -= pd.disp[j * 3 + 2];
+          }
+          const dl = Math.hypot(vx - bodyLive[k].x, vy - bodyLive[k].y, vz - bodyLive[k].z);
           const expect = Math.hypot(bd[k * 3], bd[k * 3 + 1], bd[k * 3 + 2]) * s2; // scaled bind offset
+          const isPhys = dispMap && dispMap.has(k);
+          const isTuck = !isPhys && tuckSet.has(k);
           const dev = Math.abs(dl - expect);
-          if (dev > devMax) devMax = dev;
+          if (!isTuck && dev > devMax) devMax = dev;   // tuck verts report separately
+          if (isPhys) {
+            const raw = Math.abs(verts[k].distanceTo(bodyLive[k]) - expect);   // uncorrected (motion included)
+            if (raw > physDevMax) physDevMax = raw;
+          }
+          if (isTuck && dev > tuckDevMax) tuckDevMax = dev;
         }
         const devCm = devMax * cmPerUnit;
         perGarment[tag] = perGarment[tag] ?? { maxCm: 0, nan: 0 };
         perGarment[tag].deltaCm = +devCm.toFixed(2);
+        if (dispMap) perGarment[tag].physDeltaCm = +(physDevMax * cmPerUnit).toFixed(2);
+        if (tuckSet.size) perGarment[tag].tuckDeltaCm = +(tuckDevMax * cmPerUnit).toFixed(2);
         if (devCm > maxDelta) { maxDelta = devCm; worstDelta = tag; }
         // edge strain: garment live vs bind, against the body's own
         const gI = g.geometry.index, GP = g.geometry.attributes.position, BP = der.body.geometry.attributes.position;
@@ -2194,8 +2320,12 @@ async function runVerify() {
       insideVerts: signed.defectVerts, insideWorstCm: signed.worstCm,
       insideCross: signed.limbCrossVerts, insideByGarment,
       solidOk: signed.solidOk,
-      // derived-mode verdicts
+      // derived-mode verdicts (v9: physDeltaCm = hem-ring secondary motion,
+      // bar = clamp 3 cm + 1.2 — a SEPARATE class, the core Δsource gate
+      // measures every vert with the physics displacement subtracted)
       deltaCm: +maxDelta.toFixed(2), worstDelta,
+      physDeltaCm: +Math.max(0, ...Object.values(perGarment).map((p) => p.physDeltaCm ?? 0)).toFixed(2),
+      tuckDeltaCm: +Math.max(0, ...Object.values(perGarment).map((p) => p.tuckDeltaCm ?? 0)).toFixed(2),
       strainExcessCm: +maxStrainExcess.toFixed(2),
       overDelta: maxDelta > DELTA_BAR, overStrain: maxStrainExcess > 1.2,
     });
@@ -2676,9 +2806,6 @@ function tick(now) {
     const a = animById(state.animId);
     if (a?.kind === 'bvh' && bvh) bvh.update(dt * state.speed);
     else if (a?.kind === 'pose') av.pose(a.pose, (state.t / a.cycle) % 1);
-    // cloth mode: paused = FROZEN (reduced-motion safe); playing = sim advances.
-    // derived mode: no sim — updateFabric is a no-op.
-    outfit?.updateFabric(dt * state.speed);
     // seam heatmap refreshes ONLY while animating (the ~7 Hz idle interval is
     // gone — a paused garment's distances do not change)
     if (state.heat) {
@@ -2686,6 +2813,12 @@ function tick(now) {
       if (heatTimer > 0.15) { heatTimer = 0; updateHeatmap(); }
     }
   }
+  // v9 fabric physics: steps on EVERY tick while awake (settle-after-pause
+  // runs without the animation); no-ops instantly when dormant + still.
+  // Returns true while the fabric is visibly moving → keep rendering; once
+  // settled the loop goes quiet with everything else (idle rAF stays 0).
+  const fabricMoving = outfit?.updateFabric(animating ? dt * state.speed : dt) ?? false;
+  if (fabricMoving) needsRender = true;
   const capped = (animating || auto) && now - lastRenderAt < RENDER_CAP_MS - 0.5;
   const doRender = engaged && (needsRender || animating || auto || now < holdUntil) && !capped;
   if (doRender) {
@@ -2738,6 +2871,8 @@ window.__atelier = {
   frogExpressions: () => [...FROG_EXPRESSIONS],
   frogSkins: () => Object.keys(FROG_HEAD_SKINS),
   frogAccessories: () => [...FROG_ACCESSORIES],
+  /** meshy candidate info for the live head (file/tuning), or null. */
+  meshyInfo: () => meshyHead?.userData.meshy ?? null,
   /** smoke: every expression × skin × accessory through the LIVE head's
    *  set* API — no NaN in any world matrix, zero throws. Returns a summary. */
   frogSanity: () => {
@@ -2885,6 +3020,8 @@ window.__atelier = {
   scanSignedCoverage, scanInsideBody, bulkCheck, hemCheck, headCheck,
   /** Derived-construction report (region sizes, tri counts, degenerates). */
   derivedStats: () => outfit?.derived?.stats ?? null,
+  /** v9 fabric-physics layer state + controls (null when disabled). */
+  fabricPhysics: () => outfit?.fabricPhysics ?? null,
   /** Idle-performance probe: rAF callbacks + renders over `ms` (setTimeout-
    *  based — the probe itself schedules no rAFs and so does not pollute the
    *  count). Paused + turntable off should read ≈ 0. */

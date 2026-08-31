@@ -1,0 +1,34 @@
+{
+ "id": "01a05536-e6d7-734a-8db8-66bb3688b56d",
+ "type": "text-to-3d-refine",
+ "mode": "refine",
+ "name": "",
+ "model_type": "standard",
+ "seed": 231069328,
+ "art_style": "realistic",
+ "texture_richness": "high",
+ "prompt": "stylized cartoon frog head, grumpy frowning expression, heavy furrowed eyebrows, half-closed droopy eyelids over big round eyes, wide downturned mouth, bright green skin, game character head asset, clean simple shapes, front facing bust",
+ "negative_prompt": "",
+ "texture_prompt": "",
+ "texture_image_url": "",
+ "status": "SUCCEEDED",
+ "created_at": 1788136056545,
+ "progress": 100,
+ "started_at": 1788136056551,
+ "finished_at": 1788136146649,
+ "task_error": null,
+ "model_urls": {
+  "glb": "https://assets.meshy.ai/8d4320d1-3e6b-4ae6-a775-7c5db5a7f36c/tasks/01a05536-e6d7-734a-8db8-66bb3688b56d/output/model.glb?Expires=4941734400&Signature=b0qlmEjKatWgF9aqcpSMRYBEmqJgWQS~z4lHG~tHyIbwY-uSZt7a~mtIkz67rHd6vbjhhySkCd45Cx15BKhE4ZYEA8F0lk6GbD~EDRQMobljC8OAHe3tl1CAXXIGfEgBhMHU6EjNrk5ptCdBrUa6OkFQ7uyQYREIpBznTfmnVBpiTrKX7qKzH25uxk09vq1j8FpozhS72R-ICQ4PdibljIsDKt-FDZuWIw6TyvdZUMkGYKrrxfRs5JH2VS2Eg3VjW-5gNmJ8UoDbN6ljYJWWMzsATPJV9iaCCrTL6hlyKpkCJaF1sxYr7XZvEVBwadzfutgSg7J1T4jLg6qQgHmW0w__&Key-Pair-Id=K1VGYTHIYLM9UM"
+ },
+ "thumbnail_url": "https://assets.meshy.ai/8d4320d1-3e6b-4ae6-a775-7c5db5a7f36c/tasks/01a05536-e6d7-734a-8db8-66bb3688b56d/output/preview.png?Expires=4941734400&Signature=U1p5UBB2H1X4GihKZ~WmSNXXzUvGLiXngYrQ~G8NafiNeRLBDCBMe6t-M~jOcYcroT262Zi2IKbYUG2JcfOc1c~JJGZs36FmJs9M~ljT2QRZsnPFoLa4R5WAhKgZ4J2BFPGtQHbeeMEISE3HZOvweJWXacVyTbENiaZ1PxzUwyreveIS8oV8W9sZnOQsyD3TkiiV7LZl7GkuytcIhNmYICiMB1sEfqBnvJPnBO8P6tJ8hNVDA5Jo9tmx9UwzwxZgdCy4Ju5r9ZLnyeCP~InPxVkR-8-bFicacAwemAsrUONNYI1~7bd06KzvYAJegBgBm2Mu1EnaH~jfKcn-s~emUg__&Key-Pair-Id=K1VGYTHIYLM9UM",
+ "video_url": "",
+ "texture_urls": [
+  {
+   "base_color": "https://assets.meshy.ai/8d4320d1-3e6b-4ae6-a775-7c5db5a7f36c/tasks/01a05536-e6d7-734a-8db8-66bb3688b56d/output/texture_0.png?Expires=4941734400&Signature=L7i8KozZTmQfSpH9yCFu4VJQ1iWv14ek8yNE2dhfj~Tbtyzok-O~NVCd0ddRH95zqojR~Q1FsB9fkD~-LiL9oyONQBmSDtUEKBmQzpzmyeBFqNTCxUVrQ3nB03xn54yhG9-i7UJdrYGKj1g6ptnyPHBe4iiqQQ9m~EERLMNC2~nup4SOcP4mUZsqPT6Zq30A9vTupgyk8j0gybyKTWSFUcED2dBaNAr2okTrQ11oY6LProOabmcQk3OcGUpzdwHUNRIyKUGnMT5H5mlKYCW-R-OlJ94~q51tHcdedqy~5mEPKUlDlJ9a9mgSqAssFywrPtGOpSfG5BdNHSQ0VS~iWw__&Key-Pair-Id=K1VGYTHIYLM9UM",
+   "metallic": "https://assets.meshy.ai/8d4320d1-3e6b-4ae6-a775-7c5db5a7f36c/tasks/01a05536-e6d7-734a-8db8-66bb3688b56d/output/texture_0_metallic.png?Expires=4941734400&Signature=Su7taB-FFnWPwA28DN~ZLeCXu7M5YpJgchcWqn6Fbn8hbWjjJO1WzbKUSAuhSEPfmR0INrlBkVdgboAXnoWSzL4NQDri4d9ZVR0WVuVkc-yS5p4~m0QqnkLy688IBKpMRoXgc2iokKOL9Yr~3WvxDB0MczS5W251gDh6gxmHxd9005RH6~StScw1lECpQtQktUo-yUj9BCXVs3vfyU984FiLuP8HqbvGtNtLUpjwKQB6TvLAajnGO3CFUu7sdWrZxY9HetY3hxybez3UccQBAOl3fkRYxTqWs24jPywi5vfDZjqC~IrRQTgps2Q31m7xw-FWfjnKqo9cbwvSo4dOBQ__&Key-Pair-Id=K1VGYTHIYLM9UM",
+   "roughness": "https://assets.meshy.ai/8d4320d1-3e6b-4ae6-a775-7c5db5a7f36c/tasks/01a05536-e6d7-734a-8db8-66bb3688b56d/output/texture_0_roughness.png?Expires=4941734400&Signature=HZkctplKZ7MZLdLFltuN~SXyYr1KEGpEFaee9kidivJUXUjKk5rq24fVVh133JlAdF8yXqKKxzbH3m1faf3593IDHhxh-bFpA8TvzibG0YQnNcK6tZBqjswe2UgSI7iqt9bdyFrB-mCwV9SoGTXM8oi4Rzifmwh1io7RnDoRqNwuDtO2Vty-lFjukmGiyv2T6CkdgagVBIMajwzlsg8~AQmJYMtRjtB2NQXeaF03znJtLwRvXbgAoIdcdFDjQO~t0em9vvQidjcioMKs~gfjKyUvqZtNjX68e9N~BEU51PFQiwwxK8bTyvxwshCqjOyg2mDxGljsd7jPj7WfjPyefw__&Key-Pair-Id=K1VGYTHIYLM9UM",
+   "normal": "https://assets.meshy.ai/8d4320d1-3e6b-4ae6-a775-7c5db5a7f36c/tasks/01a05536-e6d7-734a-8db8-66bb3688b56d/output/texture_0_normal.png?Expires=4941734400&Signature=cEqeOl~sGLXBH48P50Uqadi1BvwNoPQGKb7FODizTl5l8krS3CQtBtOGTB9wFThHPKQyrzVk-4VV6yzwH0P3EUXxA5xQMqG16zgb9HHaZYGx4A-1gyK-fOA4eZo3b9PmGx6zbax8-PFBpu5jcin0tiXCkt0cP~vcFAeRLOrdic1keK97NiI2jDqz65ibf0JvMQj-n2tc9CVitlEpQ8J24-zHc8LmU7s9miCKlSys~aZszHJf~2GvM0E5Qxt8ACj1UMtDLvzzbcLXVsMEmNzLZn5mT5SQjtRQrIfl11WpMxvGUu0rRoj7zNRvXvIT1BqVCOj1ZSuCQvNqZLj04aZ3Vw__&Key-Pair-Id=K1VGYTHIYLM9UM"
+  }
+ ],
+ "consumed_credits": 10
+}

@@ -1,0 +1,13 @@
+... IN_PROGRESS 0%
+... IN_PROGRESS 20%
+... IN_PROGRESS 20%
+... IN_PROGRESS 35%
+... IN_PROGRESS 50%
+... IN_PROGRESS 50%
+... IN_PROGRESS 70%
+... IN_PROGRESS 70%
+... IN_PROGRESS 99%
+TERMINAL SUCCEEDED credits: 10
+{"id": "01a05533-131e-744a-9f0d-beb0d0c590df", "status": "SUCCEEDED", "consumed_credits": 10, "task_error": null}
+GLB: https://assets.meshy.ai/8d4320d1-3e6b-4ae6-a775-7c5db5a7f36c/tasks/01a05533-131e-744a-9f0d-beb0d0c590df/output/model.glb?Expires=4941734400&Signature=FPKgXXSGS4sOjxeEK0vWpF8cEWmmUpXTmNsQjqCMG6XmKYN4X8epSyu-Mjo91~eXZKi0WJEiVeazUDaAJsA0gO67u5UTyO2TqpLodw1X4xoxAOGz4bJwmxkXu-muDe~k5irnrhgNTyam1Yel~9RplYTYduqdTy7BvtooDj3xGP-fLzbxq8-KYcNRYQDIxfCIPrXGrb7XuBRkaHwtLMvYhE~gtFaJz1K8sogo1FAwGsZTPbulgXgGHf8CeTsWkQ4HRf3a5qoRL~hVduCLTaAgDiV7UyT54FrCEHWisVDiaM-GNbUIp86kQfBSvyyJeUK~CIV24nQm7Fm9ECoHfjCrOw__&Key-Pair-Id=K1VGYTHIYLM9UM
+THUMB: https://assets.meshy.ai/8d4320d1-3e6b-4ae6-a775-7c5db5a7f36c/tasks/01a05533-131e-744a-9f0d-beb0d0c590df/output/preview.png?Expires=4941734400&Signature=MOd2txf8rauSCTLkPdR0Tz0h8yIanIVSzakkgWYWZYboosHbLGhyiOalHZsT2pSIa2-Oah6LzeGUvUhxUK1mByuwn6Fe39YQWULQuNAecEY0eonnlmdBQWPJw7jAdqUF5oU9Ya5gG3-ce~9qAiQplRdwiDxEBibXJsaVHT0M4lz3jPb7zIjNzikT91KpSEw2I61lMNSk2tBjbapoxZHWz-OPbjwDuysiv0AEmBNveoKKsR2IgNlyCnh9n1F-jOyJAKwMYix5d4np6FemWJcrLPWy113Yd517FRrAaRwRBpAgJKmeYfQe~GjO6wxWVKP0ZHlKSnZYXTaxxl4ILEo-xA__&Key-Pair-Id=K1VGYTHIYLM9UM

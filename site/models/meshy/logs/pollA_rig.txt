@@ -1,0 +1,13 @@
+... IN_PROGRESS 26%
+... IN_PROGRESS 52%
+... IN_PROGRESS 79%
+... IN_PROGRESS 90%
+TERMINAL SUCCEEDED credits: 5
+Traceback (most recent call last):
+  File "/home/fivelidz/projects/reps_with_friends/site/models/meshy/meshy.py", line 304, in <module>
+    sys.exit(main() or 0)
+             ~~~~^^
+  File "/home/fivelidz/projects/reps_with_friends/site/models/meshy/meshy.py", line 270, in main
+    if d.get("task_error", {}).get("message"):
+       ^^^^^^^^^^^^^^^^^^^^^^^^^^^
+AttributeError: 'NoneType' object has no attribute 'get'

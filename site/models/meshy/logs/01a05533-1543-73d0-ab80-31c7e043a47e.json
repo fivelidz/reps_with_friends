@@ -1,0 +1,34 @@
+{
+ "id": "01a05533-1543-73d0-ab80-31c7e043a47e",
+ "type": "text-to-3d-refine",
+ "mode": "refine",
+ "name": "",
+ "model_type": "standard",
+ "seed": 1605950260,
+ "art_style": "realistic",
+ "texture_richness": "high",
+ "prompt": "stylized cartoon frog head, friendly big round bulging eyes on top of the skull, wide cheeky grin, bright green skin, game character head asset, clean simple shapes, front facing bust",
+ "negative_prompt": "",
+ "texture_prompt": "",
+ "texture_image_url": "",
+ "status": "SUCCEEDED",
+ "created_at": 1788135806287,
+ "progress": 100,
+ "started_at": 1788135806290,
+ "finished_at": 1788135903388,
+ "task_error": null,
+ "model_urls": {
+  "glb": "https://assets.meshy.ai/8d4320d1-3e6b-4ae6-a775-7c5db5a7f36c/tasks/01a05533-1543-73d0-ab80-31c7e043a47e/output/model.glb?Expires=4941734400&Signature=FL4-~ZmQyrQg4QkxdN1MUwTUTlAoM~bFnHPjsl8Ifwrjr7yZMtWI3VIRxyZZzqEUZU7fLdwrGVBOTfnouPvhok5IuhseBMrdv-IwdfMkR8KlxzvK4Y2x8eWuSpdG6Q-sHsHxg-lmer~bqN20okNbPu~m9jpr0ZP-Z0PIhSX8xhBC4fsCjYmOFA5b7nAa1DMidISyIpGY-dzVzkONSNKsVijnKroVVnevkiDspML2RRHI2b~7~vXCTsuYUWP-7KcZuJ5w~8KjVwVApzeWQNTUH-94xbcCvnLcHnudLaD0LEjqHWZirNVl4sPazrorxYRl-4Hg8W1ZZdQlQWIQQhnQXA__&Key-Pair-Id=K1VGYTHIYLM9UM"
+ },
+ "thumbnail_url": "https://assets.meshy.ai/8d4320d1-3e6b-4ae6-a775-7c5db5a7f36c/tasks/01a05533-1543-73d0-ab80-31c7e043a47e/output/preview.png?Expires=4941734400&Signature=KqQJvQl7DPW1KBAlS9goYLJkyOTD-8189mCi1hdub0f3QhWVGuPw012WdJMMMDEbX6htMquExyCSzLzKbd5sIvcT8Kmhq3WEXNHvYxu2BEcZKti9f-xnI-Y-2EKyLkIcVnUAFrW3b1CbZdRKxllvCC2HmGbIHMIfEHhb~jMEfs3sUCkQG4XyxAFWhQkHToAtJmgz-zc40uO-1-ge4CCvVj-EQSJxtS8EGnl3S7KIfuiPgLOV~Xtk3dEI7ROpQmL79RbW4Kh4mhOcBDg47HckwIG8Vf7G4XCowAoxkU-CrvxOUnsEnhKrY7cITBflFbTtAqtHuVhCzidWVzkykt5tUg__&Key-Pair-Id=K1VGYTHIYLM9UM",
+ "video_url": "",
+ "texture_urls": [
+  {
+   "base_color": "https://assets.meshy.ai/8d4320d1-3e6b-4ae6-a775-7c5db5a7f36c/tasks/01a05533-1543-73d0-ab80-31c7e043a47e/output/texture_0.png?Expires=4941734400&Signature=VLL26VArRGGJzwz0nU6n1vhBnRscMHZ3eqF3-hv0tQGB7YE2eQK45XDEuwiBZFIF2h4TJ5vg08dj4QUu6RZPKB5BGWPvKukzIghislUaQzOKCzRxuPNENRAoycZydmjS59rRTCXI0CFljzOdiHlfTEZiJ~1UmmtF-51aLnw3zN6joKbKcnU2wzePvLJXyyezsw00dkna234H7l1WUt~Kk0dkZJ1PFEQXCi2Wmj0xkYtrgjMQcZ2ot7m8tweemdU1u4vFFnmeb20gxGm2ojNHO6gwZsqvqhhLFzzA59Qp2Gl8RdAktQVWWvk27qv~Sg7qJzg7cEGIurAmLd5Nrsf-UA__&Key-Pair-Id=K1VGYTHIYLM9UM",
+   "metallic": "https://assets.meshy.ai/8d4320d1-3e6b-4ae6-a775-7c5db5a7f36c/tasks/01a05533-1543-73d0-ab80-31c7e043a47e/output/texture_0_metallic.png?Expires=4941734400&Signature=j2e04G~80~hG13mEQzSSkItgKQtaGU5bRwjnGoKyM43LYK7Qfl8L04cTsBqpUoxnlxGh6u5jRzl1xDkNv7xmb15edIt9ocffzen207eCw4GCg5IGWcfTMCoaZlKLBwATblxUpjNDLCVjMjX4QuY8iE7lSs8P41hZ8lNoFc72CHbCcvBOKhFwbroUF1D64tBowxHl31ZVeNxB~o2FyB-UNcGYRlj5K2ZAnQrn5TOwTtTt5OOBop2Ic5~68rN1mmmndF7xahPlNVsdL43LziW40JbSBM3~CdeCaW56n0V8nz42lffuH89JhujA7Qjag~d61V~dZnDRY76ypJU2S05Xbw__&Key-Pair-Id=K1VGYTHIYLM9UM",
+   "roughness": "https://assets.meshy.ai/8d4320d1-3e6b-4ae6-a775-7c5db5a7f36c/tasks/01a05533-1543-73d0-ab80-31c7e043a47e/output/texture_0_roughness.png?Expires=4941734400&Signature=VEJon36-VvHXo3qPjf1IcXFdDzhEbBegD8x~gTt9Q7dMCp7tdpp-~TiukJpy2XnJlI62VMR8iunPoIt42GNFq5bvd2visK1pfEjYaKQva3TZhwfJuih3nZnF-Du0hC~htsbb1ZYkoiHufYgnu9e6hrvpI2JuT9LxGnnzmmFgK1x7dCxndetOuWBkX9UfA2YQreaOy4MXos53UqCTt~Fv3E4CizboncaBw4F7GMSHGI7RuQDF9~BboQVbq1DOoqohQyOtOkU9XyH~mwvMxcNKM06~J-cK2kNnqdHOUsuTDg4Kxezk~WVpOOVVLtpZ~D4CMoxIxnhBmX3T3w2VhBtEYg__&Key-Pair-Id=K1VGYTHIYLM9UM",
+   "normal": "https://assets.meshy.ai/8d4320d1-3e6b-4ae6-a775-7c5db5a7f36c/tasks/01a05533-1543-73d0-ab80-31c7e043a47e/output/texture_0_normal.png?Expires=4941734400&Signature=X1rpPcOASf-uk-drPOUZHLj-ABJbUBBCBEOl-EDWX8dOKBGxLibnZSxp0oxChdH2dSmmtm38UuYWAfy6hgfZgIbB8UzYn6Te8Y6eNtfTO-Z~Uf5WRFpBJj~9bTDgGC2ebRUAtIJFteF7Hl4XwrHvka7DkID1IT8-Prz8K3k75HvsZ~XXZXGX~SuBwJRMztuxN2yXjEGSv8SxWsX7n~ecpgOmdtMzr5D2~Bt6pJCBduD6rUTm4H9aV3QGekMdZq5QthwkUgpTbRgtDd8vCpiWHBiwtNw0uHwpxNfdeDt-fxr1n83oCQSnHfeGQ48crFQcnVWcSOemf32eTYmQV3PquQ__&Key-Pair-Id=K1VGYTHIYLM9UM"
+  }
+ ],
+ "consumed_credits": 10
+}

@@ -1,0 +1,15 @@
+{
+ "request": {
+  "input_task_id": "01a05533-131e-744a-9f0d-beb0d0c590df",
+  "topology": "triangle",
+  "target_polycount": 100000,
+  "target_formats": [
+   "glb"
+  ],
+  "alpha_thumbnail": true
+ },
+ "status_code": 202,
+ "response": {
+  "result": "01a05537-41df-77f0-a000-d44e28ee2543"
+ }
+}

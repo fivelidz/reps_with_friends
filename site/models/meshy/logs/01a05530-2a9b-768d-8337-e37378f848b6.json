@@ -1,0 +1,28 @@
+{
+ "id": "01a05530-2a9b-768d-8337-e37378f848b6",
+ "type": "text-to-3d-preview",
+ "mode": "preview",
+ "name": "",
+ "model_type": "standard",
+ "seed": 1605950260,
+ "art_style": "realistic",
+ "texture_richness": "",
+ "prompt": "stylized cartoon frog head, friendly big round bulging eyes on top of the skull, wide cheeky grin, bright green skin, game character head asset, clean simple shapes, front facing bust",
+ "negative_prompt": "",
+ "texture_prompt": "",
+ "texture_image_url": "",
+ "status": "SUCCEEDED",
+ "created_at": 1788135616025,
+ "progress": 100,
+ "started_at": 1788135616032,
+ "finished_at": 1788135664448,
+ "task_error": null,
+ "model_urls": {
+  "glb": "https://assets.meshy.ai/8d4320d1-3e6b-4ae6-a775-7c5db5a7f36c/tasks/01a05530-2a9b-768d-8337-e37378f848b6/output/model.glb?Expires=4941734400&Signature=fCJCi6sGp~tac3ytidcXHbpxJMFCklOzh6a1uwG9RCHM4shE2P60jQW3zysyDG6tPfvxhRRdNqHdwbB5GlA5kWtdZazCKOFoy9kRnFeNCsuxASGTMIWQ-P6pfBk6P5hKwpaoq-tdl42~f~I1zx5BfMTtyJvShVrgB1qX5Ku9P1BdBnoeUWppTPLcDmLKNGzX3dm7h5BUfKQd3IBWfihjMcoZKETTr8qCrGSIGUtnDC5vHJeRJVp44MkzejVp4auCS~a99GO4J-haTgaonTDbMQ6PpJRCxur2ass-5yY2cEFwf7paNFoLI3sVoSVntoBZ2wbJj234KwNHqrvbY4WenQ__&Key-Pair-Id=K1VGYTHIYLM9UM"
+ },
+ "thumbnail_url": "https://assets.meshy.ai/8d4320d1-3e6b-4ae6-a775-7c5db5a7f36c/tasks/01a05530-2a9b-768d-8337-e37378f848b6/output/preview.png?Expires=4941734400&Signature=MyIhwK9sL1LZJgKutGH-A2xtSty9hS-9I3jmmFZQaXR3PBW3HnQLfYCDVZsaorplIlH2ifx1fzcZYyhFXZMB4PXB15Gm3vINiaCTbMhM7i5kvElc883L6CGcBGAmzpU0jwnlAZfkTxVFN-p5C45T0npXRq74FSn4JyypL54I-ZBQJOibQG5J1oFxghLQHslZ1DC2BBohxDhdNMau0h-bFIrQjhYVR4rWm2oc9MxodLS1Vvmf-ni8zrkGKJbiT~rixP~fWoscI2c-IKb4Cfpx3a6-tYt2bt9l6l0BGji~9wBifABgwdRdnE5FP-r4u4oG4ow74kNTepqRBiy3zw5jQQ__&Key-Pair-Id=K1VGYTHIYLM9UM",
+ "alpha_thumbnail_url": "https://assets.meshy.ai/8d4320d1-3e6b-4ae6-a775-7c5db5a7f36c/tasks/01a05530-2a9b-768d-8337-e37378f848b6/output/preview_alpha.png?Expires=4941734400&Signature=q0Q2LcBjjJDrAZzttzSps4vXgSNi~7DhlO4uoFURFIoplx0OPXfdF3k67sa-Anl43G2vo4Vb0Ahhmw1kwkn35w81N2nLFyyxIWaWc22LxSJWoNkpYWyp9CloAlJSMldOAOXZZaBVRtNi2BYT~Hozi21rXD1oMCEgnC2rwoYNGxvfjJBT9BOeXQUUpWTv-VkRnYTwC3994pP0HjB6oqsXaIOFd8HkEhIBEnA1KMuN3Buc2xW9MacGUqoWZo18IPjAiseUgYNkNAMYI1Ct3tiSfT4IzZB0PPA74vJ5LB7N3vVtW8ndF-YWEz4YWcNaHlCIPrY9ldU0pwP6g3EajAF5rw__&Key-Pair-Id=K1VGYTHIYLM9UM",
+ "video_url": "",
+ "texture_urls": [],
+ "consumed_credits": 20
+}

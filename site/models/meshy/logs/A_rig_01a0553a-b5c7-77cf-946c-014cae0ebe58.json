@@ -1,0 +1,9 @@
+{
+ "request": {
+  "input_task_id": "01a05537-41df-77f0-a000-d44e28ee2543"
+ },
+ "status_code": 202,
+ "response": {
+  "result": "01a0553a-b5c7-77cf-946c-014cae0ebe58"
+ }
+}

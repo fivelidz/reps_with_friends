@@ -1,0 +1,8 @@
+{
+  "mode": "preview",
+  "prompt": "stylized cartoon frog head, friendly big round bulging eyes on top of the skull, wide cheeky grin, bright green skin, game character head asset, clean simple shapes, front facing bust",
+  "ai_model": "latest",
+  "should_remesh": false,
+  "target_formats": ["glb"],
+  "alpha_thumbnail": true
+}

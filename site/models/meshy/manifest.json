@@ -1,0 +1,122 @@
+{
+  "experiment": "Meshy.ai frog character candidates for Reps With Friends",
+  "date": "2026-08-31",
+  "mission": "Founder: 'the frog head does not look great with the expressions. please consult character model meshes. this is a meshy.ai code for you to experiment with'",
+  "balance_before": 1680,
+  "balance_after": 1570,
+  "credits_spent_total": 110,
+  "api": "https://api.meshy.ai/openapi/v2 (text-to-3d) + /openapi/v1 (remesh, rigging, balance)",
+  "pricing_encountered": {
+    "text-to-3d preview (meshy-7/latest)": 20,
+    "text-to-3d refine (2k texture + PBR)": 10,
+    "remesh (100k faces, triangle)": 5,
+    "auto-rig (mixamo skeleton + walk/run anims)": 5
+  },
+  "generations": 3,
+  "generation_budget_cap": 6,
+  "candidates": {
+    "A_full_character": {
+      "intent": "full stylized frog character, athletic wear, to auto-rig to the mixamo skeleton so it can wear our garment/mocap stack",
+      "prompt": "cute stylized frog character, humanoid bipedal frog standing upright in A-pose, athletic slim build, wearing a lime green tank top and black shorts, big expressive cartoon eyes on top of the head, wide friendly grin, bright green skin with pale belly, video game character asset, clean silhouette, full body, simple smooth shapes",
+      "params": "ai_model=latest, pose_mode=a-pose, should_remesh=false, target_formats=[glb]",
+      "preview_task": "01a05530-24f3-7473-8a4f-32f69182f940",
+      "preview_credits": 20,
+      "refine_task": "01a05533-131e-744a-9f0d-beb0d0c590df",
+      "refine_credits": 10,
+      "remesh_task": "01a05537-41df-77f0-a000-d44e28ee2543 (100k faces, 5 credits; raw mesh was 1,995,628 faces — over the 320k rig limit)",
+      "rig_task": "01a0553a-b5c7-77cf-946c-014cae0ebe58 (5 credits) — SUCCEEDED",
+      "rig_result": "standard mixamo skeleton, UNPREFIXED names (Hips/Spine/Spine01/Spine02/neck/Head/LeftArm...), 26 joints, no fingers, + basic walking/running animations",
+      "artifacts": {
+        "raw_preview_glb": "A_preview.glb (36 MB)",
+        "raw_refined_glb": "A_refined.glb (78 MB)",
+        "remeshed_glb": "A_remeshed.glb (20.8 MB)",
+        "rigged_glb": "A_rigged.glb (10.7 MB)",
+        "walk_glb": "A_walk.glb (10.8 MB), renamed copy A_walk_renamed.glb",
+        "installed": "../meshy_frog_full.glb (10.7 MB, bones renamed Spine01→Spine1, Spine02→Spine2, neck→Neck by rename_bones.py so BVHPlayer pairs with Geno's mocap)",
+        "thumbnails": ["A_preview.png", "A_refined.png"]
+      },
+      "numeric_findings": {
+        "silhouette": "aspect 0.58 (full body), symmetryIoU 0.52 (A-pose render), head mass top-half 0.63",
+        "texture": "green-hue 13.0% of content px, pale/warm 33.6% — pale-belly athletic frog, lime tank reads lime",
+        "gallery_card": "avatars page card 19 renders + poses (20.1% content, see shots/avatars_meshy_frog.png)"
+      }
+    },
+    "B_head_bust": {
+      "intent": "head-only candidate to replace the procedural frog head",
+      "prompt": "stylized cartoon frog head, friendly big round bulging eyes on top of the skull, wide cheeky grin, bright green skin, game character head asset, clean simple shapes, front facing bust",
+      "params": "ai_model=latest, should_remesh=false, target_formats=[glb]",
+      "preview_task": "01a05530-2a9b-768d-8337-e37378f848b6",
+      "preview_credits": 20,
+      "refine_task": "01a05533-1543-73d0-ab80-31c7e043a47e",
+      "refine_credits": 10,
+      "remesh_task": "01a05537-73f6-70b2-915d-3c98d8cccba9 (100k faces, 5 credits)",
+      "artifacts": {
+        "raw_preview_glb": "B_preview.glb (36 MB)",
+        "raw_refined_glb": "B_refined.glb (77 MB)",
+        "remeshed_glb": "B_remeshed.glb (19.7 MB)",
+        "installed": "../meshy_frog_head_b.glb",
+        "thumbnails": ["B_preview.png", "B_refined.png"]
+      },
+      "numeric_findings": {
+        "silhouette": "aspect 0.51 (tall — bust ships with neck/chest), symmetryIoU 0.83, TWO raised eye-bump zones on the top edge (the frog tell)",
+        "texture": "green-hue only 2.65% of content px, pale/warm 43.0% — the texture came out CREAM/PALE, not the brand green #4da33e",
+        "atelier": "installs on the Head bone at the right position (warm cluster @ (0.52,0.13) where the procedural frog reads green @(0.51,0.14)); rides the Head bone through walk frames (shots/atelier_walk_meshy_b.png)"
+      }
+    },
+    "C_grumpy_head": {
+      "intent": "expression-range probe — can Meshy produce a distinct readable expression (grumpy) at all?",
+      "prompt": "stylized cartoon frog head, grumpy frowning expression, heavy furrowed eyebrows, half-closed droopy eyelids over big round eyes, wide downturned mouth, bright green skin, game character head asset, clean simple shapes, front facing bust",
+      "params": "ai_model=latest, should_remesh=false, target_formats=[glb]",
+      "preview_task": "01a05533-9590-72f3-a35d-c3d2d96de96d",
+      "preview_credits": 20,
+      "refine_task": "01a05536-e6d7-734a-8db8-66bb3688b56d",
+      "refine_credits": 10,
+      "remesh_task": "01a05539-02b7-773b-9a86-bd808d3a5d2a (100k faces, 5 credits)",
+      "artifacts": {
+        "raw_preview_glb": "(not downloaded — preview geometry identical to refine)",
+        "raw_refined_glb": "(not downloaded — superseded by remesh)",
+        "installed": "../meshy_frog_head_c.glb (from remesh output, 19.3 MB)",
+        "thumbnails": ["C_preview.png", "C_refined.png"]
+      },
+      "numeric_findings": {
+        "silhouette": "aspect 0.64 (WIDEST of the three — closest to frog head proportions), symmetryIoU 0.77, one wide merged raised zone (droopy lids + heavy brows read as a brow band)",
+        "texture": "green-hue 11.4%, pale 23.6% — greener than B but still not brand green",
+        "atelier": "installs at head position (shots/atelier_iso_meshyc.png), slight green presence (157 px vs procedural 13,515 px)"
+      }
+    }
+  },
+  "integration": {
+    "atelier_head_slot": {
+      "file": "apps/atelier/index.html (headRow buttons: 🐸 Meshy B / 🐸 Meshy C) + apps/atelier/atelier.js (MESHY_HEADS registry, installMeshyHead/removeMeshyHead, meshyHeadFrame mirroring frog-heads.js frameOnBone/headUp, setHead branch, applyVisibility + activeHeadGroup + rebuildOutfit re-install, __atelier.meshyInfo())",
+      "mount": "same slot semantics as the procedural frog: group on the Head bone, +Y up from neck, +Z face-forward, normalised to h=0.26H with bbox centre at (0, 0.06H, -0.015H) in the head frame; swallows the headband while active; rwfWardrobe='head:frog' so remnant-cleaners catch it"
+    },
+    "models_card": {
+      "file": "site/model-avatars.js MODELS entry id=meshy-frog ('Frog — meshy.ai rigged', /models/meshy_frog_full.glb, rig=mixamo, Geno BVH mocap list, bvhAuto=walk)"
+    },
+    "procedural_frog": "UNCHANGED — site/models/frog-heads.js untouched; still the default head (🐸 Frog button)"
+  },
+  "regression": {
+    "headCheck_procedural_frog": "pass 3/3 frames (green skull pixels tracked through walk)",
+    "headCheck_meshy_b": "early-return pass ('non-frog head — pixel classes are frog-specific')",
+    "frogSanity": "120 combos (6 expressions × 5 skins × 4 accessories), 0 errors"
+  },
+  "evidence": {
+    "shots": [
+      "shots/atelier_iso_frog.png — procedural frog, isolated head (green 13,515 px @ (0.51,0.14))",
+      "shots/atelier_iso_meshyb.png — meshy B at same position (warm 1,973 px, green 0)",
+      "shots/atelier_iso_meshyc.png — meshy C at same position (warm 1,788, green 157)",
+      "shots/atelier_full_frog.png / atelier_full_meshyb.png / atelier_full_meshyc.png — full kit context",
+      "shots/atelier_walk_meshy_b.png — meshy head mid-stride on the Head bone",
+      "shots/avatars_meshy_frog.png vs shots/avatars_geno_frog.png — rigged full character card vs Geno frog card",
+      "shots/probe_boot.png, shots/bisect_1..4.png — diagnostic frames (integration proof chain)"
+    ],
+    "analysis_tooling": ["analyse_preview.py (silhouette metrics)", "hue analysis inline in session", "shoot4.ts / bisect.ts / verify.ts / probe.ts (CDP harnesses)"]
+  },
+  "notes": [
+    "Meshy raw output is HEAVY: 2M faces / 78 MB GLB per model. Always remesh (5 credits) for web use — 100k faces ≈ 20 MB, and it is REQUIRED before rigging (>320k faces rejected).",
+    "Rig naming gotcha: Meshy rigs use unprefixed Blender-style names (Spine01, neck). rename_bones.py folds them onto the mixamo names our boneMap/BVHPlayer expect.",
+    "Rig includes basic walk/run animations (Animation_Walking_withSkin.glb) — kept as A_walk.glb, unused by the card (Geno BVH retarget covers mocap).",
+    "One non-fatal console warning: THREE.GLTFLoader 'Couldn't load texture' — an aux map (normal/roughness) on one meshy GLB fails to decode; base colour renders fine.",
+    "One transient boot error seen mid-session in site/models/geno-derived.js buildFabricPhysics (line moved 1912→1936 between runs = concurrent agent editing that file). Not caused by this experiment; absent in the final run."
+  ]
+}

@@ -1,4 +1,4 @@
-// site/models/geno-derived.js — SKIN-DERIVED GARMENTS, v6.
+// site/models/geno-derived.js — SKIN-DERIVED GARMENTS, v9.
 //
 // THE CONSTRUCTION (the founder's answer, implemented literally):
 // A garment is not an approximation of the body — it IS the body's surface:
@@ -83,6 +83,30 @@
 //     wraps the ground outline (max-per-direction — the toe slab included)
 //     8 mm proud of the upper, taller at the heel (counter) and toe box,
 //     white against the charcoal upper.
+//
+// ── v9 (the founder's note: shoulder gaps · band gap · "fabrics should have
+//     their own easy physics and flow") ───────────────────────────────────────
+//   • SLEEVES REBUILT (defect 1, "invisible sections around the shoulders"):
+//     the v8 sleeve's plane sections picked loops 'nearest' the arm axis —
+//     near the shoulder the plane also cuts the TORSO and the merged/nearest
+//     loop ballooned the root rings to 40-49 cm radius with half their
+//     weights sourced from spine verts: the sleeve shredded at every pose.
+//     v9 profiles the ARM CHAIN'S OWN FLESH (dominant-bone filtered, max
+//     radial per θ bin along the axis), grades the offset with a ROOT TUCK
+//     (4 mm at the joint — UNDER the torso tube's ~7-8 mm — rising to 12 mm
+//     by t≈0.25), and sources weights from the arm chain only.
+//   • SHORTS TUBE TOP TUCKED (defect 2, "invisible band under the band"):
+//     v8's yTop = min(hipJoint + 3.2 cm, bandTop − 1 mm) took the hip branch
+//     on Geno and left the tube top 5.6 cm BELOW the band bottom — a bare /
+//     see-through strip under the charcoal band (a dark hole at squat). The
+//     top rings now reach bandTop − 1 mm, inside the band shell, as designed.
+//   • EASY FABRIC PHYSICS (the critical one): a lightweight secondary-motion
+//     layer over the skinned base — per-vert spring-dampers on the FREE HEM
+//     RINGS only (~770 verts), world-space, sag-biased, bounded ±3 cm, with
+//     capsule push-out (the geno-cloth collider maths, minimally borrowed)
+//     so hems never tunnel through the body. Dormant at rest (zero writes),
+//     disabled under prefers-reduced-motion, converges via settle(s) for the
+//     probe suites. See DERIVED_SPEC.physics + buildFabricPhysics.
 //
 // Slots: tshirt (torso + sleeves, one mesh) · shorts · waistband (solid
 // charcoal, always proud) · head (SPECIES HEADS ported from geno-wardrobe.js:
@@ -188,6 +212,55 @@ export const DERIVED_SPEC = {
       wallHeelCm: 3.4, wallMidCm: 1.5, wallToeCm: 2.6,
       soleSamples: 40,
     },
+    // v9 sleeves: ARM-HUGGING sections. The v8 sleeve sampled body plane∩
+    // loops 'nearest' to the arm axis — near the shoulder the plane also
+    // cuts the TORSO and the merged/nearest loop ballooned the root rings to
+    // 40-49 cm radius (measured), sourcing half their weights from spine
+    // verts: the sleeve shredded at every pose (the founder's "invisible
+    // sections around the shoulders"). v9 profiles the ARM CHAIN'S OWN
+    // flesh (dominant-bone filtered verts, max radial per θ bin, windowed
+    // along the axis), grades the offset with a ROOT TUCK under the torso
+    // tube (4 mm at the joint → 12 mm by t≈0.25), and sources weights from
+    // the arm chain only — the sleeve rides the arm through every clip.
+    sleeve: {
+      rootT: -0.02,          // start slightly ABOVE the joint — dive under the torso tube
+      rootMm: 4,             // tucked UNDER the torso tube's ~7-8 mm at the deltoid
+      fullMm: 12,            // full stand-off by tFull
+      tFull: 0.25,
+      windowT: 0.12,         // arm-flesh sampling window along the axis (×arm len)
+      passes: 2,             // profile smoothing passes (arm flesh is near-regular)
+    },
+  },
+  // ── v9 EASY FABRIC PHYSICS ─────────────────────────────────────────────
+  // The founder: "critically bad the fabrics should have their own easy
+  // physics and flow." NOT the failed full-PBD rebuild — a lightweight
+  // secondary-motion layer ON TOP of the skinned base:
+  //   • Only the FREE HEM rings participate (shirt hem + sleeve hems +
+  //     shorts leg hems — the last 3 rings of each opening, graded
+  //     looseness 0.2 / 0.5 / 1.0; ~770 verts total).
+  //   • Per-vert spring-damper toward the CPU-skinned target (critically-
+  //     near damped, ζ≈0.65 → a gentle settle wobble after stops), plus a
+  //     small world-down sag bias — fabric lags the stride ~1-3 cm, trails
+  //     motion, settles within ~1 s of pausing.
+  //   • Bounded: |P−S| ≤ maxDispCm·looseness (no stretch past the flare, the
+  //     Δsource gates stay meaningful), and capsule push-out (the geno-cloth
+  //     collider maths, minimally borrowed) keeps hems off the flesh — no
+  //     tunnelling through the body.
+  //   • Zero cost idle: dormant unless the driver bones moved; the page's
+  //     dirty-flag discipline is untouched (physics reports "still moving"
+  //     and the app renders only while it settles).
+  //   • prefers-reduced-motion: reduce → disabled (pure skinned).
+  physics: {
+    k: 26,                 // spring stiffness (ω≈5.1 → ~1 s settle)
+    zeta: 0.65,            // damping ratio (<1: one soft overshoot on settle)
+    sagG: 0.12,            // gravity gain — ~0.5 cm droop at loose 1 (more buries
+    //                       the waistband behind the shirt hem — the band must read)
+    maxDispCm: 3.0,        // hard clamp vs the skinned target (the brief's ±3 cm)
+    hemHystCm: 0.12,       // displacement hysteresis before a vert counts as asleep
+    sleepVelMs: 0.025,     // m/s — ≈0.4 mm/frame: below this the layer sleeps
+    substepHz: 60,         // fixed physics substep (accumulator, ≤4 per frame)
+    padCm: { thigh: 0.2, arm: 0.3, pelvis: 0.5 },   // collider inflation (slim: hems rest 1.5-3 cm off the flesh)
+    ringLoose: [0.2, 0.5, 1.0],   // last-3-rings looseness gradient into the garment
   },
 };
 
@@ -1252,41 +1325,95 @@ function buildFabricShirt(body, anc, mat) {
   });
   rings.push(...hemFin);
 
-  // ── sleeves: tapered cylinders on the arm axes, capped at the shoulder
+  // ── sleeves (v9): ARM-HUGGING tapered cones, capped at the shoulder with
+  // the root TUCKED UNDER the torso tube. See DERIVED_SPEC.fabric.sleeve —
+  // v8's plane-section 'nearest' loop ballooned near the shoulder (the
+  // torso is in the plane too); v9 profiles the arm chain's own flesh.
   const SS = F.sleeveSamples;
+  const SL = F.sleeve ?? {};
   const sleeveTubes = [];
   for (const side of [1, 2]) {
     const a0 = side === 1 ? anc.armLs : anc.armRs, a1 = side === 1 ? anc.armLe : anc.armRe;
     const ax = new THREE.Vector3().subVectors(a1, a0).normalize();
     const basis = planeBasis(ax.clone());
-    const t0 = 0.05, t1 = S.sleeveT;
-    const secT = (t) => {
+    const armLen = a0.distanceTo(a1);
+    // the ARM CHAIN's own flesh (bind): dominant bone in this side's chain,
+    // (θ, r, t) around the arm axis — sampled once, profiled per station
+    const pfx = side === 1 ? 'Left' : 'Right';
+    const chain = new Set([pfx + 'Shoulder', pfx + 'Arm', pfx + 'ForeArm']);
+    const fleshTR = [];   // { t, th, r }
+    {
+      const P2 = body.geometry.attributes.position;
+      const d = new THREE.Vector3();
+      for (let i = 0; i < P2.count; i++) {
+        const n = rawName(anc.skin.skeleton.bones[anc.dom[i]].name);
+        if (!chain.has(n)) continue;
+        d.fromBufferAttribute(P2, i).sub(a0);
+        const t = d.dot(ax) / armLen;
+        if (t < -0.3 || t > 0.9) continue;
+        const aa = d.dot(basis.e1), bb = d.dot(basis.e2);
+        fleshTR.push({ t, th: Math.atan2(bb, aa), r: Math.hypot(aa, bb) });
+      }
+    }
+    /** max radial profile of the ARM flesh around the axis at station t. */
+    const armProfile = (t) => {
       const c = new THREE.Vector3().lerpVectors(a0, a1, t);
-      const raw = sectionProfile(body.geometry, c, ax, c, basis.e1, basis.e2, bins, 'nearest');
-      return { raw, reg: fabricSection(raw, F.sleeveHemMm * anc.mm, F.sectionPasses) };
+      const prof = new Float32Array(bins), w = new Uint8Array(bins);
+      // near the root the window TIGHTENS: the wide window's per-θ max makes
+      // the ring proud of the LOCAL contour at some angles, the nearest
+      // arm-chain source drifts centimetres away across the shoulder joint,
+      // and extreme arm poses shear it (measured Δsource 5.5 cm at
+      // jumpingjack@0.5 on the first v9 build)
+      const win = t < 0.08 ? 0.05 : (SL.windowT ?? 0.12);
+      for (const f of fleshTR) {
+        if (Math.abs(f.t - t) > win) continue;
+        const bi = Math.min(bins - 1, Math.max(0, Math.round((f.th + Math.PI) / (2 * Math.PI) * bins))) % bins;
+        if (f.r > prof[bi]) prof[bi] = f.r;
+        w[bi] = 1;
+      }
+      for (let i = 0; i < bins; i++) {       // fill empty bins from the nearest hit
+        if (w[i]) continue;
+        for (let k = 1; k < bins; k++) {
+          const lo = (i - k + bins) % bins, hi = (i + k) % bins;
+          if (w[lo] || w[hi]) { prof[i] = w[lo] && w[hi] ? Math.max(prof[lo], prof[hi]) : (w[lo] ? prof[lo] : prof[hi]); break; }
+        }
+      }
+      return smoothCircular(prof, SL.passes ?? 2);
     };
-    const sTop = secT(t0), sHem = secT(t1);
+    /** graded offset (mm): root tuck 4 → full 12 by tFull, hem taper to 10. */
+    const offMm = (t) => {
+      const rootT = SL.rootT ?? -0.02, rootMm = SL.rootMm ?? 4, fullMm = SL.fullMm ?? 12, tFull = SL.tFull ?? 0.25;
+      let v = rootMm + (fullMm - rootMm) * Math.min(1, Math.max(0, (t - rootT) / (tFull - rootT)));
+      if (t > S.sleeveT) v = fullMm + (F.sleeveHemMm - fullMm) * Math.min(1, (t - S.sleeveT) / 0.12);
+      return v;
+    };
+    const t0 = SL.rootT ?? -0.02, t1 = S.sleeveT;
+    const profAtT = {};   // station cache (rings + fins share stations)
+    const profOf = (t) => {
+      const key = t.toFixed(4);
+      if (!profAtT[key]) {
+        const prof = armProfile(t);
+        const add = offMm(t) * anc.mm;
+        for (let b = 0; b < bins; b++) prof[b] += add;
+        profAtT[key] = prof;
+      }
+      return profAtT[key];
+    };
     const sRings = [];
     for (let i = 0; i < F.sleeveRings; i++) {
       const t = t0 + (t1 - t0) * i / (F.sleeveRings - 1);
       const u = (t - t0) / (t1 - t0);
       const c = new THREE.Vector3().lerpVectors(a0, a1, t);
-      const here = secT(t);
-      const prof = new Float32Array(bins);            // LINEAR taper — a truncated cone
-      for (let b = 0; b < bins; b++) {                // (only lifts where the bicep pokes)
-        const lin = (sTop.reg[b] + F.sleeveTopMm * anc.mm) * (1 - u) + (sHem.reg[b] + F.sleeveHemMm * anc.mm) * u;
-        prof[b] = Math.max(lin, here.reg[b]);
-      }
       const env = anc.envOf(u);
       sRings.push({
-        pts: fabricRingPts(c, basis.e1, basis.e2, prof, SS, {
+        pts: fabricRingPts(c, basis.e1, basis.e2, profOf(t), SS, {
           pleat: { k: WK.sleevePleats, ampU: WK.sleeveAmpMm * anc.mm, phase: 0, env },
           sagU: WK.sleeveSagMm * anc.mm * env, env,
         }),
         c,
       });
     }
-    const dt = (S.sleeveDropCm * anc.cm) / a0.distanceTo(a1);   // drop along the arm axis
+    const dt = (S.sleeveDropCm * anc.cm) / armLen;   // drop along the arm axis
     const fin = [
       { d: 0.45, bulgeMm: 1.0, flareCm: F.sleeveFlareCm * 0.4 },
       { d: 1.0, bulgeMm: S.bandExtraMm, flareCm: F.sleeveFlareCm },
@@ -1295,7 +1422,7 @@ function buildFabricShirt(body, anc, mat) {
       const c = new THREE.Vector3().lerpVectors(a0, a1, t);
       const env = 1;
       return {
-        pts: fabricRingPts(c, basis.e1, basis.e2, sHem.reg, SS, {
+        pts: fabricRingPts(c, basis.e1, basis.e2, profOf(t), SS, {
           pleat: { k: WK.sleevePleats, ampU: WK.sleeveAmpMm * anc.mm, phase: 0, env },
           sagU: WK.sleeveSagMm * anc.mm, env,
           bulgeU: f.bulgeMm * anc.mm, flareU: f.flareCm * anc.cm,
@@ -1304,12 +1431,21 @@ function buildFabricShirt(body, anc, mat) {
       };
     });
     sRings.push(...fin);
-    sleeveTubes.push({ rings: sRings, axis: ax.clone(), cap: { at: 0, dir: ax.clone().negate() }, side });
+    // weights from this side's arm chain + the SPINE chain: the arm surface
+    // dominates as the nearest source down the sleeve (it rides the arm),
+    // while the ROOT ring's chest/trap side (Spine-dominated flesh at the
+    // shoulder) sources LOCALLY instead of from 7-11 cm across the joint —
+    // cross-joint bind deltas sheared 5.5 cm at arms-overhead (measured).
+    // The root is tucked UNDER the torso tube, which carries the same spine
+    // weights — the two move together, no seam.
+    const srcChain = new Set([...chain, 'Spine', 'Spine1', 'Spine2', 'Spine3']);
+    const srcFilter = (i) => srcChain.has(rawName(anc.skin.skeleton.bones[anc.dom[i]].name));
+    sleeveTubes.push({ rings: sRings, axis: ax.clone(), cap: { at: 0, dir: ax.clone().negate() }, side, srcFilter });
   }
 
   const { mesh, ringStarts } = fabricLattice(body, 'tshirt', mat, [
     { rings, axis: UP.clone() },
-    ...sleeveTubes.map((t) => ({ rings: t.rings, axis: t.axis, cap: t.cap })),
+    ...sleeveTubes.map((t) => ({ rings: t.rings, axis: t.axis, cap: t.cap, srcFilter: t.srcFilter })),
   ], 0.4);
 
   // opening reports (hemCheck + the v7 collar probe contracts)
@@ -1329,7 +1465,47 @@ function buildFabricShirt(body, anc, mat) {
       nearestBodyVert(body, lipRing.c), lipRing.c, starts[starts.length - 2], 2, lipRing.pts, lipRing.c, basis.e1, basis.e2));
   });
   d.openings = openings;
-  d.fabric = { torsoRings: N, samples: ST, chestIdx, sleeveRings: F.sleeveRings, sleeveSamples: SS };
+  d.fabric = { torsoRings: N, samples: ST, chestIdx, sleeveRings: F.sleeveRings, sleeveSamples: SS,
+    sleeveV9: { rootT: (SL.rootT ?? -0.02), armProfile: true, armWeightSource: true } };
+  // v9 physics: the FREE hem rings (last 3 of each opening) get secondary
+  // motion — graded looseness into the garment (see DERIVED_SPEC.physics).
+  // `caps`: per-ring colliders — the torso hem hangs OVER the shorts (no
+  // bare flesh to tunnel into), sleeves collide with their OWN arm capsule.
+  const LO = S.physics.ringLoose;
+  d.physRings = [
+    { start: ringStarts[0][4 + N - 1], samples: ST, loose: LO[0], caps: [] },   // last torso ring
+    { start: ringStarts[0][4 + N], samples: ST, loose: LO[1], caps: [] },       // hem finish 1
+    { start: ringStarts[0][4 + N + 1], samples: ST, loose: LO[2], caps: [] },   // the lip
+  ];
+  // TUCK CLASS: the sleeve ROOT rings (t ≤ 0.05) sit under the torso tube
+  // (deltoid + 4 mm vs the tube's +7-8 mm) — same hidden-by-construction
+  // class as the shorts' tucked top; their cross-joint (Spine↔Arm) blends
+  // shear at extreme arm poses and report as tuckDeltaCm, not the core gate.
+  d.tuckRings = [];
+  {
+    const t0 = SL.rootT ?? -0.02, t1 = S.sleeveT;
+    const rootRings = Math.max(1, Math.round((0.05 - t0) / ((t1 - t0) / (F.sleeveRings - 1))) + 1);
+    sleeveTubes.forEach((t, ti) => {
+      const starts = ringStarts[1 + ti];
+      for (let ri = 0; ri < Math.min(rootRings, starts.length); ri++) {
+        d.tuckRings.push({ start: starts[ri], samples: SS });
+      }
+    });
+  }
+  sleeveTubes.forEach((t, ti) => {
+    const starts = ringStarts[1 + ti];
+    const last = starts.length - 1;
+    // no sleeve colliders: the sleeve rides ~100% on its arm's weights
+    // (rigid with the arm — no relative motion to catch), and the
+    // constructed ring profile can bulge past a percentile-fitted capsule
+    // (armpit flesh in the max-per-bin profile, measured 11 cm off-axis)
+    // which reads as permanent deep contact. Bounded by the ±3 cm clamp.
+    d.physRings.push(
+      { start: starts[last - 2], samples: SS, loose: LO[0], caps: [] },
+      { start: starts[last - 1], samples: SS, loose: LO[1], caps: [] },
+      { start: starts[last], samples: SS, loose: LO[2], caps: [] },
+    );
+  });
   return mesh;
 }
 
@@ -1378,10 +1554,25 @@ function buildFabricShorts(body, anc, mat) {
   const legTubes = [];
   for (const side of [1, 2]) {
     const l0 = side === 1 ? anc.legLs : anc.legRs, l1 = side === 1 ? anc.legLe : anc.legRe;
-    const legAnchor = (y) => new THREE.Vector3().lerpVectors(l0, l1, Math.min(1, Math.max(0, (y - l0.y) / (l1.y - l0.y || 1))));
+    // v9: EXTRAPOLATE past the joints (±35% of the thigh) — the v8 clamp
+    // collapsed every waist ring above the hip joint onto l0's height
+    // (rings 0-2 measured co-planar AT the joint), so the "tucked under the
+    // band" top never rose past the hip: the tube top sat 5.4 cm below the
+    // band bottom (the founder's gap strip).
+    const legAnchor = (y) => {
+      const t = (y - l0.y) / ((l1.y - l0.y) || 1);
+      const tc = Math.min(1.35, Math.max(-0.35, t));
+      return new THREE.Vector3().lerpVectors(l0, l1, tc);
+    };
     const signX = Math.sign(l0.x) || 1;
     const boundX = -signX * 0.015;
-    const yTop = Math.min(l0.y + 3.2 * anc.cm, anc.bandTop - 0.1 * anc.cm);   // inside the band shell
+    // v9 FIX ("invisible band under the band"): the top rings must reach UP
+    // INSIDE the waistband shell (bandTop − 1 mm). The v8 code took
+    // min(l0.y + 3.2 cm, bandTop − 0.1 cm) — for Geno the hip-joint branch
+    // won and the tube top landed 5.6 cm BELOW the band bottom: a bare /
+    // see-through strip under the charcoal band (4 cm at the waist, a dark
+    // hole at squat when the thighs fold forward).
+    const yTop = anc.bandTop - 0.1 * anc.cm;   // inside the band shell
     // DENSE stations through the waist/hip zone, sparser down the thigh
     const ys = [];
     {
@@ -1445,7 +1636,39 @@ function buildFabricShorts(body, anc, mat) {
       nearestBodyVert(body, lip.c), lip.c, starts[starts.length - 2], 2, lip.pts, lip.c, up.e1, up.e2);
   });
   d.openings = openings;
-  d.fabric = { legRings: F.legRings + 2, samples: LS, centreCapCm: 1.5, slantedTubes: true };
+  d.fabric = { legRings: F.legRings + 2, samples: LS, centreCapCm: 1.5, slantedTubes: true,
+    tubeTopTucked: true };
+  // the rings ABOVE the band bottom are TUCKED under the waistband shell +
+  // the pelvis flap (hidden by construction): they source weights from the
+  // thigh flesh several cm below, so deep folds shear them past the core
+  // Δsource bar — the gate classifies them as tuckVerts (reported, bar'd
+  // separately) instead of loosening the core gate.
+  d.tuckRings = [];
+  for (const t of legTubes) {
+    const starts = ringStarts[legTubes.indexOf(t)];
+    t.rings.forEach((ring, ri) => {
+      let y = 0;
+      for (const q of ring.pts) y += q.y;
+      y /= ring.pts.length;
+      if (y >= anc.bandBot) d.tuckRings.push({ start: starts[ri], samples: LS });
+    });
+  }
+  // v9 physics: the leg-hem rings (last 3 per leg) — colliders: the leg's
+  // OWN thigh capsule (the hem blends knee weights, so the knee bend has
+  // relative motion to collide against; cross-leg checks false-positived
+  // at the centreline caps on the first v9 builds).
+  const LO = S.physics.ringLoose;
+  d.physRings = [];
+  legTubes.forEach((t, ti) => {
+    const starts = ringStarts[ti];
+    const last = starts.length - 1;
+    const legCap = t.side === 1 ? 'LeftUpLeg' : 'RightUpLeg';
+    d.physRings.push(
+      { start: starts[last - 2], samples: LS, loose: LO[0], caps: [legCap] },
+      { start: starts[last - 1], samples: LS, loose: LO[1], caps: [legCap] },
+      { start: starts[last], samples: LS, loose: LO[2], caps: [legCap] },
+    );
+  });
   return mesh;
 }
 
@@ -1621,6 +1844,521 @@ function buildDerivedSneakers(body, anc, upperMat, soleMat) {
   return out;
 }
 
+// ── v9 EASY FABRIC PHYSICS ──────────────────────────────────────────────────
+// Capsule colliders (the geno-cloth.js maths, minimally borrowed: bind-
+// measured elliptical tapered capsules, boneA-transported frames, scaled-
+// space pushout) + a per-vert spring-damper secondary-motion layer over the
+// skinned base. See DERIVED_SPEC.physics for the tuning contract.
+
+const _pq = new THREE.Quaternion();
+const _pa = new THREE.Vector3(), _pb = new THREE.Vector3(), _pe1 = new THREE.Vector3(), _pe2 = new THREE.Vector3();
+const _paxis = new THREE.Vector3();
+
+/**
+ * One capsule: segment boneA→boneB (param tA..tB), elliptical cross-section
+ * measured at BIND from the body mesh (dominant-bone population, per-half
+ * tapered radii at the 97th percentile, flesh-centroid offset — joints sit
+ * at the back/off-axis of the flesh). Runtime frame transported by boneA.
+ * boneSet: Set of bone indices whose verts populate the capsule (a limb
+ * chain), or null for the all-bone lateral-capped mode (the torso chain —
+ * excludes the A-pose hands via xMaxLat).
+ */
+function makePhysCapsule(body, dom, skeleton, boneA, boneB, aPos, bPos, tA, tB, boneSet, padU, xMaxLat, exclTest) {
+  const axis = new THREE.Vector3().subVectors(bPos, aPos);
+  const len = axis.length();
+  if (len < 1e-5) return null;
+  axis.divideScalar(len);
+  let e1 = new THREE.Vector3(1, 0, 0).addScaledVector(axis, -axis.x);
+  if (e1.lengthSq() < 0.25) e1 = new THREE.Vector3(0, 0, 1).addScaledVector(axis, -axis.z);
+  e1.normalize();
+  const e2 = new THREE.Vector3().crossVectors(axis, e1).normalize();
+  const A = aPos.clone().addScaledVector(axis, tA * len);
+  const Bp = aPos.clone().addScaledVector(axis, tB * len);
+  const P = body.geometry.attributes.position;
+  const rel = [], relT = [];
+  const v = new THREE.Vector3();
+  for (let i = 0; i < P.count; i++) {
+    if (boneSet) { if (!boneSet.has(dom[i])) continue; }
+    else if (exclTest && exclTest(rawName(skeleton.bones[dom[i]].name))) continue;
+    v.fromBufferAttribute(P, i);
+    if (xMaxLat && Math.abs(v.x - aPos.x) > xMaxLat) continue;   // A-pose hands stay out
+    const d = v.clone().sub(aPos);
+    // NORMALISED axial parameter (tA/tB are 0..1 over the segment — the
+    // first v9 builds compared raw units, the ±0.15 window covered the
+    // whole limb and the 97th percentile ballooned the radii)
+    const tn = d.dot(axis) / len / len;
+    if (tn < tA - 0.15 || tn > tB + 0.15) continue;
+    rel.push([d.dot(e1), d.dot(e2)]);
+    relT.push(tn);
+  }
+  const halfStats = (tLo, tHi) => {
+    const a1 = [], a2 = [];
+    for (let k = 0; k < rel.length; k++) {
+      if (relT[k] < tLo || relT[k] > tHi) continue;
+      a1.push(Math.abs(rel[k][0])); a2.push(Math.abs(rel[k][1]));
+    }
+    const floor = 0.02;
+    if (a1.length < 4) return { rx: floor, rz: floor };
+    a1.sort((x, y) => x - y); a2.sort((x, y) => x - y);
+    const q = (arr) => arr[Math.min(arr.length - 1, Math.floor(arr.length * 0.97))];
+    return { rx: Math.max(floor, q(a1)), rz: Math.max(floor, q(a2)) };
+  };
+  const mid = (tA + tB) / 2;
+  const sA = halfStats(tA - 0.15, mid), sB = halfStats(mid, tB + 0.15);
+  let m1 = 0, m2 = 0;
+  if (rel.length >= 6) {
+    for (const r of rel) { m1 += r[0]; m2 += r[1]; }
+    m1 /= rel.length; m2 /= rel.length;   // centre on the flesh, not the joint
+  }
+  const centre = e1.clone().multiplyScalar(m1).addScaledVector(e2, m2);
+  A.add(centre); Bp.add(centre);
+  // anchor in the bone's BIND-LOCAL frame (skeleton.boneInverse), NOT
+  // matrixWorld⁻¹: the runtime transport is matrixWorld·aLoc, and only the
+  // bind-inverse makes that EXACTLY the skinning chain (matrixWorld⁻¹ pulls
+  // the avatar root's transform in and the capsule rides a different frame
+  // than the verts — measured 5-9 cm off on the third v9 build).
+  const bi = skeleton.bones.indexOf(boneA);
+  const invA = skeleton.boneInverses[bi];
+  return {
+    name: rawName(boneA.name),
+    boneA,
+    aLoc: A.clone().applyMatrix4(invA),
+    bLoc: Bp.clone().applyMatrix4(invA),
+    e1Loc: e1.clone().transformDirection(invA).normalize(),
+    e2Loc: e2.clone().transformDirection(invA).normalize(),
+    rxA: sA.rx, rzA: sA.rz, rxB: sB.rx, rzB: sB.rz,
+    rx: Math.max(sA.rx, sB.rx), rz: Math.max(sA.rz, sB.rz),
+    pad: padU,
+    ax: 0, ay: 0, az: 0, bx: 0, by: 0, bz: 0,
+    e1x: 1, e1y: 0, e1z: 0, e2x: 0, e2y: 0, e2z: 1,
+    abx: 0, aby: 0, abz: 0, abLen2: 1,
+    minx: 0, maxx: 0, miny: 0, maxy: 0, minz: 0, maxz: 0,
+  };
+}
+
+/** World-space refresh of a capsule (boneA's current frame). */
+function updatePhysCapsule(c) {
+  _pa.copy(c.aLoc).applyMatrix4(c.boneA.matrixWorld);
+  _pb.copy(c.bLoc).applyMatrix4(c.boneA.matrixWorld);
+  c.ax = _pa.x; c.ay = _pa.y; c.az = _pa.z;
+  c.bx = _pb.x; c.by = _pb.y; c.bz = _pb.z;
+  c.abx = c.bx - c.ax; c.aby = c.by - c.ay; c.abz = c.bz - c.az;
+  c.abLen2 = Math.max(1e-8, c.abx * c.abx + c.aby * c.aby + c.abz * c.abz);
+  _paxis.set(c.abx, c.aby, c.abz).normalize();
+  c.boneA.getWorldQuaternion(_pq);
+  _pe1.copy(c.e1Loc).applyQuaternion(_pq);
+  const d = _pe1.dot(_paxis);
+  _pe1.addScaledVector(_paxis, -d);
+  if (_pe1.lengthSq() < 1e-6) _pe1.set(0, 1, 0).addScaledVector(_paxis, -_paxis.y);
+  _pe1.normalize();
+  _pe2.crossVectors(_paxis, _pe1).normalize();
+  c.e1x = _pe1.x; c.e1y = _pe1.y; c.e1z = _pe1.z;
+  c.e2x = _pe2.x; c.e2y = _pe2.y; c.e2z = _pe2.z;
+  const r = Math.max(c.rx, c.rz) + c.pad + 0.012;
+  c.minx = Math.min(c.ax, c.bx) - r; c.maxx = Math.max(c.ax, c.bx) + r;
+  c.miny = Math.min(c.ay, c.by) - r; c.maxy = Math.max(c.ay, c.by) + r;
+  c.minz = Math.min(c.az, c.bz) - r; c.maxz = Math.max(c.az, c.bz) + r;
+}
+
+/** Scaled-space elliptical capsule pushout (3-4 fixed-point iterations land
+ *  within 0.1 mm — measured in geno-cloth). Push written to `out`; returns
+ *  push length (0 = free). */
+function collidePhysCapsule(c, px, py, pz, out) {
+  if (px < c.minx || px > c.maxx || py < c.miny || py > c.maxy || pz < c.minz || pz > c.maxz) return 0;
+  let t = ((px - c.ax) * c.abx + (py - c.ay) * c.aby + (pz - c.az) * c.abz) / c.abLen2;
+  t = t < 0 ? 0 : t > 1 ? 1 : t;
+  const qx = c.ax + c.abx * t, qy = c.ay + c.aby * t, qz = c.az + c.abz * t;
+  const r1 = c.rxA + (c.rxB - c.rxA) * t + c.pad;
+  const r2 = c.rzA + (c.rzB - c.rzA) * t + c.pad;
+  const rMax = r1 > r2 ? r1 : r2;
+  const a1 = px - qx, a2 = py - qy, a3 = pz - qz;
+  let l1 = a1 * c.e1x + a2 * c.e1y + a3 * c.e1z;
+  let l2 = a1 * c.e2x + a2 * c.e2y + a3 * c.e2z;
+  const s1 = rMax / r1, s2 = rMax / r2;
+  let n1 = 0, n2 = 0, pen = 0;
+  for (let it = 0; it < 4; it++) {
+    const w1 = l1 * s1, w2 = l2 * s2;
+    const dw = Math.hypot(w1, w2);
+    if (dw >= rMax) break;
+    if (dw < 1e-7) { n1 = 1; n2 = 0; } else { n1 = w1 / dw; n2 = w2 / dw; }
+    pen = rMax - dw;
+    l1 += (n1 * pen) / s1;
+    l2 += (n2 * pen) / s2;
+  }
+  if (pen === 0) return 0;
+  const b1 = a1 * c.e1x + a2 * c.e1y + a3 * c.e1z;
+  const b2 = a1 * c.e2x + a2 * c.e2y + a3 * c.e2z;
+  out.x = (l1 - b1) * c.e1x + (l2 - b2) * c.e2x;
+  out.y = (l1 - b1) * c.e1y + (l2 - b2) * c.e2y;
+  out.z = (l1 - b1) * c.e1z + (l2 - b2) * c.e2z;
+  return Math.hypot(out.x, out.y, out.z);
+}
+
+/**
+ * The secondary-motion layer. `garments`: [{ mesh, rings: physRings }] —
+ * each ring { start, samples, loose }. Springs run in WORLD space against
+ * the CPU-skinned rest position; results bake back into the bind-space
+ * position attribute (rest + invDominant·(P − S)) so the GPU skinning of
+ * the displaced verts stays first-order exact. Dormant = zero writes.
+ */
+function buildFabricPhysics(root, skeleton, body, garments, allCapList, PH, unitPerMmU) {
+  const capByName = new Map(allCapList.map((c) => [c.name, c]));
+  const caps = allCapList;               // the frames of ALL are kept fresh
+  const parts = [];
+  for (const g of garments) {
+    const mesh = g.isMesh ? g : g.mesh;    // accepts bare meshes or {mesh} specs
+    const d = mesh.userData.rwfDerived;
+    const rings = d.physRings ?? [];
+    if (!rings.length) continue;
+    const idx = [], loose = [], vcaps = [];
+    for (const r of rings) {
+      const rcaps = (r.caps ?? []).map((n2) => capByName.get(n2)).filter(Boolean);
+      for (let i = 0; i < r.samples; i++) { idx.push(r.start + i); loose.push(r.loose); vcaps.push(rcaps); }
+    }
+    const GP = mesh.geometry.attributes.position;
+    const n = idx.length;
+    const rest = new Float32Array(n * 3);
+    const domB = new Int32Array(n);
+    for (let k = 0; k < n; k++) {
+      rest[k * 3] = GP.getX(idx[k]); rest[k * 3 + 1] = GP.getY(idx[k]); rest[k * 3 + 2] = GP.getZ(idx[k]);
+      // dominant bone of the vert's copied weights
+      const SI = mesh.geometry.attributes.skinIndex, SW = mesh.geometry.attributes.skinWeight;
+      const vi = idx[k];
+      let b = 0, bw = -1;
+      for (let j = 0; j < 4; j++) { const w = SW.getComponent(vi, j); if (w > bw) { bw = w; b = SI.getComponent(vi, j); } }
+      domB[k] = b;
+    }
+    parts.push({
+      mesh, GP, idx, loose, vcaps, rest, domB, n,
+      vel: new Float32Array(n * 3), pushed: new Float32Array(n),
+      S: new Float32Array(n * 3),          // skinned rest (world) — per frame
+      P: new Float32Array(n * 3),          // sim position (world)
+    });
+  }
+  const totalVerts = parts.reduce((a, p) => a + p.n, 0);
+
+  // driver bones: any of these moving wakes the layer (hips/spine/limbs)
+  const driverNames = ['Hips', 'Spine', 'Spine1', 'Spine2', 'Neck',
+    'LeftArm', 'RightArm', 'LeftForeArm', 'RightForeArm',
+    'LeftUpLeg', 'RightUpLeg', 'LeftLeg', 'RightLeg'];
+  const drivers = driverNames
+    .map((n2) => skeleton.bones.find((b) => rawName(b.name) === n2))
+    .filter(Boolean);
+  const driverPos = new Float32Array(drivers.length * 3);
+
+  const state = {
+    enabled: true, awake: false, verts: totalVerts,
+    maxDispCm: 0, maxSpeedCmS: 0, sleepFrames: 0, settledAt: 0,
+  };
+  const omega = Math.sqrt(PH.k), damp = 2 * PH.zeta * omega;
+  const h = 1 / PH.substepHz;
+  const maxDispU = PH.maxDispCm * 0.01 * unitPerMmU * 1000;   // cm → model units
+  const sagU = PH.sagG * unitPerMmU * 1000;                   // m/s² → model/s²
+  const hystU = PH.hemHystCm * 0.01 * unitPerMmU * 1000;
+  const slopU = 0.014 * unitPerMmU * 1000;   // 1.4 cm collider slop
+  const sleepVelU = PH.sleepVelMs * unitPerMmU * 1000;   // m/s → units/s (×units-per-METRE)
+  let acc = 0;
+  const _m = new THREE.Matrix4(), _inv = new THREE.Matrix4();
+  const _p = new THREE.Vector3(), _s = new THREE.Vector3(), _d = new THREE.Vector3();
+  const push = new THREE.Vector3();
+  const invByBone = new Map();    // boneIdx → Matrix4 inverse (per frame)
+
+  function computeSkinning() {
+    // fresh bone matrices (the exact shader maths — see skinnedVert)
+    const M = skeleton.bones.map((b, i) =>
+      new THREE.Matrix4().multiplyMatrices(b.matrixWorld, skeleton.boneInverses[i]));
+    invByBone.clear();
+    for (const part of parts) {
+      const SI = part.mesh.geometry.attributes.skinIndex;
+      const SW = part.mesh.geometry.attributes.skinWeight;
+      for (let k = 0; k < part.n; k++) {
+        const x = part.rest[k * 3], y = part.rest[k * 3 + 1], z = part.rest[k * 3 + 2];
+        let px = 0, py = 0, pz = 0;
+        for (let j = 0; j < 4; j++) {
+          const w = SW.getComponent(part.idx[k], j);
+          if (w <= 0) continue;
+          const m = M[SI.getComponent(part.idx[k], j)];
+          if (!m) continue;
+          const e = m.elements;
+          px += w * (e[0] * x + e[4] * y + e[8] * z + e[12]);
+          py += w * (e[1] * x + e[5] * y + e[9] * z + e[13]);
+          pz += w * (e[2] * x + e[6] * y + e[10] * z + e[14]);
+        }
+        part.S[k * 3] = px; part.S[k * 3 + 1] = py; part.S[k * 3 + 2] = pz;
+      }
+      for (let k = 0; k < part.n; k++) {
+        const b = part.domB[k];
+        if (!invByBone.has(b)) {
+          _inv.copy(M[b]).invert();
+          invByBone.set(b, _inv.clone());
+        }
+      }
+    }
+    return M;
+  }
+
+  /** per-frame world refresh: fresh capsule frames + skinned targets. The
+   *  bones move while the layer is awake — a stale target makes the springs
+   *  chase a ghost (measured 8.9 cm leak), and capsules that miss their
+   *  world refresh sit at their origin-defaults and swallow whatever comes
+   *  near (0,0,0) — the second v9 build bug. */
+  function refreshWorld() {
+    root.updateMatrixWorld(true);
+    for (const c of caps) updatePhysCapsule(c);
+    computeSkinning();
+  }
+
+  /** attach/re-attach the layer. `reset`: P=S (first-ever wake, or the
+   *  probe settle path — deterministic convergence from rest). Otherwise P
+   * persists: re-waking after a driver nudge must not pop the sag state. */
+  function wakeInit(reset = false) {
+    for (const part of parts) {
+      if (reset || !part.inited) {
+        for (let k = 0; k < part.n; k++) {
+          part.P[k * 3] = part.S[k * 3]; part.P[k * 3 + 1] = part.S[k * 3 + 1]; part.P[k * 3 + 2] = part.S[k * 3 + 2];
+        }
+        part.vel.fill(0);
+        part.inited = true;
+      }
+      // else: keep P/vel — the springs re-converge to the new targets
+    }
+    state.awake = true;
+    state.sleepFrames = 0;
+  }
+
+  function wake() {
+    refreshWorld();
+    wakeInit();
+  }
+
+  function writeback() {
+    for (const part of parts) {
+      for (let k = 0; k < part.n; k++) {
+        const inv = invByBone.get(part.domB[k]);
+        _p.set(part.P[k * 3] - part.S[k * 3], part.P[k * 3 + 1] - part.S[k * 3 + 1], part.P[k * 3 + 2] - part.S[k * 3 + 2]);
+        // LINEAR part only (rotation+scale): applyMatrix4 on a DISPLACEMENT
+        // must not carry the inverse's translation (the bone origin — cm of
+        // phantom offset, measured on the first v9 build)
+        _d.copy(_p).applyMatrix4(inv);
+        const e = inv.elements;
+        _d.x -= e[12]; _d.y -= e[13]; _d.z -= e[14];
+        part.GP.setXYZ(part.idx[k],
+          part.rest[k * 3] + _d.x, part.rest[k * 3 + 1] + _d.y, part.rest[k * 3 + 2] + _d.z);
+      }
+      part.GP.needsUpdate = true;
+    }
+  }
+
+  function restback() {   // dormant: exact constructed positions
+    for (const part of parts) {
+      for (let k = 0; k < part.n; k++) {
+        part.GP.setXYZ(part.idx[k], part.rest[k * 3], part.rest[k * 3 + 1], part.rest[k * 3 + 2]);
+      }
+      part.GP.needsUpdate = true;
+    }
+  }
+
+  function driversMoved() {
+    let moved = false;
+    for (let i = 0; i < drivers.length; i++) {
+      drivers[i].getWorldPosition(_p);
+      const dx = _p.x - driverPos[i * 3], dy = _p.y - driverPos[i * 3 + 1], dz = _p.z - driverPos[i * 3 + 2];
+      if (dx * dx + dy * dy + dz * dz > (0.0012 * unitPerMmU * 1000) ** 2) moved = true;
+      driverPos[i * 3] = _p.x; driverPos[i * 3 + 1] = _p.y; driverPos[i * 3 + 2] = _p.z;
+    }
+    return moved;
+  }
+
+  let dbgMaxPush = 0;
+  const dbgPushByName = {};
+  let prevMaxDisp = 0;
+  let dbgWorst = null;
+  function substep() {
+    let maxSpd = 0, maxDisp = 0;
+    dbgMaxPush = 0;
+    for (const k2 of Object.keys(dbgPushByName)) delete dbgPushByName[k2];
+    for (const part of parts) {
+      for (let k = 0; k < part.n; k++) {
+        const k3 = k * 3;
+        const sx = part.S[k3], sy = part.S[k3 + 1], sz = part.S[k3 + 2];
+        let px = part.P[k3], py = part.P[k3 + 1], pz = part.P[k3 + 2];
+        let vx = part.vel[k3], vy = part.vel[k3 + 1], vz = part.vel[k3 + 2];
+        // spring toward the skinned target + gravity sag (world −Y)
+        const fx = -PH.k * (px - sx);
+        const fy = -PH.k * (py - sy) - sagU * part.loose[k];
+        const fz = -PH.k * (pz - sz);
+        vx += fx * h; vy += fy * h; vz += fz * h;
+        const dv = Math.max(0, 1 - damp * h);
+        vx *= dv; vy *= dv; vz *= dv;
+        px += vx * h; py += vy * h; pz += vz * h;
+        // bounded displacement vs the skinned target (the flare is the limit)
+        const ddx = px - sx, ddy = py - sy, ddz = pz - sz;
+        const dLen = Math.hypot(ddx, ddy, ddz);
+        const maxD = maxDispU * part.loose[k];
+        if (dLen > maxD && dLen > 1e-9) {
+          const c2 = maxD / dLen;
+          px = sx + ddx * c2; py = sy + ddy * c2; pz = sz + ddz * c2;
+          // kill the outward radial velocity + damp the tangential creep
+          // (a vert riding the clamp under the sag bias keeps a ~1.5 cm/s
+          // tangential micro-oscillation alive forever without this)
+          const rdot = ((px - sx) * vx + (py - sy) * vy + (pz - sz) * vz) / (maxD * maxD);
+          if (rdot > 0) { vx -= rdot * (px - sx); vy -= rdot * (py - sy); vz -= rdot * (pz - sz); }
+          vx *= 0.9; vy *= 0.9; vz *= 0.9;
+        }
+        // capsule pushout — hems never tunnel through the body (per-ring
+        // collider masks: sleeves↔own arm, leg hems↔own thigh). SLOP: the
+        // constructed rings ride 0-1 cm inside the 97th-pct collider in
+        // places (max-per-bin section vs windowed percentile) — shallow
+        // overlap is construction tolerance, NOT tunnelling; resting on it
+        // made a permanent 4 cm contact equilibrium + jitter (measured).
+        // Real incursions (≥ slop) resolve hard.
+        let pushedThis = 0;
+        for (const c of part.vcaps[k]) {
+          const pushLen = collidePhysCapsule(c, px, py, pz, push);
+          if (pushLen > dbgMaxPush) dbgMaxPush = pushLen;
+          if (pushLen > (dbgPushByName[c.name] ?? 0)) dbgPushByName[c.name] = pushLen;
+          // SOFT RAMP over the slop (0.7-1.3 ×): a hard threshold is a cliff
+          // the verts chatter on forever (measured 1.2 cm/s limit cycle)
+          if (pushLen > 0.7 * slopU) {
+            const gain = Math.min(1, (pushLen - 0.7 * slopU) / (0.6 * slopU));
+            px += push.x * gain; py += push.y * gain; pz += push.z * gain;
+            pushedThis += pushLen * gain;
+            const pl = push.length();
+            if (pl > 1e-9) {
+              const vn = (vx * push.x + vy * push.y + vz * push.z) / pl;
+              if (vn < 0) { vx -= vn * gain * push.x / pl; vy -= vn * gain * push.y / pl; vz -= vn * gain * push.z / pl; }
+              const cdm = 1 - 0.15 * gain;
+              vx *= cdm; vy *= cdm; vz *= cdm;   // contact damping (kills resting-contact jitter)
+            }
+          }
+        }
+        part.pushed[k] = pushedThis;
+        // STATIC FRICTION at contact: on a sloped capsule surface the sag's
+        // tangential component sleds the vert at the damping-limited terminal
+        // velocity forever (measured a constant 1.56 cm/s drift). Below the
+        // sleep velocity while in contact, the vert STOPS.
+        if (pushedThis > 0) {
+          const v2 = vx * vx + vy * vy + vz * vz;
+          const fk = sleepVelU * 0.8;
+          if (v2 < fk * fk) { vx = 0; vy = 0; vz = 0; }
+        }
+        part.P[k3] = px; part.P[k3 + 1] = py; part.P[k3 + 2] = pz;
+        part.vel[k3] = vx; part.vel[k3 + 1] = vy; part.vel[k3 + 2] = vz;
+        const spd = Math.hypot(vx, vy, vz);
+        if (spd > maxSpd) {
+          maxSpd = spd;
+          state.dbgSpd = { vi: part.idx[k], mesh: part.mesh.userData.rwfWardrobe, loose: part.loose[k],
+            spdCmS: +(spd / (unitPerMmU * 1000) / 0.01).toFixed(3), dispCm: +(Math.hypot(px - sx, py - sy, pz - sz) / (unitPerMmU * 1000) / 0.01).toFixed(3),
+            v: [+(vx / (unitPerMmU * 1000)).toFixed(4), +(vy / (unitPerMmU * 1000)).toFixed(4), +(vz / (unitPerMmU * 1000)).toFixed(4)] };
+        }
+        const disp = Math.hypot(px - sx, py - sy, pz - sz);
+        if (disp > maxDisp) {
+          maxDisp = disp;
+          dbgWorst = { vi: part.idx[k], mesh: part.mesh.userData.rwfWardrobe, loose: part.loose[k],
+            dispCm: +(disp / (unitPerMmU * 1000) / 0.01).toFixed(2), spdCmS: +(spd / (unitPerMmU * 1000) / 0.01).toFixed(2),
+            maxDCm: +(maxD / (unitPerMmU * 1000) / 0.01).toFixed(2), pushedCm: +(pushedThis / (unitPerMmU * 1000) / 0.01).toFixed(2),
+            sCm: +Math.hypot(sx, sy, sz).toFixed(2) };
+        }
+      }
+    }
+    state.maxSpeedCmS = maxSpd / (unitPerMmU * 1000) / 0.01;
+    state.maxDispCm = maxDisp / (unitPerMmU * 1000) / 0.01;
+    state.maxPushCm = dbgMaxPush / (unitPerMmU * 1000) / 0.01;
+    state.pushByNameCm = Object.fromEntries(Object.entries(dbgPushByName).map(([k2, v]) => [k2, +(v / (unitPerMmU * 1000) / 0.01).toFixed(2)]));
+    // SLEEP = no VISIBLE motion (speed only): the sag equilibrium holds a
+    // steady ~1.3 cm offset (absolute-displacement can never sleep), and
+    // the collider ramp leaves an invisible ~0.25 mm/frame micro cycle —
+    // both steady states, not motion.
+    const calm = maxSpd < sleepVelU;
+    state.dbg = { worst: dbgWorst, pushBy: { ...dbgPushByName }, maxPushCm: +(dbgMaxPush / (unitPerMmU * 1000) / 0.01).toFixed(2) };
+    prevMaxDisp = maxDisp;
+    return calm;
+  }
+
+  /** per-frame step; returns true while the layer is visibly moving */
+  function step(dt) {
+    if (!state.enabled || !parts.length) return false;
+    if (!state.awake) {
+      if (!driversMoved()) return false;
+    }
+    refreshWorld();           // capsule frames + skinned targets, every step
+    if (!state.awake) wakeInit();
+    acc += Math.max(0, dt);
+    let steps = 0;
+    let calm = false;
+    while (acc >= h && steps < 4) { calm = substep(); acc -= h; steps++; }
+    if (steps === 4) acc = 0;   // tab-hidden backlog — dump it
+    state.dbg2 = { steps, calm: !!calm, sf: state.sleepFrames };
+    if (calm) {
+      if (++state.sleepFrames >= 4) {
+        state.awake = false;
+        writeback();        // keep the settled (sagged) positions — no snap-back pop
+        return false;
+      }
+    } else state.sleepFrames = 0;
+    writeback();
+    return true;
+  }
+
+  /** synchronous fast-forward (probes: dwell state at the current pose) */
+  function settle(seconds) {
+    if (!state.enabled || !parts.length) return true;
+    const reinit = driversMoved() || !state.awake;
+    refreshWorld();           // fresh capsule frames + targets first
+    if (reinit) wakeInit(true);
+    const t0 = performance.now();
+    let simT = 0;
+    let calm = false;
+    while (simT < seconds) {
+      calm = substep();
+      simT += h;
+      if (calm && simT > 0.12) break;
+      if (performance.now() - t0 > 400) break;   // hard guard
+    }
+    if (calm) { state.awake = false; writeback(); }   // keep the sagged state
+    else { state.awake = true; writeback(); }
+    state.settledAt = simT;
+    return calm;
+  }
+
+  /** world displacement (P − S) per participating vert — the Δsource probe
+   *  subtracts this so the attachment gate measures skinning, not physics. */
+  function dispOf(mesh) {
+    const part = parts.find((p2) => p2.mesh === mesh);
+    if (!part) return null;
+    if (!state.awake) return { idx: part.idx, disp: new Float32Array(part.n * 3) };
+    const disp = new Float32Array(part.n * 3);
+    for (let k = 0; k < part.n; k++) {
+      disp[k * 3] = part.P[k * 3] - part.S[k * 3];
+      disp[k * 3 + 1] = part.P[k * 3 + 1] - part.S[k * 3 + 1];
+      disp[k * 3 + 2] = part.P[k * 3 + 2] - part.S[k * 3 + 2];
+    }
+    return { idx: part.idx, disp };
+  }
+
+  return {
+    state, step, settle, dispOf,
+    verts: totalVerts,
+    setEnabled(on) {
+      state.enabled = !!on;
+      if (!on) { state.awake = false; restback(); }   // off = pure skinned
+      return state.enabled;
+    },
+    /** probes: per-vert collider masks can be swapped wholesale (debug). */
+    setCaps(filter) {
+      const want = filter ? new Set(filter) : null;
+      for (const part of parts) {
+        for (let k = 0; k < part.n; k++) {
+          part.vcaps[k] = want
+            ? part.vcaps[k].filter((c) => want.has(c.name))
+            : part.vcaps[k];
+        }
+      }
+      return caps.length;
+    },
+  };
+}
+
 // ── the outfit ───────────────────────────────────────────────────────────────
 
 /** Species heads ported from geno-wardrobe.js (founder-approved rigid
@@ -1644,7 +2382,9 @@ function removeSpeciesHead(avatar) {
  * Shoes are v8 foot-derived in BOTH modes.
  * Returns the atelier outfit object: { slots, toggle, isVisible, softGarments,
  * rigidPieces, plan, mode:'derived', garment, derived, setHead, head,
- * updateFabric, settle } — updateFabric/settle are no-ops (there is no sim).
+ * updateFabric, settle, fabricPhysics } — v9: updateFabric(dt) steps the
+ * easy fabric-physics layer (returns true while moving), settle(s) is its
+ * synchronous fast-forward, fabricPhysics exposes the layer for probes.
  */
 export function attachDerivedOutfit(avatar, opts = {}) {
   const B = avatar.bones;
@@ -2088,6 +2828,53 @@ export function attachDerivedOutfit(avatar, opts = {}) {
     m.bind(skin.skeleton, new THREE.Matrix4());
   }
 
+  // ── v9 EASY FABRIC PHYSICS: capsules + the secondary-motion layer ──────
+  const PHP = DERIVED_SPEC.physics;
+  const skBones = skin.skeleton.bones;
+  const boneIdxSet = (names) => {
+    const set = new Set();
+    for (const n2 of names) {
+      const b = skBones.find((x) => rawName(x.name) === n2);
+      if (b) set.add(skBones.indexOf(b));
+    }
+    return set.size ? set : null;
+  };
+  // the torso capsule excludes the whole upper-limb/neck/head FAMILIES by
+  // NAME PATTERN — exact names missed the finger bones (LeftHandIndex1…)
+  // and the A-pose hand flesh poisoned the first v9 build's radii to 0.6.
+  const notLimbOrHead = (n2) => /Hand|Arm|Shoulder|Neck|Head/.test(n2);
+  const mkCap = (bA, bB, tA, tB, setNames, padCm, xLat = 0, excl = null) => {
+    if (!bA || !bB) return null;
+    return makePhysCapsule(body, dom, skin.skeleton, bA, bB, bp(bA), bp(bB), tA, tB,
+      setNames ? boneIdxSet(setNames) : null, padCm * cm, xLat * H, excl ? notLimbOrHead : null);
+  };
+  // coverage: the thigh capsules run past the KNEE into the shin (the shorts
+  // leg hems land below the knee at t≈1.3 of the thigh segment), the arm
+  // capsules past the elbow — hems always have a collider to swing against.
+  // (no torso/pelvis capsule: the shirt hem hangs OVER the shorts — there
+  // is no bare flesh for it to tunnel into, and a torso-scale capsule is a
+  // blob at resting contact — measured 8 cm phantom pushes on the v9 builds)
+  // tA starts BELOW the glute/deltoid bulge — a capsule measured from the
+  // joint is butt/deltoid-sized at the top and the hem rings (which ride
+  // 1.5-3 cm off the mid-limb flesh) sit inside it at rest (measured: a
+  // permanent 4 cm contact equilibrium + jitter). tB runs past the knee/
+  // elbow so the hems always have a collider.
+  const physCaps = [
+    mkCap(B.upLegL, B.legL, 0.25, 1.35, ['LeftUpLeg', 'LeftLeg'], PHP.padCm.thigh),
+    mkCap(B.upLegR, B.legR, 0.25, 1.35, ['RightUpLeg', 'RightLeg'], PHP.padCm.thigh),
+    mkCap(B.armL, B.foreL, 0.1, 1.1, ['LeftArm', 'LeftForeArm'], PHP.padCm.arm),
+    mkCap(B.armR, B.foreR, 0.1, 1.1, ['RightArm', 'RightForeArm'], PHP.padCm.arm),
+  ].filter(Boolean);
+  const physGarments = garmentMode === 'fabric'
+    ? [shirtMesh, shortsMesh].filter((m) => m.userData.rwfDerived?.physRings?.length)
+    : [];
+  const reducedMotion = typeof matchMedia === 'function'
+    && matchMedia('(prefers-reduced-motion: reduce)').matches;
+  const phys = physGarments.length
+    ? buildFabricPhysics(avatar.root, skin.skeleton, body, physGarments, physCaps, PHP, mm)
+    : null;
+  if (phys && reducedMotion) phys.setEnabled(false);   // reduced motion → pure skinned
+
   // v4 rigid pieces (founder-approved): headband, wristbands.
   const headband = buildHeadband(avatar, colors);
   const wristbands = buildWristbands(avatar, colors);
@@ -2171,8 +2958,16 @@ export function attachDerivedOutfit(avatar, opts = {}) {
       collarCmAboveJoint: +((collarY - neckP.y) / cm).toFixed(2),
     },
     wrinkle: WK,
-    // v8: which garment construction shipped + the shoe build
+    // v9: which garment construction shipped + the shoe build
     garmentMode,
+    // v9: the fabric-physics layer (null = disabled / fitted mode)
+    physics: phys ? {
+      verts: phys.verts, caps: physCaps.length,
+      enabled: phys.state.enabled, reducedMotion,
+      spec: { k: PHP.k, zeta: PHP.zeta, sagG: PHP.sagG, maxDispCm: PHP.maxDispCm },
+      hemRings: { shirt: shirtMesh.userData.rwfDerived?.physRings?.length ?? 0,
+        shorts: shortsMesh.userData.rwfDerived?.physRings?.length ?? 0 },
+    } : null,
     fabric: garmentMode === 'fabric' ? {
       shirt: shirtMesh.userData.rwfDerived.fabric ?? null,
       shorts: shortsMesh.userData.rwfDerived.fabric ?? null,
@@ -2199,8 +2994,25 @@ export function attachDerivedOutfit(avatar, opts = {}) {
       for (const g of slots[slot] ?? []) g.visible = !!on;
       if (slot === 'headband') for (const h of slots.headband) h.visible = !!on && !headGroup;
     },
-    updateFabric() {},   // the garments are skinned constructed meshes — nothing to step
-    settle() {},         // no drape to converge
+    // v9: the easy fabric-physics layer. step(dt) returns true while the
+    // fabric is visibly moving (the app renders only then — the dirty-flag
+    // discipline holds; dormant = zero writes, zero cost).
+    updateFabric(dt) { return phys ? phys.step(dt ?? 0) : false; },
+    settle(seconds) { phys?.settle(seconds ?? 0.4); },
+    fabricPhysics: {
+      get state() { return phys ? { ...phys.state, verts: phys.verts, caps: physCaps.length } : null; },
+      setEnabled(on) { return phys ? phys.setEnabled(on) : false; },
+      dispOf: (mesh) => (phys ? phys.dispOf(mesh) : null),
+      poke() { if (phys) { phys.state.sleepFrames = 0; phys.step(1 / 60); } },   // force a wake check
+      setCaps: (filter) => (phys ? phys.setCaps(filter) : 0),   // probes: capsule bisect
+      // probes only: live capsule world state
+      debugCaps: () => physCaps.map((c) => ({ name: c.name, a: [c.ax, c.ay, c.az], b: [c.bx, c.by, c.bz],
+        rx: +(c.rx + c.pad).toFixed(4), rz: +(c.rz + c.pad).toFixed(4),
+        rxA: +(c.rxA + c.pad).toFixed(4), rzA: +(c.rzA + c.pad).toFixed(4),
+        rxB: +(c.rxB + c.pad).toFixed(4), rzB: +(c.rzB + c.pad).toFixed(4),
+        e1: [c.e1x, c.e1y, c.e1z], e2: [c.e2x, c.e2y, c.e2z],
+        pad: c.pad, nan: !isFinite(c.ax + c.ay + c.az + c.bx + c.by + c.bz + c.e1x + c.e2x + c.rx + c.rz) })),
+    },
   };
 }
 

@@ -1,0 +1,9 @@
+{
+ "request": {
+  "input_task_id": "01a05533-131e-744a-9f0d-beb0d0c590df"
+ },
+ "status_code": 400,
+ "response": {
+  "message": "The input model has 1,995,628 faces which exceeds the 320,000 face limit for rigging. Please use the Remesh API (POST /openapi/v2/remesh) with a target_polycount of 300000 or less before rigging."
+ }
+}

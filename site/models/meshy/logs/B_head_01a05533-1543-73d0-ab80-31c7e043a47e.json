@@ -1,0 +1,15 @@
+{
+ "request": {
+  "mode": "refine",
+  "preview_task_id": "01a05530-2a9b-768d-8337-e37378f848b6",
+  "enable_pbr": true,
+  "target_formats": [
+   "glb"
+  ],
+  "texture_resolution": "2k"
+ },
+ "status_code": 202,
+ "response": {
+  "result": "01a05533-1543-73d0-ab80-31c7e043a47e"
+ }
+}
