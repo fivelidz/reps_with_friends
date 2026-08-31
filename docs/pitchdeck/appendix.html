@@ -1,0 +1,334 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<title>Reps With Friends — Follow-up Appendix</title>
+<link rel="stylesheet" href="fonts-embed.css">
+<style>
+/* ═══ RWF follow-up appendix — A4 portrait (794×1123 px), fixed sheets.
+   The deck stays visual; the depth rides along here.
+   Rebuild: python3 docs/pitchdeck/build.py ═══ */
+:root{
+  --bg:#0a0b0d; --surface:#121418; --surface-2:#1a1d23;
+  --line:#23262d; --line-bright:#31353e;
+  --text:#e8eaed; --muted:#9aa0a8; --faint:#868b92;
+  --lime:#c6f32e; --lime-glow:rgba(198,243,46,.14);
+  --coral:#ff5c38; --amber:#ffb020; --sky:#6ec1ff;
+}
+*{margin:0;padding:0;box-sizing:border-box;}
+html{background:var(--bg);}
+body{font-family:'SpaceGrotesk',system-ui,sans-serif;color:var(--text);font-size:12.5px;line-height:1.55;
+  -webkit-print-color-adjust:exact;print-color-adjust:exact;-webkit-font-smoothing:antialiased;}
+@page{size:794px 1123px;margin:0;}
+.sheet{width:794px;height:1123px;position:relative;overflow:hidden;background:var(--bg);
+  padding:46px 52px 60px;page-break-after:always;break-after:page;display:flex;flex-direction:column;}
+.sheet:last-child{page-break-after:auto;break-after:auto;}
+.sheet::before{content:"";position:absolute;inset:0;pointer-events:none;
+  background:radial-gradient(700px 460px at 90% -8%,rgba(198,243,46,.06),transparent 60%);}
+.k{font-size:10.5px;font-weight:700;letter-spacing:.22em;color:var(--lime);text-transform:uppercase;}
+.sect{font-size:24px;font-weight:700;letter-spacing:-.01em;margin:8px 0 4px;}
+.lede{font-size:12px;color:var(--muted);margin-bottom:16px;}
+.foot{position:absolute;left:52px;right:52px;bottom:24px;display:flex;justify-content:space-between;
+  font-size:9px;letter-spacing:.16em;color:var(--faint);text-transform:uppercase;font-weight:600;}
+h3{font-size:13px;font-weight:700;color:var(--lime);margin:16px 0 7px;letter-spacing:.04em;}
+p{margin-bottom:8px;color:var(--muted);}
+p b,li b{color:var(--text);}
+ol,ul{margin:0 0 10px 18px;color:var(--muted);}
+li{margin-bottom:6px;}
+.card{background:var(--surface);border:1px solid var(--line);border-radius:12px;padding:14px 16px;margin-bottom:10px;}
+table.t{width:100%;border-collapse:collapse;}
+table.t th{font-size:9.5px;letter-spacing:.14em;text-transform:uppercase;color:var(--faint);text-align:left;padding:0 8px 6px;font-weight:600;}
+table.t td{border-top:1px solid var(--line);padding:7px 8px;font-size:11.5px;vertical-align:top;line-height:1.45;color:var(--muted);}
+table.t td b{color:var(--text);font-weight:600;}
+.mono{font-variant-numeric:tabular-nums;}
+.lime{color:var(--lime);}
+.pill{display:inline-block;border-radius:999px;padding:2px 10px;font-size:9.5px;font-weight:700;letter-spacing:.12em;text-transform:uppercase;}
+.pill.done{background:var(--lime-glow);color:var(--lime);border:1px solid rgba(198,243,46,.35);}
+.pill.risk{color:var(--coral);border:1px solid rgba(255,92,56,.4);}
+.pill.warn{color:var(--amber);border:1px solid rgba(255,176,32,.4);}
+.pill.live{background:var(--lime-glow);color:var(--lime);border:1px solid rgba(198,243,46,.35);}
+.pill.idea{color:var(--faint);border:1px solid var(--line-bright);}
+.q{border-left:3px solid var(--lime);padding:2px 0 2px 14px;margin-bottom:14px;}
+.q .qt{font-weight:700;font-size:13px;color:var(--text);}
+.q .qb{font-size:11.5px;color:var(--muted);margin-top:3px;line-height:1.5;}
+.q .ql{font-size:11px;color:var(--faint);margin-top:3px;font-style:italic;}
+.big{font-size:34px;font-weight:700;line-height:1.15;letter-spacing:-.01em;}
+</style>
+</head>
+<body>
+
+<!-- ═══ SHEET 1 · COVER ═══ -->
+<section class="sheet">
+  <div style="flex:1;display:flex;flex-direction:column;justify-content:center;">
+    <div class="k">Reps With Friends · Follow-up appendix</div>
+    <div class="big" style="margin-top:16px;">The depth behind<br>the deck<span class="lime">.</span></div>
+    <div style="height:3px;width:90px;background:var(--lime);margin:26px 0;border-radius:2px;"></div>
+    <p style="max-width:560px;font-size:13px;">Everything the 14-slide deck compresses, at full length — so the call can start
+    from decisions instead of explanations. Compiled 31 August 2026 for Ben; sources are the repo docs (rwf.qalarc.com/wiki keeps the live version).</p>
+    <div class="card" style="margin-top:22px;">
+      <b style="font-size:12px;">Contents</b>
+      <table class="t" style="margin-top:8px;">
+        <tr><td style="width:60px;" class="mono lime"><b>A</b></td><td><b>The call agenda in full</b> — the five Phase-0 questions, our position, the red lines, the signals to listen for</td></tr>
+        <tr><td class="mono lime"><b>B</b></td><td><b>The masterplan in full</b> — phases 0–4, scope and explicit non-goals, KPI table, architecture sketch</td></tr>
+        <tr><td class="mono lime"><b>C</b></td><td><b>The business analysis, condensed</b> — market position, the two moats, revenue pools, ranked risks, verdict</td></tr>
+        <tr><td class="mono lime"><b>D</b></td><td><b>Element status map</b> — all 36 elements across families A–G, the seven systems, current blockers</td></tr>
+      </table>
+    </div>
+    <p style="margin-top:16px;font-size:11px;color:var(--faint);">Deck + appendix sources: docs/01, 02, 09, 17, 19, 22 · figma/notes/analysis.md · apps/figma-app/CHANGELOG.md.</p>
+  </div>
+  <div class="foot"><span>Reps With Friends — follow-up appendix</span><span>Alexei Brown · 31 Aug 2026</span></div>
+</section>
+
+<!-- ═══ SHEET 2 · A: THE FIVE QUESTIONS ═══ -->
+<section class="sheet">
+  <div class="k">Appendix A · the call agenda (docs/09)</div>
+  <div class="sect">The five Phase-0 questions</div>
+  <div class="lede">45 minutes. These are the questions the prototype was built to make answerable — each now has a working artefact behind it.</div>
+
+  <div class="q"><div class="qt">1 · Handicap mechanics</div>
+    <div class="qb">How do you imagine baselines — self-assessed tier, or historical data? Ours: v1 self-set fitness tier → effort multiplier (couch ×1.5 → athlete ×0.85); v2 %HRR / Karvonen from any BLE strap — both already in the engine.</div>
+    <div class="ql">Listen for: has the thinking gone past “handicaps are good”? Your Figma’s personalised-targets model (D1/D8) is the deep divergence — the deck’s “decide together” list, row one.</div></div>
+
+  <div class="q"><div class="qt">2 · Rep verification</div>
+    <div class="qb">Is camera-in-browser acceptable for MVP? No install, nothing uploaded, $0 — pose counting runs on-device (MoveNet), and HR straps cross-check effort via %HRR. Both live in the app today.</div>
+    <div class="ql">Tolerance for “good enough” here tells us a lot about shipping software together. Your peer-challenge / trust-score design is the planned social backstop (V1).</div></div>
+
+  <div class="q"><div class="qt">3 · Charity pot money</div>
+    <div class="qb">Who holds it — platform, honour-system, or partner charity? Needs a legal opinion before a dollar moves: AU state law carries raffle/betting classification risk. Until then the engine is pledge-only, by design.</div>
+    <div class="ql">Nico’s idea is good. It just needs structure — deck slide 11, first column.</div></div>
+
+  <div class="q"><div class="qt">4 · Corporate mode</div>
+    <div class="qb">Any live prospects or LOIs? Real interest → we build Slack-first (the Bolt bot already runs). No names yet → consumer MVP first, corporate follows the loop. The hub console’s corporate tab already exists (k≥5 privacy, employer-funded pots).</div>
+    <div class="ql">Named prospects change build priority — this is the question with a direct engineering consequence.</div></div>
+
+  <div class="q"><div class="qt">5 · Equity shape</div>
+    <div class="qb">What split is being imagined? Vesting? And the big one: IP assignment on the blueprint and Figma — who owns what if we part ways? We don’t negotiate numbers on the call; we get the shape.</div>
+    <div class="ql">Deck slide 13 is the posture: two founders, both IP assignments into the company, numbers talked not projected (docs/19).</div></div>
+
+  <p style="margin-top:14px;"><b>If time:</b> who else is involved — Nico’s role, other collaborators?</p>
+  <div class="foot"><span>Reps With Friends — follow-up appendix</span><span>A · 1 / 2</span></div>
+</section>
+
+<!-- ═══ SHEET 3 · A2: POSITION / STANCE / RED LINES / SIGNALS ═══ -->
+<section class="sheet">
+  <div class="k">Appendix A · the call agenda (docs/09, 19)</div>
+  <div class="sect">Position, stance, red lines</div>
+
+  <h3>Our position</h3>
+  <p><b>Co-founder-track, not a paid build.</b> You bring design + vision + publicity; we bring build + chat/distribution plumbing + AI — a complete founding pair, and that is what equity should price. The prototype is evidence of ownership, not a bargaining chip. Negotiate from the position the demo creates: the product exists and works, the velocity is demonstrated rather than claimed, and the design is already integrated — extracted, analysed, and shipped as a running app.</p>
+
+  <h3>Figma stance</h3>
+  <p><b>Respect, audit, mark up, build.</b> The full 65-screen file was extracted and analysed line by line (figma/notes/analysis.md — colour tokens, type scale, 30-row divergence register). Ownership to clarify calmly: if equity proceeds, IP assignment goes both ways — your design into the company, our code in.</p>
+
+  <h3>Red lines — stated plainly, as you asked</h3>
+  <ul>
+    <li><b>No cash prizes.</b> Charity pots only, and only after legal structure exists.</li>
+    <li><b>No Apple Messages in MVP.</b> No bot API exists. Revisit if one ever appears.</li>
+    <li><b>No custom ML in v1.</b> Open-source pose counting is enough; effort is cross-checked with %HRR.</li>
+    <li><b>Both founders vest.</b> 4 years, 1-year cliff, IP consolidated — protects you as much as us (docs/19 terms checklist).</li>
+  </ul>
+
+  <h3>Three signals we’ll both be listening for</h3>
+  <ol>
+    <li><b>Partner or hands?</b> “What would you do?” = collaborator. “When can you build it?” = client with a spec. Everything so far — the blueprint, the invitation to push back, equity-for-work up front — reads collaborator.</li>
+    <li><b>Is corporate real?</b> Named prospects → Slack-first. Vibes → consumer MVP first.</li>
+    <li><b>Does equity talk get specific?</b> Split / vesting / IP raised unprompted = serious. “Work it out later” = the one flag worth nailing before serious build hours.</li>
+  </ol>
+
+  <h3>The equity minute, in order</h3>
+  <p>Frame (two founders) → demo as evidence the collaboration works → the four structural product questions, decided together → split + terms → agree to have a founders’ memo drafted within a fortnight.</p>
+  <p style="font-style:italic;color:var(--text);">One sentence worth saying out loud: “I’ve already made my bet — the last five days are it. Now we just make the paperwork match.”</p>
+  <div class="foot"><span>Reps With Friends — follow-up appendix</span><span>A · 2 / 2</span></div>
+</section>
+
+<!-- ═══ SHEET 4 · B: MASTERPLAN P0+P2 ═══ -->
+<section class="sheet">
+  <div class="k">Appendix B · the masterplan (docs/02)</div>
+  <div class="sect">The strategy, then the phases</div>
+  <p style="font-size:12.5px;"><b>Strategy in one paragraph:</b> win the empty niche — handicapped, small-group fitness competition inside the group chat — by shipping a playable WhatsApp/Slack bot fast, using in-browser pose counting for verification ($0, no approvals), and letting the chat broadcast loop do acquisition. The app is the scoreboard and the archive; the chat is the arena. Monetise later through corporate wellness once the loop is proven.</p>
+
+  <h3>Phase 0 — due diligence &amp; alignment <span class="pill done">done</span></h3>
+  <ul>
+    <li>Private repo + research: OpenGym landscape (docs/04), wearables (docs/05) — done</li>
+    <li>Business analysis (docs/01) — done</li>
+    <li>Masterplan (docs/02), messaging-platforms research (docs/18, 21), backend architecture (docs/22) — done</li>
+    <li>Figma received → extracted, audited against our independent design, 30-row divergence register (figma/notes) — done</li>
+    <li>Call: align on MVP scope, roles, equity — <b>this follow-up stands in for it; re-book next</b></li>
+  </ul>
+
+  <h3>Phase 1 — prototype <span class="pill done">done</span></h3>
+  <p>Added after the plan was written, because the email deserved a real answer: game engine (44 tests), WhatsApp + Slack bots (22 tests), phone-first PWA with camera verify + HR straps, your 65 screens running as a working app (v1.0.0, 11/11 engine parity, offline PWA, self-playing demo), site + demo + wiki + hub console, AI layer, push-to-deploy hosting. ~250+ automated checks green across all suites.</p>
+
+  <h3>Phase 2 — MVP: “the 300 loop” · ~6–8 weeks <span class="pill warn">next</span></h3>
+  <p><b>Goal: 3–5 real group chats playing weekly.</b></p>
+  <ol>
+    <li><b>game-core</b> — match engine, handicap v1, standings, charity-pot ledger (pure TypeScript, tested — exists)</li>
+    <li><b>WhatsApp bot</b> — Qalarc Hub for dev/dogfood → WhatsApp Business Cloud API for pilot. Commands: create, pick exercises, log, standings, winner</li>
+    <li><b>Slack bot</b> — same command surface, slash commands + buttons; first in line for corporate pilots</li>
+    <li><b>Web app (PWA)</b> — join link from chat → log with camera pose counting or manual → live match → shareable result card</li>
+    <li><b>Handicap v1</b> — fitness tier → effort multiplier; ship, learn, replace with %HRR in Phase 3</li>
+  </ol>
+  <p><b>Explicitly OUT:</b> native apps, Apple Messages, cash anything, custom ML models.</p>
+  <div class="foot"><span>Reps With Friends — follow-up appendix</span><span>B · 1 / 2</span></div>
+</section>
+
+<!-- ═══ SHEET 5 · B2: P3+P4+KPI+ARCH ═══ -->
+<section class="sheet">
+  <div class="k">Appendix B · the masterplan (docs/02, 22)</div>
+  <div class="sect">The later phases, and how we measure</div>
+
+  <h3>Phase 3 — effort truth &amp; wearables · ~+8 weeks <span class="pill warn">started</span></h3>
+  <ul>
+    <li><b>Handicap v2: %HRR (Karvonen)</b> — score = reps × (your %HRR ÷ your baseline %HRR for that exercise). BLE chest straps already live via Web Bluetooth; Apple Watch via HealthKit live-HR; Android via Health Connect (sync, cross-check). Blend math implemented + tested in the engine.</li>
+    <li>WatchOS / Wear OS companions (rep counting from the wrist accelerometer)</li>
+    <li>Season / league structure as the long-arc retention fix — <b>already built</b> (4-week ladder, divisions, belt)</li>
+    <li>Shareable clip generation (auto-cut mid-set footage + result-card overlay)</li>
+  </ul>
+
+  <h3>Phase 4 — business layer <span class="pill idea">seeded</span></h3>
+  <ul>
+    <li><b>Corporate mode</b> — Slack enterprise install, org dashboards, team-vs-team leagues, invoicing. The revenue engine. Hub console’s corporate tab already seeded: employer-funded pots, k≥5 aggregate wellbeing dashboard, renewal outlook.</li>
+    <li>Charity-pot mechanics with a partner charity — legal structure first</li>
+    <li>WHOOP / Garmin / Google Health cloud verification (recovery-adjusted handicaps)</li>
+    <li>Messenger bot; Apple Messages if an API ever appears</li>
+  </ul>
+
+  <h3>KPI table</h3>
+  <table class="t">
+    <tr><th>Phase</th><th>Metric</th><th>Target</th></tr>
+    <tr><td>MVP</td><td>Groups activated</td><td class="mono">3–5 real chats</td></tr>
+    <tr><td>MVP</td><td>Matches / group / week</td><td class="mono">≥ 1</td></tr>
+    <tr><td>MVP</td><td>% reps camera-verified</td><td class="mono">≥ 40%</td></tr>
+    <tr><td>Growth</td><td>New users per match broadcast (viral k)</td><td class="mono">≥ 0.3</td></tr>
+    <tr><td>Growth</td><td>Week-4 retention of a group (still playing)</td><td class="mono">≥ 60%</td></tr>
+    <tr><td>Business</td><td>Corporate pilots</td><td class="mono">2 by Phase 4</td></tr>
+  </table>
+
+  <h3>Architecture sketch (docs/22 — the single source of truth)</h3>
+  <div class="card mono" style="font-size:10.5px;line-height:1.7;color:var(--muted);">
+    WhatsApp (Hub→Cloud) &nbsp;·&nbsp; Slack (Bolt) &nbsp;·&nbsp; Beeper (built) &nbsp;·&nbsp; Telegram (bridge)<br>
+    &nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;▼ &nbsp;all events become the same commands<br>
+    <b style="color:var(--lime);">@rwf/bot-core — the single chat brain</b> (grammar, cards, taunts, AI hooks)<br>
+    &nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;▼ &nbsp;MatchStore mirrors into the API (landed)<br>
+    <b>apps/api :4174 — state authority</b> (crews · matches · seasons · pots) ◀—— apps/web (PWA)<br>
+    &nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;▼<br>
+    <b style="color:var(--lime);">@rwf/game-core</b> — pure engine: handicaps · comeback · seasons · pot ledger
+  </div>
+  <p style="font-size:11px;color:var(--faint);margin-top:6px;">Chat adapters are thin: adding a platform is one adapter, not a rewrite. Match state mirrors into apps/api; the app is a first-class client of the same scoreboard the bots write to.</p>
+  <div class="foot"><span>Reps With Friends — follow-up appendix</span><span>B · 2 / 2</span></div>
+</section>
+
+<!-- ═══ SHEET 6 · C: BUSINESS P1 ═══ -->
+<section class="sheet">
+  <div class="k">Appendix C · business analysis (docs/01)</div>
+  <div class="sect">Who, and what’s load-bearing</div>
+
+  <h3>Who we’re dealing with</h3>
+  <ul>
+    <li><b>The publicity lever is real, especially in Australia</b> — mainstream media will cover “Silverchair drummer launches fitness app”; a first-wave injection most startups pay seven figures for.</li>
+    <li><b>The nostalgia demographic (35–50) maps exactly onto the target user</b> — people in group chats who used to be fit, aren’t anymore, and rib each other about it. Silverchair’s audience is the product’s audience.</li>
+    <li><b>Caveat:</b> celebrity attention is a one-shot spike, not a retention engine. It buys the top of the funnel; the handicap system and chat presence have to keep them.</li>
+    <li><b>Signal quality of the original email: high.</b> A year of refinement, a production-fidelity Figma + full blueprint, an explicit invitation to push back, equity-for-work opened first. A collaborator-shaped founder, not an idea guy shopping for hands.</li>
+  </ul>
+
+  <h3>The load-bearing ideas</h3>
+  <table class="t">
+    <tr><th style="width:170px;">Idea</th><th>Why it matters commercially</th></tr>
+    <tr><td><b>The “300” format</b></td><td>Brilliantly simple loop: any reps, any order, first to 300. Self-balancing, zero setup, understandable in one chat message.</td></tr>
+    <tr><td><b>Handicap system</b> <span class="pill live">moat 1</span></td><td>The difference between a gimmick and a system. Golf proved handicaps keep weak players paying for decades. Hardest thing to get right — which is why it’s defensible.</td></tr>
+    <tr><td><b>Chat-first distribution</b> <span class="pill live">moat 2</span></td><td>Every match broadcast is an ad seen by the whole group. Non-users spectate the leaderboard within minutes. Near-zero CAC, built-in viral loop.</td></tr>
+    <tr><td><b>Pick your days</b></td><td>2–3 days/week, go hard. Anti-burnout by design; removes the daily-streak failure mode.</td></tr>
+    <tr><td><b>Charity wagers</b></td><td>Real stakes without gambling exposure (with structure), and a natural corporate-sales hook.</td></tr>
+    <tr><td><b>Taunting as a feature</b></td><td>The content engine — user-generated shareable clips stacked on the chat loop.</td></tr>
+  </table>
+  <div class="foot"><span>Reps With Friends — follow-up appendix</span><span>C · 1 / 2</span></div>
+</section>
+
+<!-- ═══ SHEET 7 · C2: MARKET + RISKS + VERDICT ═══ -->
+<section class="sheet">
+  <div class="k">Appendix C · business analysis (docs/01)</div>
+  <div class="sect">Market, risks, verdict</div>
+
+  <h3>Market position — the niche is open</h3>
+  <p><b>What exists:</b> solo trackers (saturated, lonely, no stakes) · individual wagering (cash stakes, regulatory baggage, US-centric) · live classes (anonymous crowds, not your mates) · async comparisons (weak, pairwise, buried).</p>
+  <p><b>What’s empty — verified via GitHub + market scan:</b> <i>small-group, real-time, handicapped competition delivered inside the group chat where the banter already lives.</i> No established player; the “gym leaderboard” OSS space is 0-star student projects.</p>
+  <p><b>Adjacent revenue pools:</b> corporate wellness (AU$600+/employee/yr — likely the actual business; B2C is the marketing) · charity partnerships (rev share on pot mechanics) · brand sponsorship (the 35–50 male demo is notoriously expensive to reach).</p>
+
+  <h3>Risks &amp; hard problems, ranked</h3>
+  <table class="t">
+    <tr><th style="width:190px;">Risk</th><th>Read + mitigation</th></tr>
+    <tr><td><b>1 · Rep verification / cheating</b> <span class="pill risk">existential</span></td><td>Self-reported = lying contest; annoying = nobody plays. Mitigation shipped: in-browser pose counting ($0, no install) + %HRR cross-checks from any BLE strap — effort verifiable even when reps aren’t.</td></tr>
+    <tr><td><b>2 · Retention after week 3</b></td><td>Novelty decays. The designed stack: handicaps (always winnable) + chosen days (no streak guilt) + charity stakes (real consequence) + chat presence (no app-opening required) + seasons as the long arc.</td></tr>
+    <tr><td><b>3 · WhatsApp economics</b></td><td>Cloud API charges per conversation. Mitigation: batched standings, never per-rep; model costs before scale.</td></tr>
+    <tr><td><b>4 · Charity-wager legal</b></td><td>Must avoid raffle/betting classification under AU state law. Legal opinion before money moves; pledge-only until then — enforced in the engine today.</td></tr>
+    <tr><td><b>5 · Apple Messages</b></td><td>No bot API. Skipped for MVP, stated plainly.</td></tr>
+    <tr><td><b>6 · Single-founder dependency</b></td><td>Design/vision + build/systems = the complete pair. The equity conversation should reflect co-founder reality, not contractor pricing.</td></tr>
+  </table>
+
+  <h3>Verdict</h3>
+  <p><b>Strong opportunity.</b> Differentiated product with two genuine moats; design risk already paid down; sits directly on existing infrastructure and skills; corporate wellness is the quiet, large revenue pool underneath the fun B2C story. <span class="lime">Position: co-founder-track equity + build ownership — the equity conversation stays open, on purpose (docs/19).</span></p>
+  <div class="foot"><span>Reps With Friends — follow-up appendix</span><span>C · 2 / 2</span></div>
+</section>
+
+<!-- ═══ SHEET 8 · D: ELEMENT STATUS ═══ -->
+<section class="sheet">
+  <div class="k">Appendix D · element status (docs/17)</div>
+  <div class="sect">The 36 elements, family by family</div>
+  <div class="lede">What began as an email evaluation is a running system: tested engine, two chat bots, a phone-first app, an ops console, an AI layer, push-to-deploy hosting.</div>
+
+  <table class="t">
+    <tr><th style="width:190px;">Family</th><th style="width:84px;">Status</th><th>What’s in it</th></tr>
+    <tr><td><b>A · Core loop</b></td><td><span class="pill done">built</span></td><td>300-format match · tier handicap v1 (couch ×1.5 → athlete ×0.85) · closure bonus +15 · charity-pot ledger (winner directs, never receives) · AI taunt engine with canned fallback · <b>%HRR v2 engine-ready</b>, activates when straps land</td></tr>
+    <tr><td><b>B · Retention arc</b></td><td><span class="pill done">built</span></td><td>4-week seasons (3/2/1 + MVP vote) · champion crowning · A/B division relegation-promotion · streaks with charity forgiveness · comeback ×1.2 (&gt;30% behind, once/match) · baseline learning (anti-sandbagging)</td></tr>
+    <tr><td><b>C · Social &amp; viral</b></td><td><span class="pill warn">mostly</span></td><td>Branded result cards (SVG from bots, PNG from app) · spectator mode · crew-vs-crew challenges · drop-cam clips + public web ladder still ideas</td></tr>
+    <tr><td><b>D · Corporate</b></td><td><span class="pill warn">seeded</span></td><td>Hub corporate tab: org leagues · employer-funded pots (“no employee money handled”) · aggregate-only dashboard, k≥5 suppression · renewal outlook — awaiting real org data</td></tr>
+    <tr><td><b>E · Verification</b></td><td><span class="pill done">P1 live</span></td><td>In-browser MoveNet camera counting (pushups/squats, on-device only) + Web Bluetooth HR straps (GATT 0x180D, Karvonen %HRR per set) — entries log <span class="mono">verified:true · avgHrrPct</span>. P2 HealthKit/Health Connect, P3 WHOOP/Garmin phased</td></tr>
+    <tr><td><b>F · Wilder cards</b></td><td><span class="pill idea">ideas</span></td><td>Referee review · physical champion belts · radio mode (drum-track rep cues) · annual charity championship</td></tr>
+    <tr><td><b>G · Second wave</b></td><td><span class="pill done">4 built</span></td><td>Live: rematch · Monday digest (matches, margins, MVPs, pot, rivalry, AI one-liner) · photo finish (≤5% gap) · nemesis detection. Proposed: PRs · ghost race · guest slot · charity all-time ladder · roast tiers · adaptive equivalents · warm-up predictions</td></tr>
+  </table>
+
+  <table class="t" style="margin-top:12px;">
+    <tr><th style="width:190px;">Metric</th><th>Value</th></tr>
+    <tr><td><b>Tests</b></td><td class="mono">90+ core green (engine 44 · bots 22 · API 24) + app e2e/demo/SW suites — every push, CI-gated</td></tr>
+    <tr><td><b>Public pages</b></td><td class="mono">9 — site · demo · app · figma-app · system · hub · debug · connect · state API</td></tr>
+    <tr><td><b>Elements / components</b></td><td class="mono">36 across A–G · 16 design-system primitives (rwf.qalarc.com/system)</td></tr>
+    <tr><td><b>Deploy / AI</b></td><td class="mono">GitHub push → Cloudflare Pages ~20s · GLM-5.3 server-side proxy (guide, narrator, taunts)</td></tr>
+  </table>
+  <div class="foot"><span>Reps With Friends — follow-up appendix</span><span>D · 1 / 2</span></div>
+</section>
+
+<!-- ═══ SHEET 9 · D2: SYSTEMS + BLOCKERS ═══ -->
+<section class="sheet">
+  <div class="k">Appendix D · element status (docs/17, 15)</div>
+  <div class="sect">The seven systems, the live blockers</div>
+
+  <h3>Systems</h3>
+  <ol>
+    <li><b>game-core</b> — pure TS engine, 44 tests, 100% branch cover</li>
+    <li><b>bot-core + bots</b> — one command grammar, WhatsApp (Qalarc Hub) + Slack (Bolt Socket Mode), sim harnesses, result-card generator</li>
+    <li><b>app</b> — phone-first PWA (onboard → crew → match → seasons), polished: tier cards, medals, confetti, sticky log bar, 35 browser checks</li>
+    <li><b>figma-app</b> — your 65 screens with the real engine behind the core loop: v1.0.0, 22 screens wired to real state, power-ups, danger zone, daily winners, self-playing demo, offline PWA</li>
+    <li><b>hub console</b> — ops + corporate tabs, live state polling</li>
+    <li><b>site</b> — Three.js showcase, interactive handicap demo, AI guide</li>
+    <li><b>AI layer + apps/api</b> — /api/ai proxy (key stays server-side) · unified REST backend (crews/matches/seasons), 24 tests — the MVP foundation that replaces localStorage + bot file state</li>
+  </ol>
+
+  <h3>Top blockers, as of today (docs/15)</h3>
+  <table class="t">
+    <tr><th style="width:60px;">Sev</th><th style="width:300px;">Blocker</th><th>What unblocks it</th></tr>
+    <tr><td><span class="pill risk">high</span></td><td><b>Slack app</b> needs 5-min human creation</td><td>One-time setup → permanent install link</td></tr>
+    <tr><td><span class="pill risk">high</span></td><td><b>WhatsApp Cloud API group support</b> unverified</td><td>Verification run shapes the pilot architecture</td></tr>
+    <tr><td><span class="pill risk">high</span></td><td><b>Charity-wager legal opinion</b></td><td>Before real money; pledge-only enforced meanwhile</td></tr>
+    <tr><td><span class="pill warn">med</span></td><td><b>Always-on bots</b></td><td>Minirig kit ready — one SSH command</td></tr>
+    <tr><td><span class="pill warn">med</span></td><td><b>App ↔ API ↔ bots</b> state unification</td><td>The mirror landed; the wire is the next (mechanical) build step</td></tr>
+  </table>
+
+  <h3>Already adopted from your Figma (no decision needed)</h3>
+  <p>Bottom nav + central LOG · quick-log sheet with presets &amp; undo · RUF conversion preview · danger-zone escalation craft · dual clock (group + local) · system-state components · “battle” as the noun · result-card direction · offline queue states · reduced-motion discipline. The five structural decisions stay open on purpose — deck slide 10, decided together on the call.</p>
+
+  <p style="margin-top:18px;font-size:11px;color:var(--faint);">Everything in this appendix maps to a repo doc or a live URL: rwf.qalarc.com/wiki keeps the current truth.</p>
+  <div class="foot"><span>Reps With Friends — follow-up appendix</span><span>D · 2 / 2</span></div>
+</section>
+
+</body>
+</html>

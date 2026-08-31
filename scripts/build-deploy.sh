@@ -60,3 +60,7 @@ echo "▸ bundle ready:"
 find deploy/public -type f | wc -l | xargs echo "  asset files:"
 du -sh deploy/public | cut -f1 | xargs echo "  size:"
 echo "  deploy with: cd deploy && bunx wrangler pages deploy public --project-name=rwf"
+
+# founder follow-up deck (PDFs for Ben)
+mkdir -p deploy/public/deck
+cp docs/RWF_Followup_Deck.pdf docs/RWF_Followup_Appendix.pdf deploy/public/deck/ 2>/dev/null || true

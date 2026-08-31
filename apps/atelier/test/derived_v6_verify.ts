@@ -78,7 +78,10 @@ const verify = await ev('window.__atelier.runVerify()');
 if (!verify || verify.__exc) {
   step('32-case probe', false, verify?.__exc ?? 'no result');
 } else {
-  step('full-case probe ran (16 clips × 4 + 4 poses × 3)', verify.rows.length === 76, { cases: verify.rows.length });
+  // v9.2: 76 → ≥76. The clip set grew 16 → 19 with the Geno-capture delivery
+  // (aim_walk, floor_scoot, get_down) — 19×4 + 4×3 = 88 cases now. The step's
+  // job is "the probe ran the FULL matrix", not a frozen clip count.
+  step('full-case probe ran (clips × 4 + poses × 3, ≥ 76 — 19 clips → 88)', verify.rows.length >= 76, { cases: verify.rows.length });
   step('inside-body verts = 0 across all 32 cases', verify.insideVerts === 0,
     { inside: verify.insideVerts, worstCm: verify.insideWorstCm, limbCrossExcused: verify.limbCrossVerts });
   step('attachment bars', verify.attachPass, { globalMaxCm: verify.globalMaxCm });

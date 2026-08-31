@@ -1,0 +1,468 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<title>Reps With Friends — Follow-up Deck for Ben</title>
+<link rel="stylesheet" href="fonts-embed.css">
+<style>
+/* ═══ RWF follow-up deck — 16:9, 1280×720 pages.
+   Tokens inlined from design/tokens.css (dark athletic system).
+   Edit freely; rebuild PDFs with: python3 docs/pitchdeck/build.py ═══ */
+:root{
+  --bg:#0a0b0d; --surface:#121418; --surface-2:#1a1d23;
+  --line:#23262d; --line-bright:#31353e;
+  --text:#e8eaed; --muted:#9aa0a8; --faint:#868b92;
+  --lime:#c6f32e; --lime-dim:#8fb31c; --lime-glow:rgba(198,243,46,.14);
+  --coral:#ff5c38; --amber:#ffb020; --sky:#6ec1ff;
+  --gold:#ffc821; --energy:#8b5cf6;
+  --radius:14px; --radius-sm:9px;
+}
+*{margin:0;padding:0;box-sizing:border-box;}
+html{background:var(--bg);}
+body{
+  font-family:'SpaceGrotesk',system-ui,sans-serif;color:var(--text);
+  -webkit-print-color-adjust:exact;print-color-adjust:exact;
+  -webkit-font-smoothing:antialiased;
+}
+@page{size:1280px 720px;margin:0;}
+.slide{
+  width:1280px;height:720px;position:relative;overflow:hidden;
+  background:var(--bg);padding:44px 64px 56px;
+  display:flex;flex-direction:column;
+  page-break-after:always;break-after:page;
+}
+.slide:last-child{page-break-after:auto;break-after:auto;}
+.slide::before{ /* corner glow */
+  content:"";position:absolute;inset:0;pointer-events:none;
+  background:radial-gradient(900px 560px at 88% -12%,rgba(198,243,46,.07),transparent 60%);
+}
+/* — furniture — */
+.top{display:flex;justify-content:space-between;align-items:baseline;margin-bottom:22px;position:relative;}
+.k{font-size:12px;font-weight:700;letter-spacing:.22em;color:var(--lime);text-transform:uppercase;}
+.top .brand{font-size:11px;font-weight:600;letter-spacing:.18em;color:var(--faint);text-transform:uppercase;}
+.foot{position:absolute;left:64px;right:64px;bottom:22px;display:flex;justify-content:space-between;
+  font-size:10px;letter-spacing:.16em;color:var(--faint);text-transform:uppercase;font-weight:600;}
+.h1{font-size:40px;font-weight:700;letter-spacing:-.01em;line-height:1.05;}
+.sub{font-size:15px;color:var(--muted);margin-top:10px;line-height:1.5;max-width:900px;}
+.body-area{flex:1;display:flex;min-height:0;position:relative;}
+.num{font-family:'Anton',Impact,sans-serif;font-weight:400;letter-spacing:.01em;}
+.mono{font-variant-numeric:tabular-nums;}
+.lime{color:var(--lime);} .coraltxt{color:var(--coral);} .muted{color:var(--muted);}
+/* — cards — */
+.card{background:var(--surface);border:1px solid var(--line);border-radius:var(--radius);padding:20px 22px;}
+.pill{display:inline-block;border-radius:999px;padding:3px 12px;font-size:10.5px;font-weight:700;
+  letter-spacing:.14em;text-transform:uppercase;}
+.pill.live{background:var(--lime-glow);color:var(--lime);border:1px solid rgba(198,243,46,.35);}
+.pill.done{background:var(--lime-glow);color:var(--lime);border:1px solid rgba(198,243,46,.35);}
+.pill.next{color:var(--lime);border:1px solid rgba(198,243,46,.5);}
+.pill.later{color:var(--muted);border:1px solid var(--line-bright);}
+.pill.warn{color:var(--amber);border:1px solid rgba(255,176,32,.4);}
+.pill.risk{color:var(--coral);border:1px solid rgba(255,92,56,.4);}
+.pill.built{color:var(--sky);border:1px solid rgba(110,193,255,.35);}
+.pill.idea{color:var(--faint);border:1px solid var(--line-bright);}
+/* — phone frames — */
+.phone{background:linear-gradient(180deg,#232730,#14161b);border:1px solid var(--line-bright);
+  border-radius:34px;padding:10px;box-shadow:0 26px 60px rgba(0,0,0,.55);}
+.phone img{display:block;width:100%;border-radius:25px;}
+.cap{margin-top:10px;font-size:11px;color:var(--muted);letter-spacing:.06em;text-align:center;}
+.cap b{color:var(--text);font-weight:600;}
+/* — tables — */
+table.t{width:100%;border-collapse:collapse;}
+table.t th{font-size:10.5px;letter-spacing:.14em;text-transform:uppercase;color:var(--faint);
+  text-align:left;padding:0 10px 8px;font-weight:600;}
+table.t td{border-top:1px solid var(--line);padding:9px 10px;font-size:12.5px;vertical-align:top;line-height:1.45;}
+table.t td b{font-weight:600;color:var(--text);}
+/* — stat grid — */
+.stats{display:grid;grid-template-columns:repeat(3,1fr);gap:16px;width:100%;}
+.stat{background:var(--surface);border:1px solid var(--line);border-radius:var(--radius);
+  padding:20px 22px 18px;display:flex;flex-direction:column;}
+.stat .v{font-size:56px;line-height:1;color:var(--lime);}
+.stat .l{font-size:14.5px;font-weight:600;margin-top:10px;}
+.stat .s{font-size:11.5px;color:var(--muted);margin-top:4px;line-height:1.4;}
+/* — arrows for the architecture diagram — */
+.arr{width:0;height:0;border-left:7px solid transparent;border-right:7px solid transparent;
+  border-top:9px solid var(--line-bright);margin:6px auto;}
+/* — generic list rows — */
+.row{display:flex;gap:14px;align-items:flex-start;}
+.dot{width:8px;height:8px;border-radius:50%;background:var(--lime);flex:none;margin-top:7px;}
+</style>
+</head>
+<body>
+
+<!-- ═══════════ S1 · COVER ═══════════ -->
+<section class="slide">
+  <div class="top"><span class="k">Follow-up · in place of the call we missed</span><span class="brand">Reps With Friends</span></div>
+  <div class="body-area" style="align-items:center;gap:70px;">
+    <div style="flex:1;min-width:0;">
+      <div style="font-size:12px;letter-spacing:.24em;color:var(--faint);font-weight:600;text-transform:uppercase;">For Ben · from Alexei</div>
+      <div style="font-size:72px;font-weight:700;line-height:1.02;letter-spacing:-.015em;margin-top:18px;">
+        Reps With<br>Friends<span style="color:var(--lime);">.</span>
+      </div>
+      <div style="font-size:26px;font-weight:500;color:var(--muted);margin-top:22px;">
+        Since your email<span style="color:var(--lime);">.</span>
+      </div>
+      <div style="height:3px;width:120px;background:var(--lime);margin:30px 0 26px;border-radius:2px;"></div>
+      <div class="mono" style="font-size:15px;color:var(--text);font-weight:600;">rwf.qalarc.com</div>
+      <div style="font-size:12.5px;color:var(--faint);margin-top:8px;line-height:1.6;">
+        31 August 2026 · Alexei Brown<br>
+        Development status, the call-prep points, the business case, the masterplan —<br>
+        and the prototype that stands in for the meeting.
+      </div>
+    </div>
+    <div style="flex:none;">
+      <div class="phone" style="width:236px;"><img src="../../apps/screenshots/phone/03-battle-live.png" alt="Live battle on a real phone"></div>
+      <div class="cap"><b>Not a mockup.</b> Your product, battle live, on my phone.</div>
+    </div>
+  </div>
+  <div class="foot"><span>Follow-up for Ben · 31 Aug 2026</span><span>01 / 14</span></div>
+</section>
+
+<!-- ═══════════ S2 · WHAT I BUILT IN FIVE DAYS ═══════════ -->
+<section class="slide">
+  <div class="top"><span class="k">02 · Development status</span><span class="brand">Reps With Friends</span></div>
+  <div class="h1">What I built in five days</div>
+  <div class="sub">Everything below is live at <b class="mono" style="color:var(--text);">rwf.qalarc.com</b> right now. The appendix and the wiki map every claim to code.</div>
+  <div class="body-area" style="align-items:center;">
+    <div class="stats">
+      <div class="stat"><div class="v num">36</div><div class="l">gameplay elements live</div><div class="s">Catalogued across families A–G — core loop, retention, social, corporate, verification</div></div>
+      <div class="stat"><div class="v num">65</div><div class="l">of your Figma screens running</div><div class="s">22 wired to real state; the rest wear an honest DEMO chip. Installable PWA, works offline</div></div>
+      <div class="stat"><div class="v num">250<span style="font-size:36px;">+</span></div><div class="l">automated checks, green</div><div class="s">Engine, bots, API, e2e flows — run on every push, CI-gated</div></div>
+      <div class="stat"><div class="v num">11/11</div><div class="l">engine parity tests</div><div class="s">The app runs the real <span class="mono">game-core</span> engine — ported and proven identical</div></div>
+      <div class="stat"><div class="v num">2<span style="font-size:36px;">+</span>1</div><div class="l">chat bots live, one built</div><div class="s">WhatsApp + Slack working today · Beeper transport built &amp; tested · Telegram via bridge</div></div>
+      <div class="stat"><div class="v num">~20<span style="font-size:36px;">s</span></div><div class="l">push-to-live deploys</div><div class="s">GitHub → Cloudflare Pages · 9 public pages · always-on hosting kit ready</div></div>
+    </div>
+  </div>
+  <div class="foot"><span>Follow-up for Ben · 31 Aug 2026</span><span>02 / 14</span></div>
+</section>
+
+<!-- ═══════════ S3 · ON A REAL PHONE ═══════════ -->
+<section class="slide">
+  <div class="top"><span class="k">03 · Proof it works</span><span class="brand">Reps With Friends</span></div>
+  <div class="h1">The product, on a real phone</div>
+  <div class="sub">Chrome on Android, on-device — installable PWA, walked end-to-end with zero console errors. Six screenshots taken on the phone; three below.</div>
+  <div class="body-area" style="align-items:center;justify-content:center;gap:56px;">
+    <div>
+      <div class="phone" style="width:225px;"><img src="../../apps/screenshots/phone/03-battle-live.png" alt="Battle live"></div>
+      <div class="cap"><b>Battle live</b> — real scores, real handicaps</div>
+    </div>
+    <div>
+      <div class="phone" style="width:225px;"><img src="../../apps/screenshots/phone/04-quick-log-sheet.png" alt="Quick log sheet"></div>
+      <div class="cap"><b>Quick-log</b> — 3 taps from anywhere</div>
+    </div>
+    <div>
+      <div class="phone" style="width:225px;"><img src="../../apps/screenshots/phone/06-home.png" alt="Home"></div>
+      <div class="cap"><b>Home</b> — battles, seasons, streaks</div>
+    </div>
+  </div>
+  <div class="foot"><span>Follow-up for Ben · 31 Aug 2026</span><span>03 / 14</span></div>
+</section>
+
+<!-- ═══════════ S4 · THE GAME LOOP ═══════════ -->
+<section class="slide">
+  <div class="top"><span class="k">04 · The product in one slide</span><span class="brand">Reps With Friends</span></div>
+  <div class="h1">The game loop — “the 300”</div>
+  <div class="body-area" style="gap:26px;margin-top:20px;">
+    <div style="flex:1.05;display:flex;flex-direction:column;gap:14px;">
+      <div class="card" style="padding:16px 18px;"><b style="color:var(--lime);font-size:13px;">1 · AGREE</b><div style="font-size:13.5px;color:var(--muted);margin-top:5px;line-height:1.45;">The crew picks the exercises. Any reps, any order, any mix.</div></div>
+      <div class="card" style="padding:16px 18px;"><b style="color:var(--lime);font-size:13px;">2 · RACE</b><div style="font-size:13.5px;color:var(--muted);margin-top:5px;line-height:1.45;">First to 300 <i>raw</i> reps closes the match. Log in-app or in the group chat.</div></div>
+      <div class="card" style="padding:16px 18px;"><b style="color:var(--lime);font-size:13px;">3 · SCORE</b><div style="font-size:13.5px;color:var(--muted);margin-top:5px;line-height:1.45;">Winner = highest <b style="color:var(--text);">effort-adjusted</b> score. Closing ≠ winning.</div></div>
+      <div style="display:flex;flex-wrap:wrap;gap:8px;margin-top:2px;">
+        <span class="pill next">comeback ×1.2 · &gt;30% behind, once/match</span>
+        <span class="pill next">closure bonus +15</span>
+        <span class="pill next">charity pot · winner directs</span>
+        <span class="pill next">4-week season · 3/2/1 + MVP</span>
+      </div>
+    </div>
+    <div style="flex:1;" class="card">
+      <div style="font-size:11px;letter-spacing:.18em;color:var(--faint);text-transform:uppercase;font-weight:600;margin-bottom:14px;">The handicap — effort competes, not raw fitness</div>
+      <div style="display:flex;flex-direction:column;gap:11px;">
+        <div><div style="display:flex;justify-content:space-between;font-size:13px;"><b>couch</b><span class="mono" style="color:var(--lime);">×1.50</span></div><div style="height:9px;background:var(--surface-2);border-radius:5px;margin-top:4px;"><div style="width:100%;height:9px;border-radius:5px;background:var(--lime);"></div></div></div>
+        <div><div style="display:flex;justify-content:space-between;font-size:13px;"><b>casual</b><span class="mono" style="color:var(--lime);">×1.25</span></div><div style="height:9px;background:var(--surface-2);border-radius:5px;margin-top:4px;"><div style="width:83%;height:9px;border-radius:5px;background:var(--lime);opacity:.85;"></div></div></div>
+        <div><div style="display:flex;justify-content:space-between;font-size:13px;"><b>fit</b><span class="mono" style="color:var(--lime);">×1.00</span></div><div style="height:9px;background:var(--surface-2);border-radius:5px;margin-top:4px;"><div style="width:67%;height:9px;border-radius:5px;background:var(--lime);opacity:.7;"></div></div></div>
+        <div><div style="display:flex;justify-content:space-between;font-size:13px;"><b>athlete</b><span class="mono" style="color:var(--lime);">×0.85</span></div><div style="height:9px;background:var(--surface-2);border-radius:5px;margin-top:4px;"><div style="width:57%;height:9px;border-radius:5px;background:var(--lime);opacity:.55;"></div></div></div>
+      </div>
+      <div style="font-size:11.5px;color:var(--faint);margin-top:14px;line-height:1.5;">Self-set, adjustable; anti-sandbagging via volume-based tier correction. v2 is engine-ready: %HRR (Karvonen) scoring from any BLE heart-rate strap — already live in the app.</div>
+    </div>
+    <div style="flex:1.15;" class="card">
+      <div style="font-size:11px;letter-spacing:.18em;color:var(--faint);text-transform:uppercase;font-weight:600;margin-bottom:14px;">A worked match</div>
+      <div style="display:flex;justify-content:space-between;align-items:baseline;"><b style="font-size:14px;">Ben · athlete</b><span class="num" style="font-size:34px;color:var(--muted);">300 <span style="font-size:16px;">raw</span> ×0.85 = 255</span></div>
+      <div style="font-size:12px;color:var(--faint);margin:2px 0 14px;">closed the match — first to the target</div>
+      <div style="display:flex;justify-content:space-between;align-items:baseline;"><b style="font-size:14px;">Alexei · couch</b><span class="num" style="font-size:34px;color:var(--lime);">200 <span style="font-size:16px;">raw</span> ×1.5 = 300</span></div>
+      <div style="font-size:12px;color:var(--faint);margin:2px 0 18px;">never led on raw reps — won on effort</div>
+      <div style="border-top:1px solid var(--line);padding-top:14px;font-size:16px;font-weight:600;line-height:1.4;">The fittest player closing the match doesn’t decide it.<br><span style="color:var(--lime);">Effort is the score.</span></div>
+    </div>
+  </div>
+  <div class="foot"><span>Follow-up for Ben · 31 Aug 2026</span><span>04 / 14</span></div>
+</section>
+
+<!-- ═══════════ S5 · YOUR FIGMA, RUNNING ═══════════ -->
+<section class="slide">
+  <div class="top"><span class="k">05 · The design</span><span class="brand">Reps With Friends</span></div>
+  <div class="h1">Your Figma, running<span style="color:var(--lime);">.</span></div>
+  <div class="body-area" style="gap:44px;margin-top:18px;">
+    <div style="flex:1.25;display:flex;flex-direction:column;gap:12px;">
+      <div class="sub" style="margin-top:0;">Not screenshots of your design — your design <b style="color:var(--text);">executing on the real engine</b>, at <span class="mono" style="color:var(--text);">rwf.qalarc.com/figma-app</span>.</div>
+      <div class="row"><span class="dot"></span><div style="font-size:14px;line-height:1.5;"><b>Power-ups — working.</b> Lightning ×3, Rep Steal (shield-blockable), Shield, Time Freeze. One card per player per battle.</div></div>
+      <div class="row"><span class="dot"></span><div style="font-size:14px;line-height:1.5;"><b>Danger zone — working.</b> Your 3-level nightly escalation (3h/1h/30min) on the 9PM group clock, dual local time.</div></div>
+      <div class="row"><span class="dot"></span><div style="font-size:14px;line-height:1.5;"><b>Daily winner — working.</b> Nightly settle, recap screens, streaks, next-day teaser.</div></div>
+      <div class="row"><span class="dot"></span><div style="font-size:14px;line-height:1.5;"><b>Also adopted:</b> bottom nav + central LOG, quick-log sheet with presets &amp; undo, RUF conversion preview, rematch, waiting room with crew codes.</div></div>
+      <div class="row"><span class="dot" style="background:var(--amber);"></span><div style="font-size:12.5px;color:var(--muted);line-height:1.5;"><b style="color:var(--text);">Honest where it matters:</b> single-device state until the API wire lands (next), no auth yet, mates simulated in the prototype, wagers flagged behind the legal opinion.</div></div>
+    </div>
+    <div style="flex:none;display:flex;gap:26px;align-items:flex-start;">
+      <div>
+        <div class="phone" style="width:186px;border-radius:28px;padding:8px;"><img src="../../apps/figma-app/shots/61-demo2-lightning_demo.png" style="border-radius:21px;" alt="Lightning power-up"></div>
+        <div class="cap"><b>Lightning ×3</b> — live window</div>
+      </div>
+      <div>
+        <div class="phone" style="width:186px;border-radius:28px;padding:8px;"><img src="../../apps/figma-app/shots/62-demo3-dangerzone_demo.png" style="border-radius:21px;" alt="Danger zone"></div>
+        <div class="cap"><b>Danger zone</b> — DZ escalation</div>
+      </div>
+    </div>
+  </div>
+  <div class="foot"><span>Follow-up for Ben · 31 Aug 2026</span><span>05 / 14</span></div>
+</section>
+
+<!-- ═══════════ S6 · DEMO POINTERS ═══════════ -->
+<section class="slide">
+  <div class="top"><span class="k">06 · See it yourself</span><span class="brand">Reps With Friends</span></div>
+  <div class="h1">No call needed to see it</div>
+  <div class="sub">The call is for deciding, not demoing. Four doors, widest first:</div>
+  <div class="body-area" style="align-items:center;">
+    <div style="display:grid;grid-template-columns:repeat(2,1fr);gap:16px;width:100%;">
+      <div class="card" style="border-color:rgba(198,243,46,.4);background:linear-gradient(180deg,rgba(198,243,46,.05),var(--surface));">
+        <div class="mono" style="font-size:17px;font-weight:700;color:var(--lime);">rwf.qalarc.com/figma-app?demo=1</div>
+        <div style="font-size:11px;letter-spacing:.16em;color:var(--faint);text-transform:uppercase;font-weight:600;margin:8px 0 8px;">The app demo · 75 seconds</div>
+        <div style="font-size:13px;color:var(--muted);line-height:1.5;">Self-playing tour on a shadow save: onboard → create → live battle → comeback → lightning → danger zone → close → result → rematch → daily recap → season → end card. Pause, skip, 2× speed. Your real save is never touched.</div>
+      </div>
+      <div class="card">
+        <div class="mono" style="font-size:17px;font-weight:700;">rwf.qalarc.com/demo</div>
+        <div style="font-size:11px;letter-spacing:.16em;color:var(--faint);text-transform:uppercase;font-weight:600;margin:8px 0 8px;">The game demo</div>
+        <div style="font-size:13px;color:var(--muted);line-height:1.5;">A scripted match on the marketing site, driven by the real engine — the loop explained in 60 seconds for someone who’ll never install anything.</div>
+      </div>
+      <div class="card">
+        <div class="mono" style="font-size:17px;font-weight:700;">rwf.qalarc.com/wiki</div>
+        <div style="font-size:11px;letter-spacing:.16em;color:var(--faint);text-transform:uppercase;font-weight:600;margin:8px 0 8px;">The wiki</div>
+        <div style="font-size:13px;color:var(--muted);line-height:1.5;">Every feature, its build status, and the decision trail — the honest version of this deck, always current.</div>
+      </div>
+      <div class="card">
+        <div class="mono" style="font-size:17px;font-weight:700;">rwf.qalarc.com/system</div>
+        <div style="font-size:11px;letter-spacing:.16em;color:var(--faint);text-transform:uppercase;font-weight:600;margin:8px 0 8px;">The system</div>
+        <div style="font-size:13px;color:var(--muted);line-height:1.5;">16 design-system components rendered live — the bridge between your component library and the build.</div>
+      </div>
+    </div>
+  </div>
+  <div class="foot"><span>Follow-up for Ben · 31 Aug 2026</span><span>06 / 14</span></div>
+</section>
+
+<!-- ═══════════ S7 · CHAT-FIRST ARCHITECTURE ═══════════ -->
+<section class="slide">
+  <div class="top"><span class="k">07 · The distribution thesis</span><span class="brand">Reps With Friends</span></div>
+  <div class="h1">Chat-first — one brain, many transports</div>
+  <div class="body-area" style="flex-direction:column;justify-content:center;gap:0;margin-top:6px;">
+    <div style="display:flex;justify-content:center;gap:16px;">
+      <div class="card" style="width:560px;text-align:center;padding:12px;border-color:rgba(198,243,46,.35);"><b style="font-size:14px;color:var(--lime);">game-core</b> <span style="font-size:12px;color:var(--muted);">— pure engine: handicaps · comeback · seasons · pots · 44 tests</span></div>
+      <div class="card" style="width:420px;text-align:center;padding:12px;"><b style="font-size:14px;">apps/api</b> <span style="font-size:12px;color:var(--muted);">— state authority: crews · matches · seasons · pots · 24 tests</span></div>
+    </div>
+    <div class="arr"></div>
+    <div class="card" style="width:1000px;margin:0 auto;text-align:center;padding:12px;border-color:rgba(198,243,46,.35);">
+      <b style="font-size:14px;color:var(--lime);">bot-core · the single chat brain</b>
+      <span style="font-size:12px;color:var(--muted);"> — one command grammar: <span class="mono">new · join · log · s · taunt · pot · result · rematch · season · watch · link · help</span></span>
+    </div>
+    <div class="arr"></div>
+    <div style="display:flex;justify-content:center;gap:16px;">
+      <div class="card" style="width:238px;padding:14px 16px;"><div style="display:flex;justify-content:space-between;align-items:center;"><b style="font-size:14px;">WhatsApp</b><span class="pill live">live</span></div><div style="font-size:11.5px;color:var(--muted);margin-top:6px;line-height:1.45;">Qalarc Hub session now → Cloud API at pilot</div></div>
+      <div class="card" style="width:238px;padding:14px 16px;"><div style="display:flex;justify-content:space-between;align-items:center;"><b style="font-size:14px;">Slack</b><span class="pill live">live</span></div><div style="font-size:11.5px;color:var(--muted);margin-top:6px;line-height:1.45;">Bolt Socket Mode — the corporate door</div></div>
+      <div class="card" style="width:238px;padding:14px 16px;"><div style="display:flex;justify-content:space-between;align-items:center;"><b style="font-size:14px;">Beeper</b><span class="pill built">built</span></div><div style="font-size:11.5px;color:var(--muted);margin-top:6px;line-height:1.45;">Desktop transport, 21 tests — 3-min unblock, documented</div></div>
+      <div class="card" style="width:238px;padding:14px 16px;"><div style="display:flex;justify-content:space-between;align-items:center;"><b style="font-size:14px;">Telegram</b><span class="pill later">planned</span></div><div style="font-size:11.5px;color:var(--muted);margin-top:6px;line-height:1.45;">Via bridge — one adapter, not a rewrite</div></div>
+    </div>
+    <div class="arr"></div>
+    <div class="card" style="width:1000px;margin:0 auto;text-align:center;padding:12px;">
+      <b style="font-size:14px;">The app (PWA)</b> <span style="font-size:12px;color:var(--muted);">— first-class client of the same API: same scoreboard the bots write to · <span class="mono">link CREW-XXXX</span> binds a chat to a crew the app made</span>
+    </div>
+    <div style="text-align:center;font-size:13.5px;color:var(--muted);margin-top:16px;">Every match broadcast is an ad the whole group chat sees — spectators become players at <b style="color:var(--lime);">near-zero CAC</b>. Apple Messages stays out until a bot API exists.</div>
+  </div>
+  <div class="foot"><span>Follow-up for Ben · 31 Aug 2026</span><span>07 / 14</span></div>
+</section>
+
+<!-- ═══════════ S8 · BUSINESS ANALYSIS ═══════════ -->
+<section class="slide">
+  <div class="top"><span class="k">08 · The business case</span><span class="brand">Reps With Friends</span></div>
+  <div class="h1">An open niche with two moats</div>
+  <div class="body-area" style="gap:26px;margin-top:18px;">
+    <div style="flex:1.35;display:flex;flex-direction:column;gap:13px;">
+      <div class="row"><span class="dot"></span><div style="font-size:14px;line-height:1.5;"><b>The niche is empty.</b> Small-group, real-time, <i>handicapped</i> competition delivered inside the group chat. No established player; the OSS space is 0-star student projects.</div></div>
+      <div class="row"><span class="dot"></span><div style="font-size:14px;line-height:1.5;"><b>Moat 1 — the handicap system.</b> Golf proved handicaps keep weak players paying for decades. Nobody in fitness does it well; it’s the hardest thing to get right, so it’s defensible.</div></div>
+      <div class="row"><span class="dot"></span><div style="font-size:14px;line-height:1.5;"><b>Moat 2 — chat-first.</b> The game lives where the banter already lives. Non-users spectate the leaderboard within minutes; every broadcast recruits.</div></div>
+      <div class="row"><span class="dot"></span><div style="font-size:14px;line-height:1.5;"><b>The publicity lever is real.</b> “Silverchair drummer launches fitness app” is a first-wave injection most startups pay seven figures for — and the 35–50 nostalgia demographic <i>is</i> the target user.</div></div>
+      <div class="row"><span class="dot" style="background:var(--amber);"></span><div style="font-size:14px;line-height:1.5;color:var(--muted);"><b style="color:var(--text);">The caveat:</b> celebrity attention buys the top of the funnel once. The handicaps and the chat presence are what keep them.</div></div>
+    </div>
+    <div style="flex:1;display:flex;flex-direction:column;gap:16px;">
+      <div class="card">
+        <div style="font-size:11px;letter-spacing:.18em;color:var(--faint);text-transform:uppercase;font-weight:600;margin-bottom:10px;">Adjacent revenue pools</div>
+        <table class="t">
+          <tr><td><b>Corporate wellness</b></td><td>AU$600+/employee/yr budgets · “team 300s for charity” is an easy HR sell · <b style="color:var(--lime);">likely the actual business</b></td></tr>
+          <tr><td><b>Charity partnerships</b></td><td>Rev share / sponsorship on the pot mechanics</td></tr>
+          <tr><td><b>Brand sponsorship</b></td><td>Supplement/apparel brands chasing the 35–50 male demo</td></tr>
+        </table>
+      </div>
+      <div class="card">
+        <div style="font-size:11px;letter-spacing:.18em;color:var(--faint);text-transform:uppercase;font-weight:600;margin-bottom:10px;">Why incumbents don’t cover it</div>
+        <table class="t">
+          <tr><td>Solo trackers (Strava, Hevy…)</td><td>saturated, lonely, no stakes</td></tr>
+          <tr><td>Wagering apps (StepBet…)</td><td>cash stakes, regulatory baggage</td></tr>
+          <tr><td>Live classes (Peloton…)</td><td>anonymous crowds, not your mates</td></tr>
+          <tr><td>Async comparisons</td><td>weak, pairwise, buried in apps</td></tr>
+        </table>
+      </div>
+      <div style="font-size:11.5px;color:var(--faint);line-height:1.5;">Full analysis — risks ranked, KPIs, verdict — in the appendix (§C) and docs/01.</div>
+    </div>
+  </div>
+  <div class="foot"><span>Follow-up for Ben · 31 Aug 2026</span><span>08 / 14</span></div>
+</section>
+
+<!-- ═══════════ S9 · THE MASTERPLAN ═══════════ -->
+<section class="slide">
+  <div class="top"><span class="k">09 · The plan</span><span class="brand">Reps With Friends</span></div>
+  <div class="h1">The masterplan — where we actually are</div>
+  <div class="body-area" style="flex-direction:column;justify-content:center;gap:11px;margin-top:8px;">
+    <div class="card" style="display:flex;gap:18px;align-items:center;padding:15px 22px;"><span class="num" style="font-size:22px;color:var(--lime);width:44px;">P0</span><div style="flex:1;"><b style="font-size:14.5px;">Due diligence &amp; alignment</b><div style="font-size:12px;color:var(--muted);margin-top:2px;">Market + compliance research · business analysis · masterplan · call prep — docs 01–22 in the repo</div></div><span class="pill done">done</span></div>
+    <div class="card" style="display:flex;gap:18px;align-items:center;padding:15px 22px;border-color:rgba(198,243,46,.4);"><span class="num" style="font-size:22px;color:var(--lime);width:44px;">P1</span><div style="flex:1;"><b style="font-size:14.5px;">Prototype — feature-complete &amp; live</b><div style="font-size:12px;color:var(--muted);margin-top:2px;">Game engine (44 tests) · WhatsApp + Slack bots · phone-first PWA + camera verify + HR straps · your 65 screens running (v1.0.0) · site, demo, wiki, hub · push-to-deploy</div></div><span class="pill done">done</span></div>
+    <div class="card" style="display:flex;gap:18px;align-items:center;padding:15px 22px;background:linear-gradient(180deg,rgba(198,243,46,.06),var(--surface));"><span class="num" style="font-size:22px;color:var(--lime);width:44px;">P2</span><div style="flex:1;"><b style="font-size:14.5px;">MVP — “the 300 loop” · ~6–8 weeks</b><div style="font-size:12px;color:var(--muted);margin-top:2px;">Wire app ↔ API ↔ bots (mechanical — the mirror already landed) · auth · WhatsApp Cloud verification · <b style="color:var(--text);">3–5 real group chats playing weekly</b></div></div><span class="pill next">next</span></div>
+    <div class="card" style="display:flex;gap:18px;align-items:center;padding:15px 22px;"><span class="num" style="font-size:22px;color:var(--lime);width:44px;">P3</span><div style="flex:1;"><b style="font-size:14.5px;">Effort truth &amp; wearables · ~+8 weeks</b><div style="font-size:12px;color:var(--muted);margin-top:2px;">%HRR handicap v2 (engine-ready, straps already live) · watch companions · seasons as the long arc · shareable clip generation</div></div><span class="pill later">later · started</span></div>
+    <div class="card" style="display:flex;gap:18px;align-items:center;padding:15px 22px;"><span class="num" style="font-size:22px;color:var(--lime);width:44px;">P4</span><div style="flex:1;"><b style="font-size:14.5px;">Business layer</b><div style="font-size:12px;color:var(--muted);margin-top:2px;">Corporate mode: Slack enterprise, org dashboards, team-vs-team, invoicing — <b style="color:var(--text);">the revenue engine</b> (console already seeded) · charity structure with a partner · WHOOP/Garmin cloud</div></div><span class="pill later">later · seeded</span></div>
+    <div style="display:flex;gap:8px;flex-wrap:wrap;margin-top:4px;">
+      <span class="pill next">MVP gate: 3–5 real chats weekly</span>
+      <span class="pill next">≥40% reps camera-verified</span>
+      <span class="pill next">viral k ≥ 0.3 per broadcast</span>
+      <span class="pill next">W4 group retention ≥ 60%</span>
+      <span class="pill next">2 corporate pilots by P4</span>
+    </div>
+  </div>
+  <div class="foot"><span>Follow-up for Ben · 31 Aug 2026</span><span>09 / 14</span></div>
+</section>
+
+<!-- ═══════════ S10 · THE OPEN DECISIONS, TOGETHER ═══════════ -->
+<section class="slide">
+  <div class="top"><span class="k">10 · The product decisions</span><span class="brand">Reps With Friends</span></div>
+  <div class="h1">Five decisions, designed to be made <span style="color:var(--lime);">together</span></div>
+  <div class="sub" style="margin-top:8px;">Not presented — decided. Your blueprint’s own open-questions register maps almost 1:1 onto ours.</div>
+  <div class="body-area" style="align-items:center;margin-top:4px;">
+    <table class="t" style="font-size:12.5px;">
+      <tr><th style="width:120px;">Decision</th><th style="width:335px;">Your Figma says</th><th style="width:335px;">Our build says</th><th>The shape of a hybrid</th></tr>
+      <tr><td><b class="lime">Fairness</b></td><td>Personalised targets; winner = completion % of own target; tier stays private</td><td>Shared 300 + tier multipliers (×1.5→×0.85) — handicap as the spectacle</td><td>Your targets + our comeback multiplier on top</td></tr>
+      <tr><td><b class="lime">Platform</b></td><td>Native app, store push, IAP; Slack at V1.x</td><td>PWA + chat bots day one — <b>shipped</b>; chat is the arena</td><td>Staged: bots now → native when retention proves</td></tr>
+      <tr><td><b class="lime">Rhythm</b></td><td>Multi-day battles, daily winners, nightly danger zone</td><td>One match to 300 with the close-moment finale</td><td>Daily winners <i>inside</i> 4-week seasons</td></tr>
+      <tr><td><b class="lime">Power-ups</b></td><td>4 at launch + rarity + daily drop + store + Pro slots — the monetisation spine</td><td>None in MVP; comeback badge only</td><td>Working prototype exists — scope is the call</td></tr>
+      <tr><td><b class="lime">Brand</b></td><td>Gold #FFC821 + purple · Anton/Inter · reps.fit</td><td>Lime #c6f32e + coral · Space Grotesk · rwf.qalarc.com</td><td>Founder taste — your call to lead</td></tr>
+    </table>
+  </div>
+  <div style="font-size:12.5px;color:var(--muted);margin-top:12px;">Already adopted without a fight: your bottom nav + central LOG, quick-log sheet, RUF preview, danger-zone craft, dual clock, system states, “battle” as the word. The five above are the ones worth deciding together.</div>
+  <div class="foot"><span>Follow-up for Ben · 31 Aug 2026</span><span>10 / 14</span></div>
+</section>
+
+<!-- ═══════════ S11 · WHAT STILL NEEDS STRUCTURE ═══════════ -->
+<section class="slide">
+  <div class="top"><span class="k">11 · Honest open problems</span><span class="brand">Reps With Friends</span></div>
+  <div class="h1">What still needs structure</div>
+  <div class="sub" style="margin-top:8px;">You asked for pushback — here is mine, to myself. Three things I won’t wave past:</div>
+  <div class="body-area" style="align-items:center;">
+    <div style="display:grid;grid-template-columns:repeat(3,1fr);gap:16px;width:100%;">
+      <div class="card" style="border-top:3px solid var(--coral);">
+        <div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:10px;"><b style="font-size:15px;">Charity-pot legal</b><span class="pill risk">before $ moves</span></div>
+        <div style="font-size:12.5px;color:var(--muted);line-height:1.55;">“Winner directs a pot” must dodge raffle/betting classification under AU state law. Needs a real legal opinion before a dollar moves. Until then: <b style="color:var(--text);">pledge-only, enforced in the engine</b> — the ledger exists, no money is handled.</div>
+      </div>
+      <div class="card" style="border-top:3px solid var(--coral);">
+        <div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:10px;"><b style="font-size:15px;">WhatsApp at scale</b><span class="pill risk">shapes the pilot</span></div>
+        <div style="font-size:12.5px;color:var(--muted);line-height:1.55;">Cloud API <i>group</i> support is unverified — it decides the pilot architecture. Per-conversation pricing means batched standings, never per-rep spam. The Hub carries dev; costs get modelled before scale.</div>
+      </div>
+      <div class="card" style="border-top:3px solid var(--amber);">
+        <div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:10px;"><b style="font-size:15px;">Verification rollout</b><span class="pill warn">phased · live</span></div>
+        <div style="font-size:12.5px;color:var(--muted);line-height:1.55;">In-browser camera counting (MoveNet) and BLE HR straps (%HRR) are live today — on-device, $0, nothing uploaded. Next: HealthKit / Health Connect sync, then WHOOP/Garmin cloud cross-checks. Your peer-challenge layer is the social backstop.</div>
+      </div>
+    </div>
+  </div>
+  <div style="font-size:12px;color:var(--faint);margin-top:10px;">Full ranked risk register: appendix §C · docs/01 §5 · blockers register docs/15.</div>
+  <div class="foot"><span>Follow-up for Ben · 31 Aug 2026</span><span>11 / 14</span></div>
+</section>
+
+<!-- ═══════════ S12 · WHAT I BRING ═══════════ -->
+<section class="slide">
+  <div class="top"><span class="k">12 · The other half of the pair</span><span class="brand">Reps With Friends</span></div>
+  <div class="h1">What I bring</div>
+  <div class="body-area" style="gap:40px;margin-top:16px;">
+    <div style="flex:1.3;display:flex;flex-direction:column;gap:14px;justify-content:center;">
+      <div class="card" style="padding:17px 20px;"><b style="font-size:14.5px;color:var(--lime);">Build velocity</b><div style="font-size:13px;color:var(--muted);margin-top:5px;line-height:1.5;">A studio would scope this as a 3-month discovery-to-MVP. It shipped in days. This deck is the receipt, not the claim.</div></div>
+      <div class="card" style="padding:17px 20px;"><b style="font-size:14.5px;color:var(--lime);">Chat infrastructure</b><div style="font-size:13px;color:var(--muted);margin-top:5px;line-height:1.5;">The Qalarc Hub already owns live WhatsApp + Signal sessions with an HTTP API. The bots are shipped, not planned — most teams stall for months at WhatsApp approval alone.</div></div>
+      <div class="card" style="padding:17px 20px;"><b style="font-size:14.5px;color:var(--lime);">AI / 3D pipeline</b><div style="font-size:13px;color:var(--muted);margin-top:5px;line-height:1.5;">In-browser pose counting, a server-side AI layer (narrator, taunts, digests), and a mocap + cloth-sim avatar pipeline — the frog on the right walks, squats and dresses itself.</div></div>
+      <div class="card" style="padding:17px 20px;"><b style="font-size:14.5px;color:var(--lime);">Health-data background</b><div style="font-size:13px;color:var(--muted);margin-top:5px;line-height:1.5;">Enterprise wellbeing (Sahha) playbook: k≥5 aggregate privacy, %HRR (Karvonen) effort scoring, HR-strap ingestion — the corporate-grade privacy posture your design already assumes.</div></div>
+    </div>
+    <div style="flex:none;display:flex;flex-direction:column;align-items:center;justify-content:center;">
+      <div class="card" style="padding:14px;">
+        <img src="../../apps/avatars/screenshots/geno_fabric_fullkit_walk_20260829.png" style="height:430px;border-radius:9px;display:block;" alt="Frog mascot in full kit">
+      </div>
+      <div class="cap" style="max-width:360px;">The mascot, full kit — mocap walk +<br>cloth-sim wardrobe. Same pipeline does custom avatars.</div>
+    </div>
+  </div>
+  <div class="foot"><span>Follow-up for Ben · 31 Aug 2026</span><span>12 / 14</span></div>
+</section>
+
+<!-- ═══════════ S13 · THE PROPOSAL ═══════════ -->
+<section class="slide">
+  <div class="top"><span class="k">13 · The proposal</span><span class="brand">Reps With Friends</span></div>
+  <div class="h1">A founding pair, not a client and a vendor</div>
+  <div class="body-area" style="flex-direction:column;justify-content:center;gap:22px;margin-top:4px;">
+    <div style="display:grid;grid-template-columns:1fr 1fr;gap:16px;">
+      <div class="card" style="border-color:rgba(255,200,33,.4);">
+        <div style="font-size:11px;letter-spacing:.18em;color:var(--gold);text-transform:uppercase;font-weight:700;margin-bottom:12px;">Ben brings</div>
+        <div style="font-size:14px;line-height:1.9;color:var(--muted);">The idea, refined for 18 months<br>The complete 65-screen product design<br>The publicity lever + the network<br>Early spend for running costs</div>
+      </div>
+      <div class="card" style="border-color:rgba(198,243,46,.4);">
+        <div style="font-size:11px;letter-spacing:.18em;color:var(--lime);text-transform:uppercase;font-weight:700;margin-bottom:12px;">Alexei brings</div>
+        <div style="font-size:14px;line-height:1.9;color:var(--muted);">The working product — already built<br>The infrastructure: bots, hosting, messaging<br>AI, 3D and health-data capability<br>Ongoing build capacity, demonstrated</div>
+      </div>
+    </div>
+    <div style="text-align:center;font-size:19px;font-weight:600;line-height:1.5;max-width:980px;margin:0 auto;">
+      You’re the design-and-vision founder. I’m the build-and-systems founder.<br>
+      <span style="color:var(--lime);">That’s a complete founding pair — and it’s what the equity conversation should price.</span>
+    </div>
+    <div style="display:flex;gap:14px;justify-content:center;flex-wrap:wrap;">
+      <span class="pill next" style="font-size:12px;padding:8px 18px;">The equity conversation is open — split, vesting, and IP consolidation into the company</span>
+      <span class="pill next" style="font-size:12px;padding:8px 18px;">No numbers in this deck — those are talked, not projected</span>
+      <span class="pill next" style="font-size:12px;padding:8px 18px;">Both IP assignments go both ways: your Figma in, my code in</span>
+    </div>
+  </div>
+  <div class="foot"><span>Follow-up for Ben · 31 Aug 2026</span><span>13 / 14</span></div>
+</section>
+
+<!-- ═══════════ S14 · NEXT STEPS ═══════════ -->
+<section class="slide">
+  <div class="top"><span class="k">14 · Next steps</span><span class="brand">Reps With Friends</span></div>
+  <div class="h1">Where this goes next</div>
+  <div class="body-area" style="flex-direction:column;justify-content:center;gap:18px;margin-top:6px;">
+    <div style="display:grid;grid-template-columns:repeat(3,1fr);gap:16px;">
+      <div class="card">
+        <div class="num" style="font-size:30px;color:var(--lime);">1</div>
+        <b style="font-size:15px;display:block;margin-top:8px;">Watch the demo</b>
+        <div style="font-size:12.5px;color:var(--muted);margin-top:6px;line-height:1.55;">75 seconds, self-playing, on a shadow save — <span class="mono" style="color:var(--text);">rwf.qalarc.com/figma-app?demo=1</span>. Then poke the real app on your phone; it installs.</div>
+      </div>
+      <div class="card">
+        <div class="num" style="font-size:30px;color:var(--lime);">2</div>
+        <b style="font-size:15px;display:block;margin-top:8px;">Re-book the call — 45 min</b>
+        <div style="font-size:12.5px;color:var(--muted);margin-top:6px;line-height:1.55;">Agenda in the appendix: the five Phase-0 questions, the five product decisions, the shape of the deal. The prototype does the pitching; the call does the deciding.</div>
+      </div>
+      <div class="card">
+        <div class="num" style="font-size:30px;color:var(--lime);">3</div>
+        <b style="font-size:15px;display:block;margin-top:8px;">Then the memo</b>
+        <div style="font-size:12.5px;color:var(--muted);margin-top:6px;line-height:1.55;">After the call: a 2–3 page founders’ memo — roles, split, vesting, IP — agreed within a fortnight, before the next big build phase.</div>
+      </div>
+    </div>
+    <div style="text-align:center;margin-top:10px;">
+      <div style="font-size:40px;font-weight:700;letter-spacing:-.01em;">The prototype <span style="color:var(--lime);">is</span> the meeting.</div>
+      <div style="font-size:14px;color:var(--muted);margin-top:12px;">— Alexei · <span class="mono">rwf.qalarc.com</span> · appendix attached: the questions, the plan, the numbers, the element map</div>
+    </div>
+  </div>
+  <div class="foot"><span>Follow-up for Ben · 31 Aug 2026</span><span>14 / 14</span></div>
+</section>
+
+</body>
+</html>

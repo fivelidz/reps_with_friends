@@ -379,10 +379,13 @@ const instr = await ev(`(async () => {
   return out;
 })()`);
 const o7 = (instr as any)?.offsets ?? {};
+// v9.1: band topMm 12 → 15 (bottomMm 13 → 16) — the band must sit a decisive
+// 4-5 mm proud of the shirt lip (+11) and pelvis flap (+12); at 12/13 the
+// front column pixel-read shirt→coral with no charcoal at all (z-fight lost).
 step('instruments alive + v7 offsets wired',
   !(instr as any)?.err && (instr as any)?.xray && (instr as any)?.heat && (instr as any)?.heatTintRestored
   && (instr as any)?.buildStep && (instr as any)?.iso && (instr as any)?.png && (instr as any)?.bandUntinted
-  && o7.shirt?.hemMm === 18 && o7.shorts?.hemMm === 16 && o7.band?.topMm === 12, instr);
+  && o7.shirt?.hemMm === 18 && o7.shorts?.hemMm === 16 && o7.band?.topMm === 15 && o7.band?.bottomMm === 16, instr);
 
 step('zero console errors', errors.length === 0, errors.slice(0, 3));
 

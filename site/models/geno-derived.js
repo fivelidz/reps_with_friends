@@ -235,6 +235,28 @@ export const DERIVED_SPEC = {
       tFull: 0.25,
       windowT: 0.12,         // arm-flesh sampling window along the axis (×arm len)
       passes: 2,             // profile smoothing passes (arm flesh is near-regular)
+      // v9.2: the local-contour window for the per-θ profile (×arm len, ±) —
+      // bins with flesh this close to the station take the LOCAL max (the
+      // ring hugs the station's own contour) instead of the wide-window max
+      // (which ballooned the root's shoulder-top sector 11.3 cm off the flesh)
+      localWinT: 0.015,
+      // v9.2: verts with an arm-chain source within this radius source from
+      // the ARM chain (same side of the joint → rigid under arm swings);
+      // beyond it they fall back to nearest-overall. Generous (8 cm — half
+      // the arm): an armpit-sector vert that fell back to a CHEST vert while
+      // its ring neighbours sourced ARM verts put adjacent verts on opposite
+      // sides of the shoulder joint — the garment edge between them tore to
+      // 7-10 cm under arm swings (measured at swagger@0.25). Root verts are
+      // exempt via srcPin (the snap parks them on purpose-chosen verts).
+      preferArmCm: 8,
+      // v9.3 ROOT SNAP-BLEND: ring points that would float (nearest body
+      // vert past snapLoCm) blend onto that vert + the graded tuck, fully by
+      // snapHiCm — the shoulder-void / armpit-bridge fix (see snapRootRing).
+      // snapArmCm: the snap prefers ARM-CHAIN verts within this radius (one
+      // limb per sleeve — cross-joint park/edge pairs tore 7-10 cm)
+      snapLoCm: 1.5,
+      snapHiCm: 3.5,
+      snapArmCm: 7,
     },
   },
   // ── v9 EASY FABRIC PHYSICS ─────────────────────────────────────────────
@@ -649,8 +671,16 @@ function fabricLattice(body, tag, mat, tubes, srcRadius = 0.5) {
     };
     const starts = tube.rings.map((ring) => {
       const s0 = pos.length / 3;
+      const pinSet = tube.srcPin ? new Set(cands) : null;
       for (const p of ring.pts) {
-        const k = nearest(p);
+        // v9.3 SRC PIN: a builder that PARKED a vert on a specific body vert
+        // (the sleeve root snap) pins the sourcing to that vert — the
+        // preferred-arm search would otherwise re-source it to an arm vert a
+        // few cm away the snap just pulled it OFF, re-inflating the bind
+        // offset the snap existed to kill.
+        let k = -1;
+        if (tube.srcPin) { const pk = tube.srcPin.get(p); if (pk !== undefined && pinSet.has(pk)) k = pk; }
+        if (k < 0) k = nearest(p);
         pos.push(p.x, p.y, p.z);
         for (let j = 0; j < 4; j++) {
           si4.push(SI.getComponent(k, j));
@@ -1372,13 +1402,22 @@ function buildFabricShirt(body, anc, mat) {
     // (θ, r, t) around the arm axis — sampled once, profiled per station
     const pfx = side === 1 ? 'Left' : 'Right';
     const chain = new Set([pfx + 'Shoulder', pfx + 'Arm', pfx + 'ForeArm']);
+    // v9.3 PROFILE CHAIN = the ARM only (…Arm + …ForeArm). The …Shoulder bone's
+    // flesh is the TRAPEZIUS — torso, not arm. At the root's medial sector the
+    // plane also cuts the trap: with it in the chain, the per-θ max took the
+    // trap's ~10.5 cm radius (no arm flesh at that θ locally) and pushed ring
+    // pts down-medial into the armpit void, 11.3 cm from ANY surface vert
+    // (measured) — the dome that sheared 4.4 cm of Δsource at arms-overhead
+    // and strained root ring edges 10 cm past the body's own. A sleeve wraps
+    // the arm; the torso tube owns the trap up to the collar.
+    const profChain = new Set([pfx + 'Arm', pfx + 'ForeArm']);
     const fleshTR = [];   // { t, th, r }
     {
       const P2 = body.geometry.attributes.position;
       const d = new THREE.Vector3();
       for (let i = 0; i < P2.count; i++) {
         const n = rawName(anc.skin.skeleton.bones[anc.dom[i]].name);
-        if (!chain.has(n)) continue;
+        if (!profChain.has(n)) continue;
         d.fromBufferAttribute(P2, i).sub(a0);
         const t = d.dot(ax) / armLen;
         if (t < -0.3 || t > 0.9) continue;
@@ -1396,13 +1435,26 @@ function buildFabricShirt(body, anc, mat) {
       // and extreme arm poses shear it (measured Δsource 5.5 cm at
       // jumpingjack@0.5 on the first v9 build)
       const win = t < 0.08 ? 0.05 : (SL.windowT ?? 0.12);
+      // v9.2 LOCAL-CONTOUR: the per-θ MAX over the window still ballooned the
+      // ROOT rings' shoulder-top sector — the trap/deltoid flare 3-4 cm UP the
+      // axis set every station's radius, so rings 0-2 floated up to 11.3 cm
+      // off the flesh (measured), shearing 4.4 cm of Δsource at arms-overhead
+      // and straining root ring edges 10 cm past the body's own. A ring should
+      // hug the station's OWN contour: bins with flesh inside a ±winLocal
+      // window (~±0.5 cm along the axis) take the LOCAL max; only void bins
+      // (the armpit hollow) fall back to the wide-window max.
+      const winLocal = SL.localWinT ?? 0.015;
+      const profL = new Float32Array(bins), wL = new Uint8Array(bins);
       for (const f of fleshTR) {
-        if (Math.abs(f.t - t) > win) continue;
+        const dt = Math.abs(f.t - t);
+        if (dt > win) continue;
         const bi = Math.min(bins - 1, Math.max(0, Math.round((f.th + Math.PI) / (2 * Math.PI) * bins))) % bins;
+        if (dt <= winLocal) { if (f.r > profL[bi]) profL[bi] = f.r; wL[bi] = 1; }
         if (f.r > prof[bi]) prof[bi] = f.r;
         w[bi] = 1;
       }
       for (let i = 0; i < bins; i++) {       // fill empty bins from the nearest hit
+        if (wL[i]) { prof[i] = profL[i]; continue; }   // local contour wins
         if (w[i]) continue;
         for (let k = 1; k < bins; k++) {
           const lo = (i - k + bins) % bins, hi = (i + k) % bins;
@@ -1431,18 +1483,117 @@ function buildFabricShirt(body, anc, mat) {
       return profAtT[key];
     };
     const sRings = [];
+    // v9.3 ROOT SNAP-BLEND: at the root a circle around the ARM axis cannot
+    // hug the crescent of arm flesh at the shoulder joint — the medial half
+    // has no arm surface (the ring centre sits 3.1 cm from ANY body vert; the
+    // joint interior is a mesh void), and no radial clamping can fix that.
+    // Real tees solve it the other way: the sleeve's root rides the SHOULDER
+    // ITSELF. So each ring point that would FLOAT (nearest body vert beyond
+    // snapLoCm) blends onto that vert + the graded tuck (out along the ring
+    // plane); points already on the flesh keep their constructed position.
+    // The weight is per-vert adaptive: the sleeve stays a constructed circle
+    // wherever the circle is on-flesh (lateral deltoid), and rides the body
+    // wherever the circle would float (medial shoulder, armpit line) — the
+    // v5/v7 fitted construction exactly where it's needed, including the
+    // armpit BRIDGE (a sleeve spanning the deltoid↔pec hollow is what a tee
+    // does). Sources end up ≈ the tuck offset away (Δsource ~0 by shared
+    // skinning), bridging edges ride body edges (strain ~body), and the root
+    // tucks UNDER the torso tube at the medial sector (the dive-under).
+    const snapLoU = (SL.snapLoCm ?? 1.5) * anc.cm;
+    const snapHiU = (SL.snapHiCm ?? 3.5) * anc.cm;
+    const BPc = body.geometry.attributes.position;
+    const nearestBodyVertIdx = (p) => {
+      let bd = Infinity, bi = 0;
+      for (let i = 0; i < BPc.count; i++) {
+        const dx = BPc.getX(i) - p.x, dy = BPc.getY(i) - p.y, dz = BPc.getZ(i) - p.z;
+        const d2 = dx * dx + dy * dy + dz * dz;
+        if (d2 < bd) { bd = d2; bi = i; }
+      }
+      return bi;
+    };
+    // pins: every vert the snap parked on a body vert sources FROM that vert
+    // (fabricLattice srcPin) — the arm-preferred search must not un-park it
+    const snapPins = new Map();
+    // ARM-FIRST snap target: prefer the nearest ARM-CHAIN vert within
+    // snapArmCm — a vert the snap parks on a CHEST vert while its ring
+    // neighbours ride ARM verts puts adjacent verts across the shoulder
+    // joint and the edge between them tears under arm swings (measured 7 cm
+    // on a 1.5 cm edge). One limb per sleeve, root to hem.
+    const armCandIdx = [];
+    {
+      const P2 = body.geometry.attributes.position;
+      for (let i = 0; i < P2.count; i++) {
+        if (chain.has(rawName(anc.skin.skeleton.bones[anc.dom[i]].name))) armCandIdx.push(i);
+      }
+    }
+    const snapArmU = (SL.snapArmCm ?? 7) * anc.cm;
+    const nearestIn = (p, idxList) => {
+      let bd = Infinity, bi = -1;
+      for (const i of idxList) {
+        const dx = BPc.getX(i) - p.x, dy = BPc.getY(i) - p.y, dz = BPc.getZ(i) - p.z;
+        const d2 = dx * dx + dy * dy + dz * dz;
+        if (d2 < bd) { bd = d2; bi = i; }
+      }
+      return { bi, d: Math.sqrt(bd) };
+    };
+    const snapRootRing = (ring, t) => {
+      const c = ring.c;
+      const v = new THREE.Vector3(), dir = new THREE.Vector3(), target = new THREE.Vector3();
+      const pts = ring.pts, S = pts.length;
+      let snapped = 0;
+      for (const p of pts) {
+        // arm-first target, chest fallback for the deep void verts
+        const arm = nearestIn(p, armCandIdx);
+        const vi = arm.d <= snapArmU ? arm.bi : nearestBodyVertIdx(p);
+        v.fromBufferAttribute(BPc, vi);
+        const d = p.distanceTo(v);
+        if (d <= snapLoU) continue;                    // on the flesh — keep the circle
+        snapped++;
+        const w = Math.min(1, (d - snapLoU) / (snapHiU - snapLoU));
+        // tuck direction: outward in the RING PLANE (drop the axis component,
+        // not world-Y — the sleeve rings are perpendicular to the arm axis)
+        dir.subVectors(p, c).addScaledVector(ax, -dir.dot(ax));
+        if (dir.lengthSq() < 1e-12) dir.set(1, 0, 0);
+        dir.normalize();
+        target.copy(v).addScaledVector(dir, offMm(t) * anc.mm);
+        p.lerp(target, w);
+        snapPins.set(p, vi);
+      }
+      // SMOOTH the snapped ring (circular [0.25, 0.5, 0.25], 2 passes): the
+      // per-vert snap lands on individual mesh verts — angular jitter that
+      // read in the silhouette probe (shirt σ 0.015 → 0.018, no longer
+      // smoother than the body). Relaxation keeps the ring's bulk on the
+      // shoulder while ironing the vert-level scatter.
+      if (snapped > 0) {
+        const tmp = pts.map((p) => p.clone());
+        for (let pass = 0; pass < 2; pass++) {
+          const src2 = pass === 0 ? tmp : pts.map((p) => p.clone());
+          for (let i = 0; i < S; i++) {
+            const a = src2[(i - 1 + S) % S], b = src2[i], q = src2[(i + 1) % S];
+            pts[i].set(
+              0.25 * a.x + 0.5 * b.x + 0.25 * q.x,
+              0.25 * a.y + 0.5 * b.y + 0.25 * q.y,
+              0.25 * a.z + 0.5 * b.z + 0.25 * q.z);
+          }
+        }
+      }
+      return ring;
+    };
     for (let i = 0; i < F.sleeveRings; i++) {
       const t = t0 + (t1 - t0) * i / (F.sleeveRings - 1);
       const u = (t - t0) / (t1 - t0);
       const c = new THREE.Vector3().lerpVectors(a0, a1, t);
       const env = anc.envOf(u);
-      sRings.push({
+      const ring = {
         pts: fabricRingPts(c, basis.e1, basis.e2, profOf(t), SS, {
           pleat: { k: WK.sleevePleats, ampU: WK.sleeveAmpMm * anc.mm, phase: 0, env },
           sagU: WK.sleeveSagMm * anc.mm * env, env,
         }),
         c,
-      });
+      };
+      // body rings ride the shoulder where they'd float; the FIN rings (the
+      // visible hem lip) stay purely constructed
+      sRings.push(snapRootRing(ring, t));
     }
     const dt = (S.sleeveDropCm * anc.cm) / armLen;   // drop along the arm axis
     const fin = [
@@ -1471,12 +1622,31 @@ function buildFabricShirt(body, anc, mat) {
     // weights — the two move together, no seam.
     const srcChain = new Set([...chain, 'Spine', 'Spine1', 'Spine2', 'Spine3']);
     const srcFilter = (i) => srcChain.has(rawName(anc.skin.skeleton.bones[anc.dom[i]].name));
-    sleeveTubes.push({ rings: sRings, axis: ax.clone(), cap: { at: 0, dir: ax.clone().negate() }, side, srcFilter });
+    // v9.2 ARM-PREFERRED SOURCING (wiring the v9.1 srcPrefer machinery to the
+    // sleeves — it was built for exactly this and never connected): every
+    // vert that CAN source from the ARM CHAIN within ~4 cm does — same side
+    // of the shoulder joint, so arm swings keep the offset rigid (the mid-
+    // sleeve inner sector was sourcing chest verts across the joint and its
+    // ring edges strained 4.3-4.5 cm past the body's own at walk/headshake —
+    // measured). Only the root's chest-side sector (no arm flesh within the
+    // radius) falls back to the nearest overall — LOCAL spine flesh, short
+    // offset, and the torso tube carries the same weights (no seam).
+    const srcPrefer = (i) => chain.has(rawName(anc.skin.skeleton.bones[anc.dom[i]].name));
+    sleeveTubes.push({
+      rings: sRings, axis: ax.clone(), cap: { at: 0, dir: ax.clone().negate() }, side,
+      srcFilter, srcPrefer, preferRadius: (SL.preferArmCm ?? 8) * anc.cm, srcPin: snapPins,
+    });
   }
 
+  // v9.3 note: a torso limb filter (spine/neck/shoulder only) was tried here
+  // and REVERTED — the chest wall's armpit sector then sourced 5-10 cm away
+  // (the nearest torso-chain vert is across the trap), re-inflating Δsource
+  // to 10.3 cm. Nearest-overall torso sourcing stays: its worst in-ring edge
+  // (armpit sector, arm↔spine sources) strains ~3 cm past the body's own —
+  // inside the v8 bar, and the pair's own body edge absorbs most of it.
   const { mesh, ringStarts } = fabricLattice(body, 'tshirt', mat, [
     { rings, axis: UP.clone() },
-    ...sleeveTubes.map((t) => ({ rings: t.rings, axis: t.axis, cap: t.cap, srcFilter: t.srcFilter })),
+    ...sleeveTubes.map((t) => ({ rings: t.rings, axis: t.axis, cap: t.cap, srcFilter: t.srcFilter, srcPrefer: t.srcPrefer, preferRadius: t.preferRadius, srcPin: t.srcPin })),
   ], 0.4);
 
   // opening reports (hemCheck + the v7 collar probe contracts)
@@ -2285,6 +2455,26 @@ function buildFabricPhysics(root, skeleton, body, garments, allCapList, PH, unit
           const v2 = vx * vx + vy * vy + vz * vz;
           const fk = sleepVelU * 0.8;
           if (v2 < fk * fk) { vx = 0; vy = 0; vz = 0; }
+        }
+        // v9.3 POST-PUSH CLAMP: the collider exit is unbounded — a lagging
+        // hem vert deep inside the SWINGING arm capsule gets shoved along the
+        // shortest exit, which for adjacent verts on opposite sides of the
+        // arm is TANGENTIAL WRAPAROUND: a 1.6 cm hem edge measured 10.5 cm at
+        // swagger@0.25 (a torn-looking ring). Fabric cannot do that: TOTAL
+        // displacement from the skinned target — spring lag AND collider exit
+        // together — stays within the clamp + the construction slop (the
+        // rings legitimately ride up to slop inside the collider anyway).
+        {
+          const ddx2 = px - sx, ddy2 = py - sy, ddz2 = pz - sz;
+          const dLen2 = Math.hypot(ddx2, ddy2, ddz2);
+          const maxD2 = maxD + slopU;
+          if (dLen2 > maxD2 && dLen2 > 1e-9) {
+            const c3 = maxD2 / dLen2;
+            px = sx + ddx2 * c3; py = sy + ddy2 * c3; pz = sz + ddz2 * c3;
+            // kill the excess velocity too, or the spring re-inflates it
+            const rdot2 = ((px - sx) * vx + (py - sy) * vy + (pz - sz) * vz) / (maxD2 * maxD2);
+            if (rdot2 > 0) { vx -= rdot2 * (px - sx); vy -= rdot2 * (py - sy); vz -= rdot2 * (pz - sz); }
+          }
         }
         part.P[k3] = px; part.P[k3 + 1] = py; part.P[k3 + 2] = pz;
         part.vel[k3] = vx; part.vel[k3 + 1] = vy; part.vel[k3 + 2] = vz;

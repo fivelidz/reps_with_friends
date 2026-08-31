@@ -23,10 +23,6 @@ const { targetId } = (await send('Target.createTarget', { url: 'about:blank' }))
 const { sessionId } = (await send('Target.attachToTarget', { targetId, flatten: true })).result;
 await send('Page.enable', {}, sessionId);
 await send('Runtime.enable', {}, sessionId);
-// v9.2: disable the HTTP cache — a reused user-data-dir served a stale
-// geno-derived.js across edits and every "no change" result was a lie
-await send('Network.enable', {}, sessionId);
-await send('Network.setCacheDisabled', { cacheDisabled: true }, sessionId);
 if (process.argv.includes('--reduced')) {
   await send('Emulation.setEmulatedMedia', { features: [{ name: 'prefers-reduced-motion', value: 'reduce' }] }, sessionId);
 }
@@ -52,9 +48,9 @@ const argv = process.argv.slice(2).filter((a) => a !== '--reduced');
 const expr = argv[0] === '-f'
   ? (await Bun.file(argv[1]).text())
   : (argv[0] ?? '1+1');
-const out = await ev(expr);
-if (typeof out === "string" && out.startsWith("data:image")) await Bun.write("/tmp/v9_waist_now.png", Buffer.from(out.split(",")[1], "base64"));
-console.log(typeof out === 'object' ? JSON.stringify(out, null, 1) : out);
+const rr = await send('Runtime.evaluate', { expression: expr, awaitPromise: true, returnByValue: true }, sessionId);
+console.log('RAW KEYS:', Object.keys(rr ?? {}), 'sub:', JSON.stringify(rr?.result ?? rr).slice(0, 1500));
+if (rr?.exceptionDetails) console.log('EXCDETAILS:', JSON.stringify(rr.exceptionDetails).slice(0, 1200));
 if (errors.length) console.log('ERRORS:', errors.slice(0, 5));
 await send('Browser.close', {}).catch(() => {});
 process.exit(0);

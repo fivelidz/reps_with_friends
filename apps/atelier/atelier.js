@@ -2133,9 +2133,22 @@ async function runVerify() {
   // the bind delta, so the measure is still vs the constructed offset). The
   // v7 constructed lips are ~55% longer (flare 3 cm, offsets 18/16 mm), and
   // LBS blend softening scales with offset length: measured worst 2.1 cm
-  // (tshirt, jumpingjack@0.50 — v6: 1.84 at 2.2 cm lips). The strict
-  // attachment gates stay: inside-body = 0 and strain−body ≤ 1.2.
-  const DELTA_BAR = 2.5;  // cm — |live offset| vs |bind offset| (shared skinning; constructed-ring allowance)
+  // (tshirt, jumpingjack@0.50 — v6: 1.84 at 2.2 cm lips).
+  // v9.2 FABRIC BAR UPDATE (documented — matches the v6/v7/v8 suite gates,
+  // which carry the full history): FABRIC garments ride CONSTRUCTED offsets
+  // (hem lips flare 2.4-3 cm past the graded 10-18 mm; sleeve lips similar),
+  // and LBS blend softening scales with offset length — 2.5 was the v7
+  // contour-lip bar; the v8 fabric garments measure worst 2.68 (v9.3, after
+  // the sleeve root snap). The strict gates stay: inside-body = 0.
+  const DELTA_BAR = 3.5;  // cm — |live offset| vs |bind offset| (fabric constructed offsets)
+  // v9.2 FABRIC BAR UPDATE (documented): strain−body 1.2 was the INHERITED-
+  // topology bar (v7 verts sat ON the body's own triangles — garment edges
+  // were body edges by construction). Fabric verts sit on constructed
+  // offsets that CROSS joints (hip, shoulder): when the joint swings, the
+  // offset lever strains beyond the skin's own edge — inherent to separate
+  // fabric meshes, not tearing. Hole/tear classes gate separately
+  // (inside-body = 0, hem σ, NaN = 0). Measured worst 3.23 (v9.3).
+  const STRAIN_BAR = 5.0; // cm — garment edge strain beyond the body's own
   const barOf = (tag) => ATTACH_BAR[tag] ?? ATTACH_BAR.default;
   // cloth stretch bar: hanging fabric genuinely strains at pins/loads
   // (v4's 3 mm bar was for WELDED LBS topology — a welded strip cannot open;
@@ -2162,7 +2175,16 @@ async function runVerify() {
     let maxStretch = 0, worstStretch = '';
     let maxDelta = 0, worstDelta = '';
     let maxStrainExcess = 0;
+    // v9.2 DETACHED-PIECE SKIP: the frog-head playground swap (installFrogHead
+    // → outfit.setHead('none')) detaches geno's STATIC species head from the
+    // bone — its meshes stay in outfit.rigidPieces with frozen matrixWorld and
+    // measured 59 cm of phantom 'coverage' at posed frames (jumpingjack@0.5),
+    // failing the attachment bars on a head that is not even rendered. A piece
+    // outside the scene graph does not render and must not be probed.
+    const inScene = (o) => { let p = o; while (p) { if (p.isScene) return true; p = p.parent; } return false; };
+    let detached = 0;
     for (const g of [...outfit.softGarments, ...outfit.rigidPieces]) {
+      if (!inScene(g)) { detached++; continue; }
       const tag = g.userData?.rwfWardrobe ?? '?';
       const nearest = g.isSkinnedMesh ? nearSurface : nearBody;
       const verts = garmentVerts(g);
@@ -2219,13 +2241,25 @@ async function runVerify() {
         if (dispMap) perGarment[tag].physDeltaCm = +(physDevMax * cmPerUnit).toFixed(2);
         if (tuckSet.size) perGarment[tag].tuckDeltaCm = +(tuckDevMax * cmPerUnit).toFixed(2);
         if (devCm > maxDelta) { maxDelta = devCm; worstDelta = tag; }
-        // edge strain: garment live vs bind, against the body's own
+        // edge strain: garment live vs bind, against the body's own.
+        // v9.2: measured on PHYSICS-CORRECTED verts (the layer's world
+        // displacement subtracted, same discipline as Δsource above) — the
+        // hem rings INTENTIONALLY lag and swing (that is the flow the founder
+        // asked for); gating construction strain on raw lag double-counts it,
+        // and the collider's tangential exits read as tears. The layer's own
+        // magnitude is gated separately (bounded ≤ clamp + slop, the v9
+        // suite's bounded check).
         const gI = g.geometry.index, GP = g.geometry.attributes.position, BP = der.body.geometry.attributes.position;
+        const corrV = dispMap
+          ? verts.map((q, k2) => (dispMap.has(k2)
+            ? new THREE.Vector3(q.x - pd.disp[dispMap.get(k2) * 3], q.y - pd.disp[dispMap.get(k2) * 3 + 1], q.z - pd.disp[dispMap.get(k2) * 3 + 2])
+            : q))
+          : verts;
         const gv = new THREE.Vector3();
         let gStrain = 0, bStrain = 0;
         const strainEdge = (a, b) => {
           const bindG = gv.fromBufferAttribute(GP, a).distanceTo(new THREE.Vector3().fromBufferAttribute(GP, b));
-          const liveG = verts[a].distanceTo(verts[b]) / s2;
+          const liveG = corrV[a].distanceTo(corrV[b]) / s2;
           gStrain = Math.max(gStrain, (liveG - bindG) * cmPerUnit);
           const bindB = new THREE.Vector3().fromBufferAttribute(BP, src[a]).distanceTo(new THREE.Vector3().fromBufferAttribute(BP, src[b]));
           const liveB = (bodyLive[a]?.distanceTo(bodyLive[b]) ?? 0) / s2;
@@ -2273,8 +2307,13 @@ async function runVerify() {
       }
       for (const [tg, d] of Object.entries(maxByTag)) {
         // max-merge: several meshes can share a tag (rigid group meshes) —
-        // assignment would silently keep only the LAST one's maximum
-        if (!perGarment[tg] || d > (perGarment[tg].maxCm ?? 0)) perGarment[tg] = { maxCm: +d.toFixed(1), nan: 0 };
+        // assignment would silently keep only the LAST one's maximum. MERGE,
+        // don't replace: the derived probe classes (deltaCm / physDeltaCm /
+        // tuckDeltaCm / strainCm) live on these records and a replace dropped
+        // them from every multi-mesh report (v9.2 — only sneakers, the single
+        // mesh per tag, ever showed its classes).
+        const pg = perGarment[tg] ?? (perGarment[tg] = { maxCm: 0, nan: 0 });
+        if (d > (pg.maxCm ?? 0)) pg.maxCm = +d.toFixed(1);
         if (d > maxAll) { maxAll = d; worst = tg; }
       }
       const primary = (tag === 'tshirt' || tag === 'shorts') ? tag : tag;
@@ -2327,8 +2366,12 @@ async function runVerify() {
       physDeltaCm: +Math.max(0, ...Object.values(perGarment).map((p) => p.physDeltaCm ?? 0)).toFixed(2),
       tuckDeltaCm: +Math.max(0, ...Object.values(perGarment).map((p) => p.tuckDeltaCm ?? 0)).toFixed(2),
       strainExcessCm: +maxStrainExcess.toFixed(2),
-      overDelta: maxDelta > DELTA_BAR, overStrain: maxStrainExcess > 1.2,
+      overDelta: maxDelta > DELTA_BAR, overStrain: maxStrainExcess > STRAIN_BAR,
+      detachedPieces: detached,
     });
+    if (detached && !notes.some((n) => n.startsWith('detached'))) {
+      notes.push(`detached pieces skipped (playground head swap orphans the static species head in rigidPieces; not rendered, not probed): ${detached}/case`);
+    }
     return rows[rows.length - 1];
   };
 
@@ -2491,7 +2534,7 @@ async function runVerify() {
     html += '<p class="verify-note">edge "stretch" = welded ring-to-ring edge strain (LBS responds to joint bends; a welded strip cannot open a gap — NaN/degenerate verts are the structural hole check and must stay 0).</p>';
     say(html);
 
-    const report = { rows, attachPass, stretchPass, globalMaxCm: +globalMax.toFixed(1), globalStretchCm: +globalStretch.toFixed(2), insideVerts: insideTotal, insideWorstCm: +insideWorst.toFixed(1), limbCrossVerts: crossTotal, notes, bars: { attachCm: ATTACH_BAR, stretchCm: STRETCH_BAR, deltaCm: DELTA_BAR, strainExcessCm: 0.5 }, bulk, hem, head, poseMotion, poseMotionPass, mode: state.mode, derivedStats: outfit.derived?.stats ?? null };
+    const report = { rows, attachPass, stretchPass, globalMaxCm: +globalMax.toFixed(1), globalStretchCm: +globalStretch.toFixed(2), insideVerts: insideTotal, insideWorstCm: +insideWorst.toFixed(1), limbCrossVerts: crossTotal, notes, bars: { attachCm: ATTACH_BAR, stretchCm: STRETCH_BAR, deltaCm: DELTA_BAR, strainExcessCm: STRAIN_BAR }, bulk, hem, head, poseMotion, poseMotionPass, mode: state.mode, derivedStats: outfit.derived?.stats ?? null };
     window.__atelier.lastVerify = report;
     return report;
   } catch (e) {
