@@ -1,0 +1,150 @@
+/* style-library/theme-volkus.css — the "volkus" material kit.
+   Tokens + .mat- primitives only. RWF app bindings (fg / bd classes)
+   live in design/themes.css. Name/label/provenance: README.md. */
+
+/* ═══════════════════════════════════════════════════════════════════════
+   20 · HUMANIST (volkus) — FROM THE FOUNDER'S SITE volkus.net
+   Mined 2026-09-03 from the live "People. Together. Unmasked." site:
+   quiet near-black #0d0d0d neutrals, warm brown accent #c27840 ("the
+   mixed skin tone"), pale warm #f0c49a, Georgia serif display +
+   Courier New mono (system fonts — nothing to vendor), 6px radii, no
+   glow, and the eight-step SKIN-TONE RAMP #F5D5B8 → #2C1506 used as
+   gradient bars. Human, serious, warm.
+   Describe it as: a portrait gallery at dusk — quiet black walls, warm
+   brown spotlights, serif names, typewriter captions, and a gradient of
+   eight skin tones running through every chart like a signature.
+   ═══════════════════════════════════════════════════════════════════════ */
+
+[data-theme="volkus"] {
+  --bg: #0d0d0d;                /* neutral near-black (volkus --bg) */
+  --surface: #141414;
+  --surface-2: #1a1a1a;
+  --line: #2a2a2a;
+  --line-bright: #3a3a3a;
+  --text: #e8e0d5;              /* warm paper-white */
+  --muted: #b3a894;
+  --faint: #9a917f;             /* 6.2:1 on black */
+  --faint-deco: #6a6355;
+
+  --lime: #c27840;              /* warm brown — the mixed tone — primary */
+  --lime-dim: #A0612E;
+  --lime-glow: rgba(194, 120, 64, 0.18);
+  --coral: #d4552e;             /* effort — the louder warm */
+  --coral-glow: rgba(212, 85, 46, 0.16);
+  --amber: #d4a24e;
+  --sky: #f0c49a;               /* pale warm — info (volkus --accent2) */
+
+  --success: #7ca871;
+  --danger: #d95252;             /* 4.9:1 as text on the black walls */
+  --urgency: #d4552e;           /* 4.8:1 with near-black ink */
+
+  --energy: #9a7ab8;
+  --energy-light: #b79dd6;
+  --energy-tint: #262030;
+
+  --dz-bg: #0a0a0a;
+  --dz3-surface: #241612;
+  --dz-hero: #2c1506;           /* the deepest skin tone */
+
+  --font-display: Georgia, 'Times New Roman', serif;
+  --font-body: -apple-system, BlinkMacSystemFont, 'Segoe UI', sans-serif;
+  --font-mono: 'Courier New', 'Lucida Console', monospace;
+
+  --radius: 6px;                /* volkus's quiet 6px */
+  --radius-sm: 4px;
+  --radius-lg: 8px;
+  --radius-xl: 10px;
+  --pill: 999px;
+
+  --on-accent: #140a04;         /* 5.6:1 on warm brown */
+  --primary-hover: #d48a50;
+  --on-warn: #140a04;           /* 4.8:1 on the louder warm */
+
+  --on-gold: #140a04;
+
+  /* volkus extras — the skin-tone ramp (site's own palette, in order) */
+  --skin-white: #F5D5B8;
+  --skin-east-asian: #F0C49A;
+  --skin-latino: #D4956A;
+  --skin-s-asian: #C27840;
+  --skin-mixed: #A0612E;
+  --skin-m-east: #7A4118;
+  --skin-black-l: #4A2410;
+  --skin-black-d: #2C1506;
+  --skin-ramp: linear-gradient(90deg, #F5D5B8, #F0C49A, #D4956A, #C27840, #A0612E, #7A4118, #4A2410, #2C1506);
+}
+
+/* ── volkus · MATERIAL — the portrait wall ─────────────────────────────── */
+[data-theme="volkus"] {
+  --mat-page:
+    radial-gradient(70% 50% at 50% -10%, rgba(194, 120, 64, 0.07), transparent 60%),
+    linear-gradient(#0d0d0d, #0a0a0a 70%);
+}
+[data-theme="volkus"] .mat-surface {           /* quiet plate, ramp top edge */
+  background: linear-gradient(180deg, rgba(240, 196, 154, 0.03), transparent 20%), var(--surface);
+  border: 1px solid var(--line);
+  border-top: 3px solid transparent;
+  border-image: linear-gradient(90deg, #F5D5B8, #C27840, #2C1506) 1;
+  border-image-slice: 1 0 0 0;
+  border-radius: 0;              /* border-image ignores radius — the plate is honest */
+  box-shadow: 0 14px 34px -14px rgba(0, 0, 0, 0.8);
+}
+[data-theme="volkus"] .mat-btn {               /* understated warm action */
+  font-family: var(--font-display); font-style: italic;
+  border-radius: 6px;
+  border: 1px solid rgba(194, 120, 64, 0.55);
+  background: rgba(194, 120, 64, 0.12);
+  color: var(--text);
+  box-shadow: none;
+  transition: background 0.2s ease, color 0.2s ease;
+}
+[data-theme="volkus"] .mat-btn:hover { background: var(--lime); color: var(--on-accent); }
+[data-theme="volkus"] .mat-btn:active { background: var(--lime-dim); color: var(--on-accent); }
+[data-theme="volkus"] .mat-btn--ghost { border-color: var(--line-bright); background: transparent; }
+[data-theme="volkus"] .mat-num {               /* serif italic — a portrait caption */
+  font-family: Georgia, serif; font-style: italic;
+  color: var(--sky);
+}
+[data-theme="volkus"] .mat-divider {           /* the ramp as a hairline — signature */
+  height: 2px; border-radius: 2px;
+  background: var(--skin-ramp);
+  opacity: 0.85;
+}
+[data-theme="volkus"] .mat-progress { border-radius: 3px; background: #1a1a1a; box-shadow: inset 0 0 0 1px var(--line); }
+[data-theme="volkus"] .mat-progress i {        /* the ramp fill — every bar is people */
+  border-radius: 3px;
+  background: var(--skin-ramp);
+}
+[data-theme="volkus"] .mat-chip {              /* tone chips — each pick a person */
+  font-family: var(--font-mono); font-size: 0.84em;
+  border-radius: 999px; border: 1px solid var(--line-bright);
+  background: transparent;
+}
+[data-theme="volkus"] .mat-chip:nth-of-type(8n+1).is-on { background: var(--skin-white); color: #3a2a18; border-color: transparent; }
+[data-theme="volkus"] .mat-chip:nth-of-type(8n+2).is-on { background: var(--skin-east-asian); color: #3a2414; border-color: transparent; }
+[data-theme="volkus"] .mat-chip:nth-of-type(8n+3).is-on { background: var(--skin-latino); color: #2c180a; border-color: transparent; }
+[data-theme="volkus"] .mat-chip:nth-of-type(8n+4).is-on { background: var(--skin-s-asian); color: #140a04; border-color: transparent; }
+[data-theme="volkus"] .mat-chip:nth-of-type(8n+5).is-on { background: var(--skin-mixed); color: #f5e8dc; border-color: transparent; }
+[data-theme="volkus"] .mat-chip:nth-of-type(8n+6).is-on { background: var(--skin-m-east); color: #f5e8dc; border-color: transparent; }
+[data-theme="volkus"] .mat-chip:nth-of-type(8n+7).is-on { background: var(--skin-black-l); color: #f5e8dc; border-color: transparent; }
+[data-theme="volkus"] .mat-chip:nth-of-type(8n+8).is-on,
+[data-theme="volkus"] .mat-chip.is-on { background: var(--skin-black-d); color: #f0c49a; border-color: transparent; }
+[data-theme="volkus"] .mat-input { border-radius: 4px; border: 1px solid var(--line-bright); font-family: var(--font-mono); background: #101010; }
+[data-theme="volkus"] .mat-avatar { border-radius: 6px; border: 1px solid var(--line-bright); filter: saturate(0.9); }
+[data-theme="volkus"] .mat-dialog {
+  border: 1px solid var(--line-bright);
+  border-top: 3px solid transparent;
+  border-image: linear-gradient(90deg, #F5D5B8, #C27840, #2C1506) 1;
+  border-image-slice: 1 0 0 0;
+  background: var(--surface);
+  box-shadow: 0 24px 60px -16px rgba(0, 0, 0, 0.9);
+}
+[data-theme="volkus"] .mat-dialog__title { font-family: Georgia, serif; font-style: italic; }
+[data-theme="volkus"] .mat-badge { font-family: 'Courier New', monospace; border-radius: 4px; border: 1px solid rgba(240, 196, 154, 0.4); color: var(--sky); }
+[data-theme="volkus"] .mat-dz {
+  font-family: 'Courier New', monospace;
+  border-radius: 4px;
+  border: 1px solid rgba(212, 85, 46, 0.5);
+  border-left: 4px solid var(--coral);
+  background: linear-gradient(90deg, rgba(212, 85, 46, 0.12), transparent 70%), var(--surface);
+}

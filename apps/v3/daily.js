@@ -8,9 +8,10 @@
    apps/figma-app/daily.js @ 2026-09-02 (v1.0.0) — no edits below; it
    imports the forked ./engine.js + ./state.js (rwf.board.v2 keys).
    The temporal game loop: play-day deadlines, the 3-level DANGER ZONE
-   ramp (3h/1h/30min), daily winners + recaps, the app ticker. The board
-   app reads deadlineFor/fmtClock/dangerLevel for its RACE CLOCK and the
-   lap counter (playDays → laps).
+   ramp (3h/1h/30min), daily winners + recaps, the app ticker. V3 reads
+   deadlineFor/fmtClock/dangerLevel for its BATTLE CLOCK and the danger
+   zone banner (v3 note: the v2 header above mentioned the board app's
+   lap counter — no such concept here; battle language only).
    ═══════════════════════════════════════════════════════════════════════
    (verbatim v1 docs for the ported body below)
    Pure functions over engine/state + one small app ticker. NO engine.js

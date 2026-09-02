@@ -1,0 +1,91 @@
+/* style-library/theme-gold.css — the "gold" material kit.
+   Tokens + .mat- primitives only. RWF app bindings (fg / bd classes)
+   live in design/themes.css. Name/label/provenance: README.md. */
+
+/* ═══════════════════════════════════════════════════════════════════════
+   2 · GOLD ARCADE — "a late-night arcade cabinet"
+   Describe it as: deep purple cabinet shell, marquee-gold chunky buttons
+   that physically press, dot-grid CRT backdrop, Anton capitals.
+   ═══════════════════════════════════════════════════════════════════════ */
+
+[data-theme="gold"] {
+  --bg: var(--ink);             /* #0b0a12 — purple-ink, not blue-black */
+  --surface: var(--ink-surface);      /* #14121f */
+  --surface-2: var(--ink-raised);     /* #1b1830 */
+  --line: var(--ink-line);            /* #26263a */
+  --line-bright: var(--ink-line-strong); /* #3b3b52 */
+  --text: #ffffff;
+  --muted: #c2c2d1;
+  --faint: #8e8ea3;
+  --faint-deco: #63637a;
+
+  --lime: var(--gold);                /* slot semantics: primary accent */
+  --lime-dim: var(--gold-strong);
+  --lime-glow: var(--gold-glow);
+  --coral: var(--urgency);            /* his orange is effort + warning */
+  --coral-glow: rgba(255, 138, 0, 0.14);
+  --amber: var(--urgency);
+  --sky: #4da3ff;
+
+  --success: #34d399;
+  --danger: #ff4d5e;
+  --urgency: #ff8a00;
+
+  --energy: #8b5cf6;
+  --energy-light: #b79dfb;
+  --energy-tint: #2a1f4d;
+
+  --dz-bg: #150810;
+  --dz3-surface: #2a1020;
+  --dz-hero: #3a0f1b;
+
+  --font-display: 'Anton', 'Space Grotesk', system-ui, sans-serif;
+  --font-body: 'Inter', 'Space Grotesk', system-ui, sans-serif;
+  --font-mono: ui-monospace, 'Cascadia Code', 'SF Mono', Menlo, monospace;
+
+  --radius: 14px;
+  --radius-sm: 9px;
+  --radius-lg: 16px;
+  --radius-xl: 24px;
+  --pill: 999px;
+
+  --on-accent: #07060d;         /* his text/on-accent — 13.0:1 on gold */
+  --primary-hover: #e0a800;     /* his gold-strong */
+  --on-warn: #07060d;           /* 8.6:1 on his orange */
+
+  --on-gold: var(--on-accent);  /* app safety — see lime block */
+}
+/* ── gold · MATERIAL — cabinet shell + marquee gold ──────────────────── */
+[data-theme="gold"] {
+  --mat-page:
+    radial-gradient(circle at 18px 18px, rgba(232, 181, 74, 0.07) 1.6px, transparent 2px),
+    radial-gradient(130% 90% at 50% -10%, #2a1f52, #171034 58%, #100b24);
+}
+[data-theme="gold"] body { background-size: 26px 26px, auto; }   /* dot grid tiles */
+[data-theme="gold"] .mat-surface {           /* cab side panel, lit top */
+  background:
+    linear-gradient(180deg, rgba(232, 181, 74, 0.10), transparent 26%),
+    var(--surface);
+  border-radius: 18px;
+  border-color: color-mix(in srgb, var(--gold) 26%, var(--ink-line));
+  box-shadow: 0 14px 34px rgba(6, 3, 18, 0.6);
+}
+[data-theme="gold"] .mat-btn {               /* chunky arcade press */
+  font-family: var(--font-display);
+  letter-spacing: 0.04em;
+  border-radius: 12px;
+  border: 2px solid #241a04;
+  box-shadow: 0 6px 0 var(--gold-strong), 0 10px 22px rgba(6, 3, 18, 0.55);
+  transition: transform 0.09s ease, box-shadow 0.09s ease;
+}
+[data-theme="gold"] .mat-btn:active { transform: translateY(5px); box-shadow: 0 1px 0 var(--gold-strong), 0 3px 8px rgba(6, 3, 18, 0.55); }
+[data-theme="gold"] .mat-num {
+  font-family: 'Anton', 'Space Grotesk', sans-serif;
+  text-shadow: 0 2px 0 rgba(36, 26, 4, 0.55), 0 0 26px var(--gold-glow);
+}
+[data-theme="gold"] .mat-divider { height: 3px; background: transparent; border-top: 3px double color-mix(in srgb, var(--gold) 55%, transparent); }
+[data-theme="gold"] .mat-progress { background: #241c46; }
+[data-theme="gold"] .mat-progress i {
+  border-radius: 12px;
+  background-image: repeating-linear-gradient(90deg, rgba(36, 26, 4, 0.28) 0 2px, transparent 2px 9px), linear-gradient(var(--gold), var(--gold-strong));
+}

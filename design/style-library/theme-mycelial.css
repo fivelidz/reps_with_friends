@@ -1,0 +1,163 @@
+/* style-library/theme-mycelial.css — the "mycelial" material kit.
+   Tokens + .mat- primitives only. RWF app bindings (fg / bd classes)
+   live in design/themes.css. Name/label/provenance: README.md. */
+
+/* ═══════════════════════════════════════════════════════════════════════
+   7 · MYCELIAL — "a bioluminescent root network"
+   Describe it as: a dark forest floor veined with glowing mycelium —
+   tendril dividers that grew there, spores drifting in the air, buttons
+   that are fungus caps (dome above, gills beneath), progress as growth
+   rings. Everything breathes.
+   ═══════════════════════════════════════════════════════════════════════ */
+
+[data-theme="mycelial"] {
+  --bg: #171009;                /* deep soil */
+  --surface: #1f1710;
+  --surface-2: #271d14;
+  --line: #332617;
+  --line-bright: #473522;
+  --text: #f2e9da;
+  --muted: #c9b9a3;
+  --faint: #ab9a82;
+  --faint-deco: #7d6e58;
+
+  --lime: #4fe3c1;              /* spore teal — primary */
+  --lime-dim: #37b598;
+  --lime-glow: rgba(79, 227, 193, 0.15);
+  --coral: #ff9a73;
+  --coral-glow: rgba(255, 154, 115, 0.13);
+  --amber: #ffcf7d;
+  --sky: #8fd4f2;
+
+  --success: #5fd6a9;
+  --danger: #ff7080;
+  --urgency: #ffa259;
+
+  --energy: #c9a1ff;
+  --energy-light: #ddc6ff;
+  --energy-tint: #2c2244;
+
+  --dz-bg: #130d07;
+  --dz3-surface: #33200f;
+  --dz-hero: #3b2410;
+
+  --font-display: 'Fredoka', 'Space Grotesk', system-ui, sans-serif;
+  --font-body: 'Inter', system-ui, sans-serif;
+  --font-mono: ui-monospace, 'Cascadia Code', 'SF Mono', Menlo, monospace;
+
+  --radius: 20px;
+  --radius-sm: 14px;
+  --radius-lg: 26px;
+  --radius-xl: 34px;
+  --pill: 999px;
+
+  --on-accent: #03251d;         /* 10.4:1 on spore teal */
+  --primary-hover: #7cf0d4;
+  --on-warn: #241304;           /* 8.0:1 on urgency */
+
+  --on-gold: var(--on-accent);
+
+  /* board extras — mossy forest floor */
+  --felt: #1d1c0e;
+  --felt-deep: #100f08;
+  --felt-line: rgba(79, 227, 193, 0.20);
+  --rail: #0b0a06;
+  --rail-edge: rgba(79, 227, 193, 0.14);
+  --card-back-1: #1c332b;
+  --card-back-2: #0e1a14;
+  --card-face: #262017;
+  --pop-shadow: #0c5b49;
+  --speed: 1.05s;               /* drifting, unhurried */
+}
+/* ── mycelial · MATERIAL — spores, caps, tendrils ────────────────────── */
+[data-theme="mycelial"] {
+  --mat-page:
+    url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='300' height='300'%3E%3Cg fill='%234fe3c1'%3E%3Ccircle cx='24' cy='40' r='1.5' opacity='0.5'/%3E%3Ccircle cx='90' cy='18' r='1' opacity='0.32'/%3E%3Ccircle cx='150' cy='70' r='1.8' opacity='0.4'/%3E%3Ccircle cx='230' cy='34' r='1.1' opacity='0.3'/%3E%3Ccircle cx='276' cy='96' r='1.6' opacity='0.45'/%3E%3Ccircle cx='60' cy='130' r='1.2' opacity='0.28'/%3E%3Ccircle cx='122' cy='168' r='1.7' opacity='0.4'/%3E%3Ccircle cx='200' cy='140' r='1' opacity='0.3'/%3E%3Ccircle cx='258' cy='204' r='1.4' opacity='0.36'/%3E%3Ccircle cx='36' cy='230' r='1.9' opacity='0.42'/%3E%3Ccircle cx='170' cy='256' r='1.1' opacity='0.3'/%3E%3Ccircle cx='240' cy='278' r='1.5' opacity='0.34'/%3E%3Ccircle cx='104' cy='288' r='1.2' opacity='0.26'/%3E%3C/g%3E%3Cg fill='none' stroke='%234fe3c1' stroke-opacity='0.16' stroke-width='1'%3E%3Cpath d='M0 60 Q40 55 70 66 T140 58'/%3E%3Cpath d='M180 30 Q220 40 250 28 T300 44'/%3E%3Cpath d='M20 190 Q60 200 90 188 T170 196'/%3E%3Cpath d='M150 250 Q200 240 230 254 T300 246'/%3E%3C/g%3E%3C/svg%3E"),
+    radial-gradient(90% 60% at 50% 110%, rgba(79, 227, 193, 0.07), transparent 60%),
+    linear-gradient(#101a12, #0d1410);
+  background-size: 300px 300px, auto, auto;
+}
+[data-theme="mycelial"] body { background-size: 300px 300px, auto, auto; }
+[data-theme="mycelial"] .mat-surface {         /* an organism — grown, not cut */
+  background:
+    radial-gradient(120% 90% at 30% 0%, rgba(79, 227, 193, 0.07), transparent 55%),
+    var(--surface);
+  border: 1px solid rgba(79, 227, 193, 0.22);
+  border-radius: 40px 30px 44px 34px / 34px 44px 30px 40px;
+  box-shadow: 0 14px 34px rgba(4, 12, 9, 0.6), inset 0 0 26px rgba(79, 227, 193, 0.05);
+  animation: matBreathe 7s ease-in-out infinite;
+}
+[data-theme="mycelial"] .mat-btn {             /* FUNGUS CAP — dome + gills */
+  font-family: var(--font-display); font-weight: 500;
+  color: #0c1712;
+  background:
+    radial-gradient(120% 150% at 50% -40%, #d8fff2 8%, var(--lime) 42%, var(--lime-dim) 88%);
+  border: 0;
+  border-radius: 30px 30px 16px 16px;          /* dome top, narrower underside */
+  padding: 13px 22px 11px;
+  box-shadow:                                /* gill shadow beneath the cap */
+    inset 0 -7px 10px rgba(9, 40, 30, 0.45),
+    inset 0 2px 2px rgba(255, 255, 255, 0.5),
+    0 10px 22px rgba(19, 84, 66, 0.4),
+    0 0 24px rgba(79, 227, 193, 0.14);
+  transition: transform 0.4s cubic-bezier(0.22, 1, 0.36, 1), box-shadow 0.4s ease;
+}
+[data-theme="mycelial"] .mat-btn::after {      /* gill lines under the rim */
+  content: "";
+  position: absolute; left: 14%; right: 14%; bottom: 4px; height: 4px;
+  background: repeating-linear-gradient(90deg, rgba(9, 40, 30, 0.5) 0 2px, transparent 2px 6px);
+  border-radius: 2px;
+  opacity: 0.8;
+}
+[data-theme="mycelial"] .mat-btn:hover { transform: translateY(-2px) scale(1.015); }
+[data-theme="mycelial"] .mat-btn:active {
+  transform: translateY(1px) scale(0.98);
+  box-shadow: inset 0 -4px 8px rgba(9, 40, 30, 0.5), 0 5px 12px rgba(19, 84, 66, 0.35);
+}
+[data-theme="mycelial"] .mat-btn--ghost {
+  background: rgba(79, 227, 193, 0.08);
+  color: #8ef0da;
+  border-radius: 24px 24px 14px 14px;
+}
+[data-theme="mycelial"] .mat-num {
+  font-family: 'Fredoka', sans-serif; font-weight: 600;
+  color: #a9f5e2;
+  text-shadow: 0 0 22px rgba(79, 227, 193, 0.35);
+  animation: matBreathe 9s ease-in-out infinite;
+}
+[data-theme="mycelial"] .mat-divider {         /* THE TENDRIL — it grew here */
+  height: 26px;
+  background:
+    url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='360' height='26'%3E%3Cg fill='none' stroke='%234fe3c1' stroke-linecap='round'%3E%3Cpath d='M0 20 Q30 22 48 16 Q70 8 96 14 Q120 20 142 12 Q160 6 180 12 Q204 20 228 13 Q250 7 274 14 Q296 20 318 13 Q340 7 360 12' stroke-opacity='0.55' stroke-width='1.6'/%3E%3Cpath d='M48 16 Q44 8 52 3' stroke-opacity='0.4' stroke-width='1.2'/%3E%3Cpath d='M96 14 Q98 5 92 1' stroke-opacity='0.35' stroke-width='1'/%3E%3Cpath d='M142 12 Q146 4 140 0' stroke-opacity='0.4' stroke-width='1.2'/%3E%3Cpath d='M228 13 Q224 5 232 1' stroke-opacity='0.35' stroke-width='1'/%3E%3Cpath d='M318 13 Q322 5 316 1' stroke-opacity='0.4' stroke-width='1.1'/%3E%3Ccircle cx='52' cy='3' r='1.6' fill='%234fe3c1' fill-opacity='0.8'/%3E%3Ccircle cx='140' cy='0' r='1.4' fill='%234fe3c1' fill-opacity='0.7'/%3E%3Ccircle cx='232' cy='1' r='1.5' fill='%234fe3c1' fill-opacity='0.75'/%3E%3C/g%3E%3C/svg%3E") repeat-x center / 360px 26px;
+  opacity: 0.85;
+  animation: matTendrilGrow 3.2s ease-out both;
+}
+[data-theme="mycelial"] .mat-progress {        /* the petri ring */
+  border-radius: 999px;
+  background: radial-gradient(circle, rgba(79, 227, 193, 0.13), rgba(79, 227, 193, 0.05));
+  box-shadow: inset 0 0 0 1px rgba(79, 227, 193, 0.2);
+}
+[data-theme="mycelial"] .mat-progress i {      /* GROWTH RINGS fill */
+  border-radius: 999px;
+  background:
+    radial-gradient(circle at 30% 50%, rgba(216, 255, 242, 0.28) 0 18%, transparent 19%),
+    repeating-radial-gradient(circle at 0% 50%, var(--lime) 0 6px, var(--lime-dim) 6px 12px);
+  box-shadow: 0 0 14px rgba(79, 227, 193, 0.3);
+}
+[data-theme="mycelial"] .mat-chip { border-radius: 999px; border-color: rgba(79, 227, 193, 0.25); background: rgba(79, 227, 193, 0.06); }
+[data-theme="mycelial"] .mat-chip.is-on { box-shadow: 0 0 16px rgba(79, 227, 193, 0.25); }
+[data-theme="mycelial"] .mat-input { border-radius: 22px 22px 22px 22px / 18px 18px 22px 22px; border-color: rgba(79, 227, 193, 0.25); }
+[data-theme="mycelial"] .mat-avatar { border-radius: 46% 54% 50% 50% / 52% 48% 52% 48%; border: 1px solid rgba(79, 227, 193, 0.35); }
+[data-theme="mycelial"] .mat-dialog {
+  border-radius: 34px 26px 36px 28px / 28px 36px 26px 34px;
+  border-color: rgba(79, 227, 193, 0.25);
+  box-shadow: 0 18px 40px rgba(4, 12, 9, 0.65), inset 0 0 30px rgba(79, 227, 193, 0.05);
+}
+[data-theme="mycelial"] .mat-badge { border-radius: 999px; background: rgba(79, 227, 193, 0.16); color: #8ef0da; }
+[data-theme="mycelial"] .mat-dz {
+  color: #ffd9c9;
+  background: linear-gradient(90deg, rgba(255, 122, 89, 0.25), rgba(255, 122, 89, 0.12));
+  border: 1px solid rgba(255, 122, 89, 0.45);
+  border-radius: 18px 12px 20px 14px / 14px 20px 12px 18px;
+  animation: matBreathe 5s ease-in-out infinite;
+}

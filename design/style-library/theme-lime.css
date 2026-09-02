@@ -1,0 +1,89 @@
+/* style-library/theme-lime.css — the "lime" material kit.
+   Tokens + .mat- primitives only. RWF app bindings (fg / bd classes)
+   live in design/themes.css. Name/label/provenance: README.md. */
+
+/* ═══════════════════════════════════════════════════════════════════════
+   PART 2 · THE FIVE ORIGINALS — kept, labeled, and now carrying
+   material kits of their own (subtler than the nine, but never flat).
+   ═══════════════════════════════════════════════════════════════════════ */
+/* ═══════════════════════════════════════════════════════════════════════
+   1 · LIME ATHLETIC — "a steel weight-room floor under fluorescent light"
+   Describe it as: matte charcoal rubber floor, one loud lime stripe,
+   machined-steel surfaces, technical type. The shipped default.
+   ═══════════════════════════════════════════════════════════════════════ */
+
+[data-theme="lime"] {
+  --bg: #0a0b0d;
+  --surface: #121418;
+  --surface-2: #1a1d23;
+  --line: #23262d;
+  --line-bright: #31353e;
+  --text: #e8eaed;
+  --muted: #9aa0a8;
+  --faint: #868b92;
+  --faint-deco: #5f646d;
+
+  --lime: #c6f32e;              /* primary — energy, verified, action */
+  --lime-dim: #8fb31c;
+  --lime-glow: rgba(198, 243, 46, 0.14);
+  --coral: #ff5c38;             /* effort, HR, heat */
+  --coral-glow: rgba(255, 92, 56, 0.14);
+  --amber: #ffb020;             /* warning, pending */
+  --sky: #6ec1ff;               /* info, slack */
+
+  --success: #34d399;
+  --danger: #ff4d5e;
+  --urgency: #ff8a00;
+
+  --energy: #8b5cf6;
+  --energy-light: #b79dfb;
+  --energy-tint: #2a1f4d;
+
+  --dz-bg: #150810;
+  --dz3-surface: #2a1020;
+  --dz-hero: #3a0f1b;
+
+  --font-display: 'Space Grotesk', system-ui, sans-serif;
+  --font-body: 'Space Grotesk', system-ui, sans-serif;
+  --font-mono: ui-monospace, 'Cascadia Code', 'SF Mono', Menlo, monospace;
+
+  --radius: 14px;
+  --radius-sm: 9px;
+  --radius-lg: 16px;
+  --radius-xl: 24px;
+  --pill: 999px;
+
+  --on-accent: #0a0b0d;         /* 15.3:1 on lime */
+  --primary-hover: #d6ff45;
+  --on-warn: #0a0b0d;           /* 10.1:1 on amber */
+
+  /* figma-app reads --on-gold (its on-primary text) with a --bg fallback —
+     re-point so every theme's app text on primary fills stays AA. */
+  --on-gold: var(--on-accent);
+}
+/* ── lime · MATERIAL — rubber floor + machined steel ─────────────────── */
+[data-theme="lime"] {
+  --mat-page:
+    repeating-linear-gradient(135deg, rgba(255, 255, 255, 0.016) 0 2px, transparent 2px 7px),
+    radial-gradient(120% 70% at 50% -12%, rgba(214, 255, 69, 0.05), transparent 55%),
+    linear-gradient(#0e120c, #0a0b0d);
+}
+[data-theme="lime"] .mat-surface {           /* brushed steel plate */
+  background:
+    linear-gradient(180deg, rgba(255, 255, 255, 0.035), rgba(255, 255, 255, 0) 42%),
+    var(--surface);
+  border-radius: 14px;
+  box-shadow: 0 8px 20px rgba(0, 0, 0, 0.42), inset 0 1px 0 rgba(255, 255, 255, 0.05);
+}
+[data-theme="lime"] .mat-btn {               /* machined push-button */
+  border-radius: 8px;
+  box-shadow: 0 6px 16px rgba(0, 0, 0, 0.5), inset 0 1px 0 rgba(255, 255, 255, 0.34);
+  transition: transform 0.14s var(--ease), box-shadow 0.14s var(--ease);
+}
+[data-theme="lime"] .mat-btn:active { transform: translateY(2px); box-shadow: 0 3px 8px rgba(0, 0, 0, 0.5); }
+[data-theme="lime"] .mat-btn--ghost { box-shadow: inset 0 0 0 1px var(--line), inset 0 1px 0 rgba(255, 255, 255, 0.05); }
+[data-theme="lime"] .mat-num { font-family: 'Space Grotesk', system-ui, sans-serif; letter-spacing: -0.01em; }
+[data-theme="lime"] .mat-divider { height: 1px; background: linear-gradient(90deg, transparent, var(--line-bright), transparent); }
+[data-theme="lime"] .mat-progress i { border-radius: 999px; box-shadow: 0 0 12px var(--lime-glow); }
+[data-theme="lime"] .mat-badge { box-shadow: 0 0 0 3px rgba(214, 255, 69, 0.12); }
+[data-theme="lime"] .mat-dz { clip-path: polygon(0 0, 100% 0, 100% calc(100% - 6px), calc(100% - 6px) 100%, 0 100%); }

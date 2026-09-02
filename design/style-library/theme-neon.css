@@ -1,0 +1,88 @@
+/* style-library/theme-neon.css — the "neon" material kit.
+   Tokens + .mat- primitives only. RWF app bindings (fg / bd classes)
+   live in design/themes.css. Name/label/provenance: README.md. */
+
+/* ═══════════════════════════════════════════════════════════════════════
+   4 · MIDNIGHT NEON — "an esports broadcast desk"
+   Describe it as: blue-black glass under cyan rim-light, magenta heat,
+   JetBrains Mono numerals, glow edges on everything primary.
+   ═══════════════════════════════════════════════════════════════════════ */
+
+[data-theme="neon"] {
+  --bg: #060a14;                /* deep blue-black */
+  --surface: #0b1120;
+  --surface-2: #111a2e;
+  --line: #1c2a45;
+  --line-bright: #2a3d63;
+  --text: #e6f0ff;
+  --muted: #9fb3d9;
+  --faint: #7e93bd;
+  --faint-deco: #55688e;
+
+  --lime: #21e6ff;              /* electric cyan — primary */
+  --lime-dim: #0fb4cc;
+  --lime-glow: rgba(33, 230, 255, 0.20);
+  --coral: #ff5d9e;             /* magenta — effort/heat */
+  --coral-glow: rgba(255, 93, 158, 0.16);
+  --amber: #ffc94d;
+  --sky: #79b8ff;
+
+  --success: #3df0ab;           /* mint */
+  --danger: #ff6580;
+  --urgency: #ffb054;
+
+  --energy: #a992ff;            /* violet power-up axis */
+  --energy-light: #c3b4ff;
+  --energy-tint: #1a2340;
+
+  --dz-bg: #0a0920;             /* violet night wash */
+  --dz3-surface: #1e1030;
+  --dz-hero: #250f38;
+
+  --font-display: 'JetBrains Mono', 'Space Grotesk', system-ui, sans-serif;
+  --font-body: 'Space Grotesk', system-ui, sans-serif;
+  --font-mono: 'JetBrains Mono', ui-monospace, 'Cascadia Code', Menlo, monospace;
+
+  --radius: 10px;               /* tighter, screen-shaped */
+  --radius-sm: 6px;
+  --radius-lg: 12px;
+  --radius-xl: 16px;
+  --pill: 999px;
+
+  --on-accent: #031018;         /* 12.7:1 on cyan */
+  --primary-hover: #0fb4cc;
+  --on-warn: #10131f;           /* 9.8:1 on amber urgency */
+
+  --on-gold: var(--on-accent);  /* app safety — see lime block */
+}
+/* ── neon · MATERIAL — smoked glass + rim light ──────────────────────── */
+[data-theme="neon"] {
+  --mat-page:
+    linear-gradient(rgba(33, 230, 255, 0.045) 1px, transparent 1px),
+    linear-gradient(90deg, rgba(33, 230, 255, 0.045) 1px, transparent 1px),
+    radial-gradient(110% 80% at 50% -14%, rgba(33, 230, 255, 0.09), transparent 60%),
+    linear-gradient(#0a1226, #060a14);
+  background-size: 44px 44px, 44px 44px, auto, auto;
+}
+[data-theme="neon"] body { background-size: 44px 44px, 44px 44px, auto, auto; }
+[data-theme="neon"] .mat-surface {           /* glass pane, cyan rim */
+  background: linear-gradient(165deg, rgba(33, 230, 255, 0.055), transparent 40%), var(--surface);
+  border-radius: 16px;
+  border-color: color-mix(in srgb, var(--lime) 18%, var(--line));
+  box-shadow: 0 0 26px rgba(33, 230, 255, 0.07), inset 0 1px 0 rgba(33, 230, 255, 0.14);
+}
+[data-theme="neon"] .mat-btn {
+  font-family: var(--font-mono); font-weight: 700;
+  border-radius: 10px;
+  box-shadow: 0 0 22px var(--lime-glow), inset 0 0 0 1px rgba(255, 255, 255, 0.22);
+}
+[data-theme="neon"] .mat-btn--ghost { box-shadow: inset 0 0 0 1px color-mix(in srgb, var(--lime) 34%, transparent); color: var(--lime); }
+[data-theme="neon"] .mat-num {
+  font-family: 'JetBrains Mono', ui-monospace, monospace;
+  text-shadow: 0 0 18px rgba(33, 230, 255, 0.45);
+}
+[data-theme="neon"] .mat-divider { height: 1px; background: linear-gradient(90deg, transparent, color-mix(in srgb, var(--lime) 65%, transparent), transparent); }
+[data-theme="neon"] .mat-progress i { border-radius: 4px; background: linear-gradient(90deg, var(--lime), #8ef0ff); box-shadow: 0 0 12px var(--lime-glow); }
+[data-theme="neon"] .mat-chip { font-family: var(--font-mono); border-radius: 8px; }
+[data-theme="neon"] .mat-chip.is-on { box-shadow: 0 0 16px var(--lime-glow); }
+[data-theme="neon"] .mat-badge { border-radius: 6px; box-shadow: 0 0 14px var(--lime-glow); }

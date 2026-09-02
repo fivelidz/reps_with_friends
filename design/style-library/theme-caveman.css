@@ -1,0 +1,176 @@
+/* style-library/theme-caveman.css — the "caveman" material kit.
+   Tokens + .mat- primitives only. RWF app bindings (fg / bd classes)
+   live in design/themes.css. Name/label/provenance: README.md. */
+
+/* ═══════════════════════════════════════════════════════════════════════
+   11 · CAVEMAN — "carved stone and fire"
+   Describe it as: a firelit cave wall — ochre handprints and beast
+   silhouettes sprayed on rock strata, buttons that are ROCKS (irregular,
+   chiselled, pressed into the dirt with a dust puff), bone-white type,
+   tally-mark counting, a fire-glow danger zone.
+   ═══════════════════════════════════════════════════════════════════════ */
+
+[data-theme="caveman"] {
+  --bg: #1c1611;                /* cave stone */
+  --surface: #251d15;
+  --surface-2: #2e2419;
+  --line: #3b2f20;
+  --line-bright: #50402b;
+  --text: #f2e8d2;              /* bone */
+  --muted: #cbbda2;
+  --faint: #afa087;
+  --faint-deco: #7f7459;
+
+  --lime: #ece0c0;              /* bone-white primary — carved buttons */
+  --lime-dim: #c8bb9a;
+  --lime-glow: rgba(236, 224, 192, 0.13);
+  --coral: #ff8b5e;             /* fire */
+  --coral-glow: rgba(255, 139, 94, 0.13);
+  --amber: #ffc266;
+  --sky: #92c9e8;
+
+  --success: #62d294;
+  --danger: #ff6a72;
+  --urgency: #ffa050;
+
+  --energy: #c49aff;
+  --energy-light: #dcc9ff;
+  --energy-tint: #2d2346;
+
+  --dz-bg: #171209;
+  --dz3-surface: #38200e;
+  --dz-hero: #412710;
+
+  --font-display: 'Archivo', 'Space Grotesk', system-ui, sans-serif;
+  --font-body: 'Inter', system-ui, sans-serif;
+  --font-mono: ui-monospace, Menlo, monospace;
+
+  --radius: 8px;
+  --radius-sm: 6px;
+  --radius-lg: 12px;
+  --radius-xl: 16px;
+  --pill: 999px;
+
+  --on-accent: #1c1611;         /* 14.1:1 on bone */
+  --primary-hover: #fff5da;
+  --on-warn: #241304;           /* 8.0:1 on urgency */
+
+  --on-gold: var(--on-accent);
+
+  /* board extras — stone arena */
+  --felt: #3a2c1c;
+  --felt-deep: #241a10;
+  --felt-line: rgba(236, 224, 192, 0.22);
+  --rail: #171008;
+  --rail-edge: rgba(236, 224, 192, 0.14);
+  --card-back-1: #4a3a24;
+  --card-back-2: #2a2012;
+  --card-face: #33281a;
+  --pop-shadow: #171008;
+  --speed: 0.95s;
+}
+/* ── caveman · MATERIAL — rock strata + ochre paint + fire ───────────── */
+[data-theme="caveman"] {
+  --mat-page:
+    url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='340' height='300'%3E%3Cg fill='%23d98e2b' fill-opacity='0.16'%3E%3Cpath d='M30 60 l6-18 6 18 -4 16 -8-4z'/%3E%3Cpath d='M52 66 l5-14 5 14-3 12-7-4z'/%3E%3Cpath d='M41 62 l4-22 4 22-3 18z'/%3E%3Cpath d='M250 210 l7-20 7 20-5 18-9-6z'/%3E%3Cpath d='M272 216 l5-13 5 13-3 11-7-3z'/%3E%3C/g%3E%3Cg fill='%23d98e2b' fill-opacity='0.13'%3E%3Cpath d='M150 120 q10-26 34-26 6-16 26-14 22 2 26 22 4 18-8 26-6 14-24 12-4 12-20 10-22 2-28-12-8-6-6-18z'/%3E%3Cpath d='M90 230 q4-14 18-12 2-8 12-6 12 2 12 12 0 10-8 12-2 8-14 6-16 0-20-12z'/%3E%3C/g%3E%3Cg stroke='%23ecd0a0' stroke-opacity='0.1' stroke-width='2' fill='none'%3E%3Cpath d='M0 96 q80 8 170-6 t170 8'/%3E%3Cpath d='M0 190 q90-10 180 4 t160-8'/%3E%3C/g%3E%3C/svg%3E"),
+    linear-gradient(180deg, #241a12 0%, #1c1611 30%, #221812 62%, #191009 100%);
+  background-size: 340px 300px, auto;
+}
+[data-theme="caveman"] body { background-size: 340px 300px, auto; }
+[data-theme="caveman"] .mat-surface {          /* a slab of the cave wall */
+  background:
+    linear-gradient(180deg, rgba(236, 224, 192, 0.05), transparent 30%, rgba(0, 0, 0, 0.22) 96%),
+    repeating-linear-gradient(178deg, rgba(236, 224, 192, 0.028) 0 26px, transparent 26px 60px),
+    var(--surface);
+  border: 3px solid rgba(236, 224, 192, 0.22);
+  border-radius: 22px 30px 18px 32px / 28px 18px 32px 22px;
+  box-shadow: inset 0 2px 0 rgba(236, 224, 192, 0.08), 0 14px 30px rgba(8, 4, 1, 0.65);
+}
+[data-theme="caveman"] .mat-btn {              /* THE ROCK */
+  position: relative;
+  font-family: var(--font-display); font-weight: 900;
+  letter-spacing: 0.03em;
+  color: #f4ead2;
+  background:
+    linear-gradient(160deg, #7d7466 0%, #66594a 38%, #4d4437 72%, #3b332a 100%);
+  border: 0;
+  border-radius: 18px 24px 14px 26px / 22px 14px 26px 16px;
+  clip-path: polygon(3% 12%, 9% 3%, 26% 0%, 52% 4%, 74% 0%, 92% 6%, 100% 22%, 97% 46%, 100% 68%, 93% 92%, 74% 100%, 50% 96%, 26% 100%, 8% 94%, 0% 74%, 2% 48%);
+  padding: 15px 24px;
+  box-shadow:                                /* chiselled facets */
+    inset 2px 3px 2px rgba(236, 224, 192, 0.22),
+    inset -3px -4px 6px rgba(8, 4, 1, 0.55),
+    0 7px 0 #2b231a,                          /* the dirt it sits on */
+    0 13px 22px rgba(8, 4, 1, 0.6);
+  text-shadow: 0 2px 2px rgba(8, 4, 1, 0.6);
+  transition: transform 0.09s ease, box-shadow 0.09s ease, filter 0.09s ease;
+}
+[data-theme="caveman"] .mat-btn:active,        /* pressed INTO the dirt */
+[data-theme="caveman"] .mat-btn.is-pressed {
+  transform: translateY(5px);
+  filter: brightness(0.88);
+  box-shadow:
+    inset 3px 4px 8px rgba(8, 4, 1, 0.7),
+    0 2px 0 #2b231a;
+}
+[data-theme="caveman"] .mat-btn.is-pressed::after,   /* DUST PUFF */
+[data-theme="caveman"] .mat-btn:active::after {
+  content: ""; position: absolute; left: 8%; right: 8%; bottom: -12px; height: 14px;
+  background:
+    radial-gradient(circle 5px at 20% 60%, rgba(214, 190, 150, 0.55), transparent 70%),
+    radial-gradient(circle 4px at 45% 40%, rgba(214, 190, 150, 0.45), transparent 70%),
+    radial-gradient(circle 6px at 70% 65%, rgba(214, 190, 150, 0.5), transparent 70%),
+    radial-gradient(circle 3px at 90% 45%, rgba(214, 190, 150, 0.4), transparent 70%);
+  animation: matDustPuff 0.5s ease-out both;
+  pointer-events: none;
+}
+[data-theme="caveman"] .mat-btn--ghost {
+  background: linear-gradient(160deg, #3f382e, #2e2820);
+  color: var(--coral);
+  clip-path: polygon(4% 10%, 22% 2%, 55% 5%, 82% 0%, 97% 14%, 100% 40%, 96% 66%, 100% 88%, 84% 100%, 52% 96%, 22% 100%, 5% 90%, 0 60%, 3% 34%);
+}
+[data-theme="caveman"] .mat-num {              /* chalk tally count */
+  font-family: 'Archivo', sans-serif; font-weight: 900;
+  color: #f4ead2;
+  text-shadow: 3px 3px 0 rgba(8, 4, 1, 0.55);
+}
+[data-theme="caveman"] .mat-num::after {       /* tally strokes beside the count */
+  content: "𝍷";
+  font-size: 0.34em; vertical-align: 0.9em;
+  margin-left: 0.22em; letter-spacing: 0.3em;
+  color: var(--coral);
+}
+[data-theme="caveman"] .mat-divider {          /* broken bone line */
+  height: 6px; border-radius: 4px;
+  background:
+    repeating-linear-gradient(100deg, rgba(236, 224, 192, 0.6) 0 14px, transparent 14px 21px),
+    linear-gradient(180deg, rgba(236, 224, 192, 0.14), transparent);
+  clip-path: polygon(0 30%, 4% 0, 96% 8%, 100% 40%, 97% 100%, 5% 92%);
+}
+[data-theme="caveman"] .mat-progress {         /* fire path */
+  border-radius: 10px;
+  background: rgba(8, 4, 1, 0.6);
+  box-shadow: inset 0 2px 5px rgba(8, 4, 1, 0.8);
+  border: 2px solid rgba(236, 224, 192, 0.2);
+}
+[data-theme="caveman"] .mat-progress i {       /* jagged ochre burn */
+  border-radius: 8px;
+  background: linear-gradient(180deg, #ffb95e, var(--coral) 70%, #b3451d);
+  clip-path: polygon(0 18%, 5% 0, 26% 14%, 42% 0, 58% 16%, 74% 2%, 90% 14%, 100% 0, 100% 100%, 0 100%);
+  box-shadow: 0 0 16px rgba(255, 122, 89, 0.4);
+}
+[data-theme="caveman"] .mat-chip { font-family: var(--font-display); font-weight: 800; border-radius: 16px 22px 14px 20px / 20px 14px 22px 16px; border: 2px solid rgba(236, 224, 192, 0.26); }
+[data-theme="caveman"] .mat-input { border-radius: 18px 24px 18px 26px / 24px 18px 26px 18px; border: 2px solid rgba(236, 224, 192, 0.26); }
+[data-theme="caveman"] .mat-avatar { border-radius: 40% 60% 55% 45% / 50% 45% 55% 50%; border: 2px dashed rgba(236, 224, 192, 0.4); }
+[data-theme="caveman"] .mat-dialog { border: 3px solid rgba(236, 224, 192, 0.24); border-radius: 26px 18px 30px 20px / 20px 30px 18px 26px; box-shadow: 0 16px 34px rgba(8, 4, 1, 0.7); }
+[data-theme="caveman"] .mat-badge { font-family: var(--font-display); background: var(--coral); color: #2b130a; border-radius: 14px 20px 12px 18px / 18px 12px 20px 14px; }
+[data-theme="caveman"] .mat-dz {               /* FIRE GLOW */
+  font-family: var(--font-display); letter-spacing: 0.06em;
+  color: #ffe6c4;
+  background:
+    radial-gradient(120% 160% at 50% 130%, rgba(255, 208, 120, 0.5), transparent 60%),
+    linear-gradient(180deg, #8c2f10, #b3451d);
+  border: 2px solid rgba(255, 220, 160, 0.4);
+  border-radius: 20px 14px 22px 16px / 16px 22px 14px 20px;
+  animation: matFireFlicker 2.6s ease-in-out infinite;
+}

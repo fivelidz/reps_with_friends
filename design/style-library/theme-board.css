@@ -1,0 +1,176 @@
+/* style-library/theme-board.css — the "board" material kit.
+   Tokens + .mat- primitives only. RWF app bindings (fg / bd classes)
+   live in design/themes.css. Name/label/provenance: README.md. */
+
+/* ═══════════════════════════════════════════════════════════════════════════
+   PART 3 · THE NINE MATERIAL KITS — the board eight + the new Sports
+   Poster. Each kit: TOKENS (verbatim, AA-verified) · MATERIAL (page +
+   mat-*) · BINDINGS (fg-* / bd-* / pop-btn) · MOTION.
+   ═══════════════════════════════════════════════════════════════════════════ */
+/* ═══════════════════════════════════════════════════════════════════════
+   6 · STADIUM BOARD — "a flip-scoreboard stadium"
+   Describe it as: floodlit infield under two lamp cones, terracotta lane
+   ring, white lane paint, split-flap counter numerals, buttons that are
+   starting blocks with toe-block notches, photo-finish tape progress.
+   ═══════════════════════════════════════════════════════════════════════ */
+
+[data-theme="board"] {
+  --bg: #0c1d14;                /* deep racing felt green-black */
+  --surface: #122619;
+  --surface-2: #17301f;
+  --line: #1e3c29;
+  --line-bright: #2a5238;
+  --text: #eef4e8;
+  --muted: #b7c9b4;
+  --faint: #9cb2a0;
+  --faint-deco: #6e8372;
+
+  --lime: #ffc94d;              /* table gold — primary */
+  --lime-dim: #d8a636;
+  --lime-glow: rgba(255, 201, 77, 0.15);
+  --coral: #ff7a59;
+  --coral-glow: rgba(255, 122, 89, 0.14);
+  --amber: #ffb95e;
+  --sky: #7cc4e8;
+
+  --success: #4cd68d;
+  --danger: #ff5b6e;
+  --urgency: #ff8c42;
+
+  --energy: #b48cff;
+  --energy-light: #d3c2ff;
+  --energy-tint: #2a2140;
+
+  --dz-bg: #0a1810;
+  --dz3-surface: #2c1e14;
+  --dz-hero: #35200f;
+
+  --font-display: 'Anton', 'Space Grotesk', system-ui, sans-serif;
+  --font-body: 'Space Grotesk', system-ui, sans-serif;
+  --font-mono: 'JetBrains Mono', ui-monospace, 'Cascadia Code', Menlo, monospace;
+
+  --radius: 14px;
+  --radius-sm: 10px;
+  --radius-lg: 18px;
+  --radius-xl: 24px;
+  --pill: 999px;
+
+  --on-accent: #241a04;         /* 9.9:1 on gold */
+  --primary-hover: #ffd97a;
+  --on-warn: #211204;           /* 8.4:1 on urgency, 9.6:1 on amber */
+
+  --on-gold: var(--on-accent);
+
+  /* ── BOARD EXTRAS — the stadium table (apps/board reads these) ────── */
+  --felt: #17492a;              /* floodlit infield green */
+  --felt-deep: #0a2415;
+  --felt-line: rgba(238, 244, 232, 0.20);
+  --lane: #b3372c;              /* the running-track ring */
+  --lane-paint: rgba(255, 255, 255, 0.34);
+  --rail: #06170e;              /* stadium boundary rail */
+  --rail-edge: rgba(255, 201, 77, 0.22);
+
+  --chip-white: #f2eee2;        /* pot denominations: 1 / 5 / 25 / 100 */
+  --chip-red: #d8434e;
+  --chip-blue: #3d7bd9;
+  --chip-gold: #e8b54a;
+
+  --card-back-1: #1c4630;       /* card back — felt pinstripe */
+  --card-back-2: #0d2417;
+  --card-face: #1b3527;
+
+  --pop-shadow: #7c5a16;        /* the offset under POPPING buttons */
+  --speed: 0.9s;
+}
+/* ── board · MATERIAL — floodlights, lane paint, split-flap ──────────── */
+[data-theme="board"] {
+  --mat-page:
+    radial-gradient(60% 42% at 22% -8%, rgba(255, 244, 214, 0.10), transparent 62%),
+    radial-gradient(60% 42% at 78% -8%, rgba(255, 244, 214, 0.08), transparent 62%),
+    repeating-linear-gradient(105deg, rgba(255, 255, 255, 0.014) 0 3px, transparent 3px 16px),
+    linear-gradient(#0e2417, #0a1810);
+}
+[data-theme="board"] .mat-surface {           /* floodlit panel + gold keyline */
+  background:
+    linear-gradient(180deg, rgba(255, 244, 214, 0.06), transparent 34%),
+    var(--surface);
+  border: 2px solid color-mix(in srgb, var(--lime) 22%, var(--line));
+  border-radius: 8px;
+  box-shadow: 0 12px 28px rgba(2, 8, 4, 0.6), inset 0 1px 0 rgba(255, 244, 214, 0.08);
+}
+[data-theme="board"] .mat-btn {               /* STARTING BLOCK */
+  position: relative;
+  font-family: var(--font-display); text-transform: uppercase;
+  letter-spacing: 0.05em;
+  border-radius: 6px;
+  border: 2px solid rgba(4, 10, 6, 0.85);
+  box-shadow: 0 7px 0 rgba(4, 10, 6, 0.85), 0 12px 22px rgba(2, 8, 4, 0.5);
+  transition: transform 0.1s ease, box-shadow 0.1s ease;
+}
+[data-theme="board"] .mat-btn::after {        /* the toe-block notch */
+  content: "";
+  position: absolute; left: 10%; right: 10%; bottom: -6px;
+  height: 5px; border-radius: 2px;
+  background: repeating-linear-gradient(90deg, var(--lane) 0 12px, #06170e 12px 18px);
+  opacity: 0.9;
+}
+[data-theme="board"] .mat-btn:active { transform: translateY(6px); box-shadow: 0 1px 0 rgba(4, 10, 6, 0.85); }
+[data-theme="board"] .mat-btn--ghost {
+  background: var(--surface-2);
+  color: var(--lime);
+  box-shadow: 0 7px 0 rgba(4, 10, 6, 0.85);
+}
+[data-theme="board"] .mat-num {               /* SPLIT-FLAP counter cell */
+  font-family: 'Anton', 'Space Grotesk', sans-serif;
+  display: inline-block;
+  color: #ffe9ad;
+  background:
+    linear-gradient(180deg, #3d2f0c 0%, #241a04 49.7%, #050301 50.3%, #2c2107 100%);
+  padding: 6px 14px;
+  border-radius: 4px;
+  border: 1px solid rgba(255, 201, 77, 0.35);
+  box-shadow: inset 0 0 0 1px rgba(0, 0, 0, 0.6), 0 4px 10px rgba(2, 8, 4, 0.55);
+  position: relative;
+  animation: matFlap 0.5s cubic-bezier(0.3, 1.2, 0.4, 1) both;
+}
+[data-theme="board"] .mat-num::before,
+[data-theme="board"] .mat-num::after {        /* hinge pins L/R of the split */
+  content: "";
+  position: absolute; top: 50%; width: 4px; height: 4px;
+  border-radius: 50%; background: #0a0803;
+  transform: translateY(-50%);
+  box-shadow: 0 0 2px rgba(255, 233, 173, 0.5);
+}
+[data-theme="board"] .mat-num::before { left: 4px; }
+[data-theme="board"] .mat-num::after  { right: 4px; }
+[data-theme="board"] .mat-divider {           /* lane paint, brushed on */
+  height: 6px; border-radius: 3px;
+  background: repeating-linear-gradient(95deg, var(--lane-paint) 0 26px, rgba(255, 255, 255, 0.06) 26px 34px);
+}
+[data-theme="board"] .mat-progress {          /* track kerb */
+  height: 12px; border-radius: 2px;
+  background: var(--felt-deep);
+  border: 1px solid rgba(255, 255, 255, 0.18);
+}
+[data-theme="board"] .mat-progress i {        /* PHOTO-FINISH TAPE */
+  border-radius: 2px;
+  background:
+    repeating-linear-gradient(45deg, #f2eee2 0 7px, #1a1006 7px 14px),
+    linear-gradient(var(--lane));
+  border-right: 3px solid #f2eee2;
+}
+[data-theme="board"] .mat-chip { border-radius: 4px; font-family: var(--font-display); text-transform: uppercase; letter-spacing: 0.06em; }
+[data-theme="board"] .mat-input { border-radius: 4px; }
+[data-theme="board"] .mat-badge {
+  border-radius: 3px; font-family: var(--font-display); letter-spacing: 0.12em;
+  background: var(--lane); color: #ffe6c4;
+}
+[data-theme="board"] .mat-avatar { border-radius: 8px; }
+[data-theme="board"] .mat-dialog { border: 2px solid color-mix(in srgb, var(--lime) 26%, var(--line)); border-radius: 8px; }
+[data-theme="board"] .mat-dz {
+  font-family: var(--font-display); letter-spacing: 0.08em; text-transform: uppercase;
+  background:
+    repeating-linear-gradient(45deg, rgba(0, 0, 0, 0.14) 0 10px, transparent 10px 20px),
+    var(--lane);
+  color: #ffe6c4; border-radius: 4px;
+}

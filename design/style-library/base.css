@@ -1,0 +1,186 @@
+/* style-library/base.css — the shared foundation of every kit
+   (AUTO-SPLIT from the design/themes.css monolith by
+   scripts/styles/split_style_library.py — move/re-run, don't fork).
+   Applies the active kit's page texture, .mat-* primitive defaults
+   and shared @keyframes. App-agnostic by contract: no app classes.
+   selectors live in the library. */
+
+[data-theme] body, .mat-page {
+  background-color: var(--bg);
+  background-image: var(--mat-page, none);
+  background-repeat: repeat;
+  background-size: auto, auto;   /* kits override for multi-layer lists */
+}
+/* surfaces: a panel of the material */
+
+.mat-surface {
+  background: var(--surface);
+  color: var(--text);
+  border: 1px solid var(--line);
+  border-radius: var(--radius);
+  padding: 16px;
+}
+/* buttons ARE the material */
+
+.mat-btn {
+  font: 700 15px/1 var(--font-body);
+  color: var(--on-accent);
+  background: var(--lime);
+  border: 0;
+  border-radius: 10px;
+  padding: 12px 20px;
+  cursor: pointer;
+}
+.mat-btn--ghost {
+  background: var(--surface-2);
+  color: var(--text);
+  box-shadow: inset 0 0 0 1px var(--line);
+}
+/* small toggles, inputs, numerals, progress, dividers, misc */
+
+.mat-chip {
+  font: 600 13px/1 var(--font-body);
+  color: var(--muted);
+  background: var(--surface-2);
+  border: 1px solid var(--line);
+  border-radius: var(--pill);
+  padding: 7px 12px;
+  cursor: pointer;
+}
+.mat-chip.is-on { color: var(--on-accent); background: var(--lime); }
+.mat-input {
+  font: 500 15px/1.2 var(--font-body);
+  color: var(--text);
+  background: var(--surface-2);
+  border: 1px solid var(--line);
+  border-radius: 10px;
+  padding: 10px 12px;
+  width: 100%;
+}
+.mat-num {
+  font: 700 44px/1 var(--font-display);
+  color: var(--text);
+  font-variant-numeric: tabular-nums;
+  margin: 0;
+}
+.mat-progress {
+  background: var(--surface-2);
+  border-radius: var(--pill);
+  height: 10px;
+  overflow: hidden;
+}
+.mat-progress i {
+  display: block;
+  height: 100%;
+  background: var(--lime);
+  border-radius: inherit;
+}
+.mat-divider {
+  height: 1px;
+  background: var(--line);
+  border: 0;
+  margin: 12px 0;
+}
+.mat-avatar {
+  display: inline-grid;
+  place-items: center;
+  width: 44px; height: 44px;
+  border-radius: 50%;
+  background: var(--surface-2);
+  color: var(--text);
+  font: 700 15px var(--font-display);
+}
+.mat-dialog {
+  background: var(--surface);
+  color: var(--text);
+  border: 1px solid var(--line);
+  border-radius: var(--radius-lg);
+  padding: 18px;
+}
+.mat-dialog__title { font: 700 18px var(--font-display); margin: 0 0 6px; }
+.mat-dz {
+  font: 700 13px/1.2 var(--font-body);
+  color: var(--on-accent);
+  background: var(--urgency);
+  border-radius: var(--radius-sm);
+  padding: 10px 12px;
+}
+.mat-badge {
+  display: inline-block;
+  font: 700 11px/1 var(--font-body);
+  letter-spacing: 0.08em;
+  color: var(--on-accent);
+  background: var(--lime);
+  border-radius: var(--pill);
+  padding: 5px 9px;
+}
+/* demo-only layout for the material kit phone — never colours/materials */
+
+.mat-lab { display: grid; gap: 14px; }
+.mat-lab .mat-btn { justify-self: start; }
+.mat-lab .mat-input { max-width: 240px; }
+.mat-lab .mat-chip { justify-self: start; }
+/* ── board · MOTION ───────────────────────────────────────────────────── */
+
+@keyframes matFlap {                          /* split-flap settle */
+  0%   { transform: rotateX(88deg); filter: brightness(0.4); }
+  60%  { transform: rotateX(-12deg); }
+  80%  { transform: rotateX(6deg); }
+  100% { transform: rotateX(0); filter: brightness(1); }
+}
+@keyframes matLampPulse { 0%, 100% { opacity: 1; } 50% { opacity: 0.35; } }
+@keyframes matFinishSheen { 0%, 55% { transform: translateX(-120%); } 85%, 100% { transform: translateX(120%); } }
+@keyframes matTrophyBump { 0% { transform: translateY(0) scale(1); } 40% { transform: translateY(-7px) scale(1.05); } 100% { transform: translateY(0) scale(1); } }
+/* ── mycelial · MOTION — everything breathes ──────────────────────────── */
+
+@keyframes matBreathe { 0%, 100% { box-shadow: 0 14px 34px rgba(4, 12, 9, 0.6), inset 0 0 26px rgba(79, 227, 193, 0.05); } 50% { box-shadow: 0 14px 34px rgba(4, 12, 9, 0.6), inset 0 0 34px rgba(79, 227, 193, 0.1); } }
+@keyframes matSporeDrift { 0%, 100% { transform: translate(0, 0); opacity: 0.9; } 50% { transform: translate(4px, -6px); opacity: 0.5; } }
+@keyframes matTendrilGrow { 0% { clip-path: inset(0 100% 0 0); } 100% { clip-path: inset(0 0 0 0); } }
+@keyframes matGrow { 0% { transform: scale(0.6); opacity: 0; filter: brightness(0.6); } 60% { transform: scale(1.06); opacity: 1; } 100% { transform: scale(1); filter: brightness(1); } }
+/* ── techy · MOTION — boot sequence + scan sweep ──────────────────────── */
+
+@keyframes matBoot {                          /* console boot-up reveal */
+  0% { opacity: 0; transform: translateY(6px); filter: brightness(1.6) saturate(0.2); }
+  40% { opacity: 1; filter: brightness(1.25); }
+  100% { opacity: 1; transform: translateY(0); filter: none; }
+}
+@keyframes matScanSweep { 0% { transform: translateY(-160%); } 100% { transform: translateY(320%); } }
+/* ── track · MOTION — marquee lane paint ──────────────────────────────── */
+
+@keyframes matTrackDeal { 0% { transform: translateY(-26px) rotate(-5deg); opacity: 0; } 60% { transform: translateY(4px) rotate(1.5deg); opacity: 1; } 100% { transform: translateY(0) rotate(0); } }
+/* ── cardtable · MOTION — one slow gold shimmer, nothing frantic ──────── */
+
+@keyframes matFeltDeal { 0% { transform: translate(-30px, -12px) rotate(-7deg); opacity: 0; } 100% { transform: translate(0, 0) rotate(0); opacity: 1; } }
+/* ── caveman · MOTION — thud + fire flicker + dust ────────────────────── */
+
+@keyframes matThud { 0% { transform: scale(1.3) rotate(4deg); opacity: 0; filter: brightness(1.4); } 55% { transform: scale(0.94) rotate(-1.5deg); opacity: 1; } 100% { transform: scale(1) rotate(0); filter: none; } }
+@keyframes matFireFlicker { 0%, 100% { filter: brightness(1); } 30% { filter: brightness(1.13); } 55% { filter: brightness(0.95); } 80% { filter: brightness(1.08); } }
+@keyframes matDustPuff { 0% { opacity: 0; transform: translateY(4px) scale(0.6); } 35% { opacity: 1; } 100% { opacity: 0; transform: translateY(-8px) scale(1.25); } }
+/* ── n64 · MOTION — fog reveal + spawn pops ───────────────────────────── */
+
+@keyframes matFogReveal { 0% { opacity: 0; filter: blur(5px) brightness(1.3); transform: translateY(8px); } 100% { opacity: 1; filter: blur(0) brightness(1); transform: translateY(0); } }
+@keyframes matSpawnPop { 0% { transform: scale(0.5) rotate(-6deg); opacity: 0; } 62% { transform: scale(1.12) rotate(2deg); opacity: 1; } 100% { transform: scale(1) rotate(0); } }
+/* ── goldeneye · MOTION — HUD flicker, alarm strobe, reticle ─────────── */
+
+@keyframes matHudFlicker { 0% { opacity: 0; } 40% { opacity: 1; } 55% { opacity: 0.25; } 70% { opacity: 1; } 82% { opacity: 0.6; } 100% { opacity: 1; } }
+@keyframes matAlarmStrobe { 0%, 100% { background-color: #6e0a15; } 50% { background-color: #a1121f; } }
+@keyframes matReticlePulse { 0% { box-shadow: inset 0 0 0 1px rgba(0, 0, 0, 0.6), 0 0 0 0 rgba(240, 196, 69, 0.5); } 100% { box-shadow: inset 0 0 0 1px rgba(0, 0, 0, 0.6), 0 0 0 16px rgba(240, 196, 69, 0); } }
+/* ── neobrut · MOTION — everything buttery ────────────────────────────── */
+
+@keyframes matSoftIn { 0% { opacity: 0; transform: translateY(14px); } 100% { opacity: 1; transform: translateY(0); } }
+/* ═══════════════════════════════════════════════════════════════════════
+   MOTION GUARDS — every animation above is decorative; reduced-motion
+   users get the still material without the life.
+   ═══════════════════════════════════════════════════════════════════════ */
+
+@media (prefers-reduced-motion: reduce) {
+  {
+    animation: none !important;
+  }
+}
+
+@media (prefers-reduced-motion: reduce) {
+  {
+    transition-duration: 0.01s !important;
+  }
+}

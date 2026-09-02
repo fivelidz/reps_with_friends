@@ -1,0 +1,120 @@
+/* style-library/theme-x10.css — the "x10" material kit.
+   Tokens + .mat- primitives only. RWF app bindings (fg / bd classes)
+   live in design/themes.css. Name/label/provenance: README.md. */
+
+/* ═══════════════════════════════════════════════════════════════════════
+   15 · GUM PROFESSIONAL (x10) — FROM THE FOUNDER'S SITE x10.au
+   Mined 2026-09-03 from the live directory: near-black green surfaces
+   (#0b0e0b/#141a14), refined gum green (--green #4A6B47, bright #6E9A6A),
+   soft gold accents (#C9A24E/#E8C77A), Space Grotesk + JetBrains Mono,
+   6–8px radii, the inset vignette (0 0 200px black), gold focus rings
+   (0 0 0 3px green-soft), zebra listing rows.
+   Describe it as: the professional's directory after dark — deep green-black
+   paper, gum-green actions, gold hairline rewards, mono index labels, and
+   every listing sitting on a quiet zebra stripe.
+   ═══════════════════════════════════════════════════════════════════════ */
+
+[data-theme="x10"] {
+  --bg: #0b0e0b;                /* deep near-black green (x10 base) */
+  --surface: #141a14;
+  --surface-2: #1a221a;
+  --line: #243024;
+  --line-bright: #2d3a2d;
+  --text: #eef2ea;
+  --muted: #d4dcd0;
+  --faint: #9fae9c;             /* 8.3:1 on bg */
+  --faint-deco: #6e7d6b;
+
+  --lime: #6E9A6A;              /* green-bright — primary action */
+  --lime-dim: #4A6B47;          /* deep gum-leaf */
+  --lime-glow: rgba(110, 154, 106, 0.16);
+  --coral: #C97F2E;             /* x10 warn ochre — effort */
+  --coral-glow: rgba(201, 127, 46, 0.14);
+  --amber: #C9A24E;             /* soft gold — warning */
+  --sky: #7cc4e8;
+
+  --success: #6E9A6A;
+  --danger: #d86a5e;              /* 5.2:1 as text on surface */
+  --urgency: #C97F2E;
+
+  --energy: #b48cff;
+  --energy-light: #d3c2ff;
+  --energy-tint: #221c33;
+
+  --dz-bg: #0d1a12;
+  --dz3-surface: #2c2414;
+  --dz-hero: #35300f;
+
+  --font-display: 'Space Grotesk', system-ui, sans-serif;
+  --font-body: 'Space Grotesk', system-ui, sans-serif;
+  --font-mono: 'JetBrains Mono', ui-monospace, 'Cascadia Code', Menlo, monospace;
+
+  --radius: 8px;                /* the directory's calm 6–8px */
+  --radius-sm: 6px;
+  --radius-lg: 10px;
+  --radius-xl: 12px;
+  --pill: 999px;
+
+  --on-accent: #0b0e0b;         /* 6.0:1 on green-bright */
+  --primary-hover: #8ab486;
+  --on-warn: #0b0e0b;           /* 6.1:1 on ochre */
+
+  --on-gold: #0b0e0b;
+
+  /* x10 extras — the directory's own vocabulary */
+  --gold: #C9A24E;
+  --gold-glow: #E8C77A;
+  --gold-deep: #8a6e2e;
+}
+
+/* ── x10 · MATERIAL — the after-dark directory ────────────────────────── */
+[data-theme="x10"] {
+  --mat-page:
+    radial-gradient(120% 90% at 50% 0%, rgba(110, 154, 106, 0.05), transparent 60%),
+    linear-gradient(#0d120d, #0b0e0b 40%);
+}
+[data-theme="x10"] body { box-shadow: inset 0 0 200px 60px rgba(0, 0, 0, 0.45); }  /* the site's vignette */
+[data-theme="x10"] .mat-surface {             /* listing card: gold top hairline */
+  background: linear-gradient(180deg, rgba(201, 162, 78, 0.05), transparent 26%), var(--surface);
+  border: 1px solid var(--line);
+  border-top: 2px solid color-mix(in srgb, var(--gold) 42%, var(--line));
+  border-radius: 8px;
+  box-shadow: 0 18px 40px -12px rgba(0, 0, 0, 0.65);
+}
+[data-theme="x10"] .mat-btn {                 /* outlined utility, fills gum on press */
+  font-family: var(--font-body); font-weight: 600;
+  letter-spacing: 0.01em;
+  border-radius: 7px;
+  border: 1px solid color-mix(in srgb, var(--lime) 55%, var(--line));
+  box-shadow: inset 0 1px 0 rgba(238, 242, 234, 0.04);
+  transition: background 0.16s var(--ease), border-color 0.16s var(--ease), color 0.16s var(--ease);
+}
+[data-theme="x10"] .mat-btn:active { background: var(--lime-dim); color: var(--text); transform: none; }
+[data-theme="x10"] .mat-btn--ghost { box-shadow: inset 0 0 0 1px var(--line-2, var(--line-bright)); }
+[data-theme="x10"] .mat-num { font-family: 'Space Grotesk', sans-serif; font-weight: 600; font-variant-numeric: tabular-nums; letter-spacing: 0.01em; }
+[data-theme="x10"] .mat-divider { height: 1px; background: linear-gradient(90deg, transparent, var(--line-bright) 12%, var(--line-bright) 88%, transparent); }
+[data-theme="x10"] .mat-progress { border-radius: 999px; background: #0f150f; box-shadow: inset 0 0 0 1px var(--line); }
+[data-theme="x10"] .mat-progress i {
+  border-radius: 999px;
+  background: linear-gradient(90deg, var(--lime-dim), var(--lime));
+  box-shadow: 0 0 0 1px rgba(201, 162, 78, 0.25);   /* gold rim on effort */
+}
+[data-theme="x10"] .mat-chip {
+  font-family: var(--font-mono); font-size: 0.86em; text-transform: uppercase; letter-spacing: 0.06em;
+  border-radius: 6px;
+}
+[data-theme="x10"] .mat-chip.is-on { box-shadow: 0 0 0 3px rgba(74, 107, 71, 0.3); }   /* the site's focus ring */
+[data-theme="x10"] .mat-input { border-radius: 6px; font-family: var(--font-body); }
+[data-theme="x10"] .mat-avatar { border-radius: 8px; border: 1px solid var(--line-bright); }
+[data-theme="x10"] .mat-dialog {
+  border: 1px solid var(--line-bright);
+  border-top: 2px solid var(--gold);
+  border-radius: 10px;
+  box-shadow: 0 24px 60px -12px rgba(0, 0, 0, 0.7), 0 2px 12px -2px rgba(201, 162, 78, 0.3);
+}
+[data-theme="x10"] .mat-badge { font-family: var(--font-mono); border-radius: 6px; border: 1px solid color-mix(in srgb, var(--gold) 45%, var(--line)); color: var(--gold-glow); }
+[data-theme="x10"] .mat-dz {
+  border-radius: 8px;
+  border-left: 3px solid var(--gold);
+  background: linear-gradient(90deg, rgba(201, 127, 46, 0.14), transparent 70%), var(--surface);
+}

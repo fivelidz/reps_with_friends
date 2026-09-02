@@ -833,7 +833,11 @@ export class Course3D {
 
   /* ── per-frame drive ───────────────────────────────────────────────── */
   _step(dt, now) {
-    const ease = 1 - Math.exp(-dt * 2.4);
+    // reduced motion: dt arrives as 0 (no animation clock) — SNAPSHOT the
+    // runner at its target instead of lerping (ease would be 1-e^0 = 0 and
+    // the runner would freeze at the start line forever). Static means
+    // "correctly positioned, no glide", not "frozen".
+    const ease = this.reduced ? 1 : 1 - Math.exp(-dt * 2.4);
     let leader = null;
 
     for (const [, r] of this.runners) {

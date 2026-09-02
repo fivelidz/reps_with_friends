@@ -1,0 +1,149 @@
+/* style-library/theme-gmux.css — the "gmux" material kit.
+   Tokens + .mat- primitives only. RWF app bindings (fg / bd classes)
+   live in design/themes.css. Name/label/provenance: README.md. */
+
+/* ═══════════════════════════════════════════════════════════════════════
+   19 · FOREST TERMINAL (gmux) — FROM THE FOUNDER'S SITE gmux.ai
+   Mined 2026-09-03 from the live agent-orchestration site ("forest"
+   palette): sage-ivory #edefe6, paper #fafbf3, ink #1a201a, forest green
+   #3d7a4e, clay #b25a38, honey #d4a84a, rule lines #cfd4c2, JetBrains
+   Mono everywhere, Fraunces hero serif, 8px radii, pill chips, the
+   ok/wait/alert/idle status-dot grammar.
+   Describe it as: a field terminal in a green clearing — sage paper, a
+   mono grid, forest-green GO buttons, clay alerts, honey waits, and every
+   agent a status dot first and a name second.
+   ═══════════════════════════════════════════════════════════════════════ */
+
+[data-theme="gmux"] {
+  --bg: #edefe6;                /* sage-ivory (gmux --cream) */
+  --surface: #fafbf3;           /* paper */
+  --surface-2: #e3e7d8;
+  --line: #cfd4c2;              /* rule */
+  --line-bright: #b9c0a8;
+  --text: #1a201a;              /* ink */
+  --muted: #2e342c;
+  --faint: #4a5148;             /* 7.1:1 on sage */
+  --faint-deco: #98a093;
+
+  --lime: #2e6b40;              /* forest green (deepened for AA) — primary */
+  --lime-dim: #235534;
+  --lime-glow: rgba(46, 107, 64, 0.16);
+  --coral: #9c4a2b;             /* clay (deepened) — effort */
+  --coral-glow: rgba(156, 74, 43, 0.14);
+  --amber: #8a6414;             /* honey (deepened) — wait */
+  --sky: #33638a;
+
+  --success: #2e6b40;           /* ok */
+  --danger: #a92e2e;            /* alert */
+  --urgency: #9c4a2b;           /* clay — 5.3:1 with paper text */
+
+  --energy: #6b2fd6;
+  --energy-light: #6b3fd1;      /* 5.2:1 on the light tint */
+  --energy-tint: #e9e4f4;
+
+  --dz-bg: #e6e9da;
+  --dz3-surface: #eadfd0;
+  --dz-hero: #e8d5be;
+
+  --font-display: 'JetBrains Mono', ui-monospace, 'Cascadia Code', Menlo, monospace;
+  --font-body: 'Inter', system-ui, sans-serif;
+  --font-mono: 'JetBrains Mono', ui-monospace, 'Cascadia Code', Menlo, monospace;
+
+  --radius: 8px;                /* gmux's 8px + pills */
+  --radius-sm: 5px;
+  --radius-lg: 10px;
+  --radius-xl: 14px;
+  --pill: 999px;
+
+  --on-accent: #edefe6;         /* 5.5:1 on forest */
+  --primary-hover: #3a7f4f;
+  --on-warn: #edefe6;           /* 5.3:1 on clay */
+
+  --on-gold: #edefe6;
+
+  /* gmux extras — the status-dot grammar */
+  --ok: #2e6b40;
+  --wait: #8a6414;
+  --alert: #9c4a2b;
+  --idle: #98a093;
+  --paper: #fafbf3;
+  --rule: #cfd4c2;
+}
+
+/* ── gmux · MATERIAL — paper terminal ─────────────────────────────────── */
+[data-theme="gmux"] {
+  --mat-page:
+    radial-gradient(circle at 1px 1px, rgba(26, 32, 26, 0.07) 1px, transparent 1.6px),
+    linear-gradient(#f1f4e9, #edefe6 60%);
+  background-size: 22px 22px, auto;
+}
+[data-theme="gmux"] body { background-size: 22px 22px, auto; }
+[data-theme="gmux"] .mat-surface {             /* paper sheet, rule header */
+  background: var(--paper);
+  border: 1px solid var(--rule);
+  border-top: 2px solid var(--lime);
+  border-radius: 8px;
+  box-shadow: 0 8px 22px -10px rgba(26, 32, 26, 0.22);
+}
+[data-theme="gmux"] .mat-btn {                 /* terminal key: mono, square-ish */
+  font-family: var(--font-mono); font-weight: 600;
+  text-transform: uppercase; letter-spacing: 0.05em; font-size: 0.92em;
+  border-radius: 6px;
+  border: 1px solid color-mix(in srgb, var(--lime) 55%, var(--rule));
+  box-shadow: 0 2px 0 rgba(26, 32, 26, 0.16);
+  transition: box-shadow 0.1s steps(2, end), transform 0.1s steps(2, end);
+}
+[data-theme="gmux"] .mat-btn:active { transform: translateY(2px); box-shadow: 0 0 0 rgba(26, 32, 26, 0); }
+[data-theme="gmux"] .mat-btn--ghost { background: var(--paper); color: var(--lime); box-shadow: inset 0 0 0 1px var(--rule); }
+[data-theme="gmux"] .mat-num {                 /* mono tabular, honey highlight */
+  font-family: var(--font-mono); font-weight: 700;
+  font-variant-numeric: tabular-nums;
+  color: var(--ink, var(--text));
+  text-shadow: 0 1px 0 rgba(212, 168, 74, 0.35);
+}
+[data-theme="gmux"] .mat-divider {             /* dashed rule — terminal separator */
+  height: 0; border-bottom: 2px dashed var(--rule); background: none;
+}
+[data-theme="gmux"] .mat-progress { border-radius: 4px; background: var(--surface-2); box-shadow: inset 0 0 0 1px var(--rule); height: 12px; }
+[data-theme="gmux"] .mat-progress i {          /* segmented blocks — no gradient */
+  border-radius: 2px;
+  background:
+    repeating-linear-gradient(90deg, rgba(237, 239, 230, 0.85) 0 2px, transparent 2px 10px),
+    var(--lime);
+}
+[data-theme="gmux"] .mat-chip {                /* status-dot chip — the signature */
+  font-family: var(--font-mono); font-size: 0.84em;
+  border-radius: var(--pill);
+  border: 1px solid var(--rule);
+  background: var(--paper);
+}
+[data-theme="gmux"] .mat-chip::before {        /* the dot every gmux row has */
+  content: ""; display: inline-block; width: 7px; height: 7px; border-radius: 50%;
+  background: var(--idle); margin-right: 7px; vertical-align: 1px;
+}
+[data-theme="gmux"] .mat-chip.is-on { border-color: color-mix(in srgb, var(--lime) 60%, var(--rule)); color: var(--lime); }
+[data-theme="gmux"] .mat-chip.is-on::before { background: var(--ok); box-shadow: 0 0 8px rgba(46, 107, 64, 0.5); }
+[data-theme="gmux"] .mat-input { border-radius: 6px; border: 1px solid var(--rule); font-family: var(--font-mono); background: var(--paper); }
+[data-theme="gmux"] .mat-input:focus { border-color: var(--lime); box-shadow: 0 0 0 2px rgba(46, 107, 64, 0.18); outline: none; }
+[data-theme="gmux"] .mat-avatar { border-radius: 6px; border: 1px solid var(--rule); box-shadow: 0 1px 0 var(--rule); }
+[data-theme="gmux"] .mat-dialog {
+  border: 1px solid var(--rule);
+  border-top: 2px solid var(--lime);
+  border-radius: 10px;
+  background: var(--paper);
+  box-shadow: 0 14px 44px -14px rgba(26, 32, 26, 0.3);
+}
+[data-theme="gmux"] .mat-dialog__title { font-family: var(--font-mono); }
+[data-theme="gmux"] .mat-badge {
+  font-family: var(--font-mono); font-size: 0.8em; letter-spacing: 0.06em;
+  border-radius: var(--pill); background: color-mix(in srgb, var(--wait) 14%, var(--paper));
+  color: #5c430e; border: 1px solid color-mix(in srgb, var(--wait) 40%, var(--rule));
+}
+[data-theme="gmux"] .mat-dz {                  /* clay alert row */
+  font-family: var(--font-mono); font-weight: 600;
+  border-radius: 6px;
+  border: 1px solid color-mix(in srgb, var(--alert) 45%, var(--rule));
+  border-left: 4px solid var(--alert);
+  background: color-mix(in srgb, var(--alert) 8%, var(--paper));
+  color: #5e2d1a;
+}

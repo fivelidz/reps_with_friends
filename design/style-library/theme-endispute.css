@@ -1,0 +1,134 @@
+/* style-library/theme-endispute.css — the "endispute" material kit.
+   Tokens + .mat- primitives only. RWF app bindings (fg / bd classes)
+   live in design/themes.css. Name/label/provenance: README.md. */
+
+/* ═══════════════════════════════════════════════════════════════════════
+   21 · LEGAL BRIEF (endispute) — FROM THE FOUNDER'S SITE endispute.com.au
+   Mined 2026-09-03 from the live dispute-resolution product: cream paper
+   #f4eedf, ink #0a0a0a, gold #d4a14a (decorative rules — deepened to
+   #7d5a0e wherever text needs AA), Cormorant Garamond display + Inter +
+   IBM Plex Mono, radius ZERO everywhere (the only sharp-cornered light
+   kit), double-rule borders, wide-tracked small caps, ledger spacing.
+   Describe it as: a signed legal brief — cream paper, ink hairlines and
+   gold double rules, elegant serif headings, typewriter marginalia, and
+   not a single rounded corner anywhere. Gravity without heaviness.
+   ═══════════════════════════════════════════════════════════════════════ */
+
+[data-theme="endispute"] {
+  --bg: #f4eedf;                /* cream (endispute --color-cream) */
+  --surface: #faf6ea;
+  --surface-2: #ece4cf;
+  --line: #0a0a0a;              /* ink borders — the brief is inked */
+  --line-bright: #0a0a0a;
+  --text: #0a0a0a;              /* ink */
+  --muted: #3a3a33;
+  --faint: #4a4436;             /* 8.4:1 on cream */
+  --faint-deco: #a39a82;
+
+  --lime: #7d5a0e;              /* deep gold — primary (AA on cream, 5.4:1) */
+  --lime-dim: #5e430a;
+  --lime-glow: rgba(212, 161, 74, 0.2);
+  --coral: #8a2d16;             /* deep red-brown — effort */
+  --coral-glow: rgba(138, 45, 22, 0.12);
+  --amber: #8a6100;
+  --sky: #2e5e6e;               /* slate */
+
+  --success: #2e5e3a;
+  --danger: #8a2d16;
+  --urgency: #8a2d16;           /* 7.4:1 with cream text */
+
+  --energy: #4a3a6e;
+  --energy-light: #6a5a9a;
+  --energy-tint: #e9e4f2;
+
+  --dz-bg: #ede5d0;
+  --dz3-surface: #e8dbc2;
+  --dz-hero: #e2d2b2;
+
+  --font-display: 'Cormorant Garamond', Georgia, serif;
+  --font-body: 'Inter', system-ui, sans-serif;
+  --font-mono: 'IBM Plex Mono', 'Courier New', monospace;
+
+  --radius: 0px;                /* ZERO. The brief does not round corners. */
+  --radius-sm: 0px;
+  --radius-lg: 0px;
+  --radius-xl: 0px;
+  --pill: 0px;
+
+  --on-accent: #f4eedf;         /* 5.4:1 on deep gold */
+  --primary-hover: #96690f;
+  --on-warn: #f4eedf;           /* 7.4:1 on red-brown */
+
+  --on-gold: #f4eedf;
+
+  /* endispute extras */
+  --gold-rule: #d4a14a;         /* decorative gold (2.0:1 — rules only, never text) */
+  --ink: #0a0a0a;
+}
+
+/* ── endispute · MATERIAL — the signed brief ───────────────────────────── */
+[data-theme="endispute"] {
+  --mat-page:
+    repeating-linear-gradient(180deg, transparent 0 31px, rgba(10, 10, 10, 0.055) 31px 32px),
+    linear-gradient(#f6f1e4, #f4eedf 70%);
+}
+[data-theme="endispute"] .mat-surface {        /* certificate plate: ink + gold mat */
+  background: var(--surface);
+  border: 1px solid var(--ink);
+  border-radius: 0;
+  box-shadow: 0 0 0 4px var(--bg), 0 0 0 5px var(--gold-rule);
+}
+[data-theme="endispute"] .mat-btn {            /* ink seal block */
+  font-family: var(--font-body); font-weight: 600;
+  text-transform: uppercase; letter-spacing: 0.14em; font-size: 0.86em;
+  border-radius: 0;
+  border: 1px solid var(--ink);
+  background: var(--ink);
+  color: var(--bg);
+  box-shadow: none;
+  transition: box-shadow 0.18s ease, background 0.18s ease;
+}
+[data-theme="endispute"] .mat-btn:hover { box-shadow: inset 0 -3px 0 var(--gold-rule); }
+[data-theme="endispute"] .mat-btn:active { background: #262626; }
+[data-theme="endispute"] .mat-btn--ghost { background: transparent; color: var(--ink); border-color: var(--ink); }
+[data-theme="endispute"] .mat-num {            /* elegant serif figure */
+  font-family: 'Cormorant Garamond', Georgia, serif;
+  font-weight: 600;
+  color: var(--ink);
+}
+[data-theme="endispute"] .mat-divider {        /* the gold double rule */
+  height: 3px; border-radius: 0;
+  border-top: 3px double var(--gold-rule);
+  background: none;
+}
+[data-theme="endispute"] .mat-progress { border: 1px solid var(--ink); border-radius: 0; background: var(--surface-2); }
+[data-theme="endispute"] .mat-progress i { border-radius: 0; background: linear-gradient(90deg, var(--lime), var(--gold-rule)); }
+[data-theme="endispute"] .mat-chip {           /* bracketed marginalia */
+  font-family: var(--font-mono); font-size: 0.82em; letter-spacing: 0.08em;
+  border-radius: 0;
+  border: none;
+  background: transparent;
+  color: var(--ink);
+}
+[data-theme="endispute"] .mat-chip::before { content: "[ "; color: var(--lime-dim); }
+[data-theme="endispute"] .mat-chip::after { content: " ]"; color: var(--lime-dim); }
+[data-theme="endispute"] .mat-chip.is-on { color: var(--lime-dim); font-weight: 600; }
+[data-theme="endispute"] .mat-input { border-radius: 0; border: none; border-bottom: 1px solid var(--ink); background: transparent; font-family: var(--font-mono); }
+[data-theme="endispute"] .mat-input:focus { border-bottom: 2px solid var(--lime); outline: none; }
+[data-theme="endispute"] .mat-avatar { border-radius: 0; border: 1px solid var(--ink); box-shadow: 2px 2px 0 var(--gold-rule); }
+[data-theme="endispute"] .mat-dialog {         /* the executed document */
+  border: 1px solid var(--ink);
+  border-radius: 0;
+  background: var(--surface);
+  box-shadow: 0 0 0 5px var(--bg), 0 0 0 6px var(--ink), 0 26px 60px -18px rgba(10, 10, 10, 0.4);
+}
+[data-theme="endispute"] .mat-dialog__title { font-family: var(--font-display); font-weight: 600; font-size: 1.5em; letter-spacing: 0.02em; }
+[data-theme="endispute"] .mat-badge { font-family: var(--font-mono); border-radius: 0; border: 1px solid var(--gold-rule); color: var(--lime-dim); background: rgba(212, 161, 74, 0.1); }
+[data-theme="endispute"] .mat-dz {             /* the red-stamp clause */
+  font-family: var(--font-mono); font-weight: 600; letter-spacing: 0.1em;
+  border-radius: 0;
+  border: 2px solid var(--coral);
+  background: transparent;
+  color: var(--coral);
+  box-shadow: 3px 3px 0 rgba(138, 45, 22, 0.25);
+}

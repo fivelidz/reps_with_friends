@@ -3,8 +3,8 @@
 <head>
   <meta charset="utf-8">
   <meta name="viewport" content="width=device-width, initial-scale=1">
-  <title>Fourteen material libraries</title>
-  <meta name="description" content="Fourteen material libraries for RWF — side-by-side phone mocks, full-screen previews, and the component library in every skin.">
+  <title>Twenty-one material libraries</title>
+  <meta name="description" content="Twenty-one material libraries for RWF — fourteen built here plus seven mined from the founder's live sites — side-by-side phone mocks, arrow-key previews, and the component library in every skin.">
   <link rel="stylesheet" href="/design/fonts/fonts.css">
   <link rel="stylesheet" href="/design/tokens.css">
   <link rel="stylesheet" href="/design/themes.css">
@@ -18,10 +18,12 @@
     <div class="st-header__row">
       <div>
         <p class="st-overline">RWF · theme exploration</p>
-        <h1 class="st-title">Fourteen material libraries</h1>
-        <p class="st-sub">One design system, fourteen material kits — the original five plus the
-          board-game nine, each rebuilt as a <b>full design language</b>: components, type,
-          motion and a contract-level <b>describe it as</b> label per theme.</p>
+        <h1 class="st-title">Twenty-one material libraries</h1>
+        <p class="st-sub">One design system, twenty-one material kits — the original five,
+          the board-game nine, and <b>seven mined from your own sites</b> (x10.au, doof.ing,
+          qalarc.com, tradez.au, gmux.ai, volkus.net, endispute.com.au). Each is a
+          <b>full design language</b> — components, type, motion and a contract-level
+          <b>describe it as</b> label — and every pair is structurally distinct, not hue-adjacent.</p>
       </div>
       <nav class="st-links" aria-label="Related pages">
         <a href="/system">/system · library</a>
@@ -31,16 +33,17 @@
     </div>
     <div class="st-previewbar" id="previewBar" hidden>
       <span class="st-previewbar__chip" id="previewChip">THEME</span>
-      <span class="st-kbd">← → swap · 1–9 jump · esc exit</span>
+      <span class="st-kbd">← → swap · hold to scrub · 1–9 jump · esc exit</span>
       <span class="st-previewbar__copy">full-screen preview — this page + the component library are wearing the theme</span>
       <button class="st-previewbar__exit" id="previewExit" type="button">✕ &nbsp;Back to compare</button>
     </div>
+    <div class="st-flash" id="themeFlash" aria-hidden="true"></div>
   </header>
 
   <!-- ═══════════════ 1 · PICKER — names, descriptions, swatches ════════ -->
-  <section class="st-sec" id="picker" aria-label="The fourteen themes">
-    <p class="st-kicker">01 · The catalogue — five originals + nine material kits</p>
-    <span class="st-kbd" id="kbdHint">← → swap · 1–9 jump · esc exit</span>
+  <section class="st-sec" id="picker" aria-label="The twenty-one themes">
+    <p class="st-kicker">01 · The catalogue — 5 originals + 9 game kits + 7 from your sites (◈)</p>
+    <span class="st-kbd" id="kbdHint">← → swap · hold to scrub · 1–9 jump · esc exit · arrows work from here</span>
     <div class="st-cards" id="cards"><!-- rendered by gallery.js --></div>
   </section>
 
@@ -61,7 +64,7 @@
   <!-- ═══════════════ 3 · ON THE APP — the V2 board game, every skin ════ -->
   <section class="st-sec" id="ontheapp" aria-label="The V2 app in every material kit">
     <p class="st-kicker">03 · On the app — the V2 board game (/v2) in every material kit</p>
-    <p class="st-note">The nine board-game kits are full design languages now, not palette swaps —
+    <p class="st-note">Sixteen kits are full design languages now, not palette swaps —
       each rebuilds the app's real components (the table, lanes, the pot, runner tokens,
       the fanned card hand, buttons, boards) with its own type, structure and motion.
       These are the app's actual screens wearing each skin: home + battle, per theme.</p>
@@ -327,9 +330,12 @@
 
   <!-- ═══════════════ FOOTER ═══════════════ -->
   <footer class="st-footer">
-    <p><b>How it works</b> — <code>design/themes.css</code> holds fourteen
-      <code>[data-theme]</code> blocks over the slot contract in
-      <code>design/tokens.css</code>: five originals (tokens + component feel)
+    <p><b>How it works</b> — the portable library <code>design/style-library/</code>
+      (one file per kit + <code>base.css</code> + <code>index.css</code> + README) holds
+      twenty-one <code>[data-theme]</code> kits over the slot contract in
+      <code>design/tokens.css</code>; <code>design/themes.css</code> imports it and adds
+      the RWF app bindings. The ◈ kits are mined from the founder's live sites —
+      palette + type + structure, verbatim from their CSS: five originals (tokens + component feel)
       and nine material kits including the new <b>Sports Poster</b> as full languages (tokens + component CSS + type +
       motion for the <code>fg-*</code> library <i>and</i> the <code>bd-*</code>
       board app). Load both stylesheets, set

@@ -1,0 +1,192 @@
+/* style-library/theme-neobrut.css — the "neobrut" material kit.
+   Tokens + .mat- primitives only. RWF app bindings (fg / bd classes)
+   live in design/themes.css. Name/label/provenance: README.md. */
+
+/* ═══════════════════════════════════════════════════════════════════════
+   14 · SPORTS POSTER (neobrut) — THE FOUNDER'S NAMED FAVOURITE
+   "Neo-brutalist sports poster with a soft underbelly."
+   POLISHED 2026-09-03: halftone print dots over the paper grain, an
+   exposed layout grid, HUGE condensed Anton shouting ALL CAPS on warm
+   cream, thick ink rules, off-register duotone plate shadows (red + blue
+   slipped), tilted sticker badges — then the underbelly: chunky corners
+   ROUNDED UNDER the hard edges (16px under 3px ink), warm plate shadows
+   instead of none, generous padding, pill inputs, buttery 0.35s eases
+   and a friendly sticker wiggle. The poster shouts; the touch whispers.
+   Describe it as: a sports poster wheat-pasted at eye height — loud
+   duotone type, thick rules, halftone dots, stickers slapped on the
+   corner — but every corner underneath is rounded, every press is soft,
+   every hover is gentle.
+   ═══════════════════════════════════════════════════════════════════════ */
+
+[data-theme="neobrut"] {
+  --bg: #f2e3c4;                 /* warm poster cream — deeper than sunset's */
+  --surface: #faf1de;            /* card stock */
+  --surface-2: #eadfc2;          /* pressed */
+  --line: #17130e;               /* ink */
+  --line-bright: #2a2118;
+  --text: #1c1712;
+  --muted: #4d443a;
+  --faint: #5d5347;              /* 5.9:1 on bg */
+  --faint-deco: #8b7f6d;
+
+  --lime: #2b4bec;               /* poster BLUE — the loud plate */
+  --lime-dim: #1d3ac0;
+  --lime-glow: rgba(43, 75, 236, 0.16);
+  --coral: #c41f0e;              /* the red plate */
+  --coral-glow: rgba(196, 31, 14, 0.14);
+  --amber: #7a5400;              /* 5.4:1 as text on poster cream */
+  --sky: #0b62c4;
+
+  --success: #175f30;            /* 6.1:1 as text on poster cream */
+  --danger: #b3172b;
+  --urgency: #9c4405;            /* 6.0:1 with cream, 5.1:1 as text */
+
+  --energy: #6f2fd8;
+  --energy-light: #5b2fd6;      /* 5.9:1 on the pastel tint */
+  --energy-tint: #ebe0f8;
+
+  --dz-bg: #f3e6cf;
+  --dz3-surface: #f7ddb5;
+  --dz-hero: #ffd79a;
+
+  --font-display: 'Anton', 'Archivo', system-ui, sans-serif;
+  --font-body: 'Inter', 'Archivo', system-ui, sans-serif;
+  --font-mono: 'JetBrains Mono', ui-monospace, 'Cascadia Code', Menlo, monospace;
+
+  --radius: 4px;                 /* brutal grid … */
+  --radius-sm: 2px;
+  --radius-lg: 6px;
+  --radius-xl: 10px;
+  --pill: 999px;                 /* … but the underbelly is SOFT */
+
+  --on-accent: #fff6e8;          /* 5.9:1 on poster blue */
+  --primary-hover: #1d3ac0;
+  --on-warn: #fff6e8;            /* 4.7:1 on urgency */
+
+  --on-gold: var(--on-accent);
+
+  /* BOARD EXTRAS — the poster court */
+  --felt: #2b4bec;               /* blue court */
+  --felt-deep: #1d3ac0;
+  --felt-line: rgba(255, 246, 232, 0.3);
+  --lane: #c41f0e;               /* red lane */
+  --lane-paint: rgba(255, 246, 232, 0.55);
+  --rail: #17130e;               /* ink rail */
+  --rail-edge: rgba(255, 246, 232, 0.4);
+
+  --chip-white: #fff6e8;
+  --chip-red: #c41f0e;
+  --chip-blue: #2b4bec;
+  --chip-gold: #d9a521;
+
+  --card-back-1: #2b4bec;
+  --card-back-2: #1d3ac0;
+  --card-face: #fff6e8;
+
+  --pop-shadow: #17130e;
+  --speed: 0.85s;
+}
+/* ── neobrut · MATERIAL — loud print + soft touch ────────────────────── */
+[data-theme="neobrut"] {
+  --mat-page:
+    url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='150' height='150'%3E%3Cfilter id='p'%3E%3CfeTurbulence type='fractalNoise' baseFrequency='0.7' numOctaves='2' stitchTiles='stitch'/%3E%3CfeColorMatrix values='0 0 0 0 0.09 0 0 0 0 0.07 0 0 0 0 0.05 0 0 0 0.07 0'/%3E%3C/filter%3E%3Crect width='150' height='150' filter='url(%23p)'/%3E%3C/svg%3E"),
+    radial-gradient(circle at 1.2px 1.2px, rgba(23, 19, 14, 0.13) 1.2px, transparent 1.8px),
+    repeating-linear-gradient(90deg, rgba(23, 19, 14, 0.075) 0 2px, transparent 2px 128px),
+    repeating-linear-gradient(180deg, rgba(23, 19, 14, 0.075) 0 2px, transparent 2px 128px),
+    linear-gradient(#f2e3c4, #eddcba);
+  background-size: 150px 150px, 9px 9px, auto, auto, auto;
+}
+[data-theme="neobrut"] body { background-size: 150px 150px, 9px 9px, auto, auto, auto; }
+[data-theme="neobrut"] .mat-surface {          /* poster block — chunky rounded UNDER the hard edge */
+  background:
+    radial-gradient(circle at 1.2px 1.2px, rgba(23, 19, 14, 0.1) 1.2px, transparent 1.8px) 0 0/9px 9px,
+    var(--surface);
+  border: 3px solid var(--line);
+  border-radius: 16px;
+  box-shadow: 6px 6px 0 rgba(196, 31, 14, 0.85);      /* red plate slipped */
+  padding: 4px;                                        /* generous — the soft underbelly breathes */
+  transition: transform 0.35s cubic-bezier(0.22, 1, 0.36, 1), box-shadow 0.35s cubic-bezier(0.22, 1, 0.36, 1);
+}
+[data-theme="neobrut"] .mat-surface:hover {    /* the soft underbelly */
+  transform: translate(-2px, -2px);
+  box-shadow: 9px 9px 0 rgba(196, 31, 14, 0.85), 12px 12px 0 rgba(43, 75, 236, 0.5);
+}
+[data-theme="neobrut"] .mat-btn {              /* LOUD pill, buttery press */
+  font-family: var(--font-display);
+  font-size: 16px; text-transform: uppercase; letter-spacing: 0.03em;
+  border: 3px solid var(--line);
+  border-radius: 999px;
+  padding: 13px 26px;
+  box-shadow: 5px 5px 0 var(--coral), 10px 10px 0 rgba(23, 19, 14, 0.9);   /* off-register duotone */
+  transition: transform 0.35s cubic-bezier(0.22, 1, 0.36, 1), box-shadow 0.35s cubic-bezier(0.22, 1, 0.36, 1);
+}
+[data-theme="neobrut"] .mat-btn:hover {        /* gentle lift, plates drift */
+  transform: translateY(-3px);
+  box-shadow: 7px 8px 0 var(--coral), 14px 15px 0 rgba(23, 19, 14, 0.9);
+}
+[data-theme="neobrut"] .mat-btn:active {       /* melts flat */
+  transform: translateY(2px);
+  box-shadow: 2px 2px 0 var(--coral), 4px 4px 0 rgba(23, 19, 14, 0.9);
+}
+[data-theme="neobrut"] .mat-btn--ghost {
+  background: var(--surface);
+  color: var(--text);
+  box-shadow: 4px 4px 0 rgba(23, 19, 14, 0.85);
+}
+[data-theme="neobrut"] .mat-num {              /* the headline numeral */
+  font-family: 'Anton', 'Archivo', sans-serif;
+  font-size: 58px;
+  color: var(--line);
+  text-transform: uppercase;
+  text-shadow: 4px 4px 0 rgba(196, 31, 14, 0.8);     /* off-register print */
+}
+[data-theme="neobrut"] .mat-divider {          /* THICK rule, exposed */
+  height: 6px; border-radius: 2px;
+  background: var(--line);
+  box-shadow: 0 3px 0 rgba(43, 75, 236, 0.55);
+}
+[data-theme="neobrut"] .mat-progress {         /* soft-track pill */
+  border: 3px solid var(--line);
+  border-radius: 999px;
+  background: var(--surface-2);
+}
+[data-theme="neobrut"] .mat-progress i {       /* buttery fill */
+  border-radius: 999px;
+  background: linear-gradient(90deg, var(--lime), var(--sky));
+  transition: width 0.6s cubic-bezier(0.22, 1, 0.36, 1);
+}
+[data-theme="neobrut"] .mat-chip { font-family: 'Inter', sans-serif; font-weight: 700; border-radius: 999px; border: 2.5px solid var(--line); transition: transform 0.3s cubic-bezier(0.22, 1, 0.36, 1); }
+[data-theme="neobrut"] .mat-chip:hover { transform: translateY(-1px); }
+[data-theme="neobrut"] .mat-chip.is-on { box-shadow: 3px 3px 0 rgba(23, 19, 14, 0.85); }
+[data-theme="neobrut"] .mat-input {            /* PILL input — pure soft */
+  border-radius: 999px; border: 2.5px solid var(--line);
+  padding: 12px 18px;
+  transition: box-shadow 0.3s cubic-bezier(0.22, 1, 0.36, 1);
+}
+[data-theme="neobrut"] .mat-input:focus { box-shadow: 4px 4px 0 rgba(43, 75, 236, 0.6); outline: none; }
+[data-theme="neobrut"] .mat-avatar { border-radius: 999px; border: 3px solid var(--line); box-shadow: 3px 3px 0 rgba(196, 31, 14, 0.7); }
+[data-theme="neobrut"] .mat-dialog { border: 3px solid var(--line); border-radius: 18px; box-shadow: 8px 8px 0 var(--coral), 14px 14px 0 rgba(23, 19, 14, 0.9); animation: matSoftIn 0.45s cubic-bezier(0.22, 1, 0.36, 1) both; }
+[data-theme="neobrut"] .mat-dialog__title { font-family: var(--font-display); text-transform: uppercase; letter-spacing: 0.02em; }
+[data-theme="neobrut"] .mat-badge {            /* STICKER — tilted, ringed, stuck on */
+  font-family: 'Inter', sans-serif; font-weight: 800;
+  border-radius: 999px;
+  border: 2.5px solid var(--line);
+  background: var(--chip-gold, #d9a521);
+  color: #17130e;
+  box-shadow: 0 0 0 3px var(--surface), 3px 4px 0 rgba(23, 19, 14, 0.8);
+  transform: rotate(-4deg);
+  transition: transform 0.3s cubic-bezier(0.34, 1.56, 0.64, 1);
+}
+[data-theme="neobrut"] .mat-badge:hover { transform: rotate(3deg) scale(1.06); animation: matStickerWiggle 0.5s cubic-bezier(0.34, 1.56, 0.64, 1); }
+@keyframes matStickerWiggle {
+  0% { transform: rotate(-4deg) scale(1); }
+  30% { transform: rotate(-7deg) scale(1.08); }
+  60% { transform: rotate(2deg) scale(1.04); }
+  100% { transform: rotate(3deg) scale(1.06); }
+}
+[data-theme="neobrut"] .mat-dz {
+  font-family: 'Inter', sans-serif; font-weight: 800;
+  border: 3px solid var(--line); border-radius: 999px;
+  background: repeating-linear-gradient(-45deg, rgba(23, 19, 14, 0.12) 0 12px, transparent 12px 24px), var(--dz-hero);
+  color: #17130e;
+}

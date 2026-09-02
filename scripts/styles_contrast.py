@@ -1,8 +1,9 @@
 #!/usr/bin/env python3
-"""RWF theme contrast checker — design/themes.css (5-theme exploration).
+"""RWF theme contrast checker — the style library (21 kits).
 
-Parses :root from design/tokens.css + every [data-theme="X"] block from
-design/themes.css, resolves var() chains + rgba(), and computes WCAG 2.1
+Parses :root from design/tokens.css + every [data-theme="X"] token block
+from design/style-library/*.css (and design/themes.css, which may restate),
+resolves var() chains + rgba(), and computes WCAG 2.1
 contrast ratios for every pairing that matters for AA:
 
   · text hierarchy (text/muted/faint) on bg/surface/surface-2   → need 4.5
@@ -23,7 +24,8 @@ from pathlib import Path
 
 ROOT = Path(__file__).resolve().parent.parent
 TOKENS = ROOT / "design" / "tokens.css"
-THEMES = ROOT / "design" / "themes.css"
+THEMES_SOURCES = [ROOT / "design" / "themes.css"]
+THEMES_SOURCES += sorted((ROOT / "design" / "style-library").glob("*.css"))
 
 STRICT_PRIMARY = "--strict-45-primary" in sys.argv
 
@@ -40,7 +42,9 @@ def parse_blocks(css: str) -> dict[str, dict[str, str]]:
         if props and (
             ":root" in parts or any(p.startswith("[data-theme") for p in parts)
         ):
-            out[sel] = props
+            # a kit may declare several blocks under the same selector
+            # (tokens + --mat-page) — MERGE, never overwrite
+            out.setdefault(sel, {}).update(props)
     return out
 
 
@@ -110,18 +114,20 @@ PAIRS += [
 ]
 
 # Themes: lime is the :root default (themes.css restates it) — evaluate all five.
-theme_blocks = parse_blocks(THEMES.read_text())
-order = [
-    ":root",
-    '[data-theme="lime"]',
-    '[data-theme="gold"]',
-    '[data-theme="sunset"]',
-    '[data-theme="neon"]',
-    '[data-theme="forest"]',
-]
+theme_blocks = {}
+for src in THEMES_SOURCES:
+    for sel, props in parse_blocks(src.read_text()).items():
+        theme_blocks.setdefault(sel, {}).update(props)
+order = [":root"] + [f'[data-theme="{tid}"]' for tid in [
+    "lime", "gold", "sunset", "neon", "forest",
+    "board", "mycelial", "techy", "track", "cardtable",
+    "caveman", "n64", "goldeneye", "neobrut",
+    "x10", "doof", "qalarc", "tradez", "gmux", "volkus", "endispute",
+]]
 theme_blocks.setdefault(":root", {})  # lime row uses :root defaults
 # :root row should also see themes.css :root additions (--on-accent etc.)
-theme_blocks[":root"] = {**root, **theme_blocks.get(":root", {})}
+# the default (unthemed) page IS the lime skin — evaluate it as such
+theme_blocks[":root"] = {**root, **theme_blocks.get(":root", {}), **theme_blocks.get('[data-theme="lime"]', {})}
 
 fails = 0
 for sel in order:

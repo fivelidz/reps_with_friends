@@ -1,0 +1,132 @@
+/* style-library/theme-qalarc.css — the "qalarc" material kit.
+   Tokens + .mat- primitives only. RWF app bindings (fg / bd classes)
+   live in design/themes.css. Name/label/provenance: README.md. */
+
+/* ═══════════════════════════════════════════════════════════════════════
+   17 · PASTEL STUDIO (qalarc) — FROM THE FOUNDER'S SITE qalarc.com
+   Mined 2026-09-03 from the live studio site: cream #fdf6ee, ink #2a2035,
+   the pastel garden — blush #f2c4ce, lavender #c9b8e8, sky #a8d8ea,
+   mint #b8e8c8, peach #f7c59f — glass cards rgba(255,255,255,.6) with
+   blur, 16px/8px radii + 100px pills, soft violet shadows
+   rgba(90,60,120,.08), DM Serif Display (italic flourishes) + DM Sans +
+   Space Mono labels.
+   Describe it as: a light-flooded studio in spring — cream paper, glass
+   cards floating on pastel light, serif italic headlines, mono caption
+   labels, and everything pill-shaped and weightless.
+   ═══════════════════════════════════════════════════════════════════════ */
+
+[data-theme="qalarc"] {
+  --bg: #fdf6ee;                /* cream (the studio's --cream) */
+  --surface: #ffffff;
+  --surface-2: #f7efe4;
+  --line: #e7dcd0;
+  --line-bright: #d8c9bb;
+  --text: #2a2035;              /* ink */
+  --muted: #4a3d5c;
+  --faint: #6d5f80;             /* 5.4:1 on cream */
+  --faint-deco: #b0a8c0;
+
+  --lime: #6d4fa3;              /* deep lavender — primary (pastels stay decorative) */
+  --lime-dim: #5a3f8a;
+  --lime-glow: rgba(109, 79, 163, 0.16);
+  --coral: #a85a68;             /* blush-deep — effort */
+  --coral-glow: rgba(242, 196, 206, 0.5);
+  --amber: #7f5629;             /* peach-deep, 6.0:1 as text */
+  --sky: #3a688e;               /* sky-deep, 5.5:1 as text */
+
+  --success: #3a6c4d;           /* mint-deep, 5.7:1 as text */
+  --danger: #b05252;
+  --urgency: #a34455;           /* 5.6:1 with cream text */
+
+  --energy: #8a6bb8;
+  --energy-light: #5f4497;      /* 6.3:1 on the pastel tint */
+  --energy-tint: #efe6f8;
+
+  --dz-bg: #faf0ea;
+  --dz3-surface: #f6e2e6;
+  --dz-hero: #f2d4dc;
+
+  --font-display: 'DM Serif Display', Georgia, serif;
+  --font-body: 'DM Sans', 'Inter', system-ui, sans-serif;
+  --font-mono: 'Space Mono', ui-monospace, 'Cascadia Code', Menlo, monospace;
+
+  --radius: 16px;               /* the studio's 16/8/100 rhythm */
+  --radius-sm: 8px;
+  --radius-lg: 20px;
+  --radius-xl: 26px;
+  --pill: 100px;
+
+  --on-accent: #fdf6ee;         /* 5.9:1 on deep lavender */
+  --primary-hover: #8462bd;
+  --on-warn: #fdf6ee;           /* 5.6:1 on blush urgency */
+
+  --on-gold: #fdf6ee;
+
+  /* qalarc extras — the pastel garden as readable slots */
+  --blush: #f2c4ce;
+  --lavender: #c9b8e8;
+  --sky-pastel: #a8d8ea;
+  --mint: #b8e8c8;
+  --peach: #f7c59f;
+  --glass: rgba(255, 255, 255, 0.6);
+  --glass-border: rgba(180, 160, 200, 0.3);
+}
+
+/* ── qalarc · MATERIAL — glass on the pastel garden ───────────────────── */
+[data-theme="qalarc"] {
+  --mat-page:
+    radial-gradient(46% 38% at 8% -4%, rgba(242, 196, 206, 0.5), transparent 62%),
+    radial-gradient(42% 36% at 96% 8%, rgba(201, 184, 232, 0.45), transparent 64%),
+    radial-gradient(44% 40% at 50% 108%, rgba(184, 232, 200, 0.4), transparent 60%),
+    #fdf6ee;
+}
+[data-theme="qalarc"] .mat-surface {           /* floating glass card */
+  background: var(--glass);
+  backdrop-filter: blur(10px);
+  border: 1px solid var(--glass-border);
+  border-radius: var(--radius);
+  box-shadow: 0 2px 16px rgba(90, 60, 120, 0.12), 0 4px 32px rgba(90, 60, 120, 0.08);
+}
+[data-theme="qalarc"] .mat-btn {               /* lavender pill, weightless */
+  font-family: var(--font-body); font-weight: 600;
+  border-radius: var(--pill);
+  box-shadow: 0 4px 18px rgba(109, 79, 163, 0.2);
+  transition: transform 0.25s var(--ease), box-shadow 0.25s var(--ease);
+}
+[data-theme="qalarc"] .mat-btn:hover { transform: translateY(-2px); box-shadow: 0 8px 26px rgba(109, 79, 163, 0.26); }
+[data-theme="qalarc"] .mat-btn:active { transform: translateY(0) scale(0.98); box-shadow: 0 2px 10px rgba(109, 79, 163, 0.2); }
+[data-theme="qalarc"] .mat-btn--ghost { background: rgba(255, 255, 255, 0.5); box-shadow: inset 0 0 0 1px var(--glass-border); color: var(--ink, var(--text)); }
+[data-theme="qalarc"] .mat-num {               /* the serif numeral — rare */
+  font-family: 'DM Serif Display', Georgia, serif;
+  color: var(--lime);
+}
+[data-theme="qalarc"] .mat-divider {           /* dotted lavender path */
+  height: 2px; border-radius: 2px;
+  background: repeating-linear-gradient(90deg, var(--lavender) 0 6px, transparent 6px 14px);
+}
+[data-theme="qalarc"] .mat-progress { border-radius: var(--pill); background: rgba(42, 32, 53, 0.08); box-shadow: none; }
+[data-theme="qalarc"] .mat-progress i {        /* the garden rainbow fill */
+  border-radius: var(--pill);
+  background: linear-gradient(90deg, #6d4fa3, #a85a68 34%, #9a6b3c 62%, #4e8d63);
+}
+[data-theme="qalarc"] .mat-chip { font-family: var(--font-body); border-radius: var(--pill); border-color: var(--glass-border); background: rgba(255, 255, 255, 0.55); }
+[data-theme="qalarc"] .mat-chip.is-on { background: var(--lavender); color: #3d2a5e; border-color: transparent; box-shadow: 0 2px 10px rgba(109, 79, 163, 0.2); }
+[data-theme="qalarc"] .mat-input { border-radius: var(--pill); background: rgba(255, 255, 255, 0.6); border: 1px solid var(--glass-border); font-family: var(--font-body); }
+[data-theme="qalarc"] .mat-input:focus { border-color: var(--lavender); box-shadow: 0 0 0 3px rgba(201, 184, 232, 0.4); outline: none; }
+[data-theme="qalarc"] .mat-avatar { border-radius: var(--pill); border: 2px solid #fff; box-shadow: 0 2px 10px rgba(90, 60, 120, 0.18); }
+[data-theme="qalarc"] .mat-dialog {
+  border: 1px solid var(--glass-border);
+  border-radius: var(--radius-xl);
+  background: rgba(255, 252, 248, 0.86);
+  backdrop-filter: blur(14px);
+  box-shadow: 0 8px 32px rgba(90, 60, 120, 0.12), 0 18px 60px rgba(90, 60, 120, 0.16);
+}
+[data-theme="qalarc"] .mat-dialog__title { font-family: var(--font-display); }
+[data-theme="qalarc"] .mat-badge { font-family: var(--font-mono); border-radius: var(--pill); background: var(--sky-pastel); color: #2a3a4a; }
+[data-theme="qalarc"] .mat-dz {
+  font-family: var(--font-body); font-weight: 700;
+  border-radius: var(--pill);
+  background: linear-gradient(135deg, var(--blush), var(--peach));
+  color: #4a2a35;
+  box-shadow: 0 4px 18px rgba(168, 90, 104, 0.2);
+}

@@ -1,0 +1,141 @@
+/* style-library/theme-track.css — the "track" material kit.
+   Tokens + .mat- primitives only. RWF app bindings (fg / bd classes)
+   live in design/themes.css. Name/label/provenance: README.md. */
+
+/* ═══════════════════════════════════════════════════════════════════════
+   9 · TRACK & FIELD (track) — "stadium signage"
+   Describe it as: terracotta running track grain under white chalk lines,
+   condensed timing numerals, rows that are painted lanes with numbers,
+   race-bib rank plates, cream signage panels.
+   ═══════════════════════════════════════════════════════════════════════ */
+
+[data-theme="track"] {
+  --bg: #2b1012;                /* terracotta track, floodlit */
+  --surface: #351518;
+  --surface-2: #401a1d;
+  --line: #4f2225;
+  --line-bright: #682e31;
+  --text: #fdf5ef;              /* lane-paint white */
+  --muted: #d9bdb9;
+  --faint: #bda29f;
+  --faint-deco: #8a6e6b;
+
+  --lime: #ffffff;              /* WHITE = the primary. lane paint. */
+  --lime-dim: #d9c9c4;
+  --lime-glow: rgba(255, 255, 255, 0.14);
+  --coral: #ff8a70;
+  --coral-glow: rgba(255, 138, 112, 0.13);
+  --amber: #ffc966;
+  --sky: #8fd0f2;
+
+  --success: #4fd694;
+  --danger: #ff6272;
+  --urgency: #ffa050;
+
+  --energy: #b794ff;
+  --energy-light: #d6c6ff;
+  --energy-tint: #2e2149;
+
+  --dz-bg: #230d0f;
+  --dz3-surface: #3c1a12;
+  --dz-hero: #46200f;
+
+  --font-display: 'Anton', 'Space Grotesk', system-ui, sans-serif; /* stopwatch */
+  --font-body: 'Space Grotesk', system-ui, sans-serif;
+  --font-mono: 'JetBrains Mono', ui-monospace, Menlo, monospace;
+
+  --radius: 12px;
+  --radius-sm: 8px;
+  --radius-lg: 16px;
+  --radius-xl: 20px;
+  --pill: 999px;
+
+  --on-accent: #2b1012;         /* 17.9:1 on white — red-on-white numbers */
+  --primary-hover: #ffe9e3;
+  --on-warn: #241304;           /* 7.9:1 on urgency */
+
+  --on-gold: var(--on-accent);
+
+  /* board extras — the running track itself */
+  --felt: #8e2f26;
+  --felt-deep: #571a14;
+  --felt-line: rgba(255, 255, 255, 0.30);
+  --lane-paint: rgba(255, 255, 255, 0.34);
+  --rail: #2b0f0c;
+  --rail-edge: rgba(255, 255, 255, 0.14);
+  --card-back-1: #7e2a22;
+  --card-back-2: #4a1813;
+  --card-face: #3a1a17;
+  --pop-shadow: #4a100c;
+  --speed: 0.75s;               /* race pace */
+}
+/* ── track · MATERIAL — terracotta grain + chalk ─────────────────────── */
+[data-theme="track"] {
+  --mat-page:
+    url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='180' height='180'%3E%3Cfilter id='g'%3E%3CfeTurbulence type='fractalNoise' baseFrequency='0.65' numOctaves='2' stitchTiles='stitch'/%3E%3CfeColorMatrix values='0 0 0 0 0.45 0 0 0 0 0.22 0 0 0 0 0.14 0 0 0 0.14 0'/%3E%3C/filter%3E%3Crect width='180' height='180' filter='url(%23g)'/%3E%3C/svg%3E"),
+    repeating-linear-gradient(0deg, rgba(255, 250, 240, 0.05) 0 2px, transparent 2px 90px),
+    linear-gradient(#3a161a, #2b1012);
+  background-size: 180px 180px, auto, auto;
+}
+[data-theme="track"] body { background-size: 180px 180px, auto, auto; }
+[data-theme="track"] .mat-surface {            /* painted signage board */
+  background:
+    linear-gradient(180deg, rgba(255, 255, 255, 0.05), transparent 22%),
+    var(--surface);
+  border: 1px solid rgba(255, 250, 240, 0.35);
+  border-top: 3px solid var(--text);
+  border-radius: 10px;
+  box-shadow: 0 6px 16px rgba(20, 6, 7, 0.5);
+}
+[data-theme="track"] .mat-btn {                /* lane block */
+  font-family: var(--font-display); text-transform: uppercase;
+  letter-spacing: 0.05em;
+  border-radius: 8px;
+  border: 2px solid var(--text);
+  box-shadow: 0 4px 0 rgba(43, 16, 18, 0.9);
+  transition: transform 0.1s ease, box-shadow 0.1s ease;
+}
+[data-theme="track"] .mat-btn::before {        /* painted lane stripes on the edge */
+  content: ""; position: absolute; left: 0; top: 0; bottom: 0; width: 7px;
+  background: repeating-linear-gradient(180deg, var(--lane-paint) 0 9px, transparent 9px 15px);
+  border-radius: 6px 0 0 6px;
+}
+[data-theme="track"] .mat-btn:active { transform: translateY(4px); box-shadow: 0 0 0 rgba(43, 16, 18, 0.9); }
+[data-theme="track"] .mat-btn--ghost { background: var(--surface-2); color: var(--text); box-shadow: 0 4px 0 rgba(43, 16, 18, 0.9); }
+[data-theme="track"] .mat-num {
+  font-family: 'Anton', 'Space Grotesk', sans-serif;
+  font-size: 52px;
+  color: var(--text);
+}
+[data-theme="track"] .mat-divider {            /* painted lane line */
+  height: 0; border-top: 3px dashed rgba(255, 250, 240, 0.6); background: none;
+}
+[data-theme="track"] .mat-progress {           /* the straight */
+  height: 14px; border-radius: 4px;
+  background: repeating-linear-gradient(90deg, rgba(255, 250, 240, 0.14) 0 30px, transparent 30px 34px), rgba(43, 16, 18, 0.8);
+  border: 1px solid rgba(255, 250, 240, 0.4);
+}
+[data-theme="track"] .mat-progress i {
+  border-radius: 3px;
+  background:
+    repeating-linear-gradient(90deg, rgba(43, 16, 18, 0.22) 0 8px, transparent 8px 17px),
+    linear-gradient(90deg, var(--lime), #e0702f);
+  border-right: 3px solid var(--text);
+}
+[data-theme="track"] .mat-chip {
+  font-family: var(--font-display); text-transform: uppercase; letter-spacing: 0.06em;
+  border-radius: 6px; border: 1.5px solid rgba(255, 250, 240, 0.4);
+}
+[data-theme="track"] .mat-chip.is-on { border-color: var(--text); }
+[data-theme="track"] .mat-input { border-radius: 6px; }
+[data-theme="track"] .mat-avatar { border-radius: 8px; border: 2px solid rgba(255, 250, 240, 0.5); }
+[data-theme="track"] .mat-dialog { border: 1px solid rgba(255, 250, 240, 0.4); border-top: 3px solid var(--text); border-radius: 10px; }
+[data-theme="track"] .mat-badge {
+  border-radius: 4px; font-family: var(--font-display); letter-spacing: 0.1em;
+  background: var(--text); color: #2b1012;
+}
+[data-theme="track"] .mat-dz {
+  font-family: var(--font-display); letter-spacing: 0.08em; text-transform: uppercase;
+  background: linear-gradient(180deg, var(--urgency), #8e3a1c);
+  border-left: 5px solid var(--text);
+}

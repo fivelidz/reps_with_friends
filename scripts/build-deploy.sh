@@ -26,14 +26,17 @@ cp apps/connect/index.html apps/connect/connect.js apps/connect/connect.css apps
 cp apps/demo/index.html apps/demo/demo.js apps/demo/demo.css deploy/public/demo/
 cp apps/systempage/index.html apps/systempage/system.js apps/systempage/system.css deploy/public/system/
 # theme exploration gallery (design/themes.css rides the existing design/ copy)
-mkdir -p deploy/public/styles && cp apps/styles/index.html apps/styles/demo.html apps/styles/styles.css apps/styles/gallery.js apps/styles/verify.js deploy/public/styles/
+mkdir -p deploy/public/styles && cp apps/styles/index.html apps/styles/demo.html apps/styles/appdemo.html apps/styles/styles.css apps/styles/gallery.js apps/styles/verify.js deploy/public/styles/
 # sfx demo — the /sfx link (live app sound catalogue; defensive one-file copy
 # of the figma-app synthesis module — see apps/sfx-demo/sfx.js header)
 mkdir -p deploy/public/sfx && cp apps/sfx-demo/index.html apps/sfx-demo/sfx.js deploy/public/sfx/
 # ── figma-app version stamp (v1.0.0) ────────────────────────────────────
 # the app vendors a copy of design/themes.css (theme beta) — sync it so the
 # five skins can never drift between the gallery and the app
-cp design/themes.css apps/figma-app/themes.css
+# design/themes.css now imports the portable style library — vendor it
+# RESOLVED to one self-contained file (sw.js caches themes.css as one asset;
+# unresolved @imports would 404 inside /figma-app).
+python3 scripts/styles/vendor_library.py
 # sw.js derives its cache name from version.js's BUILD_STAMP, so EVERY
 # deploy busts the service-worker cache — the stale-SW phone bug stays
 # dead. git hash alone isn't enough (multiple deploys per commit), so the

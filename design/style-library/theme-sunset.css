@@ -1,0 +1,101 @@
+/* style-library/theme-sunset.css — the "sunset" material kit.
+   Tokens + .mat- primitives only. RWF app bindings (fg / bd classes)
+   live in design/themes.css. Name/label/provenance: README.md. */
+
+/* ═══════════════════════════════════════════════════════════════════════
+   3 · SUNSET SWISS — "a flat Swiss timing sheet"
+   RADICALISED 2026-09-03 (founder: "still too similar to the poster kit")
+   — this kit no longer uses offset shadows or paper grain at all; it is
+   the FLAT print language to neobrut's chunky poster: hairline 1px ink
+   rules, a visible 32px baseline grid, vermillion used only as a
+   functional accent, tight-tracked heavy Archivo, everything aligned,
+   nothing raised.
+   Describe it as: a Swiss-designed race timing sheet — flat warm paper,
+   hairline ink rules on a faint alignment grid, one vermillion accent
+   doing functional work, oversized tight type. Nothing casts a shadow;
+   hierarchy is typography alone.
+   ═══════════════════════════════════════════════════════════════════════ */
+
+[data-theme="sunset"] {
+  --bg: #f7efe2;                /* warm paper */
+  --surface: #fffaf0;           /* card — lighter than bg */
+  --surface-2: #efe4d0;         /* pressed / chips */
+  --line: #1c1710;              /* heavy ink border */
+  --line-bright: #1c1710;
+  --text: #1c1710;
+  --muted: #5b5244;
+  --faint: #6e6353;
+  --faint-deco: #a89a86;
+
+  --lime: #cc3512;              /* vermillion — the ONLY loud colour */
+  --lime-dim: #a02a0d;
+  --lime-glow: rgba(204, 53, 18, 0.16);
+  --coral: #7a2e1a;             /* deep brick — effort (separated from primary by value, not hue-slippage) */
+  --coral-glow: rgba(122, 46, 26, 0.12);
+  --amber: #8a6100;             /* warning — AA ochre */
+  --sky: #0b62c4;               /* info — cobalt */
+
+  --success: #1d7a3e;           /* forest green */
+  --danger: #b3172b;            /* crimson */
+  --urgency: #a84e00;           /* burnt ochre */
+
+  --energy: #6b2fd6;            /* violet power-up axis */
+  --energy-light: #6b2fd6;
+  --energy-tint: #efe8fa;
+
+  --dz-bg: #f3e6d6;             /* warm evening wash */
+  --dz3-surface: #f7ddd0;
+  --dz-hero: #f2d4c2;
+
+  --font-display: 'Archivo', 'Space Grotesk', system-ui, sans-serif;
+  --font-body: 'Archivo', 'Space Grotesk', system-ui, sans-serif;
+  --font-mono: ui-monospace, 'Cascadia Code', 'SF Mono', Menlo, monospace;
+
+  --radius: 0px;                /* square — the sheet is cut, not moulded */
+  --radius-sm: 0px;
+  --radius-lg: 0px;
+  --radius-xl: 0px;
+  --pill: 0px;
+
+  --on-accent: #fff6ea;         /* 4.8:1 on vermillion */
+  --primary-hover: #a02a0d;
+  --on-warn: #fff6ea;           /* 4.9:1 on ochre urgency */
+
+  --on-gold: var(--on-accent);  /* app safety — see lime block */
+}
+
+/* ── sunset · MATERIAL — flat Swiss print ──────────────────────────────── */
+[data-theme="sunset"] {
+  --mat-page:
+    repeating-linear-gradient(180deg, transparent 0 31px, rgba(28, 23, 16, 0.045) 31px 32px),
+    linear-gradient(#f7efe2, #f3e9d8 80%);
+}
+[data-theme="sunset"] .mat-surface {           /* ruled index card — flat */
+  background: var(--surface);
+  border: 1px solid var(--line);
+  border-top: 3px solid var(--line);
+  border-radius: 0;
+  box-shadow: none;                             /* THE statement: no shadow exists in this kit */
+}
+[data-theme="sunset"] .mat-btn {               /* flat vermillion block, inverts on hover */
+  font-family: var(--font-display); font-weight: 800;
+  text-transform: uppercase; letter-spacing: -0.01em;
+  border-radius: 0;
+  border: 1px solid var(--line);
+  box-shadow: none;
+  transition: background 0.12s ease, color 0.12s ease;
+}
+[data-theme="sunset"] .mat-btn:hover { background: var(--line); color: var(--bg); }
+[data-theme="sunset"] .mat-btn:active { transform: translateY(1px); }
+[data-theme="sunset"] .mat-btn--ghost { background: transparent; }
+[data-theme="sunset"] .mat-num { font-family: 'Archivo', sans-serif; font-weight: 900; letter-spacing: -0.04em; }
+[data-theme="sunset"] .mat-divider { height: 1px; background: var(--line); }   /* hairline, not a slab */
+[data-theme="sunset"] .mat-progress { border: 1px solid var(--line); border-radius: 0; background: var(--surface-2); }
+[data-theme="sunset"] .mat-progress i { border-radius: 0; background: var(--lime); }   /* solid — no stripes, no gloss */
+[data-theme="sunset"] .mat-chip { border-radius: 0; border: 1px solid var(--line); box-shadow: none; }
+[data-theme="sunset"] .mat-chip.is-on { background: var(--line); color: var(--bg); }
+[data-theme="sunset"] .mat-input { border-radius: 0; border: none; border-bottom: 1px solid var(--line); background: transparent; }
+[data-theme="sunset"] .mat-avatar { border-radius: 0; border: 1px solid var(--line); }
+[data-theme="sunset"] .mat-dialog { border-radius: 0; border: 1px solid var(--line); box-shadow: none; outline: 1px solid var(--line); outline-offset: 4px; }  /* double-cut frame */
+[data-theme="sunset"] .mat-badge { border-radius: 0; border: 1px solid var(--line); }
+[data-theme="sunset"] .mat-dz { border-radius: 0; border: 1px solid var(--line); border-left: 5px solid var(--lime); box-shadow: none; }

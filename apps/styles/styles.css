@@ -239,6 +239,71 @@ b { color: var(--text); }
   .st-apppair iframe { width: 424px; }
 }
 
+/* ── theme-name flash — the big label on every arrow swap ─────────────── */
+.st-flash {
+  position: fixed; inset: 0; z-index: 60; pointer-events: none;
+  display: grid; place-items: center;
+  font: 400 clamp(44px, 9vw, 120px)/1 var(--font-display);
+  text-transform: uppercase; letter-spacing: 0.01em;
+  color: var(--text); text-align: center; padding: 0 5vw;
+  text-shadow: 0 2px 30px color-mix(in srgb, var(--bg) 80%, transparent);
+  opacity: 0;
+}
+.st-flash::before {                 /* soft scrim so the name reads on any kit */
+  content: ""; position: absolute; inset: 0;
+  background: radial-gradient(46% 34% at 50% 42%, color-mix(in srgb, var(--bg) 78%, transparent), transparent 78%);
+}
+.st-flash::after {                  /* the rule that draws under the name */
+  content: ""; position: absolute; left: 50%; top: 58%;
+  width: min(88vw, 1100px); height: 3px;
+  transform: translate(-50%, 0) scaleX(0);
+  background: var(--lime); border-radius: var(--pill);
+}
+.st-flash.is-on { opacity: 1; animation: stFlashIn 0.9s cubic-bezier(0.22, 1, 0.36, 1) both; }
+.st-flash.is-on::after { animation: stFlashRule 0.9s cubic-bezier(0.22, 1, 0.36, 1) both; }
+.st-flash.is-quick.is-on { animation: stFlashQuick 0.48s ease both; }
+@keyframes stFlashIn {
+  0%   { opacity: 0; transform: translateY(16px) scale(0.97); }
+  12%  { opacity: 1; transform: translateY(0) scale(1); }
+  74%  { opacity: 1; }
+  100% { opacity: 0; transform: translateY(-10px); }
+}
+@keyframes stFlashQuick {
+  0%   { opacity: 0; transform: scale(0.985); }
+  22%  { opacity: 1; transform: scale(1); }
+  100% { opacity: 0; }
+}
+@keyframes stFlashRule {
+  0%   { transform: translate(-50%, 0) scaleX(0); }
+  28%  { transform: translate(-50%, 0) scaleX(1); }
+  100% { transform: translate(-50%, 0) scaleX(1); }
+}
+
+/* ── card flags — "from your sites" + founder favourite ───────────────── */
+.st-card__flags { display: flex; flex-wrap: wrap; gap: 6px; margin-top: -2px; }
+.st-card__flag {
+  display: inline-flex; align-items: center;
+  font: 700 9.5px/1 var(--font-mono); letter-spacing: 0.08em; text-transform: uppercase;
+  border-radius: var(--pill); padding: 5px 9px;
+}
+.st-card__flag--site {
+  color: var(--lime); border: 1px dashed color-mix(in srgb, var(--lime) 55%, transparent);
+  background: color-mix(in srgb, var(--lime) 8%, transparent);
+}
+.st-card__flag--fav {
+  color: #1c1712;
+  background: color-mix(in srgb, #d9a521 82%, #fff);
+  border: 1px solid #1c1712;
+}
+
+/* ◈ marker on strip captions (mined kits) */
+.st-cell__site { color: var(--lime); font-size: 1.05em; }
+
+@media (prefers-reduced-motion: reduce) {
+  .st-flash.is-on, .st-flash.is-quick.is-on { animation: none; opacity: 0.9; }
+  .st-flash.is-on::after { transform: translate(-50%, 0) scaleX(1); animation: none; }
+}
+
 @media (prefers-reduced-motion: reduce) {
   * { transition-duration: 0.01ms !important; animation-duration: 0.01ms !important; }
 }

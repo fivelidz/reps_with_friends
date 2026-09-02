@@ -1,0 +1,138 @@
+/* style-library/theme-n64.css — the "n64" material kit.
+   Tokens + .mat- primitives only. RWF app bindings (fg / bd classes)
+   live in design/themes.css. Name/label/provenance: README.md. */
+
+/* ═══════════════════════════════════════════════════════════════════════
+   12 · N64 (n64) — "a low-poly fog console"
+   Describe it as: 1997 — vertex-gradient indigo washes, fog rolling over
+   the lowlands, stepped bevel edges like chunky polygons, cartridge-slot
+   buttons with grip ridges, SQUARE avatars, memory-card dialogs, spawn
+   pops with overshoot.
+   ═══════════════════════════════════════════════════════════════════════ */
+
+[data-theme="n64"] {
+  --bg: #1e2946;                /* fog indigo */
+  --surface: #263356;
+  --surface-2: #2e3d66;
+  --line: #3a4a75;
+  --line-bright: #4d6092;
+  --text: #ffffff;
+  --muted: #ccd5f0;
+  --faint: #adb9dd;
+  --faint-deco: #7f8cb4;
+
+  --lime: #ffe14d;              /* cartridge yellow — primary */
+  --lime-dim: #d6be3c;
+  --lime-glow: rgba(255, 225, 77, 0.16);
+  --coral: #ff7d68;
+  --coral-glow: rgba(255, 125, 104, 0.14);
+  --amber: #ffd166;
+  --sky: #7fd0ff;
+
+  --success: #58dd9a;
+  --danger: #ff7788;              /* 4.9:1 as text on surface */
+  --urgency: #ffa24e;
+
+  --energy: #b49aff;
+  --energy-light: #d6c9ff;
+  --energy-tint: #33285a;
+
+  --dz-bg: #182137;
+  --dz3-surface: #3c1e2a;
+  --dz-hero: #452430;
+
+  --font-display: 'Fredoka', 'Space Grotesk', system-ui, sans-serif;
+  --font-body: 'Inter', system-ui, sans-serif;
+  --font-mono: ui-monospace, Menlo, monospace;
+
+  --radius: 12px;
+  --radius-sm: 8px;
+  --radius-lg: 16px;
+  --radius-xl: 22px;
+  --pill: 999px;
+
+  --on-accent: #231d04;         /* 11.8:1 on cartridge yellow */
+  --primary-hover: #ffeb80;
+  --on-warn: #241304;           /* 8.1:1 on urgency */
+
+  --on-gold: var(--on-accent);
+
+  /* board extras — the poly arena */
+  --felt: #2e3d66;
+  --felt-deep: #1a2340;
+  --felt-line: rgba(255, 255, 255, 0.30);
+  --rail: #101830;
+  --rail-edge: rgba(255, 255, 255, 0.16);
+  --card-back-1: #3d5290;
+  --card-back-2: #1c2a52;
+  --card-face: #33406e;
+  --pop-shadow: #131c3a;
+  --speed: 0.8s;                /* 20fps energy */
+}
+/* ── n64 · MATERIAL — vertex wash + stepped bevels + fog ─────────────── */
+[data-theme="n64"] {
+  --mat-page:
+    linear-gradient(168deg, #2c3a78 0%, #20295c 34%, #1a2148 58%, rgba(154, 168, 220, 0.22) 100%),
+    radial-gradient(140% 60% at 50% 104%, rgba(190, 202, 235, 0.16), transparent 62%),
+    linear-gradient(#1e2946, #151b33);
+}
+[data-theme="n64"] .mat-surface {              /* low-poly face: flat top, fog bottom */
+  background:
+    linear-gradient(180deg, rgba(255, 255, 255, 0.07) 0%, transparent 18%),
+    linear-gradient(200deg, var(--surface) 55%, color-mix(in srgb, var(--surface) 72%, #9aa8dc) 100%);
+  border: 3px solid #101830;
+  border-radius: 12px;
+  box-shadow: 0 4px 0 #101830, 0 8px 0 rgba(16, 24, 48, 0.45), 0 14px 24px rgba(6, 9, 20, 0.55), inset 0 2px 0 rgba(255, 255, 255, 0.1);
+}
+[data-theme="n64"] .mat-btn {                  /* CARTRIDGE SLOT */
+  position: relative;
+  font-family: var(--font-display); font-weight: 700;
+  color: var(--on-accent);
+  border-radius: 10px;
+  border: 3px solid #101830;
+  box-shadow: 0 4px 0 #101830, 0 8px 0 rgba(16, 24, 48, 0.4), inset 0 2px 0 rgba(255, 255, 255, 0.28);
+  transition: transform 0.12s cubic-bezier(0.34, 1.56, 0.64, 1), box-shadow 0.12s ease;
+}
+[data-theme="n64"] .mat-btn::after {           /* the grip ridges */
+  content: ""; position: absolute; top: 5px; left: 14%; right: 14%; height: 6px;
+  background: repeating-linear-gradient(90deg, rgba(16, 24, 48, 0.4) 0 4px, transparent 4px 9px);
+  border-radius: 2px;
+}
+[data-theme="n64"] .mat-btn:hover { transform: translateY(-2px); }
+[data-theme="n64"] .mat-btn:active { transform: translateY(3px); box-shadow: 0 1px 0 #101830, inset 0 2px 4px rgba(16, 24, 48, 0.4); }
+[data-theme="n64"] .mat-btn--ghost { background: var(--surface-2); color: var(--text); }
+[data-theme="n64"] .mat-num {
+  font-family: 'Fredoka', sans-serif; font-weight: 700;
+  color: #ffe98c;
+  text-shadow: 2px 2px 0 #101830, 0 0 18px rgba(255, 233, 140, 0.35);
+}
+[data-theme="n64"] .mat-divider {              /* dashed horizon line */
+  height: 0; border-top: 4px dotted rgba(154, 168, 220, 0.5); background: none;
+}
+[data-theme="n64"] .mat-progress {             /* segmented power bar */
+  border-radius: 8px; background: #101830; padding: 2px;
+  border: 2px solid #101830;
+}
+[data-theme="n64"] .mat-progress i {
+  border-radius: 5px;
+  background: repeating-linear-gradient(90deg, var(--lime) 0 14px, #101830 14px 17px);
+  box-shadow: inset 0 2px 0 rgba(255, 255, 255, 0.3);
+}
+[data-theme="n64"] .mat-chip { font-family: var(--font-display); border-radius: 9px; border: 2px solid #101830; box-shadow: 0 2px 0 #101830; }
+[data-theme="n64"] .mat-input { border-radius: 9px; border: 2px solid #101830; box-shadow: 0 3px 0 rgba(16, 24, 48, 0.4); }
+[data-theme="n64"] .mat-avatar { border-radius: 9px !important; border: 2px solid #101830; box-shadow: 0 3px 0 #101830; }  /* SQUARE avatars */
+[data-theme="n64"] .mat-dialog {               /* MEMORY CARD */
+  border: 3px solid #101830; border-radius: 14px;
+  box-shadow: 0 4px 0 #101830, 0 9px 0 rgba(16, 24, 48, 0.4), 0 16px 28px rgba(6, 9, 20, 0.55);
+  animation: matSpawnPop 0.4s cubic-bezier(0.34, 1.56, 0.64, 1) both;
+}
+[data-theme="n64"] .mat-badge { font-family: var(--font-display); border-radius: 8px; border: 2px solid #101830; box-shadow: 0 2px 0 #101830; }
+[data-theme="n64"] .mat-dz {
+  font-family: var(--font-display);
+  background: linear-gradient(180deg, #ff7a52, var(--urgency));
+  border: 3px solid #101830; border-radius: 10px;
+  box-shadow: 0 3px 0 #101830;
+}
+[data-theme="n64"] body {
+  background-size: auto;
+}

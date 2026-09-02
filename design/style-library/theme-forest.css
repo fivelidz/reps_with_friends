@@ -1,0 +1,87 @@
+/* style-library/theme-forest.css — the "forest" material kit.
+   Tokens + .mat- primitives only. RWF app bindings (fg / bd classes)
+   live in design/themes.css. Name/label/provenance: README.md. */
+
+/* ═══════════════════════════════════════════════════════════════════════
+   5 · FOREST RETRO — "a 1970s family board-game box"
+   Describe it as: walnut grain, mustard + burnt-orange + olive, soft
+   1970s radii, rounded Fredoka type. Everyone plays.
+   ═══════════════════════════════════════════════════════════════════════ */
+
+[data-theme="forest"] {
+  --bg: #25201a;                /* walnut */
+  --surface: #2f2921;
+  --surface-2: #3a332a;
+  --line: #453c30;
+  --line-bright: #5a5040;
+  --text: #f2ead8;              /* cream */
+  --muted: #c4b8a0;
+  --faint: #a89b83;
+  --faint-deco: #7a6f5c;
+
+  --lime: #e3a93d;              /* mustard — primary */
+  --lime-dim: #c08a28;
+  --lime-glow: rgba(227, 169, 61, 0.16);
+  --coral: #ec7d4a;             /* burnt orange — effort */
+  --coral-glow: rgba(236, 125, 74, 0.14);
+  --amber: #f5d06f;             /* soft cream-yellow warning */
+  --sky: #7ecab9;               /* dusty teal */
+
+  --success: #8cc36f;           /* olive */
+  --danger: #e56a6a;            /* soft brick */
+  --urgency: #f0975c;
+
+  --energy: #d5a266;            /* rust power-up axis */
+  --energy-light: #e8c9a0;
+  --energy-tint: #3d3222;
+
+  --dz-bg: #201a14;             /* late-evening walnut */
+  --dz3-surface: #3a2020;
+  --dz-hero: #442525;
+
+  --font-display: 'Fredoka', 'Space Grotesk', system-ui, sans-serif;
+  --font-body: 'Fredoka', 'Space Grotesk', system-ui, sans-serif;
+  --font-mono: ui-monospace, 'Cascadia Code', 'SF Mono', Menlo, monospace;
+
+  --radius: 18px;               /* soft, rounded */
+  --radius-sm: 12px;
+  --radius-lg: 22px;
+  --radius-xl: 28px;
+  --pill: 999px;
+
+  --on-accent: #2a2113;         /* 7.6:1 on mustard */
+  --primary-hover: #c08a28;
+  --on-warn: #2a2113;           /* 6.0:1 on orange urgency */
+
+  --on-gold: var(--on-accent);  /* app safety — see lime block */
+}
+/* ── forest · MATERIAL — walnut wood + soft felt ─────────────────────── */
+[data-theme="forest"] {
+  --mat-page:
+    url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='240' height='240'%3E%3Cg fill='none' stroke='%23efdcc2' stroke-opacity='0.05' stroke-width='1.4'%3E%3Cpath d='M0 30 Q60 24 120 32 T240 28'/%3E%3Cpath d='M0 66 Q60 58 120 70 T240 62'/%3E%3Cpath d='M0 104 Q60 112 120 100 T240 108'/%3E%3Cpath d='M0 146 Q60 138 120 150 T240 142'/%3E%3Cpath d='M0 188 Q60 196 120 184 T240 192'/%3E%3Cpath d='M0 226 Q60 218 120 230 T240 222'/%3E%3C/g%3E%3C/svg%3E"),
+    radial-gradient(120% 90% at 50% -10%, rgba(214, 145, 66, 0.1), transparent 55%),
+    linear-gradient(#241810, #1b120b);
+}
+[data-theme="forest"] .mat-surface {         /* warm lacquered panel */
+  background: linear-gradient(180deg, rgba(255, 226, 178, 0.05), transparent 45%), var(--surface);
+  border-radius: 24px;
+  border: 0;
+  box-shadow: 0 12px 30px rgba(16, 9, 4, 0.5), inset 0 0 0 1px rgba(239, 220, 194, 0.09);
+}
+[data-theme="forest"] .mat-btn {             /* soft-touch pill */
+  font-family: var(--font-display); font-weight: 600;
+  border-radius: 999px;
+  padding: 13px 24px;
+  box-shadow: 0 10px 24px rgba(16, 9, 4, 0.45);
+  transition: transform 0.22s cubic-bezier(0.34, 1.56, 0.64, 1), box-shadow 0.22s ease;
+}
+[data-theme="forest"] .mat-btn:hover { transform: translateY(-2px) scale(1.02); }
+[data-theme="forest"] .mat-btn:active { transform: scale(0.96); box-shadow: 0 5px 14px rgba(16, 9, 4, 0.45); }
+[data-theme="forest"] .mat-num { font-family: 'Fredoka', sans-serif; font-weight: 600; }
+[data-theme="forest"] .mat-divider { height: 0; border-bottom: 3px dotted rgba(239, 220, 194, 0.28); background: none; }
+[data-theme="forest"] .mat-progress { border-radius: 999px; box-shadow: inset 0 2px 4px rgba(16, 9, 4, 0.5); }
+[data-theme="forest"] .mat-progress i { border-radius: 999px; background: linear-gradient(90deg, var(--amber), var(--coral)); }
+[data-theme="forest"] .mat-chip { border-radius: 999px; border: 0; box-shadow: inset 0 0 0 1.5px rgba(239, 220, 194, 0.18); }
+[data-theme="forest"] .mat-input { border-radius: 999px; }
+[data-theme="forest"] .mat-dialog { border-radius: 26px; border: 0; box-shadow: 0 18px 44px rgba(16, 9, 4, 0.55); }
+[data-theme="forest"] .mat-avatar { border-radius: 16px; }

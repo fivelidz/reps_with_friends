@@ -1,0 +1,25 @@
+/* style-library/index.css — master import chain (gallery order).
+   Import this one file; every kit is inert until an ancestor carries
+   data-theme="<id>". Contract + full catalogue: README.md. */
+@import url("base.css");
+@import url("theme-lime.css");
+@import url("theme-gold.css");
+@import url("theme-sunset.css");
+@import url("theme-neon.css");
+@import url("theme-forest.css");
+@import url("theme-board.css");
+@import url("theme-mycelial.css");
+@import url("theme-techy.css");
+@import url("theme-track.css");
+@import url("theme-cardtable.css");
+@import url("theme-caveman.css");
+@import url("theme-n64.css");
+@import url("theme-goldeneye.css");
+@import url("theme-neobrut.css");
+@import url("theme-x10.css");
+@import url("theme-doof.css");
+@import url("theme-qalarc.css");
+@import url("theme-tradez.css");
+@import url("theme-gmux.css");
+@import url("theme-volkus.css");
+@import url("theme-endispute.css");

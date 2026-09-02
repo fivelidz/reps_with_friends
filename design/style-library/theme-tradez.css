@@ -1,0 +1,137 @@
+/* style-library/theme-tradez.css — the "tradez" material kit.
+   Tokens + .mat- primitives only. RWF app bindings (fg / bd classes)
+   live in design/themes.css. Name/label/provenance: README.md. */
+
+/* ═══════════════════════════════════════════════════════════════════════
+   18 · WARM TRADE (tradez) — FROM THE FOUNDER'S SITE tradez.au
+   Mined 2026-09-03 from the live directory (palette.css + site.css):
+   warm sand cream #FBF8EF, white cards, deep eucalyptus ink #1F2A1F,
+   gum-leaf green #4A6B47, soft gold #C9A24E, chunky Fraunces 700–900
+   headlines, Inter body, JetBrains Mono, 6–10px radii, zebra listing
+   rows, dark-green CTA panels with cream text.
+   Describe it as: a friendly tradie's ledger in afternoon light — warm
+   sand paper, chunky serif signage, gum-green stamps of approval, gold
+   hairlines, and every listing striped like a well-kept workbook.
+   ═══════════════════════════════════════════════════════════════════════ */
+
+[data-theme="tradez"] {
+  --bg: #FBF8EF;                /* warm sand cream (tradez --bg) */
+  --surface: #FFFFFF;
+  --surface-2: #F2EEDD;
+  --line: #E0DAC6;
+  --line-bright: #cfc7ae;
+  --text: #1F2A1F;              /* very dark eucalyptus */
+  --muted: #34402F;
+  --faint: #4d5a48;             /* 6.9:1 on sand */
+  --faint-deco: #8a9480;
+
+  --lime: #3d5c3a;              /* deep gum-leaf — primary */
+  --lime-dim: #2c452a;
+  --lime-glow: rgba(61, 92, 58, 0.14);
+  --coral: #b4482f;             /* terracotta effort */
+  --coral-glow: rgba(180, 72, 47, 0.12);
+  --amber: #8a6e2e;             /* gold-deep (tradez AA gold) */
+  --sky: #33628f;
+
+  --success: #3d5c3a;
+  --danger: #a92e2e;
+  --urgency: #a3541c;           /* 5.2:1 with cream text */
+
+  --energy: #6b2fd6;
+  --energy-light: #6b3fd1;      /* 5.3:1 on the light tint */
+  --energy-tint: #ece5f8;
+
+  --dz-bg: #F5EFDE;
+  --dz3-surface: #f3e3cc;
+  --dz-hero: #f0d9b4;
+
+  --font-display: 'Fraunces', Georgia, serif;
+  --font-body: 'Inter', system-ui, -apple-system, sans-serif;
+  --font-mono: 'JetBrains Mono', ui-monospace, monospace;
+
+  --radius: 8px;                /* tradez's honest 6–10px */
+  --radius-sm: 6px;
+  --radius-lg: 10px;
+  --radius-xl: 12px;
+  --pill: 999px;
+
+  --on-accent: #FBF8EF;         /* 7.1:1 on gum-leaf */
+  --primary-hover: #4a6e47;
+  --on-warn: #FBF8EF;           /* 5.2:1 on urgency */
+
+  --on-gold: #FBF8EF;
+
+  /* tradez extras */
+  --gold: #C9A24E;
+  --gold-glow: #E8C77A;
+  --sand: #F2EEDD;
+}
+
+/* ── tradez · MATERIAL — the honest ledger ─────────────────────────────── */
+[data-theme="tradez"] {
+  --mat-page:
+    linear-gradient(135deg, #FBF8EF 0%, #F2EEDD 100%),
+    #FBF8EF;
+}
+[data-theme="tradez"] .mat-surface {           /* white card, gum shadow */
+  background: var(--surface);
+  border: 1px solid var(--line);
+  border-radius: 8px;
+  box-shadow: 0 18px 40px -12px rgba(31, 42, 31, 0.18);
+}
+[data-theme="tradez"] .mat-surface:hover { box-shadow: 0 22px 46px -12px rgba(31, 42, 31, 0.24); }
+[data-theme="tradez"] .mat-btn {               /* gum block, chunky serif */
+  font-family: var(--font-display); font-weight: 700;
+  border-radius: 8px;
+  box-shadow: 0 3px 0 rgba(31, 42, 31, 0.35);
+  transition: transform 0.14s var(--ease), box-shadow 0.14s var(--ease);
+}
+[data-theme="tradez"] .mat-btn:hover { transform: translateY(-1px); box-shadow: 0 4px 0 rgba(31, 42, 31, 0.4); }
+[data-theme="tradez"] .mat-btn:active { transform: translateY(2px); box-shadow: 0 1px 0 rgba(31, 42, 31, 0.35); }
+[data-theme="tradez"] .mat-btn--ghost {
+  background: var(--surface);
+  color: var(--lime);
+  box-shadow: inset 0 0 0 1.5px var(--line-bright), 0 3px 0 rgba(31, 42, 31, 0.16);
+}
+[data-theme="tradez"] .mat-num {               /* chunky Fraunces tally */
+  font-family: 'Fraunces', Georgia, serif;
+  font-weight: 900;
+  font-variation-settings: 'opsz' 144, 'SOFT' 0, 'WONK' 1;   /* the wonky cut */
+}
+[data-theme="tradez"] .mat-divider {           /* ruled workbook line */
+  height: 1px;
+  background: repeating-linear-gradient(90deg, var(--line-bright) 0 10px, transparent 10px 16px);
+}
+[data-theme="tradez"] .mat-progress { border-radius: 999px; background: var(--surface-2); box-shadow: inset 0 0 0 1px var(--line); }
+[data-theme="tradez"] .mat-progress i {
+  border-radius: 999px;
+  background: linear-gradient(90deg, var(--lime), #5a7d56);
+  box-shadow: inset 0 0 0 1px rgba(201, 162, 78, 0.45);   /* gold rim */
+}
+[data-theme="tradez"] .mat-chip { font-family: var(--font-body); font-weight: 600; border-radius: 8px; border-color: var(--line-bright); }
+[data-theme="tradez"] .mat-chip.is-on { box-shadow: 0 0 0 3px rgba(74, 107, 71, 0.3); }  /* the focus ring */
+[data-theme="tradez"] .mat-input { border-radius: 8px; border: 1px solid var(--line-bright); font-family: var(--font-body); }
+[data-theme="tradez"] .mat-avatar { border-radius: 8px; border: 2px solid var(--surface); box-shadow: 0 0 0 1px var(--line-bright); }
+[data-theme="tradez"] .mat-dialog {
+  border: 1px solid var(--line);
+  border-top: 4px solid var(--lime);
+  border-radius: 10px;
+  background: var(--surface);
+  box-shadow: 0 24px 48px -12px rgba(31, 42, 31, 0.28);
+}
+[data-theme="tradez"] .mat-dialog__title { font-family: var(--font-display); font-weight: 800; }
+[data-theme="tradez"] .mat-badge {
+  font-family: var(--font-mono);
+  border-radius: 6px;
+  background: color-mix(in srgb, var(--gold) 18%, var(--surface));
+  color: #5c470f;
+  border: 1px solid color-mix(in srgb, var(--gold) 45%, var(--line));
+}
+[data-theme="tradez"] .mat-dz {                /* the warn stencil */
+  font-family: var(--font-body); font-weight: 700;
+  border-radius: 8px;
+  border: 1px solid rgba(163, 84, 28, 0.4);
+  border-left: 4px solid var(--urgency);
+  background: linear-gradient(90deg, rgba(163, 84, 28, 0.1), transparent 65%), var(--surface);
+  color: #5e3210;
+}

@@ -1,0 +1,151 @@
+/* style-library/theme-goldeneye.css — the "goldeneye" material kit.
+   Tokens + .mat- primitives only. RWF app bindings (fg / bd classes)
+   live in design/themes.css. Name/label/provenance: README.md. */
+
+/* ═══════════════════════════════════════════════════════════════════════
+   13 · GOLDENEYE (goldeneye) — "a spy dossier HUD"
+   Describe it as: a classified facility readout — gunmetal panels with a
+   notched corner, gold dossier mono on typewriter labels, objectives that
+   arrive as [ BRACKETED ] lines with redaction bars, a watch-gauge ring
+   for the pot, a reticle that focuses on what matters, alarm-red strobe
+   when the danger zone hits L3.
+   ═══════════════════════════════════════════════════════════════════════ */
+
+[data-theme="goldeneye"] {
+  --bg: #141a20;                /* gunmetal */
+  --surface: #1a222a;
+  --surface-2: #212b35;
+  --line: #2b3742;
+  --line-bright: #3d4d5c;
+  --text: #e9eef3;
+  --muted: #aebbc6;
+  --faint: #92a2af;
+  --faint-deco: #69798a;
+
+  --lime: #f0c445;              /* golden gun — primary */
+  --lime-dim: #c9a236;
+  --lime-glow: rgba(240, 196, 69, 0.15);
+  --coral: #ff7e60;
+  --coral-glow: rgba(255, 126, 96, 0.13);
+  --amber: #ffc45c;
+  --sky: #86c8e8;
+
+  --success: #46d18e;
+  --danger: #ff5b6b;
+  --urgency: #ff8f47;
+
+  --energy: #a892ff;
+  --energy-light: #cdc0ff;
+  --energy-tint: #262045;
+
+  --dz-bg: #10151a;
+  --dz3-surface: #33160f;
+  --dz-hero: #3b1c10;
+
+  --font-display: 'JetBrains Mono', ui-monospace, Menlo, monospace; /* watch HUD */
+  --font-body: 'Inter', system-ui, sans-serif;
+  --font-mono: 'JetBrains Mono', ui-monospace, Menlo, monospace;
+
+  --radius: 4px;                /* HUD-sharp */
+  --radius-sm: 3px;
+  --radius-lg: 8px;
+  --radius-xl: 12px;
+  --pill: 999px;
+
+  --on-accent: #231a03;         /* 10.2:1 on gold */
+  --primary-hover: #ffd66b;
+  --on-warn: #241304;           /* 8.2:1 on urgency */
+
+  --on-gold: var(--on-accent);
+
+  /* board extras — the facility map */
+  --felt: #1b232c;
+  --felt-deep: #10161d;
+  --felt-line: rgba(240, 196, 69, 0.22);
+  --rail: #0b1015;
+  --rail-edge: rgba(240, 196, 69, 0.18);
+  --card-back-1: #2c3844;
+  --card-back-2: #151d25;
+  --card-face: #1e2833;
+  --pop-shadow: #6b5210;
+  --speed: 0.85s;
+}
+/* ── goldeneye · MATERIAL — gunmetal + gold dossier + notches ────────── */
+[data-theme="goldeneye"] {
+  --mat-page:
+    url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='200' height='200'%3E%3Cfilter id='m'%3E%3CfeTurbulence type='fractalNoise' baseFrequency='0.9 0.18' numOctaves='2' stitchTiles='stitch'/%3E%3CfeColorMatrix values='0 0 0 0 0.55 0 0 0 0 0.62 0 0 0 0 0.7 0 0 0 0.06 0'/%3E%3C/filter%3E%3Crect width='200' height='200' filter='url(%23m)'/%3E%3C/svg%3E"),
+    radial-gradient(120% 90% at 50% -12%, rgba(240, 196, 69, 0.05), transparent 55%),
+    linear-gradient(#171d24, #101419);
+  background-size: 200px 200px, auto, auto;
+}
+[data-theme="goldeneye"] body { background-size: 200px 200px, auto, auto; }
+[data-theme="goldeneye"] .mat-surface {        /* NOTCHED gunmetal panel */
+  position: relative;
+  background:
+    linear-gradient(160deg, rgba(255, 255, 255, 0.05), transparent 30%, rgba(0, 0, 0, 0.22) 96%),
+    linear-gradient(180deg, #2a333e, #1b2129);
+  border-radius: 2px;
+  border: 1px solid rgba(240, 196, 69, 0.35);
+  clip-path: polygon(0 0, calc(100% - 16px) 0, 100% 16px, 100% 100%, 16px 100%, 0 calc(100% - 16px));
+  box-shadow: inset 0 0 0 1px rgba(0, 0, 0, 0.55), inset 0 1px 0 rgba(255, 255, 255, 0.07);
+}
+[data-theme="goldeneye"] .mat-btn {            /* notched HUD key */
+  position: relative;
+  font-family: var(--font-mono); font-weight: 700;
+  letter-spacing: 0.1em; text-transform: uppercase;
+  color: #ffe9ad;
+  background: linear-gradient(180deg, #3a4653, #232b34);
+  border: 0;
+  border-radius: 0;
+  clip-path: polygon(0 0, calc(100% - 12px) 0, 100% 12px, 100% 100%, 12px 100%, 0 calc(100% - 12px));
+  box-shadow: inset 0 0 0 1px rgba(240, 196, 69, 0.5), inset 0 1px 0 rgba(255, 255, 255, 0.1), inset 0 -2px 3px rgba(0, 0, 0, 0.5);
+  transition: none;
+}
+[data-theme="goldeneye"] .mat-btn:hover { background: linear-gradient(180deg, #46545f, #2a333e); box-shadow: inset 0 0 0 1px var(--lime), inset 0 1px 0 rgba(255, 255, 255, 0.12); }
+[data-theme="goldeneye"] .mat-btn:active { box-shadow: inset 0 0 0 1px rgba(240, 196, 69, 0.5), inset 0 2px 6px rgba(0, 0, 0, 0.7); }
+[data-theme="goldeneye"] .mat-btn--ghost {
+  background: rgba(240, 196, 69, 0.07);
+  color: var(--lime);
+  box-shadow: inset 0 0 0 1px rgba(240, 196, 69, 0.35);
+}
+[data-theme="goldeneye"] .mat-num {            /* watch-face numeral */
+  font-family: 'JetBrains Mono', ui-monospace, monospace;
+  color: var(--lime);
+  text-shadow: 0 0 14px rgba(240, 196, 69, 0.3);
+  letter-spacing: 0.05em;
+}
+[data-theme="goldeneye"] .mat-divider {        /* redaction line */
+  height: 8px; border-radius: 1px;
+  background: repeating-linear-gradient(90deg, rgba(240, 196, 69, 0.5) 0 26px, rgba(240, 196, 69, 0.14) 26px 40px);
+}
+[data-theme="goldeneye"] .mat-progress {       /* gauge arc track */
+  border-radius: 3px;
+  background: repeating-linear-gradient(90deg, rgba(240, 196, 69, 0.22) 0 2px, transparent 2px 9px), rgba(6, 9, 13, 0.8);
+  box-shadow: inset 0 0 0 1px rgba(240, 196, 69, 0.25);
+}
+[data-theme="goldeneye"] .mat-progress i {     /* segmented body-armor fill */
+  border-radius: 2px;
+  background: repeating-linear-gradient(90deg, var(--lime) 0 9px, rgba(16, 20, 25, 0.9) 9px 12px);
+  box-shadow: 0 0 8px rgba(240, 196, 69, 0.25);
+}
+[data-theme="goldeneye"] .mat-chip { font-family: var(--font-mono); border-radius: 2px; border-color: rgba(240, 196, 69, 0.4); background: rgba(240, 196, 69, 0.06); }
+[data-theme="goldeneye"] .mat-chip.is-on { box-shadow: inset 0 0 0 1px rgba(240, 196, 69, 0.6); }
+[data-theme="goldeneye"] .mat-input { font-family: var(--font-mono); border-radius: 2px; border-color: rgba(240, 196, 69, 0.4); background: rgba(6, 9, 13, 0.6); }
+[data-theme="goldeneye"] .mat-avatar { border-radius: 2px; border: 1px solid rgba(240, 196, 69, 0.5); clip-path: polygon(0 0, calc(100% - 8px) 0, 100% 8px, 100% 100%, 8px 100%, 0 calc(100% - 8px)); }
+[data-theme="goldeneye"] .mat-dialog {         /* mission briefing */
+  border: 1px solid rgba(240, 196, 69, 0.4);
+  border-radius: 2px;
+  clip-path: polygon(0 0, calc(100% - 16px) 0, 100% 16px, 100% 100%, 16px 100%, 0 calc(100% - 16px));
+  background: linear-gradient(160deg, rgba(255, 255, 255, 0.04), transparent 30%), linear-gradient(180deg, #2a333e, #1b2129);
+  animation: matHudFlicker 0.35s steps(3) both;
+}
+[data-theme="goldeneye"] .mat-badge { font-family: var(--font-mono); border-radius: 2px; letter-spacing: 0.16em; background: rgba(240, 196, 69, 0.14); color: var(--lime); box-shadow: inset 0 0 0 1px rgba(240, 196, 69, 0.5); }
+[data-theme="goldeneye"] .mat-dz {             /* ALARM */
+  font-family: var(--font-mono); letter-spacing: 0.12em;
+  color: var(--on-warn);
+  background: linear-gradient(180deg, #a1121f, #6e0a15);
+  border: 1px solid rgba(255, 120, 130, 0.55);
+  border-radius: 2px;
+  clip-path: polygon(0 0, calc(100% - 10px) 0, 100% 10px, 100% 100%, 10px 100%, 0 calc(100% - 10px));
+  animation: matAlarmStrobe 1.1s steps(2) infinite;
+}

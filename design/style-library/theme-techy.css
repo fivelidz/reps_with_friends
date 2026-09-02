@@ -1,0 +1,170 @@
+/* style-library/theme-techy.css — the "techy" material kit.
+   Tokens + .mat- primitives only. RWF app bindings (fg / bd classes)
+   live in design/themes.css. Name/label/provenance: README.md. */
+
+/* ═══════════════════════════════════════════════════════════════════════
+   8 · MISSION CONTROL (techy) — "a flight telemetry console"
+   Describe it as: brushed-metal panels with corner rivets under a faint
+   scanline sweep, // prefixed telemetry labels, T− clocks, LED segment
+   numerals, buttons that are guarded switches, hazard-striped danger
+   zone, boot-up reveals.
+   ═══════════════════════════════════════════════════════════════════════ */
+
+[data-theme="techy"] {
+  --bg: #0a1014;                /* blueprint dark */
+  --surface: #0f171d;
+  --surface-2: #141f26;
+  --line: #1d2c35;
+  --line-bright: #2a404d;
+  --text: #e6f2f6;
+  --muted: #a9c0ca;
+  --faint: #8ea9b4;
+  --faint-deco: #61787f;
+
+  --lime: #3fd4ff;              /* plotter cyan — primary */
+  --lime-dim: #2aa8cc;
+  --lime-glow: rgba(63, 212, 255, 0.14);
+  --coral: #ff7e62;
+  --coral-glow: rgba(255, 126, 98, 0.13);
+  --amber: #ffc95e;
+  --sky: #9fe0f5;
+
+  --success: #3fd69b;
+  --danger: #ff5f70;
+  --urgency: #ff9448;
+
+  --energy: #9d8cff;
+  --energy-light: #c3b8ff;
+  --energy-tint: #241f42;
+
+  --dz-bg: #080e12;
+  --dz3-surface: #2c1e14;
+  --dz-hero: #35200f;
+
+  --font-display: 'JetBrains Mono', ui-monospace, Menlo, monospace;
+  --font-body: 'Inter', system-ui, sans-serif;
+  --font-mono: 'JetBrains Mono', ui-monospace, Menlo, monospace;
+
+  --radius: 8px;
+  --radius-sm: 6px;
+  --radius-lg: 10px;
+  --radius-xl: 14px;
+  --pill: 999px;
+
+  --on-accent: #02222e;         /* 9.6:1 on cyan */
+  --primary-hover: #6ee1ff;
+  --on-warn: #241304;           /* 8.2:1 on urgency */
+
+  --on-gold: var(--on-accent);
+
+  /* board extras — plotting table */
+  --felt: #0d1620;
+  --felt-deep: #080e15;
+  --felt-line: rgba(63, 212, 255, 0.20);
+  --rail: #060b10;
+  --rail-edge: rgba(63, 212, 255, 0.16);
+  --card-back-1: #14324a;
+  --card-back-2: #0a1a28;
+  --card-face: #0f1b24;
+  --pop-shadow: #085e7a;
+  --speed: 0.8s;                /* telemetry-quick */
+}
+/* ── techy · MATERIAL — brushed metal + CRT sweep ────────────────────── */
+[data-theme="techy"] {
+  --mat-page:
+    url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='220' height='220'%3E%3Cg stroke='%23bfd9e6' stroke-opacity='0.05'%3E%3Cpath d='M0 8h220M0 21h220M0 33h220M0 46h220M0 60h220M0 74h220M0 86h220M0 99h220M0 112h220M0 126h220M0 138h220M0 151h220M0 165h220M0 177h220M0 190h220M0 204h220M0 214h220' stroke-width='1'/%3E%3Cpath d='M0 14h220M0 40h220M0 67h220M0 93h220M0 119h220M0 145h220M0 171h220M0 197h220' stroke-width='2' stroke-opacity='0.028'/%3E%3C/g%3E%3C/svg%3E"),
+    repeating-linear-gradient(180deg, rgba(0, 0, 0, 0.16) 0 1px, transparent 1px 3px),
+    radial-gradient(130% 90% at 50% -12%, rgba(63, 212, 255, 0.07), transparent 58%),
+    linear-gradient(#0e161c, #0a1014);
+  background-size: 220px 220px, auto, auto, auto;
+}
+[data-theme="techy"] body { background-size: 220px 220px, auto, auto, auto; }
+[data-theme="techy"] .mat-surface {           /* riveted console panel */
+  position: relative;
+  background:
+    linear-gradient(180deg, rgba(255, 255, 255, 0.045), transparent 14%, rgba(0, 0, 0, 0.16) 92%),
+    var(--surface);
+  border: 1px solid rgba(63, 212, 255, 0.4);
+  border-radius: 4px;
+  box-shadow: inset 0 1px 0 rgba(255, 255, 255, 0.08), inset 0 -1px 0 rgba(0, 0, 0, 0.5), 0 10px 22px rgba(0, 4, 8, 0.55);
+}
+[data-theme="techy"] .mat-surface::before,     /* corner rivets */
+[data-theme="techy"] .mat-surface::after {
+  content: ""; position: absolute; width: 5px; height: 5px; border-radius: 50%;
+  background: radial-gradient(circle at 35% 30%, #9fc4d8, #33475a 60%, #101a22);
+  box-shadow: 0 1px 1px rgba(0, 0, 0, 0.7);
+}
+[data-theme="techy"] .mat-surface::before { top: 6px; left: 6px; }
+[data-theme="techy"] .mat-surface::after  { top: 6px; right: 6px; }
+[data-theme="techy"] .mat-btn {               /* GUARDED SWITCH */
+  position: relative;
+  font-family: var(--font-mono); font-weight: 700; letter-spacing: 0.08em;
+  text-transform: uppercase;
+  border-radius: 2px;
+  background: linear-gradient(180deg, #2b3c48, #17242e);
+  color: #d9f6ff;
+  border: 1px solid rgba(63, 212, 255, 0.55);
+  box-shadow: inset 0 1px 0 rgba(255, 255, 255, 0.14), inset 0 -2px 3px rgba(0, 0, 0, 0.5), 0 4px 9px rgba(0, 4, 8, 0.55);
+  transition: none;
+}
+[data-theme="techy"] .mat-btn::after {         /* the guard bar — lifts on hover */
+  content: ""; position: absolute; inset: 2px 2px auto; height: 4px;
+  background: linear-gradient(90deg, rgba(63, 212, 255, 0.65), rgba(63, 212, 255, 0.2));
+  border-radius: 1px;
+  transition: transform 0.18s ease;
+}
+[data-theme="techy"] .mat-btn:hover::after { transform: translateY(-3px); }
+[data-theme="techy"] .mat-btn:active { background: linear-gradient(180deg, #1d2c36, #101b23); box-shadow: inset 0 2px 5px rgba(0, 0, 0, 0.7); }
+[data-theme="techy"] .mat-btn--ghost {
+  background: linear-gradient(180deg, rgba(63, 212, 255, 0.08), rgba(10, 16, 20, 0.5));
+  color: var(--lime);
+  box-shadow: inset 0 0 0 1px rgba(63, 212, 255, 0.3);
+}
+[data-theme="techy"] .mat-btn--ghost::after { display: none; }
+[data-theme="techy"] .mat-num {                /* LED segment display */
+  font-family: 'JetBrains Mono', ui-monospace, monospace;
+  color: #6ff3ff;
+  position: relative;
+  padding: 4px 10px;
+  background:
+    url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='28' height='40'%3E%3Ctext x='14' y='30' text-anchor='middle' font-family='monospace' font-size='26' fill='%236ff3ff' fill-opacity='0.14'%3E8%3C/text%3E%3C/svg%3E") repeat 0 0 / 28px 40px,
+    linear-gradient(180deg, #071016, #04090c);
+  border: 1px solid rgba(63, 212, 255, 0.4);
+  border-radius: 3px;
+  text-shadow: 0 0 10px rgba(111, 243, 255, 0.75), 0 0 26px rgba(111, 243, 255, 0.35);
+  letter-spacing: 0.06em;
+  box-shadow: inset 0 0 12px rgba(0, 0, 0, 0.7);
+}
+[data-theme="techy"] .mat-divider {            /* console trace */
+  height: 0; border-top: 1px dashed rgba(63, 212, 255, 0.45); background: none;
+}
+[data-theme="techy"] .mat-progress {           /* segmented telemetry bar */
+  height: 10px; border-radius: 2px;
+  background: repeating-linear-gradient(90deg, rgba(63, 212, 255, 0.1) 0 9px, transparent 9px 12px), #04090c;
+  border: 1px solid rgba(63, 212, 255, 0.3);
+}
+[data-theme="techy"] .mat-progress i {
+  border-radius: 1px;
+  background: repeating-linear-gradient(90deg, var(--lime) 0 9px, rgba(10, 16, 20, 0.9) 9px 12px);
+  box-shadow: 0 0 10px rgba(63, 212, 255, 0.4);
+}
+[data-theme="techy"] .mat-chip {
+  font-family: var(--font-mono); border-radius: 3px;
+  border: 1px solid rgba(63, 212, 255, 0.3);
+  background: rgba(63, 212, 255, 0.06);
+}
+[data-theme="techy"] .mat-chip::before { content: "// "; opacity: 0.55; }
+[data-theme="techy"] .mat-chip.is-on { box-shadow: inset 0 0 0 1px rgba(63, 212, 255, 0.5); }
+[data-theme="techy"] .mat-input { border-radius: 3px; font-family: var(--font-mono); border-color: rgba(63, 212, 255, 0.35); background: #04090c; }
+[data-theme="techy"] .mat-avatar { border-radius: 4px; border: 1px solid rgba(63, 212, 255, 0.4); }
+[data-theme="techy"] .mat-dialog { border-radius: 4px; border-color: rgba(63, 212, 255, 0.45); box-shadow: inset 0 1px 0 rgba(255, 255, 255, 0.07), 0 16px 34px rgba(0, 4, 8, 0.6); animation: matBoot 0.4s both; }
+[data-theme="techy"] .mat-badge { border-radius: 2px; font-family: var(--font-mono); letter-spacing: 0.14em; background: rgba(63, 212, 255, 0.14); color: var(--lime); box-shadow: inset 0 0 0 1px rgba(63, 212, 255, 0.45); }
+[data-theme="techy"] .mat-dz {                 /* HAZARD STRIPES */
+  font-family: var(--font-mono); letter-spacing: 0.1em;
+  color: var(--on-warn);
+  background:
+    repeating-linear-gradient(-45deg, rgba(0, 0, 0, 0.28) 0 12px, transparent 12px 24px),
+    linear-gradient(180deg, var(--urgency), var(--dz3-surface));
+  border: 1px solid rgba(255, 140, 66, 0.6);
+  border-radius: 3px;
+}
