@@ -40,6 +40,7 @@ const $ = (s, r = document) => r.querySelector(s);
 import * as S from "./state.js";
 import * as E from "./engine.js";
 import * as D from "./daily.js"; // temporal loop: deadlines, danger zone, daily winners (FLOW-06/07)
+import { SQUAD_SCREENS, homeTabs, mySquads, squadById } from "./squads.js"; // multi-squad dashboard (SQD wave)
 import { openCameraNote } from "./verify.js";
 import { APP_VERSION, BUILD_HASH, BUILD_DATE } from "./version.js"; // v1.0.0 surface + About
 
@@ -119,6 +120,7 @@ function statusBar() {
     <span>9:41</span>
     <span class="fx-status__tools">
       <button class="fx-tool" ${go("")} title="All screens">${ic("feed")}INDEX</button>
+      <button class="fx-tool" id="sfxToggle" data-sfx-paint="1" title="Sound effects">SFX</button>
       <button class="fx-tool" id="themeToggle" title="Cycle theme (beta) — 5 directions">LIME</button>
     </span>
   </div>`;
@@ -358,6 +360,14 @@ function quickLogSheet() {
   const mult = E.TIER_MULTIPLIERS[p?.tier ?? "casual"];
   const cb = E.comebackEligible(m, p?.id);
   const lt = E.lightningActive(m, p?.id);
+  /* SQD wave: "also log to…" multi-select — the same reps credited in every
+     ticked squad battle (founder's rule: same reps count across squads). */
+  const sq = mySquads(st);
+  const squadChips = sq.length ? `
+    <div class="fg-sheet__row" id="qlSquads" style="align-items:center">
+      <span class="fg-sheet__conversion" style="flex-basis:100%;margin-bottom:0">${ic("trophy")} ALSO LOG TO — same reps, every squad</span>
+      ${sq.map((s) => `<button class="fg-chip fg-chip--lg" aria-pressed="true" data-sqd="${s.id}">${s.name}</button>`).join("")}
+    </div>` : "";
   return `
   <div class="fx-sheet" id="quickLog" data-match="${m.config.id}">
     <div class="fx-sheet__grab"></div>
@@ -369,12 +379,14 @@ function quickLogSheet() {
     <div class="fg-sheet__row" id="qlPre">
       ${[5, 10, 20, 30, 50].map((n, i) => `<button class="fg-chip fg-chip--lg" aria-pressed="${n === 20}" data-n="${n}">${n}</button>`).join("")}
     </div>
+    ${squadChips}
     <p class="fg-sheet__conversion" id="qlConv"></p>
     ${cb ? `<p class="fg-sheet__conversion" style="color:var(--energy-light)">${ic("bolt")} COMEBACK ×1.2 ARMED — THIS LOG COUNTS EXTRA</p>` : ""}
     ${lt ? `<p class="fg-sheet__conversion" style="color:var(--energy)">${ic("bolt")} LIGHTNING ROUND LIVE — THIS LOG COUNTS ×3</p>` : ""}
     <button class="fg-sheet__cta" id="qlCta">LOG</button>
     <button class="fx-cambtn" id="camVerify" type="button">${ic("camera")} CAMERA VERIFY <span>— pose counting lives in the prototype app</span></button>
     <p class="fg-sheet__note">3 taps, one thumb. Adjusted ×${mult} (${p?.tier ?? "casual"} tier).</p>
+    ${sq.length ? `<p class="fg-sheet__note">Fair play: one effort counts in each battle you tick — server dedupe comes later.</p>` : ""}
   </div>`;
 }
 function wireQuickLog(root) {
@@ -387,6 +399,13 @@ function wireQuickLog(root) {
   const mult = E.TIER_MULTIPLIERS[p?.tier ?? "casual"];
   const cbEligible = E.comebackEligible(m, p?.id);
   const sel = { ex: m.config.exercises[0], n: 20 };
+  /* SQD wave: which squads get the same reps (multi-select chips above) */
+  const squadSel = new Set(mySquads(st).map((s) => s.id));
+  sheet.querySelectorAll("#qlSquads .fg-chip[data-sqd]").forEach((c) => c.addEventListener("click", () => {
+    const id = c.dataset.sqd;
+    squadSel.has(id) ? squadSel.delete(id) : squadSel.add(id);
+    c.setAttribute("aria-pressed", String(squadSel.has(id)));
+  }));
   const conv = sheet.querySelector("#qlConv"), cta = sheet.querySelector("#qlCta");
   const ltActive = E.lightningActive(m, p?.id);
   const render = () => {
@@ -412,10 +431,26 @@ function wireQuickLog(root) {
       return;
     }
     closeOverlay();
+    /* SQD wave — cross-squad credit: the SAME reps into every ticked squad
+       battle (a squad owns its own match, so the main match never
+       double-writes). Squad battles that aren't live are skipped quietly. */
+    const credited = [];
+    let squadClosed = null;
+    for (const sid of squadSel) {
+      const sqd = squadById(sid, S.load());
+      if (!sqd || sqd.matchId === m.config.id) continue;
+      try {
+        const r = S.logToMatch(sqd.matchId, { exerciseId: sel.ex.id, reps: sel.n });
+        credited.push(sqd.name);
+        if (r.closed) squadClosed = sqd;
+      } catch { /* not live — skip */ }
+    }
     if (res.closed) {
       location.hash = "#/result-005";
+    } else if (squadClosed) {
+      location.hash = "#/sqd-001"; // a squad battle closed → show its settlement
     } else {
-      toast(`${ic("check")}+${sel.n} ${sel.ex.name.toLowerCase()} logged${res.comeback ? " · COMEBACK ×1.2 CLAIMED" : ""}${res.lightning ? " · LIGHTNING ×3 CLAIMED" : ""}`);
+      toast(`${ic("check")}+${sel.n} ${sel.ex.name.toLowerCase()} logged${res.comeback ? " · COMEBACK ×1.2 CLAIMED" : ""}${res.lightning ? " · LIGHTNING ×3 CLAIMED" : ""}${credited.length ? ` · also ${credited.join(", ")}` : ""}`);
       route(); // re-render current screen with fresh standings
     }
   });
@@ -432,26 +467,68 @@ const fmtDeadline = (ms) => {
   catch { return new Date(ms).toTimeString().slice(0, 5); }
 };
 
-/** One inventory row: rarity card (F3 fg-pwr component) + live state + action. */
-function pwrRow(m, def, count, state) {
+/** Compact remaining-time label for expiry badges: "5h", "38m", "3d". */
+const fmtExpiry = (ms) => {
+  const m = Math.max(0, Math.floor(ms / 60000));
+  if (m >= 1440) return `${Math.floor(m / 1440)}d`;
+  if (m >= 60) return `${Math.floor(m / 60)}h`;
+  return `${Math.max(1, m)}m`;
+};
+
+/** One inventory row: rarity card (F3 fg-pwr component) + live state + action.
+ *  v2: covers all 14 kinds, shows expiry badges on held cards, and knows
+ *  the passive cards (pit crew / photo finish / rabbit's foot fire from
+ *  held state — no USE button). */
+function pwrRow(m, def, count, state, opts = {}) {
   const rarityTag = `${def.rarity.toUpperCase()}${count > 1 ? ` ×${count}` : ""}`;
+  const heldCard = opts.heldCard; // the soonest-expiring held copy (for the badge)
+  const expiryBadge = heldCard && Number.isFinite(heldCard.expiresAt)
+    ? `<span class="fx-exp">${fmtExpiry(heldCard.expiresAt - Date.now())} LEFT</span>`
+    : "";
+  const passive = def.kind === "pit_crew" || def.kind === "photo_finish";
   const action = state === "held"
     ? `<button class="fx-btn fx-btn--sm fx-btn--purple" data-pwr="${def.kind}">USE</button>`
     : state === "active"
       ? `<span class="fx-pwrstate fx-pwrstate--on">${ic("bolt")} ×3 LIVE</span>`
       : state === "armed"
         ? `<span class="fx-pwrstate fx-pwrstate--on">${ic("shield")} ARMED</span>`
-        : `<span class="fx-pwrstate">${state === "used" ? "USED THIS MATCH" : "NONE HELD"}</span>`;
+        : state === "passive"
+          ? `<span class="fx-pwrstate fx-pwrstate--on">${ic("check")} AUTO</span>`
+          : `<span class="fx-pwrstate">${state === "used" ? "USED THIS MATCH" : "NONE HELD"}</span>`;
   return `
   <div class="fg-pwr fg-pwr--${def.rarity} fx-pwrcard">
     <span class="fg-pwr__rarity">${rarityTag}</span>
     <span class="fg-pwr__art">${ic(def.icon)}</span>
     <div class="fx-pwrcard__body">
-      <h3 class="fg-pwr__name">${def.name}</h3>
-      <p class="fg-pwr__desc">${state === "held" || state === "active" || state === "armed" ? def.blurb : state === "used" ? def.blurb : "Not in your inventory — the daily drop or a dev grant restocks it."}</p>
+      <h3 class="fg-pwr__name">${def.name}${expiryBadge ? ` ${expiryBadge}` : ""}</h3>
+      <p class="fg-pwr__desc">${state === "held" || state === "active" || state === "armed" || state === "passive" ? def.blurb : state === "used" ? def.blurb : "Not in your inventory — the draft, daily drop or a dev grant restocks it."}</p>
     </div>
-    ${action}
+    ${passive && state === "held" ? `<span class="fx-pwrstate fx-pwrstate--on">${ic("check")} AUTO</span>` : action}
   </div>`;
+}
+
+/** Live per-kind state for the sheet rows (all 14 kinds, launch 4 first). */
+function pwrRowStates(m, myId) {
+  const inv = E.inventoryOf(m, myId);
+  const now = Date.now();
+  const count = (kind) => inv.filter((i) => i.kind === kind).length;
+  const soonest = (kind) => inv.filter((i) => i.kind === kind && Number.isFinite(i.expiresAt)).sort((a, b) => a.expiresAt - b.expiresAt)[0];
+  return Object.values(E.POWER_UPS).map((def) => {
+    const k = def.kind;
+    const held = count(k);
+    let state = held ? "held" : "none";
+    if (k === "lightning" && E.lightningActive(m, myId, now)) state = "active";
+    else if (k === "lightning" && m.lightningUsed?.[myId]) state = "used";
+    else if (k === "shield" && m.shields?.[myId]) state = "armed";
+    else if (k === "anchor" && E.anchorActive(m, myId, now)) state = "armed";
+    else if (k === "second_wind" && E.secondWindActive(m, myId, now)) state = "active";
+    else if (k === "rabbits_foot" && m.lucky?.[myId]) state = "armed";
+    else if (k === "pit_crew" && m.pitCrews?.[myId]) state = "armed";
+    else if ((k === "sprint" && (m.sprints?.[myId]?.remaining ?? 0) > 0)) state = "active";
+    else if (k === "double_down" && m.doubleDowns?.[myId]) state = "active";
+    else if (k === "photo_finish" && held) state = "passive";
+    return pwrRow(m, def, held, state, { heldCard: held ? (soonest(k) ?? inv.find((i) => i.kind === k)) : null });
+  }).join("");
 }
 
 function powerUpSheet() {
@@ -467,29 +544,93 @@ function powerUpSheet() {
   const myId = st.player?.id;
   const now = Date.now();
   const inv = E.inventoryOf(m, myId);
-  const count = (kind) => inv.filter((i) => i.kind === kind).length;
-  const steal = E.stealPreview(m, myId);
+  const steal = E.stealPreview(m, myId, now);
   const shieldArmed = !!m.shields?.[myId];
+  const anchorMe = E.anchorActive(m, myId, now);
   const litActive = E.lightningActive(m, myId, now);
   const litUsed = !!m.lightningUsed?.[myId];
   const litRemain = E.lightningRemainingMs(m, myId, now);
-  const rows = [
-    pwrRow(m, E.POWER_UPS.lightning, count("lightning"), litActive ? "active" : litUsed ? "used" : count("lightning") ? "held" : "none"),
-    pwrRow(m, E.POWER_UPS.steal, count("steal"), count("steal") ? "held" : "none"),
-    pwrRow(m, E.POWER_UPS.shield, count("shield"), shieldArmed ? "armed" : count("shield") ? "held" : "none"),
-    pwrRow(m, E.POWER_UPS.freeze, count("freeze"), count("freeze") ? "held" : "none"),
-  ].join("");
   return `
   <div class="fx-sheet" id="pwrSheet" data-match="${m.config.id}">
     <div class="fx-sheet__grab"></div>
     <h2 class="fx-sheet__h">POWER-UPS</h2>
     ${litActive ? `<div class="fx-ltline">${ic("bolt")}LIGHTNING LIVE — ${fmtClock(litRemain)} left · logs count ×3</div>` : ""}
     ${shieldArmed ? `<div class="fx-ltline fx-ltline--shield">${ic("shield")}SHIELD ARMED — your reps can't be stolen</div>` : ""}
-    ${steal ? `<div class="fx-ltline fx-ltline--target">${ic("bolt")}STEAL TARGET: ${steal.victim.id === myId ? "you" : steal.victim.name} (${steal.victimRaw} reps) → takes ${steal.amount}${steal.blocked ? " · SHIELDED" : ""}</div>` : ""}
-    <div class="fx-pwrlist">${rows}</div>
-    <div class="fx-rule"><span class="fx-rule__k">BATTLE DEADLINE</span><span class="fx-rule__v">${fmtDeadline(m.deadlineAt)} · freeze +30 min</span></div>
-    <p class="fg-sheet__note">Hidden from your crew · rarity is cosmetic in this build · one lightning per match</p>
+    ${anchorMe ? `<div class="fx-ltline fx-ltline--shield">${ic("lock")}ANCHOR HOLDS ${fmtExpiry((m.anchors?.[myId] ?? 0) - now)} — no steals from you, rival freezes vetoed</div>` : ""}
+    ${steal ? `<div class="fx-ltline fx-ltline--target">${ic("bolt")}STEAL TARGET: ${steal.victim.id === myId ? "you" : steal.victim.name} (${steal.victimRaw} reps) → takes ${steal.amount}${steal.blocked ? ` · BLOCKED BY ${String(steal.blockedBy ?? "shield").toUpperCase()}` : ""}</div>` : ""}
+    <div class="fx-pwrlist">${pwrRowStates(m, myId)}</div>
+    <div class="fx-rule"><span class="fx-rule__k">BATTLE DEADLINE</span><span class="fx-rule__v">${fmtDeadline(D.deadlineFor(m, now))} · freeze +30 min${m.deadlineMode === "hard" ? " · HARD END" : ""}</span></div>
+    <div class="fx-rule"><span class="fx-rule__k">POINTS</span><span class="fx-rule__v">${E.pointsOf(st.player)} PTS · KITTY ${E.kittyTotal(m)} — rerolls feed the kitty</span></div>
+    <p class="fg-sheet__note">Hidden from your crew · cards expire (24h — some faster) · one lightning per match · points are the trial currency, not money</p>
   </div>`;
+}
+
+/* ── the draft sheet (FLOW-05b): 3 face-up cards, pick or reroll ─────── */
+function draftSheet() {
+  const st = ST();
+  const m = liveMatch(st);
+  const myId = st.player?.id;
+  const draft = m?.drafts?.[myId];
+  if (!m || !draft) return `
+  <div class="fx-sheet" id="draftSheet">
+    <div class="fx-sheet__grab"></div>
+    <h2 class="fx-sheet__h">DRAFT</h2>
+    <p class="fg-sheet__note">No draft pending — the next opens at day close.</p>
+  </div>`;
+  const behind = E.catchUpBehind(m, myId);
+  const cost = E.rerollCostFor(m, myId);
+  const bal = E.pointsOf(st.player);
+  const card = (kind) => {
+    const def = E.POWER_UPS[kind];
+    const life = def.expiryMs === E.DAY_MS ? "24h" : fmtExpiry(def.expiryMs);
+    return `
+    <button class="fg-pwr fg-pwr--${def.rarity} fx-draftcard" data-pick="${kind}" type="button">
+      <span class="fg-pwr__rarity">${def.rarity.toUpperCase()}</span>
+      <span class="fg-pwr__art">${ic(def.icon)}</span>
+      <h3 class="fg-pwr__name">${def.name}</h3>
+      <p class="fg-pwr__desc">${def.blurb}</p>
+      <span class="fx-exp">LASTS ${life}</span>
+    </button>`;
+  };
+  return `
+  <div class="fx-sheet" id="draftSheet" data-match="${m.config.id}">
+    <div class="fx-sheet__grab"></div>
+    <h2 class="fx-sheet__h">DRAFT — PICK 1 OF 3</h2>
+    <p class="fg-sheet__note">${draft.luck ? "🍀 Rabbit's Foot burned — Rare+ guaranteed. " : ""}${behind > 0.05 ? `Catch-up odds live — you're ${Math.round(behind * 100)}% behind, so your rarity odds are boosted. ` : ""}Rerolling pays the kitty.</p>
+    <div class="fx-draftgrid">${draft.options.map(card).join("")}</div>
+    <button class="fx-btn fx-btn--purple" id="rerollBtn" type="button" ${bal < cost ? "disabled style='opacity:0.5'" : ""}>🎲 REROLL — ${cost} PTS TO THE KITTY (${bal} available)</button>
+    <div class="fx-rule"><span class="fx-rule__k">KITTY</span><span class="fx-rule__v">${E.kittyTotal(m)} pts — grows the prize at stake</span></div>
+    <p class="fg-sheet__note">Next reroll: ${Math.min(cost, E.REROLL_COSTS.at(-1))} → then ${E.rerollCostFor({ ...m, rerollCount: { ...(m.rerollCount ?? {}), [myId]: (m.rerollCount?.[myId] ?? 0) + 1 } }, myId)} pts · TODO: pay-in-reps option ships with the economy</p>
+  </div>`;
+}
+
+/** Wire the draft sheet: pick → engine grant, reroll → escalating cost. */
+function wireDraftSheet(root) {
+  const sheet = root.querySelector("#draftSheet");
+  if (!sheet || !sheet.dataset.match) return;
+  const matchId = sheet.dataset.match;
+  sheet.querySelectorAll("[data-pick]").forEach((btn) => {
+    btn.addEventListener("click", () => {
+      let r;
+      try { r = S.pickDraft(matchId, btn.dataset.pick); }
+      catch (err) { toast(`⚠️ ${err.message}`); return; }
+      if (!r.ok) { toast(`⚠️ ${r.reason}`); return; }
+      toast(`${ic("bolt")}DRAFTED ${r.name.toUpperCase()} — ${r.rarity.toUpperCase()} · lasts ${fmtExpiry(r.expiresAt - Date.now())}`);
+      closeOverlay();
+      route();
+    });
+  });
+  sheet.querySelector("#rerollBtn")?.addEventListener("click", (e) => {
+    if (e.currentTarget.disabled) return;
+    let r;
+    try { r = S.rerollDraftIn(matchId); }
+    catch (err) { toast(`⚠️ ${err.message}`); return; }
+    if (!r.ok) { toast(`⚠️ ${r.reason}`); return; }
+    toast(`🎲 REROLLED — ${r.cost} pts to the kitty · ${r.balance} left · 3 fresh cards`);
+    closeOverlay();
+    openOverlay(draftSheet());
+    wireDraftSheet(document.body);
+  });
 }
 
 /** Toast copy for an activation result card (engine truth → founder words). */
@@ -499,12 +640,28 @@ function pwrToast(result, m) {
   switch (result.kind) {
     case "lightning": return `${ic("bolt")}LIGHTNING ROUND LIVE — ×3 FOR 10:00. GO.`;
     case "shield": return `${ic("shield")}SHIELD ARMED — one steal bounces off you`;
-    case "freeze": return `${ic("clock")}TIME FREEZE — DEADLINE +30 MIN → ${fmtDeadline(result.newDeadline)}`;
+    case "freeze":
+      if (result.blocked) return `${ic("lock")}FREEZE VETOED — ${who(result.vetoedBy)}'s anchor holds. Your card survived.`;
+      return `${ic("clock")}TIME FREEZE — DEADLINE +30 MIN → ${fmtDeadline(result.newDeadline)}`;
     case "steal":
-      if (result.blocked) return `${ic("shield")}STEAL BLOCKED by ${who(result.victimId)}'s shield — their shield broke, your card survived`;
+      if (result.blocked) return result.by === "anchor"
+        ? `${ic("lock")}STEAL BOUNCED off ${who(result.victimId)}'s ANCHOR — it holds. Your card survived; outlast it.`
+        : `${ic("shield")}STEAL BLOCKED by ${who(result.victimId)}'s shield — their shield broke, your card survived`;
       return result.stolen > 0
         ? `${ic("bolt")}REP STEAL — TOOK ${result.stolen} FROM ${who(result.victimId).toUpperCase()}`
         : `${ic("bolt")}REP STEAL fizzled — ${who(result.victimId)} had nothing to take`;
+    case "second_wind": return `${ic("flame")}SECOND WIND — COMEBACK ×1.5 FOR 15:00 (was ×1.2)`;
+    case "anchor": return `${ic("lock")}ANCHOR DOWN FOR 24H — no steals from you, rival freezes vetoed, swaps bounce`;
+    case "sprint": return `${ic("bolt")}SPRINT — YOUR NEXT 3 LOGS COUNT ×2`;
+    case "rabbits_foot": return `${ic("chest")}RABBIT'S FOOT ARMED — your next draft is guaranteed Rare+`;
+    case "sandbag_detector": return `${ic("search")}SANDBAG DETECTOR ON ${who(result.victimId).toUpperCase()} — their next 3 logs go public`;
+    case "handicap_swap": return `${ic("share")}HANDICAP SWAP — you take ${result.theirNewTier.toUpperCase()} ×${E.TIER_MULTIPLIERS[result.theirNewTier]}, ${who(result.withId)} gets ${result.yourNewTier.toUpperCase()} ×${E.TIER_MULTIPLIERS[result.yourNewTier]} for 1 day`;
+    case "pit_crew": return `${ic("settings")}PIT CREW ARMED — your next 0-rep day keeps the streak`;
+    case "photo_finish": return `${ic("camera")}PHOTO FINISH AUTO — +${E.PHOTO_FINISH_POINTS} pts if you win by <5%`;
+    case "double_down": return `${ic("crown")}DOUBLE DOWN — NEXT LOG ×3 · ${result.paid} pts to the kitty (${result.balance} left)`;
+    case "wildcard":
+      if (!result.copied) return `${ic("plus")}WILDCARD — nothing to copy yet`;
+      return `${ic("plus")}WILDCARD → COPIED ${result.copiedName.toUpperCase()} — it's in your hand, play it`;
     default: return `${ic("bolt")}${result.name ?? "POWER-UP"} ACTIVATED`;
   }
 }
@@ -603,6 +760,10 @@ const battleUnder = () => {
   const litRemain = E.lightningRemainingMs(m, myId);
   const litClock = `0:${String(Math.floor(litRemain / 60000)).padStart(2, "0")}:${String(Math.floor((litRemain % 60000) / 1000)).padStart(2, "0")}`;
   const myCards = E.inventoryOf(m, myId).length;
+  /* FLOW-05b: points wallet, kitty pot, and the pending draft badge */
+  const myPts = E.pointsOf(st.player);
+  const kitty = E.kittyTotal(m);
+  const myDraft = m.drafts?.[myId] ?? null;
   return `
   ${statusBar()}
   ${topBar({ title: m.config.name ?? "Battle" })}
@@ -610,6 +771,13 @@ const battleUnder = () => {
     <div class="fx-daylabel">${restDay
       ? `REST DAY — NEXT BATTLE DAY <b>${nextD?.weekdayShort ?? "SOON"}</b> · LOGS STILL COUNT FOR THE BATTLE`
       : `<b>DAY ${dayN}</b> — CLOSES ${D.fmtTimeLocal(D.deadlineFor(m, dnow))} YOUR TIME`}</div>
+    <div class="fx-ptsrow">
+      <span class="fx-ptschip" title="Points pay rerolls — trial currency, no money in this build">${ic("bolt")} ${myPts} PTS</span>
+      <span class="fx-kittychip" title="Rerolls + double-downs feed the kitty">KITTY ${kitty}</span>
+      ${myDraft
+        ? `<button class="fx-draftbadge" id="draftBtn" type="button">🎴 DRAFT READY — ${myDraft.options.length} CARDS</button>`
+        : `<span class="fx-draftbadge fx-draftbadge--off">DRAFT AT DAY CLOSE</span>`}
+    </div>
     <div class="fx-statusrow">
       ${badge({ icon: "flame", text: `${streak} DAY STREAK` })}
       ${countdown({ time: clock.time, sub: clock.sub, level: lvl ? `dz${lvl}` : "", extra: `data-dz-countdown data-match="${m.config.id}"` })}
@@ -851,6 +1019,7 @@ const SCREENS = [
       ${statusBar()}
       ${topBar({ logo: true })}
       <div class="fx-content">
+        ${homeTabs("battles")}
         ${h1("READY WHEN YOU ARE", "fx-h1--30")}
         <div class="fx-statewrap">
           <div class="fg-state">
@@ -878,6 +1047,7 @@ const SCREENS = [
       ${statusBar()}
       ${topBar({ logo: true })}
       <div class="fx-content">
+        ${homeTabs("battles")}
         ${h1("READY WHEN YOU ARE", "fx-h1--30")}
         ${noBattleState()}
         <div class="fx-gap8"></div>
@@ -899,6 +1069,7 @@ const SCREENS = [
       ${statusBar()}
       ${topBar({ logo: true })}
       <div class="fx-content">
+        ${homeTabs("battles")}
         <div class="fx-statusrow">
           <span class="fg-badge">${ic("flame")}${st.season?.streaks?.[myId]?.length ?? 0} DAY STREAK</span>
           ${countdown({ time: clock.time, sub: clock.sub, level: clock.level ? `dz${clock.level}` : "", extra: `data-dz-countdown data-match="${m.config.id}"` })}
@@ -929,6 +1100,7 @@ const SCREENS = [
       ${statusBar()}
       ${topBar({ logo: true })}
       <div class="fx-content">
+        ${homeTabs("battles", "home-003")}
         ${h1("YOUR BATTLES", "fx-h1--26")}
         ${noBattleState()}
       </div>
@@ -964,6 +1136,7 @@ const SCREENS = [
       ${statusBar()}
       ${topBar({ logo: true })}
       <div class="fx-content">
+        ${homeTabs("battles", "home-003")}
         ${h1("YOUR BATTLES", "fx-h1--26")}
         ${cards}
         <div class="fx-gap8"></div>
@@ -1728,27 +1901,31 @@ TUESDAY</div>
   },
 
   /* ── PWR ×5 ──────────────────────────────────────────────────────── */
-  /* FLOW-05: pwr-001 (inventory) + pwr-002 (detail) are REAL — backed by
+  /* FLOW-05/05b: pwr-001 (inventory) + pwr-002 (detail) are REAL — backed by
      the engine inventory in rwf.figma.v1. pwr-004 (lightning full-screen)
      stays mock, pwr-006 chest cadence is mock but the reveal grants a real
-     card, pwr-007 store is mock + DEV GRANT. */
+     card, pwr-007 store is mock + DEV GRANT. v2: 14 kinds + the points
+     wallet (rerolls pay the kitty). */
   {
     id: "pwr-001", figma: "MOB-PWR-001", name: "Power-up inventory", group: "Power-Ups", next: "pwr-002",
     render: () => {
       const st = ST();
       const m = liveMatch(st);
       const inv = m ? E.inventoryOf(m, st.player?.id) : [];
-      const kinds = ["lightning", "steal", "shield", "freeze"];
+      const kinds = Object.keys(E.POWER_UPS); // v2: the full 14-kind range
       const slots = Math.max(6, inv.length);
+      const now = Date.now();
       const card = (kind) => {
         const def = E.POWER_UPS[kind];
         const n = inv.filter((i) => i.kind === kind).length;
+        const held = inv.filter((i) => i.kind === kind && Number.isFinite(i.expiresAt)).sort((a, b) => a.expiresAt - b.expiresAt)[0];
         return `
         <div class="fg-pwr fg-pwr--${def.rarity}" ${n ? `data-pwrsel="${kind}"` : ""} style="${n ? "cursor:pointer" : "opacity:0.45"}">
           <span class="fg-pwr__rarity">${def.rarity.toUpperCase()}${n > 1 ? ` ×${n}` : ""}</span>
           <span class="fg-pwr__art">${ic(def.icon)}</span>
           <h3 class="fg-pwr__name">${def.name}</h3>
           <p class="fg-pwr__desc">${n ? def.blurb : "none held"}</p>
+          ${held ? `<span class="fx-exp">${fmtExpiry(held.expiresAt - now)} LEFT</span>` : ""}
         </div>`;
       };
       return `
@@ -1756,14 +1933,15 @@ TUESDAY</div>
       <div class="fx-content">
         ${h1("YOUR ARSENAL", "fx-h1--26")}
         ${m
-          ? sub(`${inv.length} of ${slots} slots used in “${m.config.name ?? "battle"}” · commons would expire after 7 days (not enforced in this build).`, "fx-sub--12")
-          : sub("No live battle — power-ups live inside one. Create a battle and every player starts with a free random card.", "fx-sub--12")}
+          ? sub(`${inv.length} of ${slots} slots used in “${m.config.name ?? "battle"}” · ${kinds.length} card types live · drafts open at match start + day close.`, "fx-sub--12")
+          : sub("No live battle — power-ups live inside one. Create a battle and every player starts with a free random card + a 3-card draft.", "fx-sub--12")}
+        <div class="fx-rule"><span class="fx-rule__k">POINTS</span><span class="fx-rule__v">${E.pointsOf(st.player)} PTS — pay rerolls (50→100→200, to the kitty) · trial currency, not money</span></div>
         <div class="fx-pwrgrid">
           ${kinds.map(card).join("")}
         </div>
         <div class="fx-gap16"></div>
-        <button class="fx-btn fx-btn--purple" id="devGrant" data-grant="${m?.config.id ?? ""}" ${m ? "" : "disabled"}>⚡ DEV GRANT — ALL FOUR, EVERY PLAYER</button>
-        <p class="fx-note fx-note--11">DEV GRANT replaces the store in this build — it exists so the founder can actually play all four power-ups. The real store ships later.</p>
+        <button class="fx-btn fx-btn--purple" id="devGrant" data-grant="${m?.config.id ?? ""}" ${m ? "" : "disabled"}>⚡ DEV GRANT — ALL ${kinds.length} KINDS, EVERY PLAYER</button>
+        <p class="fx-note fx-note--11">DEV GRANT replaces the store in this build — it exists so the founder can actually play every power-up. The real store ships later.</p>
         <div class="fx-drop" ${go("pwr-006")}>🎁 Daily drop ready — open your free card</div>
       </div>
       ${nav("pwr-001")}`;
@@ -1775,7 +1953,7 @@ TUESDAY</div>
           const id = e.currentTarget.dataset.grant;
           if (!id) { toast("⚠️ No battle to grant into"); return; }
           const r = S.devGrant(id);
-        toast(`${ic("bolt")}DEV GRANT — all four power-ups × ${r.granted / 4} players. Go play.`);
+        toast(`${ic("bolt")}DEV GRANT — all ${Object.keys(E.POWER_UPS).length} power-ups × ${r.granted / Object.keys(E.POWER_UPS).length} players. Go play.`);
         route();
       });
     },
@@ -1792,7 +1970,7 @@ TUESDAY</div>
       const shieldArmed = m?.shields?.[myId];
       const litActive = m ? E.lightningActive(m, myId) : false;
       const litUsed = m?.lightningUsed?.[myId];
-      const steal = m ? E.stealPreview(m, myId) : null;
+      const steal = m ? E.stealPreview(m, myId, Date.now()) : null;
       const rules = {
         lightning: [
           ["Window", "10 minutes, server-timed — starts the second you confirm"],
@@ -1803,7 +1981,7 @@ TUESDAY</div>
         steal: [
           ["Target", steal ? `${steal.victim.id === myId ? "You lead — your leading rival is next" : `${steal.victim.name} (${steal.victimRaw} reps)`} — takes ${steal.amount} instantly` : "the CURRENT leading rival by raw reps"],
           ["Math", "10% of their raw reps, rounded down, minimum 1"],
-          ["Shielded?", steal?.blocked ? `${steal.victim.name} is shielded — your steal bounces and their shield breaks` : "if they're shielded, the steal is blocked and their shield breaks — your card survives"],
+          ["Shielded?", steal?.blocked ? `${steal.victim.name} is protected (${steal.blockedBy ?? "shield"}) — your steal bounces` : "a shield eats it (and breaks); an ANCHOR bounces it and holds"],
           ["Ledger", "raw AND adjusted both move — at each side's handicap multiplier"],
         ],
         shield: [
@@ -1814,14 +1992,64 @@ TUESDAY</div>
         freeze: [
           ["Effect", "extends the battle deadline by 30 minutes for the whole crew"],
           ["Stacks", "multiple freezes add up (+30 min each)"],
-          ["Deadline", m ? fmtDeadline(m.deadlineAt) : "—"],
+          ["Veto", "an ANCHOR held by any rival bounces the freeze — your card survives"],
+          ["Deadline", m ? fmtDeadline(D.deadlineFor(m)) : "—"],
+        ],
+        second_wind: [
+          ["Window", "15 minutes, server-timed"],
+          ["Effect", "your comeback boost upgrades ×1.2 → ×1.5 for entries logged inside the window"],
+          ["Keys off", "the once-per-match comeback — arm it while you're >30% behind"],
+          ["Expiry", "the card rots after 12h held"],
+        ],
+        anchor: [
+          ["Effect", "24h wall: no rep steals FROM you, rival freezes are vetoed, handicap swaps targeting you bounce"],
+          ["Breaks?", "never — it simply lapses after 24h (steals against it keep their cards)"],
+          ["Cost", "it blocks nothing you do — pure defence"],
+        ],
+        sprint: [
+          ["Effect", `your next ${E.SPRINT_LOGS} logged sets score ×2`],
+          ["Charges", m?.sprints?.[myId] ? `${m.sprints[myId].remaining} left` : "none running"],
+          ["Fine print", "steal transfers never burn a charge · card rots fastest (6h)"],
+        ],
+        rabbits_foot: [
+          ["Effect", "your NEXT draft is guaranteed Rare or better (45/35/20 rare/epic/legendary)"],
+          ["Armed?", m?.lucky?.[myId] ? "yes — the next draft burns it" : "no"],
+          ["Expiry", "consumed by the draft it boosts"],
+        ],
+        sandbag_detector: [
+          ["Effect", `the leading rival's next ${E.SANDBAG_LOGS} logs are flagged PUBLIC for the crew`],
+          ["Counter", "nothing — it only reveals; log honestly"],
+        ],
+        handicap_swap: [
+          ["Effect", `you and the leading rival SWAP tier multipliers for 1 day, then auto-revert`],
+          ["Counter", "an anchor on the target bounces it · it expires and reverts anyway"],
+          ["Fine print", "the whole ledger re-scores at the new multipliers — big swing"],
+        ],
+        pit_crew: [
+          ["Effect", "your next 0-rep play day keeps your streak alive"],
+          ["Armed?", m?.pitCrews?.[myId] ? "yes — fires at the day close" : "no"],
+          ["Fine print", "consumed by the day it saves"],
+        ],
+        photo_finish: [
+          ["Effect", `+${E.PHOTO_FINISH_POINTS} points if you WIN the match by a <5% adjusted margin`],
+          ["Passive", "no activate — it pays out automatically at match close if you hold it"],
+        ],
+        double_down: [
+          ["Effect", "your next logged set scores ×3"],
+          ["Cost", `${E.DOUBLE_DOWN_POINTS} points, paid to the KITTY at activation`],
+          ["Fine print", "refused if your wallet can't cover it · card rots after 12h"],
+        ],
+        wildcard: [
+          ["Effect", "becomes a copy of the last card played AGAINST you (steal, swap, detector)"],
+          ["Dead card", "refuses while nothing has been played against you — hold it"],
         ],
       }[kind];
       const cta = !m ? "NO LIVE BATTLE"
         : litActive ? "LIGHTNING ALREADY LIVE"
         : kind === "lightning" && litUsed ? "USED THIS MATCH"
         : kind === "shield" && shieldArmed ? "SHIELD ALREADY ARMED"
-        : n === 0 ? "NONE HELD — DEV GRANT ON THE ARSENAL SCREEN"
+        : kind === "photo_finish" && n > 0 ? "AUTO — PAYS OUT AT MATCH CLOSE"
+        : n === 0 ? "NONE HELD — DRAFT, DROP OR DEV GRANT"
         : null;
       return sheetScreen(battleUnder(), `
       <div class="fx-sheet__grab"></div>
@@ -1919,9 +2147,9 @@ TUESDAY</div>
     wire: (root) => {
       root.querySelector("#devGrant")?.addEventListener("click", (e) => {
         const id = e.currentTarget.dataset.grant;
-        if (!id) { toast("⚠️ No live battle to grant into"); return; }
+        if (!id) { toast("⚠️ No battle to grant into"); return; }
         const r = S.devGrant(id);
-        toast(`${ic("bolt")}DEV GRANT — all four power-ups × ${r.granted / 4} players`);
+        toast(`${ic("bolt")}DEV GRANT — all ${Object.keys(E.POWER_UPS).length} power-ups × ${r.granted / Object.keys(E.POWER_UPS).length} players`);
         route();
       });
     },
@@ -2090,6 +2318,10 @@ TUESDAY</div>
         <p class="fx-menurow__group" style="margin-left:0">APPEARANCE</p>
         <div class="fx-menu">
           ${menuRow(`Theme (beta) · ${appThemeName()}`, "set-007")}
+          <div class="fx-card fx-card--r12 fx-card--row" style="margin-top:8px">
+            <span class="fx-card__t" style="font-size:14px">Sound effects</span>
+            <button class="fx-toggle" id="sfxRowToggle" data-sfx-paint="1" aria-label="Sound effects"></button>
+          </div>
         </div>
         <p class="fx-menurow__group" style="margin-left:0">BATTLES</p>
         <div class="fx-menu">
@@ -2433,6 +2665,10 @@ TUESDAY</div>
   },
 ];
 
+/* SQD wave: the multi-squad dashboard + create screens (squads.js owns
+   them; registered here so the router + screen index see them). */
+SCREENS.push(...SQUAD_SCREENS);
+
 /* ── small row builders used above ───────────────────────────────────── */
 function exRow(name, conv, sel = false) {
   return `<div class="fx-card fx-card--r12 fx-card--row" style="margin-top:8px;${sel ? "border-color:color-mix(in srgb, var(--lime) 70%, transparent)" : ""}">
@@ -2527,6 +2763,7 @@ const GROUPS = [
   ["Log", "Quick sheet (≤3 taps), picker, timed, gym mode, large-log confirm, history, offline queue."],
   ["Results", "Daily winner, daily loss, recap + MOMENTS, final + awards, share card — plus the REAL daily winner/recap (daily-001) from each closed play day."],
   ["Season", "The real ladder — 3/2/1 points + MVP from completed battles."],
+  ["Squads", "Multi-squad dashboard: same reps across squads, three-way standings, agreed wagers, last-place notice."],
   ["Power-Ups", "Inventory, card detail, Lightning active, store, daily loot."],
   ["Wagers (flagged)", "All feature-flagged: explainer, eligibility, region, payment, settlement, responsible play."],
   ["Profile & Settings", "Profile, settings, notifications, Reps Pro paywall, manage subscription."],
@@ -2728,6 +2965,9 @@ function wireScreen(root, id) {
   /* battle: power-up inventory sheet (FLOW-05) */
   root.querySelector("#pwrBtn")?.addEventListener("click", () => openOverlay(powerUpSheet()));
 
+  /* battle: draft-from-3 sheet (FLOW-05b) */
+  root.querySelector("#draftBtn")?.addEventListener("click", () => { openOverlay(draftSheet()); });
+
   /* battle (FLOW-06): danger-zone LOG NOW → quick-log sheet */
   root.querySelector("[data-dz-log]")?.addEventListener("click", () => openOverlay(quickLogSheet()));
 
@@ -2877,6 +3117,7 @@ function openOverlay(html) {
   document.body.appendChild(overlayEl);
   wireQuickLog(document);
   wirePowerUps(document);
+  wireDraftSheet(document);
 }
 function closeOverlay() {
   document.querySelectorAll("body > .fx-scrim[data-global]").forEach(n => n.remove());

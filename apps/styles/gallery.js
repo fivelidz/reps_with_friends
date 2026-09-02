@@ -15,6 +15,15 @@
     { id: "sunset", name: "Sunset Brutalist",line: "The light mode — cream paper, 2px ink borders, hard offset shadows, oversized flat type. Sport-poster loud." },
     { id: "neon",   name: "Midnight Neon",   line: "The esports skin — blue-black, electric cyan + magenta, mono numerals, subtle glow edges. Ranked-play energy." },
     { id: "forest", name: "Forest Retro",    line: "The family mode — walnut dark, mustard/burnt-orange/olive 70s palette, soft radii, rounded type. Everyone plays." },
+    /* ── V2 expansion (apps/board · /v2 — the poker-table × track app) ── */
+    { id: "board",     name: "Board Game",       line: "The V2 flagship — deep racing felt, gold chips, Anton + mono race clock, chunky radii + offset shadows." },
+    { id: "mycelial",  name: "Mycelial",         line: "Bioluminescent — deep soil browns, glow-teal spores, organic radii, friendly rounded type." },
+    { id: "techy",     name: "Techy",            line: "Graph paper + terminal — mono display, plotter cyan, hairline grids on every surface." },
+    { id: "track",     name: "Track & Field",    line: "Terracotta track red, lane-stripe white primary, stopwatch numerals. Floodlit stadium energy." },
+    { id: "poker",     name: "Poker Room",       line: "Burgundy felt, casino gold, serif display. The card-table skin for table night." },
+    { id: "caveman",   name: "Caveman",          line: "Stone browns + bone white, primitive chunky borders, fire-orange effort axis. Hewn, not machined." },
+    { id: "n64",       name: "N64 Retro",        line: "Flat bright polys over fog indigo, thick outlines, cartridge-yellow primary. 1997 energy." },
+    { id: "goldeneye", name: "GoldenEye 64",     line: "Grey-blue steel + gold watch-menu HUD, mono display, notched corners, sharp radii." },
   ];
   const SWATCH_SLOTS = [
     ["--bg", "bg"], ["--surface-2", "surface"], ["--lime", "primary"],
@@ -54,6 +63,9 @@
   /* ── compare strip: 5 live iframes ────────────────────────────────── */
   const strip = document.getElementById("strip");
   let screen = "both";
+  /* strip iframes are EAGER (not lazy): with 13 themes, off-viewport
+     frames would never load in headless checks — the strip IS the check
+     surface verify.js reads. The preview iframe below stays lazy. */
   function buildStrip() {
     strip.dataset.screen = screen;
     strip.innerHTML = THEMES.map((t) => `
@@ -63,7 +75,7 @@
           ${t.name}
           <span class="st-cell__hex">${tokFor(t.id, "--lime")}</span>
         </span>
-        <iframe data-theme-frame="${t.id}" title="${t.name} mock" loading="lazy"
+        <iframe data-theme-frame="${t.id}" title="${t.name} mock"
                 src="demo.html?t=${t.id}&screen=${screen}"></iframe>
       </div>`).join("");
   }

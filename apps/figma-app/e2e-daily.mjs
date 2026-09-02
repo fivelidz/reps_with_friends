@@ -291,6 +291,10 @@ await sleep(2600);
 st = await state();
 ok(Object.keys(st.matches[0].dailyHistory).length === 1, "close fires ONCE (no duplicate days)");
 ok(Number(st.matches[0].deadlineAt) > DL, "deadlineAt rolled to day 2 (21:00 AEST convention)");
+/* FLOW-05b: the DAY-CLOSE DRAFT opens — you choose face-up, mates picked */
+ok(Array.isArray(st.matches[0].drafts?.you?.options) && st.matches[0].drafts.you.options.length === 3, "day-close draft opened for you (3 options)");
+ok(Object.keys(st.matches[0].drafts ?? {}).filter(k => k !== "you").length === 0, "mates auto-picked the day-close draft");
+ok(await exists("#draftBtn"), "DRAFT READY badge after day close");
 const DL2 = st.matches[0].deadlineAt;
 await goto("#/battle-001");
 ok((await text(".fx-daylabel"))?.includes("DAY 2"), "battle screen shows DAY 2 after close");
@@ -313,6 +317,17 @@ console.log("— DAY 2 (Sam takes it) + multi-day history");
 await setNow(DL2 - 12 * H);
 await D_(`D.logRepsAt('${MID}', { exerciseId: 'squat', reps: 60, playerId: 'sam' }, ${DL2 - 12 * H + 5 * MIN}).closed ?? false`);
 await D_(`D.logRepsAt('${MID}', { exerciseId: 'pushup', reps: 10, playerId: 'you' }, ${DL2 - 12 * H + 10 * MIN}).closed ?? false`);
+/* FLOW-05b: arm Jordan's PIT CREW — he won't log day 2, so the day close
+   should consume it and save his streak (recorded on the day result) */
+const pitArmed = await evalJs(`(async () => {
+  const E = await import('${BASE}/engine.js'); const S = await import('${BASE}/state.js');
+  let m = S.load().matches[0];
+  m = E.grantPowerUp(m, 'jordan', 'pit_crew');
+  m = E.activatePowerUp(m, 'jordan', 'pit_crew').state;
+  S.mutate((s) => { s.matches[0] = m; });
+  return m.pitCrews?.jordan === true;
+})()`);
+ok(pitArmed, "pit crew armed on Jordan (0 day-2 logs incoming)");
 st = await state();
 ok(st.matches[0].entries.length >= 6, `day-2 entries in state (${st.matches[0].entries.length} total: 4 day-1 + 2 day-2)`);
 await goto("#/battle-001");
@@ -328,6 +343,10 @@ const day2Key = await D_(`D.dayKeyOf(${DL2})`);
 ok(Object.keys(hist2).length === 2, "multi-day dailyHistory (2 days)");
 ok(hist2[day2Key]?.winner?.playerId === "sam" && hist2[day2Key]?.youWon === false, `day-2 winner = Sam (his day)`);
 ok(hist2[day1Key]?.winner?.playerId === "you", "day-1 record untouched (history is append-only)");
+/* FLOW-05b: pit crew consumed by Jordan's 0-rep day + day-close draft re-opened */
+ok(Array.isArray(hist2[day2Key]?.pitCrewSaved) && hist2[day2Key].pitCrewSaved.includes("jordan"), "pit crew SAVED Jordan's 0-rep day (recorded on the result)");
+ok((await state()).matches[0].pitCrews?.jordan == null, "Jordan's pit crew consumed at close");
+ok(Array.isArray((await state()).matches[0].drafts?.you?.options), "day-2 close opened a fresh draft for you");
 await sleep(2400);
 ok(Object.keys((await state()).matches[0].dailyHistory).length === 2, "day-2 close also fires exactly once");
 
@@ -349,6 +368,46 @@ await goto("#/home-002");
 ok(await exists('[data-go="daily-001"]'), "home recap strip navigates to daily-001");
 ok(await exists("[data-dz-countdown]"), "home countdown also ticks to the real deadline");
 await shot("home-temporal");
+
+console.log("— DUAL DEADLINE (FLOW-05b): a hard time end completes the match");
+/* a second battle with config.deadline = { reps, time } — time fires: the
+   match freezes at its hard end and the winner is decided by ADJUSTED
+   standings (no closure bonus). The daily ticker is the closer here. */
+const HARD_AT = await D_(`(async () => {
+  const E = await import('${BASE}/engine.js');
+  const S = await import('${BASE}/state.js');
+  const me = S.load().player;
+  const roster = [{ ...me, points: 500 }, { ...S.MATES[0], points: 500 }];
+  const time = ${DL2} + 5 * 60 * 1000; // hard end 5 min after day-2's close
+  let m = E.startMatch(E.createMatch({
+    id: 'm-hard-' + Date.now(), name: 'The Time Box',
+    exercises: [{ id: 'pushup', name: 'Push-ups' }, { id: 'squat', name: 'Squats' }],
+    targetReps: 300, playDays: [0,1,2,3,4,5,6],
+    deadline: { reps: 300, time },
+  }, roster), 500);
+  m = E.logReps(m, { playerId: me.id, exerciseId: 'pushup', reps: 120, at: time - 3 * 3600e3, verified: false }).state;
+  m = E.logReps(m, { playerId: roster[1].id, exerciseId: 'squat', reps: 90, at: time - 2 * 3600e3, verified: false }).state;
+  S.mutate((s) => { s.matches.push(m); });
+  return time;
+})()`);
+await setNow(HARD_AT + 800);
+await waitFor(async () => {
+  const s = await state();
+  return s.matches.find((m) => m.deadlineMode === "hard")?.status === "complete";
+}, { label: "hard-deadline close", timeout: 8000 });
+st = await state();
+const hm = st.matches.find((m) => m.deadlineMode === "hard");
+ok(hm?.status === "complete" && hm?.closedReason === "time", "hard deadline COMPLETED the match (time closure, via the daily ticker)");
+ok(hm?.deadlineAt === HARD_AT, "hard matches never roll their deadline");
+const hw = await evalJs(`(async () => {
+  const E = await import('${BASE}/engine.js');
+  const s = JSON.parse(localStorage.getItem('rwf.figma.v1'));
+  const m = s.matches.find((x) => x.deadlineMode === 'hard');
+  return E.winner(m);
+})()`);
+ok(hw?.playerId === st.player.id, `time-closed winner = highest ADJUSTED (${hw?.playerId}: couch 120×1.5=180 vs sam 90×1.0=90)`);
+ok(hw?.closedMatch === false, "no closure bonus on a time close");
+ok(st.season?.results?.some((r) => r.matchId === hm.config.id), "time closure recorded a season result");
 
 /* ── verdict ──────────────────────────────────────────────────────────── */
 console.log(`\n${passed}/${step + failures.length} assertions passed`);

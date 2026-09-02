@@ -274,6 +274,10 @@ const server = Bun.serve({
     } else if (p.startsWith("/wiki")) {
       // This documentation wiki (self-contained; shots copied into apps/wiki/shots).
       r = dirRoute("apps/wiki", url) ?? new Response("wiki not found", { status: 404 });
+    } else if (p === "/v2" || p.startsWith("/v2/")) {
+      // V2 board app — the poker-table × track-and-field battle (apps/board).
+      // Independent engine fork; v1 at /figma-app is untouched.
+      r = dirRoute("apps/board", url) ?? new Response("board app not found", { status: 404 });
     } else if (p === "/v1" || p.startsWith("/v1/")) {
       // v1.1 coverage hub — the share page (rwf.qalarc.com/v1): every live
       // surface, dashboard and business document on one page (apps/hub-public).

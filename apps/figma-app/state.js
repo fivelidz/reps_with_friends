@@ -91,6 +91,11 @@ export function setPlayer({ name, tier }) {
       id: prev?.id ?? "you",
       name: String(name || "You").slice(0, 40),
       tier,
+      /* FLOW-05b: points are the v1 trial currency (no money in this
+         build — they pay rerolls + bonuses today, become purchasable
+         post-trial). Pre-v2 identities inherit the 500 start. */
+      points: Number.isFinite(prev?.points) ? prev.points : E.STARTING_POINTS,
+      pointsLedger: prev?.pointsLedger ?? [],
     };
     if (s.season && prev == null) {
       // first identity → seed the season roster with you + the mates
@@ -118,6 +123,14 @@ export function createFastBattle({ name, days, pack, target, withMates = true })
   const packIds = PACKS[pack] ?? PACKS.bodyweight;
   const state = load();
   const code = crewCode(state);
+  /* FLOW-05b: every player enters the match carrying a point balance —
+     you carry your persistent wallet, mates start at 500 (their balances
+     live per-match; you is the only real economy in v1). */
+  const roster = (withMates ? [state.player, ...MATES.slice(0, 3)] : [state.player]).map((p) =>
+    p.id === state.player?.id
+      ? { ...p, points: E.pointsOf(state.player) }
+      : { ...p, points: Number.isFinite(p.points) ? p.points : E.STARTING_POINTS }
+  );
   let match = E.createMatch(
     {
       id: `m${Date.now()}`,
@@ -127,7 +140,7 @@ export function createFastBattle({ name, days, pack, target, withMates = true })
       playDays: days?.length ? days : [1, 3, 5],
       deadlineAt: playDayEndMs(), // FLOW-05: battles run to end of play day (9PM AEST)
     },
-    withMates ? [state.player, ...MATES.slice(0, 3)] : [state.player]
+    roster
   );
   match = seedPowerUps(match); // every new match: 1 random card per player (discoverability)
   return mutate((s) => {
@@ -155,7 +168,12 @@ export function currentMatch(state = load()) {
 export function startById(id) {
   return mutate((s) => {
     const i = s.matches.findIndex((m) => m.config.id === id);
-    if (i >= 0 && s.matches[i].status === "open") s.matches[i] = E.startMatch(s.matches[i]);
+    if (i >= 0 && s.matches[i].status === "open") {
+      s.matches[i] = E.startMatch(s.matches[i]);
+      /* FLOW-05b: MATCH START opens the first draft-from-3 — you choose
+         face-up, the mates pick instantly (they're bots). */
+      s.matches[i] = openDraftsOn(s.matches[i], s.player?.id);
+    }
   });
 }
 
@@ -213,13 +231,20 @@ export function rematch(matchId) {
   const s = load();
   const old = s.matches.find((m) => m.config.id === matchId);
   if (!old) throw new Error("match not found");
+  /* carry point wallets into the rematch (FLOW-05b economy persists) */
+  const roster = old.players.map((p) =>
+    p.id === s.player?.id
+      ? { ...p, points: E.pointsOf(s.player) }
+      : { ...p, points: E.pointsOf(p) }
+  );
   let fresh = E.startMatch(
     E.createMatch(
       { ...old.config, id: `m${Date.now()}`, deadlineAt: playDayEndMs() }, // fresh play-day deadline
-      old.players
+      roster
     )
   );
   fresh = seedPowerUps(fresh);
+  fresh = openDraftsOn(fresh, s.player?.id); // rematch start = fresh draft for everyone
   return mutate((st) => {
     st.matches.push(fresh);
     st.pots[fresh.config.id] = E.createPot(`pot-${fresh.config.id}`, fresh.config.id);
@@ -274,6 +299,8 @@ export function activateInMatch(matchId, { playerId, kind }) {
     mutate((s) => {
       const i = s.matches.findIndex((m) => m.config.id === matchId);
       if (i >= 0) s.matches[i] = res.state;
+      // v2: a double-down paid points into the kitty — sync the wallet
+      if (res.result.kind === "double_down") syncHumanPointsFrom(s, res.state);
     });
   }
   return {
@@ -282,19 +309,21 @@ export function activateInMatch(matchId, { playerId, kind }) {
   };
 }
 
-/** DEV GRANT — replaces the store in this build. Grants ALL FOUR kinds to
- *  EVERY player (you + the mates, so shield-blocks and rival plays can be
- *  exercised). Honest label in the UI; not the real IAP economy. */
+/** DEV GRANT — replaces the store in this build. Grants ALL 14 kinds to
+ *  EVERY player (you + the mates, so shield-blocks, anchor vetoes and
+ *  rival plays can all be exercised). Honest label in the UI; not the
+ *  real IAP economy. */
 export function devGrant(matchId) {
   const pre = load();
   let m = pre.matches.find((x) => x.config.id === matchId);
   if (!m) return { granted: 0, matchId };
+  const kinds = Object.keys(E.POWER_UPS);
   for (const p of m.players) {
-    for (const kind of ["lightning", "steal", "shield", "freeze"]) {
+    for (const kind of kinds) {
       m = E.grantPowerUp(m, p.id, kind);
     }
   }
-  const granted = m.players.length * 4;
+  const granted = m.players.length * kinds.length;
   mutate((s) => {
     const i = s.matches.findIndex((x) => x.config.id === matchId);
     if (i >= 0) s.matches[i] = m;
@@ -302,19 +331,128 @@ export function devGrant(matchId) {
   return { granted, matchId };
 }
 
-/** Daily-drop style grant of one random card (the loot chest reveal). */
+/** Daily-drop style grant of one random card (the loot chest reveal).
+ *  v2: pulls from the FULL 14-kind catalogue at the drop-odds mix. */
 export function grantRandomTo(matchId, playerId) {
   const pre = load();
   const m0 = pre.matches.find((x) => x.config.id === matchId);
   if (!m0) return null;
   const pid = playerId ?? pre.player?.id;
-  const kind = E.randomPowerUpKind();
+  const kind = E.randomKindByOdds(E.DROP_ODDS);
   const m = E.grantPowerUp(m0, pid, kind);
   mutate((s) => {
     const i = s.matches.findIndex((x) => x.config.id === matchId);
     if (i >= 0) s.matches[i] = m;
   });
   return { kind, rarity: E.POWER_UPS[kind].rarity, playerId: pid };
+}
+
+/* ── FLOW-05b: draft-from-3, points wallet, expiry housekeeping ─────── */
+
+/** Copy the human's match-entry point wallet back to the root player —
+ *  the match entry is where the engine spends (rerolls, double-downs,
+ *  photo-finish payouts); the root wallet is what the UI displays and
+ *  what the next match inherits. */
+function syncHumanPointsFrom(s, match) {
+  const pid = s.player?.id;
+  if (!pid) return;
+  const entry = match?.players?.find((p) => p.id === pid);
+  if (entry && Number.isFinite(entry.points))
+    s.player = { ...s.player, points: entry.points, pointsLedger: entry.pointsLedger ?? [] };
+}
+
+/** Open a draft for every player on the match who doesn't already have
+ *  one pending. The human (humanId) chooses face-up later (pickDraft);
+ *  mates are bots and pick a random option immediately. */
+function openDraftsOn(match, humanId) {
+  let m = match;
+  if (m.status !== "live") return m;
+  for (const p of m.players) {
+    if (m.drafts?.[p.id]) continue; // already holding a draft
+    let r;
+    try { r = E.draftOptions(m, p.id); } catch { continue; }
+    m = r.state;
+    if (p.id !== humanId) {
+      const pick = r.options[Math.floor(Math.random() * r.options.length) % r.options.length];
+      const done = E.draftPick(m, p.id, pick);
+      if (done.result.ok) m = done.state;
+    }
+  }
+  return m;
+}
+
+/** Day-close draft trigger (daily.settleDay calls this after settling). */
+export function openDraftsFor(matchId) {
+  return mutate((s) => {
+    const i = s.matches.findIndex((m) => m.config.id === matchId);
+    if (i >= 0) s.matches[i] = openDraftsOn(s.matches[i], s.player?.id);
+  });
+}
+
+/** Your pending draft on a match (null when none). */
+export function myDraft(match, state = load()) {
+  if (!match) return null;
+  return match.drafts?.[state.player?.id] ?? null;
+}
+
+/** The human picks one of the 3 offered cards. Returns the engine result
+ *  card ({ ok, kind, … } / { ok:false, reason }). */
+export function pickDraft(matchId, kind) {
+  const pre = load();
+  const m = pre.matches.find((x) => x.config.id === matchId);
+  if (!m) throw new Error("match not found");
+  const r = E.draftPick(m, pre.player?.id, kind);
+  if (r.result.ok) {
+    mutate((s) => {
+      const i = s.matches.findIndex((x) => x.config.id === matchId);
+      if (i >= 0) s.matches[i] = r.state;
+    });
+  }
+  return r.result;
+}
+
+/** The human rerolls their pending draft — pays the escalating cost
+ *  POINTS → KITTY. Wallet syncs back to the root player. */
+export function rerollDraftIn(matchId) {
+  const pre = load();
+  const m = pre.matches.find((x) => x.config.id === matchId);
+  if (!m) throw new Error("match not found");
+  const r = E.rerollDraft(m, pre.player?.id);
+  if (r.result.ok) {
+    mutate((s) => {
+      const i = s.matches.findIndex((x) => x.config.id === matchId);
+      if (i >= 0) s.matches[i] = r.state;
+      syncHumanPointsFrom(s, r.state);
+    });
+  }
+  return r.result;
+}
+
+/** Expiry housekeeping — drop dead cards, revert lapsed tier swaps,
+ *  release stale drafts. Runs at day close (settleDay). */
+export function sweepExpiredIn(matchId) {
+  return mutate((s) => {
+    const i = s.matches.findIndex((m) => m.config.id === matchId);
+    if (i >= 0) s.matches[i] = E.sweepExpired(s.matches[i]).state;
+  });
+}
+
+/** DUAL DEADLINE (time side): a live hard-deadline match whose time has
+ *  passed completes here — freeze, winner by adjusted standings, season
+ *  result + photo-finish settlement recorded. Returns the closed match
+ *  or null. Called by daily.settleDay for deadlineMode "hard" matches. */
+export function settleMatchClose(matchId, at = Date.now()) {
+  const pre = load();
+  const m = pre.matches.find((x) => x.config.id === matchId);
+  if (!m || m.status !== "live") return null;
+  const closed = E.closeIfPastDeadline(m, at);
+  if (!closed.closedMatch) return null;
+  mutate((s) => {
+    const i = s.matches.findIndex((x) => x.config.id === matchId);
+    if (i >= 0) s.matches[i] = closed.state;
+    recordCompletion(s, closed.state);
+  });
+  return closed.state;
 }
 
 /* ── season plumbing ──────────────────────────────────────────────────── */
@@ -328,7 +466,17 @@ function ensureSeason(s) {
 
 function recordCompletion(s, match) {
   const season = ensureSeason(s);
-  const rows = E.finalStandings(match).map((r) => ({
+  let m = match;
+  /* FLOW-05b: photo finish settles at close — a held card pays +25 on a
+     <5% win (points land on the match entry, wallet synced to root). */
+  const pf = E.settlePhotoFinish(m);
+  if (pf.awarded > 0) {
+    m = pf.state;
+    const i = s.matches.findIndex((x) => x.config.id === m.config.id);
+    if (i >= 0) s.matches[i] = m;
+    syncHumanPointsFrom(s, m);
+  }
+  const rows = E.finalStandings(m).map((r) => ({
     playerId: r.player.id,
     adjustedScore: r.adjustedScore,
   }));

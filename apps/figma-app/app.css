@@ -784,6 +784,71 @@
 .fx-pwrbtn span { color: var(--faint); font-weight: 600; }
 .fx-pwrbtn:active { transform: scale(0.98); background: color-mix(in srgb, var(--energy) 26%, transparent); }
 
+/* ── FLOW-05b: points wallet + kitty chips, draft badge + sheet ──────── */
+.fx-ptsrow {
+  display: flex; align-items: center; gap: 6px; flex-wrap: wrap;
+  margin-top: 8px;
+}
+.fx-ptschip, .fx-kittychip {
+  display: inline-flex; align-items: center; gap: 4px;
+  height: 26px; padding: 0 10px; border-radius: var(--pill);
+  font: 700 11px/1 var(--font-body); letter-spacing: 0.05em;
+  border: 1px solid color-mix(in srgb, var(--gold, var(--lime)) 45%, transparent);
+  background: color-mix(in srgb, var(--gold, var(--lime)) 12%, transparent);
+  color: var(--gold, var(--lime));
+}
+.fx-ptschip svg { width: 11px; height: 11px; }
+.fx-kittychip {
+  border-color: color-mix(in srgb, var(--sky) 45%, transparent);
+  background: color-mix(in srgb, var(--sky) 12%, transparent);
+  color: var(--sky);
+}
+.fx-draftbadge {
+  display: inline-flex; align-items: center; gap: 4px;
+  height: 26px; padding: 0 10px; border-radius: var(--pill); cursor: pointer;
+  font: 800 11px/1 var(--font-body); letter-spacing: 0.05em;
+  border: 1.5px solid color-mix(in srgb, var(--energy) 60%, transparent);
+  background: color-mix(in srgb, var(--energy) 20%, transparent);
+  color: var(--energy-light, var(--text));
+  animation: fx-draftpulse 2.4s ease-in-out infinite;
+}
+.fx-draftbadge:active { transform: scale(0.97); }
+.fx-draftbadge--off {
+  cursor: default; animation: none;
+  border-color: var(--line-bright); background: var(--surface); color: var(--faint);
+}
+@keyframes fx-draftpulse {
+  0%, 100% { box-shadow: 0 0 0 0 color-mix(in srgb, var(--energy) 0%, transparent); }
+  50% { box-shadow: 0 0 0 4px color-mix(in srgb, var(--energy) 14%, transparent); }
+}
+
+/* the draft sheet: 3 face-up cards in a row, pick-or-reroll */
+.fx-draftgrid {
+  display: grid; grid-template-columns: repeat(3, 1fr); gap: 8px;
+  margin-top: 12px;
+}
+.fx-draftgrid .fg-pwr {
+  width: 100%; align-items: center; text-align: center; cursor: pointer;
+  padding: 12px 6px; min-height: 0;
+  border: 1.5px solid var(--line-bright);
+}
+.fx-draftgrid .fg-pwr:active { transform: scale(0.96); }
+.fx-draftgrid .fg-pwr__art { width: 34px; height: 34px; }
+.fx-draftgrid .fg-pwr__art svg { width: 18px; height: 18px; }
+.fx-draftgrid .fg-pwr__name { font-size: 11.5px; }
+.fx-draftgrid .fg-pwr__desc { font-size: 9.5px; min-height: 40px; }
+#draftSheet .fx-btn { width: 100%; margin-top: 12px; }
+
+/* expiry badge (shared: held cards + draft cards) */
+.fx-exp {
+  display: inline-block; margin-top: 4px; padding: 2px 7px; border-radius: var(--pill);
+  font: 700 9px/1.4 var(--font-body); letter-spacing: 0.08em;
+  color: var(--warn, var(--gold, var(--lime)));
+  background: color-mix(in srgb, var(--warn, var(--gold, var(--lime))) 12%, transparent);
+  border: 1px solid color-mix(in srgb, var(--warn, var(--gold, var(--lime))) 38%, transparent);
+}
+.fx-pwrcard .fx-pwr__name .fx-exp { margin-left: 6px; vertical-align: middle; }
+
 /* lightning live clock inside the active banner (text-ticker, light inline) */
 .fx-ltclock .fg-count__time {
   font: 700 12px/1.2 var(--font-body); color: var(--text); font-variant-numeric: tabular-nums;

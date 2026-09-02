@@ -212,19 +212,47 @@ export function closeDay(match, dayKey, { nowTs = now(), pot = null, youId = nul
  *  match.dailyHistory[dayKey]. Idempotent — returns null if already closed.
  *  Matches using the engine's deadlineAt convention get it ROLLED to the
  *  next 21:00 Australia/Sydney play-day end (state.playDayEndMs), so the
- *  next day has a real deadline without any engine change. */
+ *  next day has a real deadline without any engine change.
+ *  FLOW-05b at each close: PIT CREW saves 0-rep streaks, expired cards
+ *  SWEEP, a fresh DRAFT-FROM-3 opens for everyone still playing, and a
+ *  HARD-deadline match (config.deadline.time) whose time is up COMPLETES
+ *  — freeze, winner by adjusted standings — instead of rolling. */
 export function settleDay(matchId, dayKey, opts = {}) {
   const pre = S.load();
   const m = pre.matches.find((x) => x.config.id === matchId);
   if (!m || (m.dailyHistory ?? {})[dayKey]) return null;
   const result = closeDay(m, dayKey, { ...opts, youId: opts.youId ?? pre.player?.id });
+
+  /* v2 day-close housekeeping (pure engine transforms on the match) */
+  const logged = result.standings.map((r) => r.playerId);
+  const pit = E.applyPitCrew(m, { loggedPlayerIds: logged, at: result.closedAt });
+  if (pit.saved.length) result.pitCrewSaved = pit.saved; // recorded on the day result
+  const swept = E.sweepExpired(pit.state, result.closedAt);
+
   S.mutate((s) => {
     const mm = s.matches.find((x) => x.config.id === matchId);
+    if (!mm) return;
+    Object.assign(mm, swept.state); // pit-crew saves + expiry sweep
     mm.dailyHistory = { ...(mm.dailyHistory ?? {}), [dayKey]: result };
-    if (Number.isFinite(Number(mm.deadlineAt))) {
-      try { mm.deadlineAt = S.playDayEndMs(new Date(result.closedAt)); } catch {}
+    if (mm.status === "live") {
+      if (mm.deadlineMode === "hard") {
+        /* DUAL DEADLINE: a hard end never rolls — the state seam below
+           completes the match (freeze → adjusted winner, season record). */
+      } else if (Number.isFinite(Number(mm.deadlineAt))) {
+        try { mm.deadlineAt = S.playDayEndMs(new Date(result.closedAt)); } catch {}
+      }
     }
   });
+
+  /* hard time up → the match itself completes (season + photo finish settle) */
+  if (m.deadlineMode === "hard" && result.closedAt >= Number(m.deadlineAt)) {
+    try { S.settleMatchClose(matchId, result.closedAt); } catch {}
+  }
+  /* still live → the day-close draft opens for everyone */
+  const after = S.matchById(matchId);
+  if (after && after.status === "live") {
+    try { S.openDraftsFor(matchId); } catch {}
+  }
   return result;
 }
 

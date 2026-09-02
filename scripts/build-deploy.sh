@@ -80,6 +80,12 @@ done
 mkdir -p deploy/public/apk
 cp apps/android/app/build/outputs/apk/debug/app-debug.apk deploy/public/apk/rwf-app-debug.apk 2>/dev/null || true
 
+# ── v2 board app (poker-table × track battle) — the /v2 link ──────────
+# Independent fork of the v1 engine; shots/ + e2e stay local (like figma-app).
+mkdir -p deploy/public/v2
+find apps/board -maxdepth 1 -type f \( -name "*.html" -o -name "*.js" -o -name "*.css" \) \
+  -exec cp {} deploy/public/v2/ \;
+
 # ── v1 coverage hub (v1.1.0) — the share page at rwf.qalarc.com/v1 ─────
 # One page linking every live surface, dashboard and business document.
 # shots/ (verification screenshots) stay local, like figma-app's.

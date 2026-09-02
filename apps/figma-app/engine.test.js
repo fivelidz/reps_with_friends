@@ -451,13 +451,13 @@ describe("power-ups: time freeze + deadlineAt", () => {
 describe("power-ups: grants, odds + guards", () => {
   const players = [player("ben", "fit"), player("sam", "fit")];
 
-  test("grantPowerUp defaults rarity, honours overrides, and throws honestly", () => {
+  test("grantPowerUp defaults rarity + 24h expiry, honours overrides, and throws honestly", () => {
     let m = liveMatch(players);
     m = JS.grantPowerUp(m, "ben", "lightning", { at: 42 });
     m = JS.grantPowerUp(m, "ben", "shield", { at: 43, rarity: "legendary" });
     const inv = JS.inventoryOf(m, "ben");
-    expect(inv[0]).toEqual({ kind: "lightning", rarity: "legendary", grantedAt: 42 });
-    expect(inv[1]).toEqual({ kind: "shield", rarity: "legendary", grantedAt: 43 });
+    expect(inv[0]).toEqual({ kind: "lightning", rarity: "legendary", grantedAt: 42, expiresAt: 42 + JS.DAY_MS });
+    expect(inv[1]).toEqual({ kind: "shield", rarity: "legendary", grantedAt: 43, expiresAt: 43 + JS.DAY_MS });
     expect(() => JS.grantPowerUp(m, "ben", "mega")).toThrow("unknown power-up mega");
     expect(() => JS.grantPowerUp(m, "nobody", "shield")).toThrow("player nobody not in match");
   });
@@ -485,6 +485,498 @@ describe("power-ups: grants, odds + guards", () => {
     JS.grantPowerUp(m, "ben", "shield");
     JS.activatePowerUp(m, "ben", "shield", { at: 10 });
     expect(JSON.stringify(m)).toBe(before); // pure: both calls returned new states
+  });
+});
+
+/* ── 11. POWER-UP SYSTEM v2 (FLOW-05b — points, draft, expiry, dual ────
+   deadline). Like §10 these are figma-app-only (no game-core twin), but
+   they run through the real JS engine lifecycle with exact numbers. */
+
+describe("v2: points ledger", () => {
+  const P = (points) => ({ id: "ben", name: "ben", tier: "fit", ...(points != null ? { points } : {}) });
+
+  test("identities read as 500; add/remove tag reasons; balances chain", () => {
+    expect(JS.STARTING_POINTS).toBe(500);
+    expect(JS.pointsOf(P())).toBe(500); // pre-v2 identities default
+    let p = P(500);
+    p = JS.addPoints(p, 100, "daily_award", 1_000);
+    p = JS.addPoints(p, 25, "photo_finish", 2_000);
+    p = JS.removePoints(p, 50, "reroll", 3_000);
+    expect(p.points).toBe(575);
+    expect(JS.pointsLedger(p)).toEqual([
+      { delta: 100, reason: "daily_award", at: 1_000, balance: 600 },
+      { delta: 25, reason: "photo_finish", at: 2_000, balance: 625 },
+      { delta: -50, reason: "reroll", at: 3_000, balance: 575 },
+    ]);
+    expect(JS.pointsLedger(P())).toEqual([]);
+  });
+
+  test("removePoints throws on insufficient + non-positive; addPoints on non-positive", () => {
+    expect(() => JS.removePoints(P(499), 500, "reroll")).toThrow(/insufficient points: need 500, have 499/);
+    expect(() => JS.removePoints(P(500), 0, "reroll")).toThrow(/must be positive/);
+    expect(() => JS.addPoints(P(500), -5, "cheat")).toThrow(/must be positive/);
+    // purity
+    const before = JSON.stringify(P(500));
+    JS.addPoints(P(500), 10, "x");
+    expect(JSON.stringify(P(500))).toBe(before);
+  });
+});
+
+describe("v2: draft-from-3 + reroll economy", () => {
+  const players = [player("ben", "fit"), player("sam", "fit"), player("alex", "fit")];
+  const v2 = (cfg = config(300)) => JS.startMatch(JS.createMatch(cfg, players), 500);
+  /** deterministic rng (LCG) so draft odds tests are reproducible */
+  const lcg = (seed) => () => { seed = (seed * 1664525 + 1013904223) >>> 0; return seed / 2 ** 32; };
+  const flat = () => ({ ...JS.BASE_DRAFT_ODDS });
+
+  test("draft: 3 distinct face-up options stored on the match; guards throw", () => {
+    let m = v2();
+    const d = JS.draftOptions(m, "ben", { at: 1_000, rng: lcg(7) });
+    expect(d.options).toHaveLength(3);
+    expect(new Set(d.options).size).toBe(3);
+    expect(d.state.drafts.ben.options).toEqual(d.options);
+    expect(d.state.drafts.ben.openedAt).toBe(1_000);
+    // every option is a real kind at its canonical rarity
+    for (const k of d.options) expect(JS.POWER_UPS[k].kind).toBe(k);
+    expect(() => JS.draftOptions(m, "nobody")).toThrow("player nobody not in match");
+    expect(() => JS.draftOptions(JS.createMatch(config(), players), "ben")).toThrow("match is not live");
+  });
+
+  test("draftPick: validates the offer, grants with per-kind expiry, clears the draft", () => {
+    let m = v2();
+    m = JS.draftOptions(m, "ben", { at: 1_000, rng: lcg(7) }).state;
+    const cheat = JS.draftPick(m, "ben", "lightning", { at: 1_100 });
+    if (!m.drafts.ben.options.includes("lightning")) {
+      expect(cheat.result.ok).toBe(false);
+      expect(cheat.result.reason).toBe("card not offered in this draft");
+    }
+    const offered = m.drafts.ben.options[0];
+    const pick = JS.draftPick(m, "ben", offered, { at: 1_200 });
+    expect(pick.result.ok).toBe(true);
+    expect(pick.result.kind).toBe(offered);
+    expect(pick.result.expiresAt).toBe(1_200 + JS.POWER_UPS[offered].expiryMs);
+    expect(JS.inventoryOf(pick.state, "ben")).toHaveLength(1);
+    expect(JS.inventoryOf(pick.state, "ben")[0].kind).toBe(offered);
+    expect(pick.state.drafts.ben).toBeUndefined(); // draft consumed
+    // after the pick there is nothing left to pick
+    const again = JS.draftPick(pick.state, "ben", offered);
+    expect(again.result.ok).toBe(false);
+    expect(again.result.reason).toBe("no draft pending");
+  });
+
+  test("reroll: costs escalate 50→100→200 (then hold), every coin to the kitty, options regenerate", () => {
+    let m = v2(); // ben: points default 500
+    m = JS.draftOptions(m, "ben", { at: 1_000, rng: lcg(11), curve: flat }).state;
+    const r1 = JS.rerollDraft(m, "ben", { at: 1_100, rng: lcg(12), curve: flat });
+    expect(r1.result.ok).toBe(true);
+    expect(r1.result.cost).toBe(50);
+    expect(r1.result.balance).toBe(450);
+    expect(r1.result.options).toHaveLength(3);
+    expect(JS.rerollCostFor(r1.state, "ben")).toBe(100);
+    const r2 = JS.rerollDraft(r1.state, "ben", { at: 1_200, rng: lcg(13), curve: flat });
+    expect(r2.result.cost).toBe(100);
+    expect(r2.result.balance).toBe(350);
+    const r3 = JS.rerollDraft(r2.state, "ben", { at: 1_300, rng: lcg(14), curve: flat });
+    expect(r3.result.cost).toBe(200);
+    expect(r3.result.balance).toBe(150);
+    // kitty grew by exactly 50+100+200 and the draft is still pending
+    expect(JS.kittyTotal(r3.state)).toBe(350);
+    expect(r3.state.kitty.ledger.map((l) => l.reason)).toEqual(["reroll", "reroll", "reroll"]);
+    expect(r3.state.rerollCount.ben).toBe(3);
+    expect(r3.state.drafts.ben.options).toHaveLength(3);
+    // ben's player entry carries the paid-down balance + reason-tagged ledger
+    const ben = r3.state.players.find((p) => p.id === "ben");
+    expect(ben.points).toBe(150);
+    expect(JS.pointsLedger(ben).every((l) => l.reason === "reroll")).toBe(true);
+    // 4th reroll holds at 200 — ben can't afford it → honest refusal
+    const r4 = JS.rerollDraft(r3.state, "ben", { at: 1_400, rng: lcg(15), curve: flat });
+    expect(r4.result.ok).toBe(false);
+    expect(r4.result.reason).toContain("reroll costs 200 points (you have 150)");
+    expect(r4.state).toBe(r3.state); // refused → state untouched
+  });
+
+  test("reroll: refuses with no pending draft; broke players reroll nothing", () => {
+    const broke = [{ ...player("ben", "fit"), points: 25 }, player("sam", "fit")];
+    let m = JS.startMatch(JS.createMatch(config(300), broke), 500);
+    const none = JS.rerollDraft(m, "ben", { at: 1, rng: lcg(1), curve: flat });
+    expect(none.result.ok).toBe(false);
+    expect(none.result.reason).toBe("no draft pending");
+    m = JS.draftOptions(m, "ben", { at: 2, rng: lcg(2), curve: flat }).state;
+    const poor = JS.rerollDraft(m, "ben", { at: 3, rng: lcg(3), curve: flat });
+    expect(poor.result.ok).toBe(false);
+    expect(poor.result.reason).toContain("you have 25");
+    expect(JS.kittyTotal(poor.state)).toBe(0);
+  });
+
+  test("catch-up curve: exact odds at behind 0 / 0.5 / 1, totals stay 1", () => {
+    expect(JS.defaultCatchUpCurve(0)).toEqual(JS.BASE_DRAFT_ODDS);
+    const round = (o) => Object.fromEntries(Object.entries(o).map(([k, v]) => [k, Math.round(v * 1e9) / 1e9]));
+    const half = JS.defaultCatchUpCurve(0.5);
+    expect(round(half)).toEqual({ common: 0.3, rare: 0.4, epic: 0.21, legendary: 0.09 });
+    expect(Object.values(half).reduce((a, b) => a + b, 0)).toBeCloseTo(1, 12);
+    const full = JS.defaultCatchUpCurve(1);
+    expect(round(full)).toEqual({ common: 0.1, rare: 0.5, epic: 0.27, legendary: 0.13 });
+    expect(Object.values(full).reduce((a, b) => a + b, 0)).toBeCloseTo(1, 12);
+    // clamped inputs
+    expect(JS.defaultCatchUpCurve(-3)).toEqual(JS.BASE_DRAFT_ODDS);
+    expect(round(JS.defaultCatchUpCurve(9))).toEqual(round(full));
+  });
+
+  test("catch-up: statistical — players 100% behind draft meaningfully rarer (seeded rng, n=4000)", () => {
+    const N = 4000;
+    const score = { common: 0, rare: 1, epic: 2, legendary: 3 };
+    const mean = (odds, seed) => {
+      const rng = lcg(seed);
+      let sum = 0;
+      for (let i = 0; i < N; i++) sum += score[JS.POWER_UPS[JS.randomKindByOdds(odds, rng)].rarity];
+      return sum / N;
+    };
+    const base = mean(JS.BASE_DRAFT_ODDS, 42);          // theory ≈ 0.65
+    const behind = mean(JS.defaultCatchUpCurve(1), 43); // theory ≈ 1.33
+    expect(base).toBeGreaterThan(0.55);
+    expect(base).toBeLessThan(0.75);
+    expect(behind - base).toBeGreaterThan(0.4); // the whole point: trailing → better cards
+    // and behind is comfortably above the base ceiling
+    expect(behind).toBeGreaterThan(1.1);
+  });
+
+  test("draftOptions consumes the injected curve (curve is the whole odds seam)", () => {
+    const m = v2();
+    const d = JS.draftOptions(m, "ben", { at: 1, rng: lcg(99), curve: () => ({ common: 0, rare: 0, epic: 0.5, legendary: 0.5 }) });
+    expect(d.options).toHaveLength(3);
+    for (const k of d.options) expect(["epic", "legendary"]).toContain(JS.POWER_UPS[k].rarity);
+  });
+
+  test("rabbit's foot: consumed by the draft it boosts; guarantees Rare+", () => {
+    let m = v2();
+    m = JS.grantPowerUp(m, "ben", "rabbits_foot", { at: 1 });
+    m = JS.activatePowerUp(m, "ben", "rabbits_foot", { at: 2 }).state;
+    expect(m.lucky.ben).toBe(true);
+    const d = JS.draftOptions(m, "ben", { at: 3, rng: lcg(5) });
+    expect(d.state.drafts.ben.luck).toBe(true);
+    expect(d.state.lucky.ben).toBeUndefined(); // the foot burned on this draft
+    for (const k of d.options) expect(["rare", "epic", "legendary"]).toContain(JS.POWER_UPS[k].rarity);
+    // the next draft is back on the curve
+    const d2 = JS.draftOptions(d.state, "ben", { at: 4, rng: lcg(6) });
+    expect(d2.state.drafts.ben.luck).toBe(false);
+  });
+});
+
+describe("v2: expiry sweep", () => {
+  const players = [player("ben", "fit"), player("sam", "fit")];
+  const v2 = () => JS.startMatch(JS.createMatch(config(300), players), 500);
+
+  test("sweepExpired drops dead cards, keeps live ones, audits powerLog; pre-v2 cards never sweep", () => {
+    let m = v2();
+    m = JS.grantPowerUp(m, "ben", "shield", { at: 0 });            // 24h life
+    m = JS.grantPowerUp(m, "sam", "sprint", { at: 0 });            // 6h life
+    m = { ...m, inventory: { ...m.inventory, sam: [...m.inventory.sam, { kind: "steal", rarity: "epic", grantedAt: 0 }] } }; // pre-v2 shape: no expiresAt
+    const early = JS.sweepExpired(m, 5 * 60 * 60 * 1000);          // t+5h: sprint still alive
+    expect(early.expired).toEqual([]);
+    expect(JS.inventoryOf(early.state, "sam")).toHaveLength(2);
+    const late = JS.sweepExpired(m, 24 * 60 * 60 * 1000 + 1);      // t+24h+1ms: shield + sprint dead
+    const kinds = late.expired.map((e) => e.kind).sort();
+    expect(kinds).toEqual(["shield", "sprint"]);
+    expect(JS.inventoryOf(late.state, "ben")).toHaveLength(0);
+    expect(JS.inventoryOf(late.state, "sam")).toHaveLength(1);     // the pre-v2 card survives
+    expect(late.state.inventory.sam[0].kind).toBe("steal");
+    expect(late.state.powerLog.at(-1).event).toBe("sweep");
+  });
+
+  test("tier swaps revert both tiers when they lapse", () => {
+    const mixed = [player("ben", "couch"), player("sam", "athlete")];
+    let mm = JS.startMatch(JS.createMatch(config(300), mixed), 500);
+    mm = JS.logReps(mm, entry("sam", "pushup", 100)).state;
+    mm = JS.grantPowerUp(mm, "ben", "handicap_swap", { at: 1 });
+    mm = JS.activatePowerUp(mm, "ben", "handicap_swap", { at: 2_000 }).state;
+    expect(mm.players.find((p) => p.id === "ben").tier).toBe("athlete");
+    expect(mm.players.find((p) => p.id === "sam").tier).toBe("couch");
+    const live = JS.sweepExpired(mm, 2_000 + JS.HANDICAP_SWAP_MS - 1);
+    expect(live.state.players.find((p) => p.id === "ben").tier).toBe("athlete"); // still swapped
+    const after = JS.sweepExpired(mm, 2_000 + JS.HANDICAP_SWAP_MS + 1);
+    expect(after.state.players.find((p) => p.id === "ben").tier).toBe("couch");  // reverted
+    expect(after.state.players.find((p) => p.id === "sam").tier).toBe("athlete");
+    expect(after.expired.some((e) => e.event === "tier_swap_reverted")).toBe(true);
+    expect(after.state.tierSwaps).toHaveLength(0);
+  });
+});
+
+describe("v2: dual deadline", () => {
+  const players = [player("ben", "fit"), player("sam", "fit")];
+
+  test("config.deadline {reps, time} sets the target + hard end; the REPS side still closes first-to-target", () => {
+    const cfg = { ...config(999), deadline: { reps: 100, time: 10_000_000 } };
+    const open = JS.createMatch(cfg, players);
+    expect(open.config.targetReps).toBe(100);       // deadline.reps aliases the target
+    expect(open.deadlineAt).toBe(10_000_000);       // deadline.time is the hard end
+    expect(open.deadlineMode).toBe("hard");
+    let m = JS.startMatch(open, 500);
+    const r = JS.logReps(m, entry("ben", "pushup", 100, false, 6_000));
+    expect(r.closedMatch).toBe(true);
+    expect(r.state.status).toBe("complete");
+    expect(r.state.closedBy).toBe("ben");
+  });
+
+  test("the TIME side: past the hard end the match freezes → winner by adjusted, no closure bonus, idempotent", () => {
+    const cfg = { ...config(300), deadline: { reps: 300, time: 10_000 } };
+    let m = JS.startMatch(JS.createMatch(cfg, players), 500);
+    m = JS.logReps(m, entry("ben", "pushup", 120, false, 6_000)).state;
+    m = JS.logReps(m, entry("sam", "pushup", 100, false, 6_500)).state;
+    expect(m.status).toBe("live"); // nobody hit 300 — time is the only way this ends
+    const before = JS.closeIfPastDeadline(m, 9_999);
+    expect(before.closedMatch).toBe(false); // strictly past
+    const closed = JS.closeIfPastDeadline(m, 10_000);
+    expect(closed.closedMatch).toBe(true);
+    expect(closed.state.status).toBe("complete");
+    expect(closed.state.closedReason).toBe("time");
+    expect(closed.state.completedAt).toBe(10_000);
+    const w = JS.winner(closed.state);
+    expect(w.playerId).toBe("ben"); // highest adjusted at the freeze
+    expect(w.adjustedScore).toBe(120); // NO +15 closure bonus on a time close
+    expect(w.closedMatch).toBe(false);
+    // idempotent + no-op for non-live matches
+    expect(JS.closeIfPastDeadline(closed.state, 20_000).closedMatch).toBe(false);
+    expect(JS.closeIfPastDeadline(m, 5_000).closedMatch).toBe(false);
+  });
+
+  test("day-mode matches (no deadline.time) keep the roll convention", () => {
+    const open = JS.createMatch(config(300), players, 5_000);
+    expect(open.deadlineMode).toBe("day");
+    expect(open.deadlineAt).toBe(5_000 + JS.DAY_MS);
+  });
+});
+
+describe("v2: new cards — effects + counters", () => {
+  const players = [player("ben", "fit"), player("sam", "fit"), player("alex", "fit")];
+  const v2 = () => JS.startMatch(JS.createMatch(config(300), players), 500);
+  const adj = (m, id) => JS.standings(m).find((r) => r.player.id === id).adjustedScore;
+
+  test("second wind: comeback ×1.5 inside the window; a lapsed window leaves plain ×1.2", () => {
+    let m = v2();
+    m = JS.logReps(m, entry("sam", "pushup", 100)).state; // ben 100% behind → comeback armed
+    m = JS.grantPowerUp(m, "ben", "second_wind", { at: 1 });
+    m = JS.activatePowerUp(m, "ben", "second_wind", { at: 2_000 }).state;
+    const e = JS.applyComeback(m, entry("ben", "pushup", 50, false, 3_000));
+    expect(e.comeback).toBe(true);
+    expect(e.secondWind).toBe(true);
+    m = JS.logReps(m, e).state;
+    expect(adj(m, "ben")).toBe(75); // 50 × 1.0 × 1.5
+    // fresh match, window expired → plain comeback
+    let m2 = v2();
+    m2 = JS.logReps(m2, entry("sam", "pushup", 100)).state;
+    m2 = JS.grantPowerUp(m2, "ben", "second_wind", { at: 1 });
+    m2 = JS.activatePowerUp(m2, "ben", "second_wind", { at: 2_000 }).state;
+    const late = JS.applyComeback(m2, entry("ben", "pushup", 50, false, 2_000 + JS.SECOND_WIND_MS + 1));
+    expect(late.secondWind).toBeUndefined();
+    expect(late.comeback).toBe(true);
+  });
+
+  test("anchor: blocks steals without breaking (thief keeps the card); the steal lands once it lapses", () => {
+    let m = v2();
+    m = JS.logReps(m, entry("sam", "pushup", 100)).state; // sam leads
+    m = JS.grantPowerUp(m, "sam", "anchor", { at: 1 });
+    m = JS.activatePowerUp(m, "sam", "anchor", { at: 2_000 }).state;
+    expect(JS.anchorActive(m, "sam", 3_000)).toBe(true);
+    expect(JS.stealPreview(m, "ben", 3_000).blocked).toBe(true);
+    expect(JS.stealPreview(m, "ben", 3_000).blockedBy).toBe("anchor");
+    m = JS.grantPowerUp(m, "ben", "steal", { at: 3 });
+    const b1 = JS.activatePowerUp(m, "ben", "steal", { at: 4_000 });
+    expect(b1.result.ok).toBe(true);
+    expect(b1.result.blocked).toBe(true);
+    expect(b1.result.by).toBe("anchor");
+    expect(JS.inventoryOf(b1.state, "ben").map((i) => i.kind)).toEqual(["steal"]); // card kept
+    expect(JS.anchorActive(b1.state, "sam", 4_001)).toBe(true); // the wall holds
+    const b2 = JS.activatePowerUp(b1.state, "ben", "steal", { at: 5_000 });
+    expect(b2.result.blocked).toBe(true); // still blocked the next attempt
+    // after 24h the anchor lapses and the same steal lands
+    const landed = JS.activatePowerUp(b2.state, "ben", "steal", { at: 2_000 + JS.ANCHOR_MS + 1 });
+    expect(landed.result.blocked).toBeUndefined();
+    expect(landed.result.stolen).toBe(10);
+  });
+
+  test("anchor: vetoes a rival freeze — card kept, deadline untouched", () => {
+    let m = v2();
+    m = JS.grantPowerUp(m, "ben", "anchor", { at: 1 });
+    m = JS.activatePowerUp(m, "ben", "anchor", { at: 2_000 }).state;
+    m = JS.grantPowerUp(m, "sam", "freeze", { at: 3 });
+    const dl = m.deadlineAt;
+    const f = JS.activatePowerUp(m, "sam", "freeze", { at: 4_000 });
+    expect(f.result.ok).toBe(true);
+    expect(f.result.blocked).toBe(true);
+    expect(f.result.vetoedBy).toBe("ben");
+    expect(f.state.deadlineAt).toBe(dl);                       // no extension
+    expect(JS.inventoryOf(f.state, "sam").map((i) => i.kind)).toEqual(["freeze"]); // card kept
+    // once the anchor lapses the same freeze goes through
+    const later = JS.activatePowerUp(f.state, "sam", "freeze", { at: 2_000 + JS.ANCHOR_MS + 1 });
+    expect(later.result.blocked).toBeUndefined();
+    expect(later.state.deadlineAt).toBe(dl + JS.FREEZE_MS);
+  });
+
+  test("sprint: next 3 logs ×2, the 4th is normal, steal transfers never burn charges", () => {
+    let m = v2();
+    m = JS.logReps(m, entry("sam", "pushup", 100)).state; // sam leads (steal target)
+    m = JS.grantPowerUp(m, "ben", "sprint", { at: 1 });
+    m = JS.activatePowerUp(m, "ben", "sprint", { at: 2_000 }).state;
+    expect(m.sprints.ben).toEqual({ remaining: 3 });
+    m = JS.logReps(m, entry("ben", "pushup", 20, false, 3_000)).state;
+    m = JS.logReps(m, entry("ben", "squat", 20, false, 4_000)).state;
+    m = JS.logReps(m, entry("ben", "pushup", 20, false, 5_000)).state;
+    expect(adj(m, "ben")).toBe(120); // 3 × (20 × 2)
+    expect(m.sprints.ben.remaining).toBe(0);
+    m = JS.logReps(m, entry("ben", "squat", 20, false, 6_000)).state;
+    expect(adj(m, "ben")).toBe(140); // back to ×1
+    // steal while a sprint is live: the transfer is NOT doubled, charges intact
+    let m2 = v2();
+    m2 = JS.logReps(m2, entry("sam", "pushup", 100)).state;
+    m2 = JS.grantPowerUp(m2, "ben", "sprint", { at: 1 });
+    m2 = JS.activatePowerUp(m2, "ben", "sprint", { at: 2_000 }).state;
+    m2 = JS.grantPowerUp(m2, "ben", "steal", { at: 3 });
+    m2 = JS.activatePowerUp(m2, "ben", "steal", { at: 3_000 }).state; // +10 raw, no sprint tag
+    expect(m2.entries.filter((e) => e.steal).every((e) => !e.sprint)).toBe(true);
+    expect(m2.sprints.ben.remaining).toBe(3);
+    m2 = JS.logReps(m2, entry("ben", "pushup", 10, false, 4_000)).state;
+    expect(adj(m2, "ben")).toBe(30); // 10 (steal ×1) + 10×2 (sprint)
+  });
+
+  test("sandbag detector: the leader's next 3 logs are flagged public, the 4th is private", () => {
+    let m = v2();
+    m = JS.logReps(m, entry("sam", "pushup", 10)).state; // sam leads
+    m = JS.grantPowerUp(m, "ben", "sandbag_detector", { at: 1 });
+    const act = JS.activatePowerUp(m, "ben", "sandbag_detector", { at: 2_000 });
+    expect(act.result.ok).toBe(true);
+    expect(act.result.victimId).toBe("sam");
+    m = act.state;
+    expect(m.detectors).toEqual([{ ownerId: "ben", victimId: "sam", remaining: 3 }]);
+    m = JS.logReps(m, entry("sam", "pushup", 10, false, 3_000)).state;
+    m = JS.logReps(m, entry("sam", "pushup", 10, false, 4_000)).state;
+    m = JS.logReps(m, entry("sam", "pushup", 10, false, 5_000)).state;
+    expect(m.entries.filter((e) => e.revealed)).toHaveLength(3);
+    m = JS.logReps(m, entry("sam", "pushup", 10, false, 6_000)).state;
+    expect(m.entries.filter((e) => e.revealed)).toHaveLength(3); // still 3
+    expect(m.detectors[0].remaining).toBe(0);
+  });
+
+  test("handicap swap: tiers swap with the leading rival, adjusted scores move, auto-reverts at expiry", () => {
+    const mixed = [player("ben", "couch"), player("sam", "athlete")];
+    let m = JS.startMatch(JS.createMatch(config(300), mixed), 500);
+    m = JS.logReps(m, entry("sam", "pushup", 100)).state; // sam: 100 × 0.85 = 85
+    m = JS.grantPowerUp(m, "ben", "handicap_swap", { at: 1 });
+    const act = JS.activatePowerUp(m, "ben", "handicap_swap", { at: 2_000 });
+    expect(act.result.ok).toBe(true);
+    expect(act.result.withId).toBe("sam");
+    expect(act.result.yourNewTier).toBe("athlete");
+    expect(act.result.theirNewTier).toBe("couch");
+    m = act.state;
+    // the ledger RE-SCORES: sam's existing 100 now at couch 1.5 = 150
+    expect(adj(m, "sam")).toBe(150);
+    expect(adj(m, "ben")).toBe(0);
+    // ben logs at his new (worse) multiplier
+    m = JS.logReps(m, entry("ben", "pushup", 100, false, 3_000)).state;
+    expect(adj(m, "ben")).toBe(85); // 100 × 0.85
+    // expiry reverts the multipliers (sweep is the revert seam)
+    const after = JS.sweepExpired(m, 2_000 + JS.HANDICAP_SWAP_MS + 1).state;
+    expect(adj(after, "sam")).toBe(85); // back at athlete
+    expect(adj(after, "ben")).toBe(150); // couch takes over ben's ledger too
+  });
+
+  test("handicap swap: an anchored target bounces it (card kept)", () => {
+    let m = v2();
+    m = JS.logReps(m, entry("sam", "pushup", 100)).state; // sam leads
+    m = JS.grantPowerUp(m, "sam", "anchor", { at: 1 });
+    m = JS.activatePowerUp(m, "sam", "anchor", { at: 2_000 }).state;
+    m = JS.grantPowerUp(m, "ben", "handicap_swap", { at: 3 });
+    const act = JS.activatePowerUp(m, "ben", "handicap_swap", { at: 4_000 });
+    expect(act.result.ok).toBe(false);
+    expect(act.result.reason).toContain("anchored");
+    expect(JS.inventoryOf(act.state, "ben").map((i) => i.kind)).toEqual(["handicap_swap"]);
+    expect(act.state.tierSwaps ?? []).toHaveLength(0);
+  });
+
+  test("pit crew: consumed only for armed players with zero logs that day", () => {
+    let m = v2();
+    m = JS.grantPowerUp(m, "ben", "pit_crew", { at: 1 });
+    m = JS.grantPowerUp(m, "sam", "pit_crew", { at: 1 });
+    m = JS.activatePowerUp(m, "ben", "pit_crew", { at: 2 }).state;
+    m = JS.activatePowerUp(m, "sam", "pit_crew", { at: 3 }).state;
+    m = JS.logReps(m, entry("ben", "pushup", 10)).state; // ben logged today
+    const r = JS.applyPitCrew(m, { loggedPlayerIds: ["ben"], at: 5_000 });
+    expect(r.saved).toEqual(["sam"]); // sam's 0-rep day saved, ben keeps his armed
+    expect(r.state.pitCrews).toEqual({ ben: true });
+    expect(r.state.powerLog.some((p) => p.kind === "pit_crew" && p.event === "streak_saved" && p.playerId === "sam")).toBe(true);
+  });
+
+  test("photo finish: +25 on a <5% win (time-closed, no bonus in the margin); nothing on a blowout or a loss", () => {
+    // tight win: ben 210 vs sam 200 → margin (210-200)/210 = 4.76%
+    let m = JS.startMatch(JS.createMatch({ ...config(300), deadline: { reps: 300, time: 10_000 } }, players), 500);
+    m = JS.logReps(m, entry("ben", "pushup", 210, false, 6_000)).state;
+    m = JS.logReps(m, entry("sam", "pushup", 200, false, 6_500)).state;
+    m = JS.grantPowerUp(m, "ben", "photo_finish", { at: 7_000 });
+    m = JS.closeIfPastDeadline(m, 10_000).state;
+    const paid = JS.settlePhotoFinish(m, { at: 10_001 });
+    expect(paid.awarded).toBe(25);
+    expect(paid.playerId).toBe("ben");
+    expect(paid.state.players.find((p) => p.id === "ben").points).toBe(525);
+    expect(JS.pointsLedger(paid.state.players.find((p) => p.id === "ben")).at(-1).reason).toBe("photo_finish");
+    expect(JS.inventoryOf(paid.state, "ben")).toHaveLength(0); // card consumed
+    // blowout: 210 vs 50 → no payout, card kept
+    let m2 = JS.startMatch(JS.createMatch({ ...config(300), deadline: { reps: 300, time: 10_000 } }, players), 500);
+    m2 = JS.logReps(m2, entry("ben", "pushup", 210, false, 6_000)).state;
+    m2 = JS.logReps(m2, entry("sam", "pushup", 50, false, 6_500)).state;
+    m2 = JS.grantPowerUp(m2, "ben", "photo_finish", { at: 7_000 });
+    m2 = JS.closeIfPastDeadline(m2, 10_000).state;
+    expect(JS.settlePhotoFinish(m2, { at: 10_001 }).awarded).toBe(0);
+    // loser holding the card: nothing
+    let m3 = JS.startMatch(JS.createMatch({ ...config(300), deadline: { reps: 300, time: 10_000 } }, players), 500);
+    m3 = JS.logReps(m3, entry("sam", "pushup", 200, false, 6_500)).state;
+    m3 = JS.grantPowerUp(m3, "ben", "photo_finish", { at: 7_000 });
+    m3 = JS.closeIfPastDeadline(m3, 10_000).state;
+    expect(JS.settlePhotoFinish(m3, { at: 10_001 }).awarded).toBe(0);
+  });
+
+  test("double down: pays 50 to the kitty, next log ×3 then normal; refused when broke", () => {
+    let m = v2(); // ben 500 pts
+    m = JS.grantPowerUp(m, "ben", "double_down", { at: 1 });
+    const act = JS.activatePowerUp(m, "ben", "double_down", { at: 2_000 });
+    expect(act.result.ok).toBe(true);
+    expect(act.result.paid).toBe(50);
+    expect(act.result.balance).toBe(450);
+    expect(JS.kittyTotal(act.state)).toBe(50);
+    expect(act.state.kitty.ledger[0].reason).toBe("double_down");
+    m = act.state;
+    m = JS.logReps(m, entry("ben", "pushup", 20, false, 3_000)).state;
+    expect(adj(m, "ben")).toBe(60); // ×3
+    m = JS.logReps(m, entry("ben", "pushup", 20, false, 4_000)).state;
+    expect(adj(m, "ben")).toBe(80); // ×1
+    // broke refusal: 30 points < 50 fee
+    const broke = [{ ...player("ben", "fit"), points: 30 }, player("sam", "fit")];
+    let mb = JS.startMatch(JS.createMatch(config(300), broke), 500);
+    mb = JS.grantPowerUp(mb, "ben", "double_down", { at: 1 });
+    const r = JS.activatePowerUp(mb, "ben", "double_down", { at: 2_000 });
+    expect(r.result.ok).toBe(false);
+    expect(r.result.reason).toContain("you have 30");
+    expect(JS.kittyTotal(r.state)).toBe(0);
+  });
+
+  test("wildcard: refuses while nothing has been played against you; copies the steal after one lands", () => {
+    let m = v2();
+    m = JS.logReps(m, entry("sam", "pushup", 100)).state; // sam leads
+    m = JS.grantPowerUp(m, "ben", "wildcard", { at: 1 });
+    const early = JS.activatePowerUp(m, "ben", "wildcard", { at: 2_000 });
+    expect(early.result.ok).toBe(false);
+    expect(early.result.reason).toBe("nothing has been played against you yet");
+    m = JS.logReps(m, entry("ben", "squat", 150)).state; // ben 150 > sam 100 → ben leads
+    m = JS.grantPowerUp(m, "alex", "steal", { at: 3 });
+    m = JS.activatePowerUp(m, "alex", "steal", { at: 4_000 }).state; // steals 15 from ben
+    expect(m.lastAgainst.ben).toBe("steal");
+    const copy = JS.activatePowerUp(m, "ben", "wildcard", { at: 5_000 });
+    expect(copy.result.ok).toBe(true);
+    expect(copy.result.copied).toBe("steal");
+    expect(copy.result.copiedName).toBe("Rep Steal");
+    expect(JS.inventoryOf(copy.state, "ben").map((i) => i.kind)).toEqual(["steal"]); // wildcard became one
+    // and it's a REAL steal card — ben can fire it (leading rival sam has 100 raw → floor(10) = 10)
+    const fire = JS.activatePowerUp(copy.state, "ben", "steal", { at: 6_000 });
+    expect(fire.result.ok).toBe(true);
+    expect(fire.result.stolen).toBe(10);
   });
 });
 

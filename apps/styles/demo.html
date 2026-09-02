@@ -10,11 +10,14 @@
        clobber sunset/neon/forest. We re-assert after its boot (below). -->
   <script>
     (() => {
+      /* original five + V2 expansion (board flagship + 7 — same list as
+         gallery.js/verify.js; keep the three in sync when adding skins) */
+      const OK = /^(lime|gold|sunset|neon|forest|board|mycelial|techy|track|poker|caveman|n64|goldeneye)$/;
       const t = new URLSearchParams(location.search).get("t") || "lime";
-      if (/^(lime|gold|sunset|neon|forest)$/.test(t)) document.documentElement.dataset.theme = t;
+      if (OK.test(t)) document.documentElement.dataset.theme = t;
       const assert = () => {
         const q = new URLSearchParams(location.search).get("t");
-        if (/^(lime|gold|sunset|neon|forest)$/.test(q || "")) document.documentElement.dataset.theme = q;
+        if (OK.test(q || "")) document.documentElement.dataset.theme = q;
       };
       document.addEventListener("DOMContentLoaded", assert, false); // after fg boot
       addEventListener("load", assert, false);

@@ -430,3 +430,475 @@
   background: color-mix(in srgb, var(--lime) 12%, transparent);
   border-color: color-mix(in srgb, var(--lime) 40%, transparent);
 }
+
+/* ═══════════════════════════════════════════════════════════════════════
+   V2 EXPANSION — eight more directions (board flagship + 7 quick sets).
+   Added for the V2 board app (apps/board · /v2 — poker-table × track-and-
+   field). Same slot contract as the five above; blocks 6–12 are compact
+   token sets for the /styles gallery, block 6 (board) also carries the
+   BOARD EXTRAS the app reads: felt/track/chip/card-back/pop tokens.
+   Contrast targets match the originals (AA — scripts/styles_contrast.py).
+    6  board     Board Game — the V2 flagship. Deep racing felt, gold
+                 chips, Anton + mono clock, chunky radii + offset shadows.
+    7  mycelial  Mycelial — bioluminescent. Deep soil browns, glow teals,
+                 organic radii, Fredoka.
+    8  techy     Techy — graph paper + terminal. Mono display, cyan.
+    9  track     Athletic Track & Field — track red, lane-stripe white,
+                 stopwatch numerals (Anton).
+   10  poker     Poker Room — burgundy felt, gold, serif display.
+   11  caveman   Caveman — stone browns, bone white, primitive chunky
+                 borders (Archivo 900).
+   12  n64       N64 Retro — flat bright polys over fog indigo, Fredoka.
+   13  goldeneye GoldenEye 64 — grey-blue steel + gold watch-menu HUD,
+                 mono display, sharp corners.
+   ═══════════════════════════════════════════════════════════════════════ */
+
+/* ═══ 6 · BOARD GAME (V2 flagship — default skin of apps/board) ═══ */
+[data-theme="board"] {
+  --bg: #0c1d14;                /* deep racing felt green-black */
+  --surface: #122619;
+  --surface-2: #17301f;
+  --line: #1e3c29;
+  --line-bright: #2a5238;
+  --text: #eef4e8;
+  --muted: #b7c9b4;
+  --faint: #9cb2a0;
+  --faint-deco: #6e8372;
+
+  --lime: #ffc94d;              /* table gold — primary */
+  --lime-dim: #d8a636;
+  --lime-glow: rgba(255, 201, 77, 0.15);
+  --coral: #ff7a59;
+  --coral-glow: rgba(255, 122, 89, 0.14);
+  --amber: #ffb95e;
+  --sky: #7cc4e8;
+
+  --success: #4cd68d;
+  --danger: #ff5b6e;
+  --urgency: #ff8c42;
+
+  --energy: #b48cff;
+  --energy-light: #d3c2ff;
+  --energy-tint: #2a2140;
+
+  --dz-bg: #0a1810;
+  --dz3-surface: #2c1e14;
+  --dz-hero: #35200f;
+
+  --font-display: 'Anton', 'Space Grotesk', system-ui, sans-serif;
+  --font-body: 'Space Grotesk', system-ui, sans-serif;
+  --font-mono: 'JetBrains Mono', ui-monospace, 'Cascadia Code', Menlo, monospace;
+
+  --radius: 14px;               /* chunky board-game radii */
+  --radius-sm: 10px;
+  --radius-lg: 18px;
+  --radius-xl: 24px;
+  --pill: 999px;
+
+  --on-accent: #241a04;         /* 9.9:1 on gold */
+  --primary-hover: #ffd97a;
+  --on-warn: #211204;           /* 8.4:1 on urgency, 9.6:1 on amber */
+
+  --on-gold: var(--on-accent);
+
+  /* ── BOARD EXTRAS (apps/board reads these; safe defaults elsewhere) ── */
+  --felt: #12492c;              /* the table felt — racing green */
+  --felt-deep: #0a2c1a;
+  --felt-line: rgba(238, 244, 232, 0.16);
+  --rail: #06170e;              /* wooden rail edge */
+  --rail-edge: rgba(255, 201, 77, 0.22);
+
+  --chip-white: #f2eee2;        /* kitty denominations: 1 / 5 / 25 / 100 */
+  --chip-red: #d8434e;
+  --chip-blue: #3d7bd9;
+  --chip-gold: #e8b54a;
+
+  --card-back-1: #1c4630;       /* card back — felt pinstripe */
+  --card-back-2: #0d2417;
+  --card-face: #1b3527;
+
+  --pop-shadow: #8a6420;        /* the offset under POPPING buttons */
+}
+
+/* ═══ 7 · MYCELIAL (bioluminescent — soil browns + glow teals) ═══ */
+[data-theme="mycelial"] {
+  --bg: #171009;                /* deep soil */
+  --surface: #1f1710;
+  --surface-2: #271d14;
+  --line: #332617;
+  --line-bright: #473522;
+  --text: #f2e9da;
+  --muted: #c9b9a3;
+  --faint: #ab9a82;
+  --faint-deco: #7d6e58;
+
+  --lime: #4fe3c1;              /* spore teal — primary */
+  --lime-dim: #37b598;
+  --lime-glow: rgba(79, 227, 193, 0.15);
+  --coral: #ff9a73;
+  --coral-glow: rgba(255, 154, 115, 0.13);
+  --amber: #ffcf7d;
+  --sky: #8fd4f2;
+
+  --success: #5fd6a9;
+  --danger: #ff7080;
+  --urgency: #ffa259;
+
+  --energy: #c9a1ff;
+  --energy-light: #ddc6ff;
+  --energy-tint: #2c2244;
+
+  --dz-bg: #130d07;
+  --dz3-surface: #33200f;
+  --dz-hero: #3b2410;
+
+  --font-display: 'Fredoka', 'Space Grotesk', system-ui, sans-serif;
+  --font-body: 'Inter', system-ui, sans-serif;
+  --font-mono: ui-monospace, 'Cascadia Code', 'SF Mono', Menlo, monospace;
+
+  --radius: 20px;               /* organic — no hard corners anywhere */
+  --radius-sm: 14px;
+  --radius-lg: 26px;
+  --radius-xl: 34px;
+  --pill: 999px;
+
+  --on-accent: #03251d;         /* 10.4:1 on spore teal */
+  --primary-hover: #7cf0d4;
+  --on-warn: #241304;           /* 8.0:1 on urgency */
+
+  --on-gold: var(--on-accent);
+}
+[data-theme="mycelial"] :is(.fg-battle, .fg-sheet, .fg-count) {
+  box-shadow: 0 0 28px rgba(79, 227, 193, 0.10), 0 10px 28px rgba(10, 6, 2, 0.5);
+}
+
+/* ═══ 8 · TECHY (graph paper + terminal mono, cyan) ═══ */
+[data-theme="techy"] {
+  --bg: #0a1014;                /* blueprint dark */
+  --surface: #0f171d;
+  --surface-2: #141f26;
+  --line: #1d2c35;
+  --line-bright: #2a404d;
+  --text: #e6f2f6;
+  --muted: #a9c0ca;
+  --faint: #8ea9b4;
+  --faint-deco: #61787f;
+
+  --lime: #3fd4ff;              /* plotter cyan — primary */
+  --lime-dim: #2aa8cc;
+  --lime-glow: rgba(63, 212, 255, 0.14);
+  --coral: #ff7e62;
+  --coral-glow: rgba(255, 126, 98, 0.13);
+  --amber: #ffc95e;
+  --sky: #9fe0f5;
+
+  --success: #3fd69b;
+  --danger: #ff5f70;
+  --urgency: #ff9448;
+
+  --energy: #9d8cff;
+  --energy-light: #c3b8ff;
+  --energy-tint: #241f42;
+
+  --dz-bg: #080e12;
+  --dz3-surface: #2c1e14;
+  --dz-hero: #35200f;
+
+  --font-display: 'JetBrains Mono', ui-monospace, Menlo, monospace;
+  --font-body: 'Inter', system-ui, sans-serif;
+  --font-mono: 'JetBrains Mono', ui-monospace, Menlo, monospace;
+
+  --radius: 8px;                /* technical — small radii */
+  --radius-sm: 6px;
+  --radius-lg: 10px;
+  --radius-xl: 14px;
+  --pill: 999px;
+
+  --on-accent: #02222e;         /* 9.6:1 on cyan */
+  --primary-hover: #6ee1ff;
+  --on-warn: #241304;           /* 8.2:1 on urgency */
+
+  --on-gold: var(--on-accent);
+}
+[data-theme="techy"] :is(.fg-battle, .fg-count, .fg-sheet) {
+  background-image: linear-gradient(var(--line) 1px, transparent 1px),
+                    linear-gradient(90deg, var(--line) 1px, transparent 1px);
+  background-size: 22px 22px;   /* graph paper */
+}
+
+/* ═══ 9 · TRACK (Athletic Track & Field — track red + white lanes) ═══ */
+[data-theme="track"] {
+  --bg: #2b1012;                /* terracotta track, floodlit */
+  --surface: #351518;
+  --surface-2: #401a1d;
+  --line: #4f2225;
+  --line-bright: #682e31;
+  --text: #fdf5ef;              /* lane-paint white */
+  --muted: #d9bdb9;
+  --faint: #bda29f;
+  --faint-deco: #8a6e6b;
+
+  --lime: #ffffff;              /* WHITE = the primary. lane paint. */
+  --lime-dim: #d9c9c4;
+  --lime-glow: rgba(255, 255, 255, 0.14);
+  --coral: #ff8a70;
+  --coral-glow: rgba(255, 138, 112, 0.13);
+  --amber: #ffc966;
+  --sky: #8fd0f2;
+
+  --success: #4fd694;
+  --danger: #ff6272;
+  --urgency: #ffa050;
+
+  --energy: #b794ff;
+  --energy-light: #d6c6ff;
+  --energy-tint: #2e2149;
+
+  --dz-bg: #230d0f;
+  --dz3-surface: #3c1a12;
+  --dz-hero: #46200f;
+
+  --font-display: 'Anton', 'Space Grotesk', system-ui, sans-serif; /* stopwatch */
+  --font-body: 'Space Grotesk', system-ui, sans-serif;
+  --font-mono: 'JetBrains Mono', ui-monospace, Menlo, monospace;
+
+  --radius: 12px;
+  --radius-sm: 8px;
+  --radius-lg: 16px;
+  --radius-xl: 20px;
+  --pill: 999px;
+
+  --on-accent: #2b1012;         /* 17.9:1 on white — red-on-white numbers */
+  --primary-hover: #ffe9e3;
+  --on-warn: #241304;           /* 7.9:1 on urgency */
+
+  --on-gold: var(--on-accent);
+}
+[data-theme="track"] .fg-lbrow__bar {
+  background-image: repeating-linear-gradient(90deg,
+    var(--line-bright) 0 10px, transparent 10px 20px); /* lane stripes */
+}
+
+/* ═══ 10 · POKER (burgundy felt + gold + serif) ═══ */
+[data-theme="poker"] {
+  --bg: #221016;                /* burgundy felt room */
+  --surface: #2a151c;
+  --surface-2: #331a22;
+  --line: #402029;
+  --line-bright: #572c37;
+  --text: #f5ebdd;
+  --muted: #ccb9c2;
+  --faint: #b09aa5;
+  --faint-deco: #806d77;
+
+  --lime: #e6b654;              /* casino gold — primary */
+  --lime-dim: #c29340;
+  --lime-glow: rgba(230, 182, 84, 0.15);
+  --coral: #ff8468;
+  --coral-glow: rgba(255, 132, 104, 0.13);
+  --amber: #ffcb70;
+  --sky: #8cc8e8;
+
+  --success: #55d195;
+  --danger: #ff6575;
+  --urgency: #ff9b52;
+
+  --energy: #c09aff;
+  --energy-light: #d9caff;
+  --energy-tint: #2f2347;
+
+  --dz-bg: #1c0d12;
+  --dz3-surface: #3a1418;
+  --dz-hero: #441920;
+
+  --font-display: Georgia, 'Times New Roman', 'Playfair Display', serif;
+  --font-body: 'Inter', system-ui, sans-serif;
+  --font-mono: ui-monospace, 'Cascadia Code', Menlo, monospace;
+
+  --radius: 10px;
+  --radius-sm: 8px;
+  --radius-lg: 14px;
+  --radius-xl: 18px;
+  --pill: 999px;
+
+  --on-accent: #241703;         /* 8.9:1 on casino gold */
+  --primary-hover: #f2c96e;
+  --on-warn: #241304;           /* 8.1:1 on urgency */
+
+  --on-gold: var(--on-accent);
+
+  /* board app: burgundy felt under the same table chrome */
+  --felt: #4a1622;
+  --felt-deep: #2a0d14;
+  --rail: #1c0a0f;
+}
+[data-theme="poker"] :is(.fg-battle__title, .fg-sheet__title, .fg-count__time) {
+  letter-spacing: 0.02em;
+}
+
+/* ═══ 11 · CAVEMAN (stone browns, bone white, primitive chunk) ═══ */
+[data-theme="caveman"] {
+  --bg: #1c1611;                /* cave stone */
+  --surface: #251d15;
+  --surface-2: #2e2419;
+  --line: #3b2f20;
+  --line-bright: #50402b;
+  --text: #f2e8d2;              /* bone */
+  --muted: #cbbda2;
+  --faint: #afa087;
+  --faint-deco: #7f7459;
+
+  --lime: #ece0c0;              /* bone-white primary — carved buttons */
+  --lime-dim: #c8bb9a;
+  --lime-glow: rgba(236, 224, 192, 0.13);
+  --coral: #ff8b5e;             /* fire */
+  --coral-glow: rgba(255, 139, 94, 0.13);
+  --amber: #ffc266;
+  --sky: #92c9e8;
+
+  --success: #62d294;
+  --danger: #ff6a72;
+  --urgency: #ffa050;
+
+  --energy: #c49aff;
+  --energy-light: #dcc9ff;
+  --energy-tint: #2d2346;
+
+  --dz-bg: #171209;
+  --dz3-surface: #38200e;
+  --dz-hero: #412710;
+
+  --font-display: 'Archivo', 'Space Grotesk', system-ui, sans-serif;
+  --font-body: 'Inter', system-ui, sans-serif;
+  --font-mono: ui-monospace, Menlo, monospace;
+
+  --radius: 8px;                /* primitive — hewn, not machined */
+  --radius-sm: 6px;
+  --radius-lg: 12px;
+  --radius-xl: 16px;
+  --pill: 999px;
+
+  --on-accent: #1c1611;         /* 14.1:1 on bone */
+  --primary-hover: #fff5da;
+  --on-warn: #241304;           /* 8.0:1 on urgency */
+
+  --on-gold: var(--on-accent);
+}
+[data-theme="caveman"] :is(.fg-battle, .fg-sheet, .fg-count, .fg-lbrow) {
+  border-width: 2px;            /* crude, thick borders */
+  border-color: var(--line-bright);
+  box-shadow: 4px 4px 0 rgba(23, 16, 8, 0.55);
+}
+[data-theme="caveman"] :is(.fg-battle__title, .fg-sheet__title) {
+  font-weight: 900; letter-spacing: 0.03em;
+}
+
+/* ═══ 12 · N64 RETRO (flat bright polys over fog indigo) ═══ */
+[data-theme="n64"] {
+  --bg: #1e2946;                /* fog indigo */
+  --surface: #263356;
+  --surface-2: #2e3d66;
+  --line: #3a4a75;
+  --line-bright: #4d6092;
+  --text: #ffffff;
+  --muted: #ccd5f0;
+  --faint: #adb9dd;
+  --faint-deco: #7f8cb4;
+
+  --lime: #ffe14d;              /* cartridge yellow — primary */
+  --lime-dim: #d6be3c;
+  --lime-glow: rgba(255, 225, 77, 0.16);
+  --coral: #ff7d68;
+  --coral-glow: rgba(255, 125, 104, 0.14);
+  --amber: #ffd166;
+  --sky: #7fd0ff;
+
+  --success: #58dd9a;
+  --danger: #ff6478;
+  --urgency: #ffa24e;
+
+  --energy: #b49aff;
+  --energy-light: #d6c9ff;
+  --energy-tint: #33285a;
+
+  --dz-bg: #182137;
+  --dz3-surface: #3c1e2a;
+  --dz-hero: #452430;
+
+  --font-display: 'Fredoka', 'Space Grotesk', system-ui, sans-serif;
+  --font-body: 'Inter', system-ui, sans-serif;
+  --font-mono: ui-monospace, Menlo, monospace;
+
+  --radius: 12px;
+  --radius-sm: 8px;
+  --radius-lg: 16px;
+  --radius-xl: 22px;
+  --pill: 999px;
+
+  --on-accent: #231d04;         /* 11.8:1 on cartridge yellow */
+  --primary-hover: #ffeb80;
+  --on-warn: #241304;           /* 8.1:1 on urgency */
+
+  --on-gold: var(--on-accent);
+}
+[data-theme="n64"] :is(.fg-battle, .fg-sheet, .fg-count) {
+  border: 3px solid var(--line-bright); /* flat poly outline */
+  box-shadow: 6px 6px 0 rgba(12, 17, 33, 0.6);
+}
+[data-theme="n64"] :is(.fg-battle__title, .fg-sheet__title) { font-weight: 600; }
+
+/* ═══ 13 · GOLDENEYE 64 (grey-blue steel + gold watch HUD) ═══ */
+[data-theme="goldeneye"] {
+  --bg: #141a20;                /* gunmetal */
+  --surface: #1a222a;
+  --surface-2: #212b35;
+  --line: #2b3742;
+  --line-bright: #3d4d5c;
+  --text: #e9eef3;
+  --muted: #aebbc6;
+  --faint: #92a2af;
+  --faint-deco: #69798a;
+
+  --lime: #f0c445;              /* golden gun — primary */
+  --lime-dim: #c9a236;
+  --lime-glow: rgba(240, 196, 69, 0.15);
+  --coral: #ff7e60;
+  --coral-glow: rgba(255, 126, 96, 0.13);
+  --amber: #ffc45c;
+  --sky: #86c8e8;
+
+  --success: #46d18e;
+  --danger: #ff5b6b;
+  --urgency: #ff8f47;
+
+  --energy: #a892ff;
+  --energy-light: #cdc0ff;
+  --energy-tint: #262045;
+
+  --dz-bg: #10151a;
+  --dz3-surface: #33160f;
+  --dz-hero: #3b1c10;
+
+  --font-display: 'JetBrains Mono', ui-monospace, Menlo, monospace; /* watch HUD */
+  --font-body: 'Inter', system-ui, sans-serif;
+  --font-mono: 'JetBrains Mono', ui-monospace, Menlo, monospace;
+
+  --radius: 4px;                /* HUD-sharp */
+  --radius-sm: 3px;
+  --radius-lg: 8px;
+  --radius-xl: 12px;
+  --pill: 999px;
+
+  --on-accent: #231a03;         /* 10.2:1 on gold */
+  --primary-hover: #ffd66b;
+  --on-warn: #241304;           /* 8.2:1 on urgency */
+
+  --on-gold: var(--on-accent);
+}
+[data-theme="goldeneye"] :is(.fg-status, .fg-badge) {
+  border: 1px solid var(--line-bright);
+  clip-path: polygon(6px 0, 100% 0, 100% calc(100% - 6px), calc(100% - 6px) 100%, 0 100%, 0 6px); /* notched HUD corner */
+}
+[data-theme="goldeneye"] :is(.fg-count__time, .fg-battle__title) {
+  text-shadow: 0 0 12px rgba(240, 196, 69, 0.35);
+}

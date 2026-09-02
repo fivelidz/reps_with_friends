@@ -20,6 +20,15 @@
     { id: "sunset", font: { spec: "800 16px 'Archivo'",        label: "Archivo" } },
     { id: "neon",   font: { spec: "700 16px 'JetBrains Mono'", label: "JetBrains Mono" } },
     { id: "forest", font: { spec: "600 16px 'Fredoka'",        label: "Fredoka" } },
+    /* V2 expansion (board flagship + 7 — same AA bar as the five) */
+    { id: "board",     font: { spec: "400 16px 'Anton'",          label: "Anton" } },
+    { id: "mycelial",  font: { spec: "600 16px 'Fredoka'",        label: "Fredoka" } },
+    { id: "techy",     font: { spec: "700 16px 'JetBrains Mono'", label: "JetBrains Mono" } },
+    { id: "track",     font: { spec: "400 16px 'Anton'",          label: "Anton" } },
+    { id: "poker",     font: { spec: "400 16px Georgia",          label: "Georgia (system serif)" } },
+    { id: "caveman",   font: { spec: "900 16px 'Archivo'",        label: "Archivo" } },
+    { id: "n64",       font: { spec: "600 16px 'Fredoka'",        label: "Fredoka" } },
+    { id: "goldeneye", font: { spec: "700 16px 'JetBrains Mono'", label: "JetBrains Mono" } },
   ];
 
   /* WCAG 2.1 relative luminance + contrast — same math as the python script */
@@ -87,8 +96,10 @@
       }
     }
 
-    add(new Set(primaries).size === 5, "distinct --primary across 5 themes", primaries.join(" "));
-    add(new Set(bgs).size === 5, "distinct --bg across 5 themes", bgs.join(" "));
+    add(new Set(primaries).size === THEMES.length,
+        `distinct --primary across ${THEMES.length} themes`, primaries.join(" "));
+    add(new Set(bgs).size === THEMES.length,
+        `distinct --bg across ${THEMES.length} themes`, bgs.join(" "));
 
     const fails = rows.filter((r) => !r.ok).length;
     return { pass: fails === 0, fails, total: rows.length, rows };

@@ -140,11 +140,11 @@ console.log(`\nRWF STYLES E2E — ${BASE} (headless chromium)\n`);
 /* ── A · gallery boots ───────────────────────────────────────────────── */
 console.log("— GALLERY");
 await send("Page.navigate", { url: `${BASE}/styles/` });
-await waitFor(() => evalJs(`window.__rwfStylesReady === true && document.querySelectorAll('.st-card').length === 5`).catch(() => false),
+await waitFor(() => evalJs(`window.__rwfStylesReady === true && document.querySelectorAll('.st-card').length === 13`).catch(() => false),
   { label: "gallery ready" });
-await sleep(1400); // iframes + fonts
-ok(await evalJs(`document.querySelectorAll('.st-card').length === 5`), "5 theme cards render");
-ok(await evalJs(`document.querySelectorAll('[data-theme-frame]').length === 5`), "5 live iframes in the strip");
+await sleep(3200); // 13 iframes + fonts (lazy but settle slowly)
+ok(await evalJs(`document.querySelectorAll('.st-card').length === 13`), "13 theme cards render (5 originals + board eight)");
+ok(await evalJs(`document.querySelectorAll('[data-theme-frame]').length === 13`), "13 live iframes in the strip");
 ok((await evalJs(`document.querySelector('.st-card__name').textContent`)) === "Lime Athletic", "card 1 is Lime Athletic");
 
 /* clobber guard: /system's persisted gold (localStorage rwf-theme, owned by
@@ -165,7 +165,7 @@ const distinct = await evalJs(`(() => {
     getComputedStyle(f.contentDocument.documentElement).getPropertyValue('--lime').trim());
   return JSON.stringify(vals);
 })()`).then(JSON.parse);
-ok(new Set(distinct).size === 5, `--primary distinct across themes: ${distinct.join(" | ")}`);
+ok(new Set(distinct).size === 13, `--primary distinct across themes: ${distinct.join(" | ")}`);
 
 /* switcher → battle-only strip */
 await evalJs(`document.querySelector('[data-screen="battle"]').click(); true`);
@@ -174,7 +174,7 @@ await waitFor(() => evalJs(`document.querySelector('.st-strip').dataset.screen =
   const h = d.getElementById('home'), b = d.getElementById('battle');
   return b && b.style.display !== 'none' && (!h || h.style.display === 'none');
 })`).catch(() => false), { label: "battle strip" });
-await sleep(900);
+await sleep(2600);
 await shot("gallery-compare-battle", 1480, 1200);
 
 /* ── B · full preview per theme ──────────────────────────────────────── */
