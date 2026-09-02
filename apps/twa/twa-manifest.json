@@ -1,0 +1,39 @@
+{
+  "packageId": "com.qalarc.repswithfriends",
+  "host": "rwf.qalarc.com",
+  "name": "Reps With Friends",
+  "launcherName": "RWF",
+  "display": "standalone",
+  "themeColor": "#0b0a12",
+  "themeColorDark": "#0b0a12",
+  "backgroundColor": "#0b0a12",
+  "enableNotifications": false,
+  "startUrl": "/figma-app/",
+  "iconUrl": "https://rwf.qalarc.com/figma-app/icons/icon-512.png",
+  "maskableIconUrl": "https://rwf.qalarc.com/figma-app/icons/icon-maskable-512.png",
+  "monochromeIconUrl": "https://rwf.qalarc.com/figma-app/icons/icon-192.png",
+  "splashScreenFadeOutDuration": 300,
+  "signingKey": {
+    "path": "./rwf.keystore",
+    "alias": "rwf",
+    "createIfMissing": false
+  },
+  "appVersion": "1.0.0",
+  "appVersionCode": 1,
+  "shortcuts": [],
+  "generatorApp": "bubblewrap-cli",
+  "webManifestUrl": "https://rwf.qalarc.com/figma-app/manifest.webmanifest",
+  "fallbackType": "customtabs",
+  "features": {},
+  "alphaDependencies": {
+    "enabled": false
+  },
+  "enableSiteSettingsShortcut": true,
+  "isChromeOSOnly": false,
+  "fullScopeUrl": "https://rwf.qalarc.com/figma-app/",
+  "minSdkVersion": 21,
+  "orientation": "portrait",
+  "fingerprints": [],
+  "additionalTrustedOrigins": [],
+  "retainedBundles": []
+}

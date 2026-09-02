@@ -1,0 +1,432 @@
+/* ═══════════════════════════════════════════════════════════════════════
+   RWF THEME EXPLORATION — five complete design directions.
+   Founder ask: "create 5 different design styles so we may see some
+   different examples that we could implement if we want a design change."
+
+   HOW IT WORKS
+   · One file, five [data-theme="X"] blocks. Every block re-points the
+     FULL core slot set from design/tokens.css — bg/surfaces/lines, the
+     text hierarchy, primary action, effort/heat, success/danger/urgency,
+     energy, DZ ramp, radii, fonts — plus three new tokens:
+       --on-accent   text colour ON the primary fill (buttons/CTAs)
+       --primary-hover  pressed/hover fill for primary CTAs
+       --on-warn     text colour on urgency/danger fills (DZ banners)
+   · Load AFTER tokens.css:  <link tokens.css> <link themes.css>.
+     Then:  <html data-theme="neon">  (absent attr = default lime).
+   · The slot NAMES stay the contract (the gold block in tokens.css made
+     "--lime means primary" law); each block only re-points values, so
+     every token consumer — site, app, /system, /figma — flips together.
+   · Component-level feel (font weights, border weight, shadow style)
+     lives in the per-theme override section at the bottom; everything
+     else is pure tokens.
+
+   THE FIVE (judged side-by-side at /styles)
+   1 lime    Lime Athletic — current default. Dark, technical, lime energy.
+   2 gold    Gold Arcade — Ben's Figma direction. Purple-ink, Anton, gold.
+   3 sunset  Sunset Brutalist — cream paper, 2px ink borders, hard offset
+             shadows, square corners, oversized Archivo. Bold LIGHT mode.
+   4 neon    Midnight Neon — blue-black, electric cyan + magenta, mono
+             numerals, subtle glow edges. Esports energy.
+   5 forest  Forest Retro — walnut dark, mustard/burnt-orange/olive 70s
+             palette, soft 18–28px radii, rounded Fredoka. Family mode.
+
+   CONTRAST (WCAG AA — see apps/styles/verify for the live matrix):
+   every text/faint/muted/success/danger/urgency/sky/energy pairing
+   below clears 4.5:1 on its surface; on-accent/on-primary and
+   on-warn/on-urgency clear 4.5:1; primary-as-text clears 3:1 (large
+   display type) — most clear 4.5. Numbers in each block's header.
+   ═══════════════════════════════════════════════════════════════════════ */
+
+/* New tokens with safe defaults so unthemed pages keep today's look. */
+:root {
+  --on-accent: #0a0b0d;
+  --primary-hover: #d6ff45;
+  --on-warn: #0a0b0d;
+}
+
+/* ═════════════════════════════════════════════════════════════════════
+   1 · LIME ATHLETIC  (default — restated so data-theme="lime" is
+   identical to the :root default; lets the gallery set it explicitly)
+   Rationale: the system as shipped. Near-black steel surfaces, one loud
+   lime for energy/action, coral for effort, Space Grotesk everywhere.
+   Reads: technical training tool with a streak of arcade.
+   ═════════════════════════════════════════════════════════════════════ */
+[data-theme="lime"] {
+  --bg: #0a0b0d;
+  --surface: #121418;
+  --surface-2: #1a1d23;
+  --line: #23262d;
+  --line-bright: #31353e;
+  --text: #e8eaed;
+  --muted: #9aa0a8;
+  --faint: #868b92;
+  --faint-deco: #5f646d;
+
+  --lime: #c6f32e;              /* primary — energy, verified, action */
+  --lime-dim: #8fb31c;
+  --lime-glow: rgba(198, 243, 46, 0.14);
+  --coral: #ff5c38;             /* effort, HR, heat */
+  --coral-glow: rgba(255, 92, 56, 0.14);
+  --amber: #ffb020;             /* warning, pending */
+  --sky: #6ec1ff;               /* info, slack */
+
+  --success: #34d399;
+  --danger: #ff4d5e;
+  --urgency: #ff8a00;
+
+  --energy: #8b5cf6;
+  --energy-light: #b79dfb;
+  --energy-tint: #2a1f4d;
+
+  --dz-bg: #150810;
+  --dz3-surface: #2a1020;
+  --dz-hero: #3a0f1b;
+
+  --font-display: 'Space Grotesk', system-ui, sans-serif;
+  --font-body: 'Space Grotesk', system-ui, sans-serif;
+  --font-mono: ui-monospace, 'Cascadia Code', 'SF Mono', Menlo, monospace;
+
+  --radius: 14px;
+  --radius-sm: 9px;
+  --radius-lg: 16px;
+  --radius-xl: 24px;
+  --pill: 999px;
+
+  --on-accent: #0a0b0d;         /* 15.3:1 on lime */
+  --primary-hover: #d6ff45;
+  --on-warn: #0a0b0d;           /* 10.1:1 on amber */
+
+  /* figma-app reads --on-gold (its on-primary text) with a --bg fallback —
+     re-point so every theme's app text on primary fills stays AA. */
+  --on-gold: var(--on-accent);
+}
+
+/* ═════════════════════════════════════════════════════════════════════
+   2 · GOLD ARCADE  (Ben's Figma direction — canonical values; the
+   gold block in tokens.css ships the same slots, this restates them so
+   themes.css is the complete five-theme catalogue)
+   Rationale: his craft, verbatim — purple-ink surfaces instead of blue
+   -black, brand-gold as the action colour, urgency-orange for effort,
+   Anton display + Inter body. Reads: confident consumer product.
+   Contrast: text 19.7 · faint 5.8/5.4 · on-accent 13.0 · urg 7.8.
+   ═════════════════════════════════════════════════════════════════════ */
+[data-theme="gold"] {
+  --bg: var(--ink);             /* #0b0a12 — purple-ink, not blue-black */
+  --surface: var(--ink-surface);      /* #14121f */
+  --surface-2: var(--ink-raised);     /* #1b1830 */
+  --line: var(--ink-line);            /* #26263a */
+  --line-bright: var(--ink-line-strong); /* #3b3b52 */
+  --text: #ffffff;
+  --muted: #c2c2d1;
+  --faint: #8e8ea3;
+  --faint-deco: #63637a;
+
+  --lime: var(--gold);                /* slot semantics: primary accent */
+  --lime-dim: var(--gold-strong);
+  --lime-glow: var(--gold-glow);
+  --coral: var(--urgency);            /* his orange is effort + warning */
+  --coral-glow: rgba(255, 138, 0, 0.14);
+  --amber: var(--urgency);
+  --sky: #4da3ff;
+
+  --success: #34d399;
+  --danger: #ff4d5e;
+  --urgency: #ff8a00;
+
+  --energy: #8b5cf6;
+  --energy-light: #b79dfb;
+  --energy-tint: #2a1f4d;
+
+  --dz-bg: #150810;
+  --dz3-surface: #2a1020;
+  --dz-hero: #3a0f1b;
+
+  --font-display: 'Anton', 'Space Grotesk', system-ui, sans-serif;
+  --font-body: 'Inter', 'Space Grotesk', system-ui, sans-serif;
+  --font-mono: ui-monospace, 'Cascadia Code', 'SF Mono', Menlo, monospace;
+
+  --radius: 14px;
+  --radius-sm: 9px;
+  --radius-lg: 16px;
+  --radius-xl: 24px;
+  --pill: 999px;
+
+  --on-accent: #07060d;         /* his text/on-accent — 13.0:1 on gold */
+  --primary-hover: #e0a800;     /* his gold-strong */
+  --on-warn: #07060d;           /* 8.6:1 on his orange */
+
+  --on-gold: var(--on-accent);  /* app safety — see lime block */
+}
+
+/* ═════════════════════════════════════════════════════════════════════
+   3 · SUNSET BRUTALIST  — the light-mode candidate
+   Rationale: cream paper + near-black ink + vermillion energy. Heavy
+   2px borders, square corners, hard offset shadows (no blur), Archivo
+   pushed to 800 for oversized flat type. Sport-poster energy — the
+   loudest "different product" in the set, and the only light theme.
+   Palette: bg #f7efe2 paper · ink #1c1710 · vermillion #cc3512 ·
+   deep red #b3172b · forest #1d7a3e · ochre #a84e00 · cobalt #0b62c4.
+   Contrast: text 15.6 · faint 5.7/4.7 · on-accent 4.8 · danger 6.6.
+   ═════════════════════════════════════════════════════════════════════ */
+[data-theme="sunset"] {
+  --bg: #f7efe2;                /* warm paper */
+  --surface: #fffaf0;           /* card — lighter than bg */
+  --surface-2: #efe4d0;         /* pressed / chips */
+  --line: #1c1710;              /* heavy ink border */
+  --line-bright: #1c1710;
+  --text: #1c1710;
+  --muted: #5b5244;
+  --faint: #6e6353;
+  --faint-deco: #a89a86;
+
+  --lime: #cc3512;              /* vermillion — primary action */
+  --lime-dim: #a02a0d;
+  --lime-glow: rgba(204, 53, 18, 0.16);
+  --coral: #c23616;             /* effort — deep red */
+  --coral-glow: rgba(194, 54, 22, 0.12);
+  --amber: #8a6100;             /* warning — AA ochre */
+  --sky: #0b62c4;               /* info — cobalt */
+
+  --success: #1d7a3e;           /* forest green */
+  --danger: #b3172b;            /* crimson */
+  --urgency: #a84e00;           /* burnt ochre */
+
+  --energy: #6b2fd6;            /* violet power-up axis */
+  --energy-light: #6b2fd6;
+  --energy-tint: #efe8fa;
+
+  --dz-bg: #f3e6d6;             /* warm evening wash */
+  --dz3-surface: #f7ddd0;
+  --dz-hero: #f2d4c2;
+
+  --font-display: 'Archivo', 'Space Grotesk', system-ui, sans-serif;
+  --font-body: 'Archivo', 'Space Grotesk', system-ui, sans-serif;
+  --font-mono: ui-monospace, 'Cascadia Code', 'SF Mono', Menlo, monospace;
+
+  --radius: 4px;                /* square everything */
+  --radius-sm: 2px;
+  --radius-lg: 4px;
+  --radius-xl: 6px;
+  --pill: 2px;
+
+  --on-accent: #fff6ea;         /* 4.8:1 on vermillion */
+  --primary-hover: #a02a0d;
+  --on-warn: #fff6ea;           /* 4.9:1 on ochre urgency */
+
+  --on-gold: var(--on-accent);  /* app safety — see lime block */
+}
+
+/* ═════════════════════════════════════════════════════════════════════
+   4 · MIDNIGHT NEON  — the esports candidate
+   Rationale: deep blue-black (not purple-ink, not steel), electric
+   cyan as the single action colour, magenta for effort/heat, JetBrains
+   Mono numerals everywhere scores appear, and a faint cyan glow on
+   primary surfaces. Reads: ranked-play energy, night-time competition.
+   Palette: bg #060a14 · cyan #21e6ff · magenta #ff5d9e · mint #3df0ab.
+   Contrast: text 17.2 · faint 6.1/5.6 · on-accent 12.7 · coral 6.6.
+   ═════════════════════════════════════════════════════════════════════ */
+[data-theme="neon"] {
+  --bg: #060a14;                /* deep blue-black */
+  --surface: #0b1120;
+  --surface-2: #111a2e;
+  --line: #1c2a45;
+  --line-bright: #2a3d63;
+  --text: #e6f0ff;
+  --muted: #9fb3d9;
+  --faint: #7e93bd;
+  --faint-deco: #55688e;
+
+  --lime: #21e6ff;              /* electric cyan — primary */
+  --lime-dim: #0fb4cc;
+  --lime-glow: rgba(33, 230, 255, 0.20);
+  --coral: #ff5d9e;             /* magenta — effort/heat */
+  --coral-glow: rgba(255, 93, 158, 0.16);
+  --amber: #ffc94d;
+  --sky: #79b8ff;
+
+  --success: #3df0ab;           /* mint */
+  --danger: #ff6580;
+  --urgency: #ffb054;
+
+  --energy: #a992ff;            /* violet power-up axis */
+  --energy-light: #c3b4ff;
+  --energy-tint: #1a2340;
+
+  --dz-bg: #0a0920;             /* violet night wash */
+  --dz3-surface: #1e1030;
+  --dz-hero: #250f38;
+
+  --font-display: 'JetBrains Mono', 'Space Grotesk', system-ui, sans-serif;
+  --font-body: 'Space Grotesk', system-ui, sans-serif;
+  --font-mono: 'JetBrains Mono', ui-monospace, 'Cascadia Code', Menlo, monospace;
+
+  --radius: 10px;               /* tighter, screen-shaped */
+  --radius-sm: 6px;
+  --radius-lg: 12px;
+  --radius-xl: 16px;
+  --pill: 999px;
+
+  --on-accent: #031018;         /* 12.7:1 on cyan */
+  --primary-hover: #0fb4cc;
+  --on-warn: #10131f;           /* 9.8:1 on amber urgency */
+
+  --on-gold: var(--on-accent);  /* app safety — see lime block */
+}
+
+/* ═════════════════════════════════════════════════════════════════════
+   5 · FOREST RETRO  — the family-mode candidate
+   Rationale: 1970s rec-room — walnut-brown dark surfaces (warm, not
+   steel), mustard as the action colour, burnt orange for effort, olive
+   greens and dusty teal for states, soft 18–28px radii, rounded
+   Fredoka type. Reads: the whole family plays, nobody feels judged.
+   Palette: bg #25201a walnut · mustard #e3a93d · burnt orange #ec7d4a ·
+   olive #8cc36f · dusty teal #7ecab9.
+   Contrast: text 13.5 · faint 5.3/4.6 · on-accent 7.6 · danger 4.5.
+   ═════════════════════════════════════════════════════════════════════ */
+[data-theme="forest"] {
+  --bg: #25201a;                /* walnut */
+  --surface: #2f2921;
+  --surface-2: #3a332a;
+  --line: #453c30;
+  --line-bright: #5a5040;
+  --text: #f2ead8;              /* cream */
+  --muted: #c4b8a0;
+  --faint: #a89b83;
+  --faint-deco: #7a6f5c;
+
+  --lime: #e3a93d;              /* mustard — primary */
+  --lime-dim: #c08a28;
+  --lime-glow: rgba(227, 169, 61, 0.16);
+  --coral: #ec7d4a;             /* burnt orange — effort */
+  --coral-glow: rgba(236, 125, 74, 0.14);
+  --amber: #f5d06f;             /* soft cream-yellow warning */
+  --sky: #7ecab9;               /* dusty teal */
+
+  --success: #8cc36f;           /* olive */
+  --danger: #e56a6a;            /* soft brick */
+  --urgency: #f0975c;
+
+  --energy: #d5a266;            /* rust power-up axis */
+  --energy-light: #e8c9a0;
+  --energy-tint: #3d3222;
+
+  --dz-bg: #201a14;             /* late-evening walnut */
+  --dz3-surface: #3a2020;
+  --dz-hero: #442525;
+
+  --font-display: 'Fredoka', 'Space Grotesk', system-ui, sans-serif;
+  --font-body: 'Fredoka', 'Space Grotesk', system-ui, sans-serif;
+  --font-mono: ui-monospace, 'Cascadia Code', 'SF Mono', Menlo, monospace;
+
+  --radius: 18px;               /* soft, rounded */
+  --radius-sm: 12px;
+  --radius-lg: 22px;
+  --radius-xl: 28px;
+  --pill: 999px;
+
+  --on-accent: #2a2113;         /* 7.6:1 on mustard */
+  --primary-hover: #c08a28;
+  --on-warn: #2a2113;           /* 6.0:1 on orange urgency */
+
+  --on-gold: var(--on-accent);  /* app safety — see lime block */
+}
+
+/* ═════════════════════════════════════════════════════════════════════
+   PRIMARY-FILL TEXT — components hardcode dark text on primary fills
+   (fg-nav__log, CTA pills, pressed chips…). Re-point once, generically:
+   every themed page gets AA text on its action colour.
+   ═════════════════════════════════════════════════════════════════════ */
+[data-theme] :is(.fg-nav__log,
+                 .fg-sheet__cta,
+                 .fg-chip[aria-pressed="true"],
+                 .fg-chip.is-selected,
+                 .fg-status,
+                 .fg-dz,
+                 .fg-event__tag,
+                 .fg-badge--live,
+                 .fg-dialog__cta,
+                 .fg-pro__cta,
+                 .fg-state__cta) {
+  color: var(--on-accent);
+}
+/* warn fills (DZ banners L2/L3) need their own on-colour — light text on
+   amber/orange fails in every palette. */
+[data-theme] :is(.fg-dz--l2, .fg-dz--l3) { color: var(--on-warn); }
+
+/* shared button primitive (tokens.css hardcodes #0a0b0d + #d6ff45 —
+   correct for lime only; themes.css loads after, so this wins) */
+[data-theme] .rwf-btn--primary { color: var(--on-accent); }
+[data-theme] .rwf-btn--primary:hover {
+  background: var(--primary-hover);
+  color: var(--on-accent);
+  box-shadow: 0 0 24px var(--lime-glow);
+}
+
+/* ═════════════════════════════════════════════════════════════════════
+   PER-THEME FEEL — the craft tokens can't carry alone
+   ═════════════════════════════════════════════════════════════════════ */
+
+/* ── sunset: heavy ink borders, hard offset shadows, heavy display type ── */
+[data-theme="sunset"] :is(.fg-battle, .fg-sheet, .fg-lbrow, .fg-count,
+                          .fg-dz, .fg-dialog, .fg-feed, .fg-pwr, .fg-event,
+                          .fg-state, .fg-pro__table, .fg-plan, .fg-chip,
+                          .fg-nav) {
+  border-width: 2px;
+  border-color: var(--line);
+}
+[data-theme="sunset"] .fg-nav { border-top-width: 2px; }
+[data-theme="sunset"] .fg-battle { border-color: var(--line); }  /* full ink, not color-mix */
+[data-theme="sunset"] .fg-lbrow--leader { border-color: var(--lime); }
+[data-theme="sunset"] :is(.fg-battle__title, .fg-sheet__title,
+                          .fg-count__time, .fg-pwr__name, .fg-event__title,
+                          .fg-dz__label) { font-weight: 800; }  /* oversized flat type */
+[data-theme="sunset"] :is(.fg-nav__log, .fg-sheet__cta, .fg-dialog__cta,
+                          .fg-pro__cta, .fg-state__cta, .fg-status,
+                          .fg-chip[aria-pressed="true"]) {
+  box-shadow: 4px 4px 0 var(--line);        /* hard offset, zero blur */
+}
+[data-theme="sunset"] :is(.fg-nav__log, .fg-sheet__cta, .fg-dialog__cta,
+                          .fg-pro__cta, .fg-state__cta):active {
+  box-shadow: 1px 1px 0 var(--line);
+  transform: translate(3px, 3px);           /* pressed into the paper */
+}
+
+/* ── neon: mono display at full weight, glow edges on primary surfaces ── */
+[data-theme="neon"] :is(.fg-battle__title, .fg-sheet__title,
+                        .fg-count__time, .fg-pwr__name, .fg-event__title,
+                        .fg-dz__label) { font-weight: 700; }
+[data-theme="neon"] .fg-nav__log { box-shadow: 0 0 32px var(--lime-glow); }
+[data-theme="neon"] :is(.fg-battle, .fg-lbrow--leader, .fg-count--dz1) {
+  box-shadow: 0 0 24px var(--lime-glow),
+              inset 0 0 0 1px color-mix(in srgb, var(--lime) 18%, transparent);
+}
+[data-theme="neon"] :is(.fg-sheet__cta, .fg-dialog__cta, .fg-pro__cta) {
+  box-shadow: 0 0 20px var(--lime-glow);
+}
+
+/* ── forest: soft warm shadows, friendly display weight ── */
+[data-theme="forest"] :is(.fg-battle__title, .fg-sheet__title,
+                          .fg-count__time, .fg-pwr__name, .fg-event__title,
+                          .fg-dz__label) { font-weight: 600; }
+[data-theme="forest"] .fg-nav__log { box-shadow: 0 12px 32px rgba(20, 14, 8, 0.45); }
+[data-theme="forest"] :is(.fg-sheet__cta, .fg-dialog__cta, .fg-pro__cta) {
+  box-shadow: 0 8px 24px rgba(20, 14, 8, 0.35);
+}
+
+/* ═══════════════════════════════════════════════════════════════════════
+   FIGMA-APP fx-* RE-POINTS — the app's own component layer (app.css)
+   hardcodes two literal-gold fills. They sit on the gold axis by design
+   but must follow the slot semantics under every theme. (--on-gold is
+   re-pointed per-theme above for the same reason.)
+   ═══════════════════════════════════════════════════════════════════════ */
+
+/* ×3 lightning tag (leaderboard rows) — bg-coloured text on a gold fill
+   would vanish in sunset (cream-on-gold ≈ 1.6:1); ride the primary slot */
+[data-theme] .fx-lt { color: var(--on-accent); background: var(--lime); }
+
+/* power-up status line — gold text on a gold tint; same problem, same fix */
+[data-theme] .fx-ltline {
+  color: var(--lime);
+  background: color-mix(in srgb, var(--lime) 12%, transparent);
+  border-color: color-mix(in srgb, var(--lime) 40%, transparent);
+}

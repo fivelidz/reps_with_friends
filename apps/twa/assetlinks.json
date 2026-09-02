@@ -1,0 +1,10 @@
+[{
+  "relation": ["delegate_permission/common.handle_all_urls"],
+  "target": {
+    "namespace": "android_app",
+    "package_name": "com.qalarc.repswithfriends",
+    "sha256_cert_fingerprints": [
+      "81:46:14:C1:AD:93:16:F6:53:D3:A9:18:83:97:D2:36:30:39:C8:B3:01:DC:70:11:EC:4B:6F:2D:8B:E8:DC:2A"
+    ]
+  }
+}]

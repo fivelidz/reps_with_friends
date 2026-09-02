@@ -1,0 +1,316 @@
+<!doctype html>
+<html lang="en" data-theme="lime">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <title>Reps With Friends · Five design directions</title>
+  <meta name="description" content="Five complete theme directions for RWF — side-by-side phone mocks, full-screen previews, and the component library in every skin.">
+  <link rel="stylesheet" href="/design/fonts/fonts.css">
+  <link rel="stylesheet" href="/design/tokens.css">
+  <link rel="stylesheet" href="/design/themes.css">
+  <link rel="stylesheet" href="/design/figma-components.css">
+  <link rel="stylesheet" href="styles.css">
+</head>
+<body>
+
+  <!-- ═══════════════ HEADER — re-skins in preview mode ═══════════════ -->
+  <header class="st-header">
+    <div class="st-header__row">
+      <div>
+        <p class="st-overline">RWF · theme exploration</p>
+        <h1 class="st-title">Five design directions</h1>
+        <p class="st-sub">One design system, five complete skins. Every theme re-points
+          <b>all</b> core tokens — surfaces, text, action colour, type, radii, shadow —
+          so each reads like a different product, not a hue swap.</p>
+      </div>
+      <nav class="st-links" aria-label="Related pages">
+        <a href="/system">/system · library</a>
+        <a href="/figma-app">/figma-app · full app</a>
+      </nav>
+    </div>
+    <div class="st-previewbar" id="previewBar" hidden>
+      <span class="st-previewbar__chip" id="previewChip">THEME</span>
+      <span class="st-previewbar__copy">full-screen preview — this page + the component library are wearing the theme</span>
+      <button class="st-previewbar__exit" id="previewExit" type="button">✕ &nbsp;Back to compare</button>
+    </div>
+  </header>
+
+  <!-- ═══════════════ 1 · PICKER — names, one-liners, swatches ═══════════ -->
+  <section class="st-sec" id="picker" aria-label="The five themes">
+    <p class="st-kicker">01 · The five</p>
+    <div class="st-cards" id="cards"><!-- rendered by gallery.js --></div>
+  </section>
+
+  <!-- ═══════════════ 2 · SIDE-BY-SIDE — 5 live iframes ═══════════════ -->
+  <section class="st-sec" id="compare" aria-label="Side-by-side comparison">
+    <p class="st-kicker">02 · Side by side — the same screens, five skins</p>
+    <div class="st-switch" role="group" aria-label="Which screens to show">
+      <button class="st-switch__btn is-on" data-screen="both" type="button">Home + Battle</button>
+      <button class="st-switch__btn" data-screen="home" type="button">Home</button>
+      <button class="st-switch__btn" data-screen="battle" type="button">Battle</button>
+    </div>
+    <div class="st-strip" id="strip"><!-- iframes rendered by gallery.js --></div>
+    <p class="st-note">Live components — the countdowns tick, the log sheet converts,
+      the DZ banner cycles. Scroll the strip sideways; each frame is a real page
+      (<code>demo.html?t=…</code>) wearing one theme.</p>
+  </section>
+
+  <!-- ═══════════════ 3 · FULL PREVIEW (revealed per theme) ═══════════ -->
+  <section class="st-sec st-preview" id="preview" aria-label="Full-screen preview" hidden>
+    <p class="st-kicker">03 · Full preview — <span id="previewName">theme</span></p>
+    <div class="st-preview__hero">
+      <iframe id="previewFrame" title="Phone mock in the selected theme" loading="lazy"></iframe>
+    </div>
+
+    <h2 class="st-h2">The component library, in this skin</h2>
+    <p class="st-note">Every real <code>fg-*</code> component from
+      <code>design/figma-components.css</code> — same markup as /system, zero edits,
+      purely re-tokened.</p>
+
+    <div class="st-lib">
+
+      <div class="st-lib__comp"><p class="st-lib__name">Battle card</p>
+        <div class="fg-battle">
+          <div class="fg-battle__head">
+            <span class="fg-status">LIVE</span>
+            <span class="fg-battle__meta">5 mates · Day 3 of 7</span>
+          </div>
+          <h3 class="fg-battle__title">The Sunday Showdown</h3>
+          <div class="fg-battle__crew">
+            <span class="fg-avatar fg-avatar--sm fg-avatar--online">BW<span class="fg-avatar__dot"></span></span>
+            <span class="fg-avatar fg-avatar--sm fg-avatar--online">SK<span class="fg-avatar__dot"></span></span>
+            <span class="fg-avatar fg-avatar--sm">JP</span>
+            <span class="fg-avatar fg-avatar--sm">AT</span>
+          </div>
+          <div class="fg-battle__bar"><i style="width:62%"></i></div>
+          <p class="fg-battle__foot">You're 2nd — 36 RUF behind Sam</p>
+        </div>
+      </div>
+
+      <div class="st-lib__comp"><p class="st-lib__name">Leaderboard — 400ms spring</p>
+        <div>
+          <div class="fg-stack">
+            <div class="fg-lbrow fg-lbrow--leader">
+              <span class="fg-lbrow__rank">1</span>
+              <span class="fg-avatar fg-avatar--leader">SK<span class="fg-avatar__dot"></span></span>
+              <div class="fg-lbrow__info">
+                <span class="fg-lbrow__name">Sam K <span class="fg-icon" data-fg-icon="crown"></span></span>
+                <div class="fg-lbrow__bar"><i style="width:88%"></i></div>
+              </div>
+              <div class="fg-lbrow__score"><div class="fg-lbrow__pct">88%</div><div class="fg-lbrow__ruf">106 / 120 RUF</div></div>
+            </div>
+            <div class="fg-lbrow fg-lbrow--you">
+              <span class="fg-lbrow__rank">2</span>
+              <span class="fg-avatar">YT</span>
+              <div class="fg-lbrow__info">
+                <span class="fg-lbrow__name">You</span>
+                <div class="fg-lbrow__bar"><i style="width:71%"></i></div>
+              </div>
+              <div class="fg-lbrow__score"><div class="fg-lbrow__pct">71%</div><div class="fg-lbrow__ruf">85 / 120 RUF</div></div>
+            </div>
+            <div class="fg-lbrow fg-lbrow--behind">
+              <span class="fg-lbrow__rank">3</span>
+              <span class="fg-avatar">JP</span>
+              <div class="fg-lbrow__info">
+                <span class="fg-lbrow__name">Jordan P</span>
+                <div class="fg-lbrow__bar"><i style="width:54%"></i></div>
+              </div>
+              <div class="fg-lbrow__score"><div class="fg-lbrow__pct">54%</div><div class="fg-lbrow__ruf">65 / 120 RUF</div></div>
+            </div>
+          </div>
+          <button class="st-mini" data-fg-board type="button">↻ shuffle — spring reorder</button>
+        </div>
+      </div>
+
+      <div class="st-lib__comp"><p class="st-lib__name">Countdown — 3 DZ levels</p>
+        <div class="fg-stack">
+          <div class="fg-count" data-fg-live>
+            <span class="fg-icon" data-fg-icon="clock"></span>
+            <div><div class="fg-count__time">6:12:44</div><div class="fg-count__sub">ends 9:00 PM AEST</div></div>
+          </div>
+          <div class="fg-count fg-count--dz2">
+            <span class="fg-icon" data-fg-icon="clock"></span>
+            <div><div class="fg-count__time">1:04:07</div><div class="fg-count__sub">danger zone · level 2</div></div>
+          </div>
+          <div class="fg-count fg-count--dz3">
+            <span class="fg-icon" data-fg-icon="clock"></span>
+            <div><div class="fg-count__time">0:28:10</div><div class="fg-count__sub">heartbeat — timer only pulses</div></div>
+          </div>
+        </div>
+      </div>
+
+      <div class="st-lib__comp"><p class="st-lib__name">Danger-zone banner — click to cycle</p>
+        <button class="fg-dz" data-fg-live type="button">
+          <span class="fg-icon" data-fg-icon="warning"></span>
+          <span class="fg-dz__label">DANGER ZONE — 3 HOURS LEFT</span>
+        </button>
+      </div>
+
+      <div class="st-lib__comp"><p class="st-lib__name">Quick-log sheet</p>
+        <div class="fg-sheet" data-fg-live>
+          <div class="fg-sheet__grab"></div>
+          <h3 class="fg-sheet__title">Log reps</h3>
+          <div class="fg-sheet__row">
+            <button class="fg-chip fg-chip--exercise" type="button" aria-pressed="true">Push-ups</button>
+            <button class="fg-chip fg-chip--exercise" type="button" aria-pressed="false">Squats</button>
+            <button class="fg-chip fg-chip--exercise" type="button" aria-pressed="false">Burpees</button>
+            <button class="fg-chip fg-chip--exercise" type="button" aria-pressed="false">Plank (10s)</button>
+          </div>
+          <div class="fg-sheet__row">
+            <button class="fg-chip fg-chip--lg" type="button" aria-pressed="false">10</button>
+            <button class="fg-chip fg-chip--lg" type="button" aria-pressed="true">20</button>
+            <button class="fg-chip fg-chip--lg" type="button" aria-pressed="false">50</button>
+            <button class="fg-chip fg-chip--lg" type="button" aria-pressed="false">100</button>
+          </div>
+          <p class="fg-sheet__conversion"><b>20 push-ups = 20 RUF</b> · takes you to 92%</p>
+          <button class="fg-sheet__cta" type="button">LOG 20 PUSH-UPS</button>
+        </div>
+      </div>
+
+      <div class="st-lib__comp"><p class="st-lib__name">Events</p>
+        <div class="fg-stack">
+          <div class="fg-event">
+            <span class="fg-icon" data-fg-icon="bolt"></span>
+            <div class="fg-event__copy"><div class="fg-event__title">Thunder Hour</div><div class="fg-event__sub">All reps count DOUBLE until 8 PM</div></div>
+            <span class="fg-event__tag">23:41</span>
+          </div>
+          <div class="fg-event fg-event--storm">
+            <span class="fg-icon" data-fg-icon="flame"></span>
+            <div class="fg-event__copy"><div class="fg-event__title">Rep Storm</div><div class="fg-event__sub">4 crew active — bonus unlocked</div></div>
+            <span class="fg-event__tag">LIVE</span>
+          </div>
+          <div class="fg-event fg-event--charity">
+            <span class="fg-icon" data-fg-icon="chest"></span>
+            <div class="fg-event__copy"><div class="fg-event__title">Charity pot</div><div class="fg-event__sub">$2 / rep · loser pays</div></div>
+            <span class="fg-event__tag">$18</span>
+          </div>
+        </div>
+      </div>
+
+      <div class="st-lib__comp"><p class="st-lib__name">Dialogs</p>
+        <div class="fg-stack">
+          <div class="fg-dialog">
+            <h3 class="fg-dialog__title">Use Lightning Round?</h3>
+            <p class="fg-dialog__body">Your next 10 minutes of reps count 3×. One per day — make it count.</p>
+            <button class="fg-dialog__cta" type="button">ACTIVATE</button>
+            <button class="fg-dialog__dismiss" type="button">Not yet</button>
+          </div>
+          <div class="fg-dialog fg-dialog--destructive">
+            <h3 class="fg-dialog__title">Delete this entry?</h3>
+            <p class="fg-dialog__body">25 squats (25 RUF) will be removed from today's total.</p>
+            <button class="fg-dialog__cta" type="button">DELETE ENTRY</button>
+            <button class="fg-dialog__dismiss" type="button">Keep it</button>
+          </div>
+        </div>
+      </div>
+
+      <div class="st-lib__comp"><p class="st-lib__name">Feed</p>
+        <div class="fg-stack">
+          <div class="fg-feed">
+            <span class="fg-feed__bubble"><span class="fg-icon" data-fg-icon="check"></span></span>
+            <div class="fg-feed__content"><div class="fg-feed__line"><b>Sam K</b> logged 25 squats</div><div class="fg-feed__meta">+25 RUF · 2 min ago</div></div>
+            <span class="fg-feed__react">🔥 3</span>
+          </div>
+          <div class="fg-feed fg-feed--power">
+            <span class="fg-feed__bubble"><span class="fg-icon" data-fg-icon="bolt"></span></span>
+            <div class="fg-feed__content"><div class="fg-feed__line"><b>Jordan P</b> activated Lightning Round</div><div class="fg-feed__meta">Triple reps for 10 min · 5 min ago</div></div>
+            <span class="fg-feed__react">⚡ 2</span>
+          </div>
+        </div>
+      </div>
+
+      <div class="st-lib__comp"><p class="st-lib__name">Power-ups</p>
+        <div class="fg-row">
+          <div class="fg-pwr fg-pwr--legendary">
+            <span class="fg-pwr__rarity">LEGENDARY</span>
+            <span class="fg-pwr__art"><span class="fg-icon" data-fg-icon="bolt"></span></span>
+            <h3 class="fg-pwr__name">Lightning Round</h3>
+            <p class="fg-pwr__desc">Reps count 3× for the next 10 minutes</p>
+          </div>
+          <div class="fg-pwr fg-pwr--epic">
+            <span class="fg-pwr__rarity">EPIC</span>
+            <span class="fg-pwr__art"><span class="fg-icon" data-fg-icon="bolt"></span></span>
+            <h3 class="fg-pwr__name">Rep Steal</h3>
+            <p class="fg-pwr__desc">Take 10% of an opponent's total (SAMPLE cap)</p>
+          </div>
+        </div>
+      </div>
+
+      <div class="st-lib__comp"><p class="st-lib__name">Badges</p>
+        <div class="fg-row">
+          <span class="fg-badge"><span class="fg-icon" data-fg-icon="flame"></span>7 DAY STREAK</span>
+          <span class="fg-badge fg-badge--live"><span class="fg-icon" data-fg-icon="bolt"></span>LIVE NOW</span>
+          <span class="fg-badge fg-badge--rank"><span class="fg-icon" data-fg-icon="trophy"></span>DAY 3 WINNER</span>
+          <span class="fg-badge fg-badge--premium"><span class="fg-icon" data-fg-icon="crown"></span>REPS PRO</span>
+          <span class="fg-badge fg-badge--danger"><span class="fg-icon" data-fg-icon="clock"></span>30 MIN LEFT</span>
+        </div>
+      </div>
+
+      <div class="st-lib__comp"><p class="st-lib__name">States</p>
+        <div class="fg-row">
+          <div class="fg-state">
+            <span class="fg-state__icon"><span class="fg-icon" data-fg-icon="trophy"></span></span>
+            <h3 class="fg-state__title">No battles yet</h3>
+            <p class="fg-state__body">Create your first battle or join a mate's.</p>
+            <button class="fg-state__cta" type="button">CREATE A BATTLE</button>
+          </div>
+          <div class="fg-state fg-state--locked">
+            <span class="fg-state__icon"><span class="fg-icon" data-fg-icon="lock"></span></span>
+            <h3 class="fg-state__title">Pro feature</h3>
+            <p class="fg-state__body">Multiple battles need Reps Pro.</p>
+          </div>
+        </div>
+      </div>
+
+      <div class="st-lib__comp"><p class="st-lib__name">Reps Pro paywall</p>
+        <div class="fg-pro">
+          <h3 class="fg-pro__title">Reps Pro</h3>
+          <div class="fg-pro__table">
+            <div class="fg-pro__row fg-pro__row--head"><span>Feature</span><span>Free</span><span>Pro</span></div>
+            <div class="fg-pro__row"><span>Active battles</span><span>1</span><span>Unlimited</span></div>
+            <div class="fg-pro__row"><span>Power-up inventory</span><span>4 slots</span><span>12 slots</span></div>
+            <div class="fg-pro__row"><span>Streak Freeze / month</span><span>—</span><span>1 free</span></div>
+          </div>
+          <div class="fg-pro__plans">
+            <button class="fg-plan" type="button"><span class="fg-plan__name">Monthly</span><span class="fg-plan__price">$7.99</span></button>
+            <button class="fg-plan fg-plan--selected" type="button" aria-pressed="true"><span class="fg-plan__flag">SAVE 37%</span><span class="fg-plan__name">Annual</span><span class="fg-plan__price">$59.99</span></button>
+            <button class="fg-plan" type="button"><span class="fg-plan__flag">FOUNDERS · 214 LEFT</span><span class="fg-plan__name">Lifetime</span><span class="fg-plan__price">$149</span></button>
+          </div>
+          <button class="fg-pro__cta" type="button">START ANNUAL — $59.99/YR</button>
+        </div>
+      </div>
+
+    </div>
+  </section>
+
+  <!-- ═══════════════ 4 · CHECKS ═══════════════ -->
+  <section class="st-sec" id="checks" aria-label="Automated checks">
+    <p class="st-kicker">04 · Checks — computed styles + WCAG, live in this page</p>
+    <div class="st-checks__row">
+      <button class="st-runbtn" id="runChecks" type="button">▸ Run checks</button>
+      <span class="st-checks__sum" id="checksSummary">not run yet</span>
+    </div>
+    <div id="checksOut" class="st-checks__out" aria-live="polite"></div>
+    <p class="st-note">Reads each frame's <i>computed</i> tokens (same-origin), then
+      recomputes WCAG ratios in-browser. The offline source of truth is
+      <code>scripts/styles_contrast.py</code>; the headless walk is
+      <code>apps/styles/e2e.mjs</code>.</p>
+  </section>
+
+  <!-- ═══════════════ FOOTER ═══════════════ -->
+  <footer class="st-footer">
+    <p><b>How it works</b> — <code>design/themes.css</code> holds five
+      <code>[data-theme]</code> blocks over the slot contract in
+      <code>design/tokens.css</code>. Load both stylesheets, set
+      <code>&lt;html data-theme="…"&gt;</code>, and every token consumer flips.
+      The app ships the same picker: <a href="/figma-app/#/set-007">Settings → Theme (beta)</a>.</p>
+    <p class="st-footer__fine">Fonts vendored in <code>design/fonts/</code> (Google woff2,
+      latin subset, offline) · no new dependencies · themes are opt-in — the default
+      product skin stays <b>Lime Athletic</b>.</p>
+  </footer>
+
+  <script src="/design/figma-components.js"></script>
+  <script src="verify.js"></script>
+  <script src="gallery.js"></script>
+</body>
+</html>

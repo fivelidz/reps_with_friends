@@ -22,7 +22,12 @@ cp apps/slack-setup/index.html apps/slack-setup/slack-setup.js apps/slack-setup/
 cp apps/connect/index.html apps/connect/connect.js apps/connect/connect.css apps/connect/qr.js deploy/public/connect/
 cp apps/demo/index.html apps/demo/demo.js apps/demo/demo.css deploy/public/demo/
 cp apps/systempage/index.html apps/systempage/system.js apps/systempage/system.css deploy/public/system/
+# theme exploration gallery (design/themes.css rides the existing design/ copy)
+mkdir -p deploy/public/styles && cp apps/styles/index.html apps/styles/demo.html apps/styles/styles.css apps/styles/gallery.js apps/styles/verify.js deploy/public/styles/
 # ── figma-app version stamp (v1.0.0) ────────────────────────────────────
+# the app vendors a copy of design/themes.css (theme beta) — sync it so the
+# five skins can never drift between the gallery and the app
+cp design/themes.css apps/figma-app/themes.css
 # sw.js derives its cache name from version.js's BUILD_STAMP, so EVERY
 # deploy busts the service-worker cache — the stale-SW phone bug stays
 # dead. git hash alone isn't enough (multiple deploys per commit), so the

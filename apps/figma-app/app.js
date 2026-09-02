@@ -119,7 +119,7 @@ function statusBar() {
     <span>9:41</span>
     <span class="fx-status__tools">
       <button class="fx-tool" ${go("")} title="All screens">${ic("feed")}INDEX</button>
-      <button class="fx-tool" id="themeToggle" title="Toggle Ben gold / our lime">GOLD</button>
+      <button class="fx-tool" id="themeToggle" title="Cycle theme (beta) — 5 directions">LIME</button>
     </span>
   </div>`;
 }
@@ -2087,6 +2087,10 @@ TUESDAY</div>
           ${menuRow("Edit profile", "profile-001")}
           ${menuRow("Time zone & quiet hours", "auth-009")}
         </div>
+        <p class="fx-menurow__group" style="margin-left:0">APPEARANCE</p>
+        <div class="fx-menu">
+          ${menuRow(`Theme (beta) · ${appThemeName()}`, "set-007")}
+        </div>
         <p class="fx-menurow__group" style="margin-left:0">BATTLES</p>
         <div class="fx-menu">
           ${menuRow("Notification intensity", "set-003")}
@@ -2135,6 +2139,37 @@ TUESDAY</div>
         ${toggleRow("Marketing", false)}
         ${note("Quiet hours: 10:00 PM – 7:00 AM (local). Non-urgent noise waits until morning.")}
       </div>`,
+  },
+  {
+    /* THEME (beta) — the five-direction exploration shipped as a picker.
+       Same skins as /styles; appApplyTheme does the work, this is surface. */
+    id: "set-007", figma: "MOB-SET-007", name: "Theme (beta)", group: "Profile & Settings", next: "set-003",
+    render: () => `
+      ${statusBar()}
+      ${topBar({ title: "Create battle", back: true })}
+      <div class="fx-content">
+        ${h1("THEME (BETA)", "fx-h1--24")}
+        ${sub("Five complete design directions — every surface, re-tokened. Applied instantly, saved on this device.", "fx-sub--14")}
+        <div id="themeOpts" class="fx-themeopts">
+          ${APP_THEMES.map((t) => `
+            <button class="fx-option fx-option--row fx-themeopt" type="button" data-theme-opt="${t.id}">
+              <span class="fx-themeopt__left">
+                <span class="fx-themeswatch" aria-hidden="true">
+                  <i style="background:${themeToken(t.id, "--bg")}"></i>
+                  <i style="background:${themeToken(t.id, "--lime")}"></i>
+                  <i style="background:${themeToken(t.id, "--coral")}"></i>
+                </span>
+                <span>
+                  <span class="fx-option__title">${t.name}</span>
+                  <span class="fx-option__sub">${t.line}</span>
+                </span>
+              </span>
+              <span class="fx-themecheck" aria-hidden="true">${ic("check")}</span>
+            </button>`).join("")}
+        </div>
+        ${note("Beta: themes re-skin everything, game logic is untouched. Default is Lime Athletic. Compare all five side by side at /styles on the desktop site.")}
+      </div>
+      ${nav("set-001")}`,
   },
   {
     id: "set-005", figma: "MOB-SET-005", name: "Reps Pro paywall", group: "Profile & Settings", next: "set-005b",
@@ -2592,6 +2627,19 @@ function wireScreen(root, id) {
     });
   }
 
+  /* THEME (beta): set-007 picker — apply instantly, persist, toast */
+  const themeOpts = root.querySelector("#themeOpts");
+  if (themeOpts) {
+    const cur = appApplyTheme(appTheme(), { persist: false }); // paint selection state
+    themeOpts.querySelectorAll("[data-theme-opt]").forEach((o) => {
+      o.addEventListener("click", () => {
+        const id = appApplyTheme(o.dataset.themeOpt);
+        const t = APP_THEMES.find((x) => x.id === id);
+        toast(`${ic("bolt")}THEME — ${t.name.toUpperCase()} <span style="color:var(--faint)">saved</span>`);
+      });
+    });
+  }
+
   /* onboarding: tier options (auth-010) */
   const tierOpts = root.querySelector("#tierOpts");
   if (tierOpts) {
@@ -2758,6 +2806,45 @@ function wireChest(root) {
   });
 }
 
+/* ── THEME (beta) — five design directions over one token system ────────
+   design/themes.css holds the skins; this block only picks one, persists
+   it (rwf-figma-theme), and keeps the Settings row + status-bar toggle
+   honest. Swatches resolve from a live probe so they can't drift. */
+const APP_THEMES = [
+  { id: "lime",   name: "Lime Athletic",    short: "LIME",   line: "Dark steel + one loud lime. The system as shipped." },
+  { id: "gold",   name: "Gold Arcade",      short: "GOLD",   line: "Ben's direction — purple-ink, gold actions, Anton." },
+  { id: "sunset", name: "Sunset Brutalist", short: "SUNSET", line: "Cream paper, ink borders, poster type. Light mode." },
+  { id: "neon",   name: "Midnight Neon",    short: "NEON",   line: "Blue-black, cyan + magenta, mono numerals. Esports." },
+  { id: "forest", name: "Forest Retro",     short: "FOREST", line: "Walnut, mustard, soft radii. Family mode." },
+];
+const THEME_KEY = "rwf-figma-theme";
+function appApplyTheme(t, { persist = true } = {}) {
+  const theme = APP_THEMES.some((x) => x.id === t) ? t : "lime";
+  document.documentElement.dataset.theme = theme;
+  if (persist) { try { localStorage.setItem(THEME_KEY, theme); } catch {} }
+  const btn = document.getElementById("themeToggle");
+  if (btn) btn.textContent = APP_THEMES.find((x) => x.id === theme).short;
+  document.querySelectorAll("[data-theme-opt]").forEach((o) => {
+    o.classList.toggle("fx-option--sel", o.dataset.themeOpt === theme);
+    o.querySelector(".fx-themecheck")?.setAttribute("aria-hidden", String(o.dataset.themeOpt !== theme));
+  });
+  return theme;
+}
+function appTheme() {
+  try { return localStorage.getItem(THEME_KEY) ?? "lime"; } catch { return "lime"; }
+}
+const appThemeName = () => APP_THEMES.find((x) => x.id === appTheme())?.name ?? "Lime Athletic";
+/* resolve a token for a theme without flipping the app: off-screen probe */
+const __themeProbe = document.createElement("div");
+(function () {
+  __themeProbe.style.cssText = "position:fixed;left:-9999px;top:0;pointer-events:none";
+  document.body.appendChild(__themeProbe);
+})();
+function themeToken(theme, slot) {
+  __themeProbe.setAttribute("data-theme", theme);
+  return getComputedStyle(__themeProbe).getPropertyValue(slot).trim();
+}
+
 /* global click delegation: data-go, back, theme, LOG overlay */
 document.addEventListener("click", (e) => {
   const g = e.target.closest("[data-go]");
@@ -2767,11 +2854,11 @@ document.addEventListener("click", (e) => {
   if (e.target.closest("[data-sw-reload]")) { location.reload(); return; }
   const theme = e.target.closest("#themeToggle");
   if (theme) {
-    const html = document.documentElement;
-    const gold = html.getAttribute("data-theme") === "gold";
-    if (gold) html.removeAttribute("data-theme"); else html.setAttribute("data-theme", "gold");
-    theme.textContent = gold ? "LIME" : "GOLD";
-    try { localStorage.setItem("rwf-figma-theme", gold ? "lime" : "gold"); } catch {}
+    const cur = document.documentElement.dataset.theme || "lime";
+    const i = APP_THEMES.findIndex((x) => x.id === cur);
+    const next = APP_THEMES[(i + 1) % APP_THEMES.length];
+    appApplyTheme(next.id);
+    toast(`${ic("bolt")}THEME — ${next.name.toUpperCase()} <span style="color:var(--faint)">(beta · Settings)</span>`);
     return;
   }
   if (e.target.closest("#logBtn")) { openOverlay(quickLogSheet()); return; }
@@ -2825,11 +2912,8 @@ D.startAppTicker({
   },
 });
 
-/* theme restore + route */
-try {
-  const saved = localStorage.getItem("rwf-figma-theme");
-  if (saved === "lime") { document.documentElement.removeAttribute("data-theme"); }
-} catch {}
+/* theme restore + route — saved choice wins (any of the five), lime default */
+try { appApplyTheme(localStorage.getItem(THEME_KEY) ?? "lime", { persist: false }); } catch { appApplyTheme("lime", { persist: false }); }
 
 /* ── SW update lane (v1.0.0): old tabs must learn about new builds ──────
    sw.js's cache name comes from version.js's BUILD_STAMP; when a new
@@ -2875,8 +2959,10 @@ function route() {
 addEventListener("hashchange", route);
 route();
 
-/* keep the theme toggle label honest on load */
+/* keep the theme toggle label honest on load (applyTheme also does this,
+   but a late-rendered statusBar needs the pass after first route) */
 requestAnimationFrame(() => {
+  const cur = document.documentElement.dataset.theme || "lime";
   const t = $("#themeToggle");
-  if (t) t.textContent = document.documentElement.getAttribute("data-theme") === "gold" ? "GOLD" : "LIME";
+  if (t) t.textContent = APP_THEMES.find((x) => x.id === cur)?.short ?? "LIME";
 });

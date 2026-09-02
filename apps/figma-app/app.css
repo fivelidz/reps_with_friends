@@ -1,8 +1,9 @@
 /* ═══════════════════════════════════════════════════════════════════════
    RWF FIGMA TEST APP — screen styles (fx-*)
    Every screen is built from Ben's Figma frames (figma/assets/file.json —
-   exact bboxes, fills, type). Colours come from tokens.css only; the gold
-   theme is default ([data-theme="gold"] on <html>), lime via the toggle.
+   exact bboxes, fills, type). Colours come from tokens.css only; LIME is
+   the default theme, Settings → Theme (beta) + the status-bar toggle
+   cycle all five (lime/gold/sunset/neon/forest via themes.css).
    Phone-first: 393×852 target, bottom nav 84px with 64px LOG, ≥44px
    targets, safe-area insets honoured.
    ═══════════════════════════════════════════════════════════════════════ */
@@ -697,6 +698,24 @@
   padding: 14px 16px; outline: none;
 }
 .fx-input:focus { border-color: var(--lime); }
+
+/* ── THEME (beta) picker — set-007 ────────────────────────────────────── */
+.fx-themeopts { display: flex; flex-direction: column; gap: 10px; margin-top: 14px; }
+.fx-themeopt { padding: 13px 14px; }
+.fx-themeopt__left { display: flex; align-items: center; gap: 12px; min-width: 0; }
+.fx-themeopt__left > span:last-child { display: flex; flex-direction: column; gap: 3px; min-width: 0; }
+.fx-themeswatch {
+  display: flex; gap: 3px; padding: 4px; flex: none;
+  border: 1px solid var(--line); border-radius: var(--pill);
+  background: var(--surface);
+}
+.fx-themeswatch i { width: 14px; height: 14px; border-radius: 50%; display: block; }
+.fx-themecheck {
+  color: var(--lime); display: inline-flex; flex: none;
+  opacity: 0; transition: opacity var(--ease);
+}
+.fx-themecheck[aria-hidden="false"] { opacity: 1; }
+.fx-option--sel .fx-themecheck { opacity: 1; }
 
 /* comeback ×1.2 tag on a leaderboard row */
 .fx-cb {

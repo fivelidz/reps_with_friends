@@ -6,3 +6,11 @@
    tokens.css points --font-display/--font-body at them. */
 @font-face{font-family:'Anton';font-style:normal;font-weight:400;font-display:swap;src:url('anton-regular.woff2') format('woff2');}
 @font-face{font-family:'Inter';font-style:normal;font-weight:100 900;font-display:swap;src:url('inter-var.woff2') format('woff2');}
+/* Theme exploration (design/themes.css): one display family per candidate
+   theme, vendored the same way — Google woff2, latin subset, no CDN.
+   Archivo var = Sunset Brutalist (heavy grotesk, w800/900 display) ·
+   JetBrains Mono var = Midnight Neon (mono numerals + display) ·
+   Fredoka var = Forest Retro (rounded friendly display, family mode). */
+@font-face{font-family:'Archivo';font-style:normal;font-weight:100 900;font-display:swap;src:url('archivo-var.woff2') format('woff2');}
+@font-face{font-family:'JetBrains Mono';font-style:normal;font-weight:100 800;font-display:swap;src:url('jetbrains-mono-var.woff2') format('woff2');}
+@font-face{font-family:'Fredoka';font-style:normal;font-weight:300 700;font-display:swap;src:url('fredoka-var.woff2') format('woff2');}

@@ -1,0 +1,13 @@
+# Gradle
+.gradle/
+build/
+app/build/
+local-run/
+
+# IDE
+.idea/
+*.iml
+.kotlin/
+
+# Keep local.properties in-repo (sdk.dir is machine-local but this repo is
+# single-machine; the qalarc-explorer reference project does the same).

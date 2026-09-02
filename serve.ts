@@ -266,6 +266,9 @@ const server = Bun.serve({
       r = dirRoute("apps/atelier", url) ?? new Response("atelier not found", { status: 404 });
     } else if (p.startsWith("/system")) {
       r = dirRoute("apps/systempage", url) ?? new Response("system page not found", { status: 404 });
+    } else if (p.startsWith("/styles")) {
+      // Five-theme design exploration — side-by-side gallery + full previews.
+      r = dirRoute("apps/styles", url) ?? new Response("styles gallery not found", { status: 404 });
     } else if (p.startsWith("/wiki")) {
       // This documentation wiki (self-contained; shots copied into apps/wiki/shots).
       r = dirRoute("apps/wiki", url) ?? new Response("wiki not found", { status: 404 });

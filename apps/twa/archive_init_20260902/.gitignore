@@ -1,0 +1,12 @@
+# Secrets — NEVER commit
+android.keystore
+*.keystore
+keystore-password*.txt
+
+# Build outputs (regenerable from twa-manifest.json via bubblewrap)
+*.apk
+*.aab
+manifest-checksum.txt
+.gradle/
+build/
+app/build/
