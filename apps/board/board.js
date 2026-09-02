@@ -1,12 +1,12 @@
 /* ═══════════════════════════════════════════════════════════════════════
    RWF · V2 THE TABLE — board.js
-   The poker-table × track-and-field battle, on the forked engine.
+   The track-and-field board game battle, on the forked engine.
 
    Views (hash router): #/home · #/setup · #/create · #/draft · #/table
                         · #/result · #/squad
    The table renders ONCE per visit; state changes PATCH in place so the
    token transitions (CSS transform along the track) are never interrupted
-   by a re-render. Cards, kitty chips, bursts, and the race clock are all
+   by a re-render. Cards, pot chips, bursts, and the race clock are all
    pure CSS animations (3D perspective flips — no libraries).
 
    Sound: another agent's SFX module exposes window.rwfSfx.play(name) —
@@ -53,20 +53,23 @@ const CARD_ICONS = {
   freeze: `<svg viewBox="0 0 24 24" aria-hidden="true"><path d="M12 1v22M2 6l20 12M22 6L2 18M12 1l-2.5 2.5M12 1l2.5 2.5M12 23l-2.5-2.5M12 23l2.5-2.5M2 6l3.4.4M2 6l.4 3.4M22 18l-3.4-.4M22 18l-.4-3.4M22 6l-3.4.4M22 6l-.4 3.4M2 18l3.4-.4M2 18l.4-3.4" stroke="currentColor" stroke-width="1.7" fill="none" stroke-linecap="round"/></svg>`,
 };
 const RAR_COL = { common: "var(--rar-common)", rare: "var(--rar-rare)", epic: "var(--rar-epic)", legendary: "var(--rar-legendary)" };
+/* ── the picker: the eight V2 skins first (board = default, athletic
+   language), then the original five. Each overhauled theme is a full
+   design language — see /styles → "On the app" for the pair of demos. */
 const THEMES = [
-  { id: "board",     name: "Board",          sw: "#0d1f16" },
-  { id: "lime",      name: "Lime",           sw: "#0a0b0d" },
-  { id: "gold",      name: "Gold Arcade",    sw: "#0b0a12" },
-  { id: "sunset",    name: "Sunset",         sw: "#f6f1e5" },
-  { id: "neon",      name: "Neon",           sw: "#070b14" },
-  { id: "forest",    name: "Forest",         sw: "#1a120a" },
-  { id: "mycelial",  name: "Mycelial",       sw: "#150f0a" },
-  { id: "techy",     name: "Techy",          sw: "#0b1015" },
-  { id: "track",     name: "Track",          sw: "#260d0f" },
-  { id: "poker",     name: "Poker",          sw: "#241017" },
-  { id: "caveman",   name: "Caveman",        sw: "#1a1410" },
-  { id: "n64",       name: "N64",            sw: "#202a4d" },
-  { id: "goldeneye", name: "GoldenEye",      sw: "#14181d" },
+  { id: "board",     name: "Stadium Board",   sw: "#0d1f16" },
+  { id: "track",     name: "Track & Field",   sw: "#2b1012" },
+  { id: "cardtable", name: "Card Table",      sw: "#221016" },
+  { id: "mycelial",  name: "Mycelial",        sw: "#171009" },
+  { id: "techy",     name: "Mission Control", sw: "#0a1014" },
+  { id: "caveman",   name: "Caveman",         sw: "#1c1611" },
+  { id: "n64",       name: "N64 Retro",       sw: "#1e2946" },
+  { id: "goldeneye", name: "GoldenEye 64",    sw: "#141a20" },
+  { id: "lime",      name: "Lime Athletic",   sw: "#0a0b0d" },
+  { id: "gold",      name: "Gold Arcade",     sw: "#0b0a12" },
+  { id: "sunset",    name: "Sunset Brutalist",sw: "#f7efe2" },
+  { id: "neon",      name: "Midnight Neon",   sw: "#060a14" },
+  { id: "forest",    name: "Forest Retro",    sw: "#25201a" },
 ];
 
 /* ═══════════════════════ track geometry (rounded-rect) ═════════════════
@@ -131,7 +134,7 @@ function feedSeed(match) {
   if (match.status === "complete") {
     const w = E.winner(match);
     const p = match.players.find((x) => x.id === w?.playerId);
-    if (p) lines.push({ lap, html: `<b>RACE COMPLETE</b> — ${esc(p.name)} takes the kitty` });
+    if (p) lines.push({ lap, html: `<b>RACE COMPLETE</b> — ${esc(p.name)} takes the pot` });
   }
   feeds.set(match.config.id, lines.slice(0, 12));
 }
@@ -220,11 +223,11 @@ function renderHome(state) {
   const matches = [...state.matches].reverse().slice(0, 8);
   $app.innerHTML = `
   <div class="bd-screen">
-    ${topBar({ back: "squad", kicker: "Reps With Friends", name: me ? `Table night · ${me.name}` : "The Table" })}
+    ${topBar({ back: "squad", kicker: "Reps With Friends", name: me ? `Race night · ${me.name}` : "The Table" })}
     <div class="bd-pad">
       <p class="bd-kicker">V2 · board battle</p>
-      <h1 class="bd-h1">Cards. Lanes.<br><em>The kitty.</em></h1>
-      <p class="bd-sub">A poker table that's also a track. Run your lane, hold your
+      <h1 class="bd-h1">Cards. Lanes.<br><em>The pot.</em></h1>
+      <p class="bd-sub">A board game that's also a track. Run your lane, hold your
         cards, take the pot — power-ups play as cards, progress runs as laps.</p>
       <button class="pop-btn pop-btn--big pop-btn--full" id="newTable" data-sfx="press">Set a new table</button>
       ${me ? "" : `<button class="pop-btn pop-btn--ghost pop-btn--full" id="setupBtn" style="margin-top:8px" data-sfx="press">Set up your runner</button>`}
@@ -232,7 +235,7 @@ function renderHome(state) {
       <p class="bd-kicker" style="margin-top:22px">Your tables</p>
       <div class="bd-tables" id="tables">
         ${matches.length ? matches.map(tableCard).join("") : `
-          <p class="bd-sub" style="margin:6px 0 0">No tables yet — set one and deal the crew in.</p>`}
+          <p class="bd-sub" style="margin:6px 0 0">No tables yet — set one and call the crew in.</p>`}
       </div>
 
       <p class="bd-kicker" style="margin-top:22px">Table felt <span style="opacity:.6">(theme)</span></p>
@@ -269,7 +272,7 @@ function tableCard(m) {
   const you = S.me();
   const st = m.status;
   const statusCls = st === "live" ? "live" : st === "open" ? "open" : "done";
-  const statusTxt = st === "live" ? "Racing" : st === "open" ? "Dealing" : "Podium";
+  const statusTxt = st === "live" ? "Racing" : st === "open" ? "Drafting" : "Podium";
   const lead = E.standings(m)[0];
   const rawOf = (id) => E.playerRawReps(id, m.entries);
   const dots = m.players.slice(0, 4).map((p, i) => {
@@ -282,7 +285,7 @@ function tableCard(m) {
       <span class="bd-tcard__felt">${dots}</span>
       <span style="min-width:0">
         <p class="bd-tcard__name">${esc(m.config.name)}</p>
-        <p class="bd-tcard__meta">${m.players.length} runners · ${m.config.targetReps} reps · kitty ${m.board?.kitty ?? 0}</p>
+        <p class="bd-tcard__meta">${m.players.length} runners · ${m.config.targetReps} reps · pot ${m.board?.pot ?? 0}</p>
         <p class="bd-tcard__meta">${st === "complete" ? `won by ${esc(lead?.player?.name ?? "?")}` : `lead: ${esc(lead?.player?.name ?? "—")} · ${lead?.rawReps ?? 0}`}</p>
       </span>
       <span class="bd-tcard__status bd-tcard__status--${statusCls}">${statusTxt}</span>
@@ -366,9 +369,9 @@ function renderCreate() {
             </button>`).join("")}
         </div>
       </div>
-      <p class="bd-sub" style="margin-top:16px">Every runner posts a <b>${E.ANTE}-point ante</b> into the kitty and
+      <p class="bd-sub" style="margin-top:16px">Every runner posts a <b>${E.ENTRY}-point entry</b> into the pot and
         starts with <b>${E.START_RP} RP</b> for cards. Sam, Alex &amp; Jordan take the other lanes.</p>
-      <button class="pop-btn pop-btn--big pop-btn--full" id="deal" data-sfx="deal">Shuffle up &amp; deal</button>
+      <button class="pop-btn pop-btn--big pop-btn--full" id="deal" data-sfx="deal">Set the board</button>
     </div>
   </div>`;
 
@@ -474,7 +477,7 @@ function cardHTML(def, { deal = false, delay = 0, cost = true } = {}) {
 }
 
 /* ═══════════════════════ THE TABLE (flagship) ══════════════════════════ */
-let handSig = ""; // kinds+grantedAt signature → only rebuild the hand when it changes
+let handSig = ""; // kinds+awardedAt signature → only rebuild the hand when it changes
 
 function renderTable(state, matchIn) {
   const match = matchIn ?? S.currentMatch(state);
@@ -499,10 +502,10 @@ function renderTable(state, matchIn) {
       <div class="bd-tablewrap">
         <div class="bd-table" id="felt">
           <div class="bd-track" id="track"></div>
-          <div class="bd-kitty" id="kitty" title="The kitty — every log tips chips in">
-            <span class="bd-kitty__label">KITTY</span>
-            <span class="bd-kitty__total" id="kittyTotal">0</span>
-            <span class="bd-kitty__pts" id="kittyPts">PTS</span>
+          <div class="bd-pot" id="pot" title="The pot — every log adds points">
+            <span class="bd-pot__label">THE POT</span>
+            <span class="bd-pot__total" id="potTotal">0</span>
+            <span class="bd-pot__pts" id="potPts">PTS</span>
             <div class="bd-stacks" id="stacks"></div>
           </div>
         </div>
@@ -583,7 +586,7 @@ function buildLanes(match) {
   });
 }
 
-/* the per-state patch: tokens, kitty, positions, feed, hand, fx */
+/* the per-state patch: tokens, pot, positions, feed, hand, fx */
 function updateTable(match, { full = false, newCard = null } = {}) {
   const you = S.load().player;
   const rows = E.standings(match);
@@ -603,19 +606,19 @@ function updateTable(match, { full = false, newCard = null } = {}) {
     el.classList.toggle("bd-token--shield", !!match.shields?.[p.id]);
   });
 
-  /* the kitty */
-  const kitty = match.board?.kitty ?? 0;
-  const total = $("#kittyTotal");
+  /* the pot */
+  const pot = match.board?.pot ?? 0;
+  const total = $("#potTotal");
   if (total) {
-    total.textContent = String(kitty);
-    $("#kittyPts").textContent = kitty === 1 ? "PT" : "PTS";
-    $("#stacks").innerHTML = E.chipMix(kitty).map((s) => `
+    total.textContent = String(pot);
+    $("#potPts").textContent = pot === 1 ? "PT" : "PTS";
+    $("#stacks").innerHTML = E.chipMix(pot).map((s) => `
       <span class="bd-stack bd-stack--${s.id}" title="${s.count} × ${s.value}pt">
         ${Array.from({ length: Math.min(5, s.count) }, () =>
           `<i class="bd-chip bd-chip--${s.id}"></i>`).join("")}
         ${s.count > 1 ? `<span class="bd-stack__n">×${s.count}</span>` : ""}
       </span>`).join("");
-    if (!full) { $("#kitty").classList.remove("is-bump"); void $("#kitty").offsetWidth; $("#kitty").classList.add("is-bump"); }
+    if (!full) { $("#pot").classList.remove("is-bump"); void $("#pot").offsetWidth; $("#pot").classList.add("is-bump"); }
   }
 
   /* race positions read */
@@ -646,7 +649,7 @@ function updateTable(match, { full = false, newCard = null } = {}) {
 
   /* hand — rebuild only when the cards actually changed */
   const inv = E.inventoryOf(match, you?.id);
-  const sig = inv.map((c) => `${c.kind}:${c.grantedAt}`).join("|");
+  const sig = inv.map((c) => `${c.kind}:${c.awardedAt}`).join("|");
   if (sig !== handSig) {
     const freshSet = new Set((handSig ? handSig.split("|").map((s) => s.split(":").slice(0, -1).join(":")) : []));
     handSig = sig;
@@ -722,7 +725,7 @@ function playCard(matchId, kind, cardEl) {
   feedPush(matchId, lapOf(res.match).n, lines[kind] ?? `<b>CARD</b> — you play ${esc(E.POWER_UPS[kind].name)}`);
   toast(`${E.POWER_UPS[kind].name} played${res.spent ? ` · −${res.spent} RP` : ""}`, "ok");
 
-  /* flip → fly to the kitty → burst (CSS 3D; clone flies over the table) */
+  /* flip → fly to the pot → burst (CSS 3D; clone flies over the table) */
   const slot = cardEl.closest(".bd-hand__slot") ?? cardEl;
   const rect = cardEl.getBoundingClientRect();
   const felt = $("#felt");
@@ -751,13 +754,13 @@ function burst(rarity) {
   el.addEventListener("animationend", () => el.remove(), { once: true });
 }
 
-/* a chip flies from a token into the kitty on every log */
+/* a chip flies from a token into the pot on every log */
 function chipFlyFrom(pid, matchId) {
   const tok = $(`.bd-token[data-pid="${pid}"]`);
-  const kitty = $("#kitty");
+  const pot = $("#pot");
   const felt = $("#felt");
-  if (!tok || !kitty || !felt) return;
-  const tr = tok.getBoundingClientRect(), kr = kitty.getBoundingClientRect(), fr = felt.getBoundingClientRect();
+  if (!tok || !pot || !felt) return;
+  const tr = tok.getBoundingClientRect(), kr = pot.getBoundingClientRect(), fr = felt.getBoundingClientRect();
   const chip = document.createElement("i");
   chip.className = "bd-chipfly";
   chip.style.cssText = `left:${kr.left + kr.width / 2 - fr.left}px;top:${kr.top + kr.height / 2 - fr.top}px;`
@@ -832,7 +835,7 @@ function afterAction(matchId, opts = {}) {
   const match = S.matchById(matchId, state);
   if (!match) return;
   if (match.status === "complete") {
-    feedPush(matchId, lapOf(match).n, `<b>RACE COMPLETE</b> — ${esc(nameOf(match, E.winner(match)?.playerId))} takes the kitty`);
+    feedPush(matchId, lapOf(match).n, `<b>RACE COMPLETE</b> — ${esc(nameOf(match, E.winner(match)?.playerId))} takes the pot`);
     sfx("win");
     setTimeout(() => go(`result?m=${matchId}`), 650);
     return;
@@ -881,7 +884,7 @@ function openLogSheet(matchId, pid = null) {
     </div>
     <p class="bd-sub" style="margin:0 0 10px" id="logHint">
       ${runnerId === you.id
-        ? `◈ ${E.boardPoints(match, runnerId)} RP · ${mine.length} card${mine.length === 1 ? "" : "s"} in hand · every log tips ${E.KITTY_TIP} pts into the kitty`
+        ? `◈ ${E.boardPoints(match, runnerId)} RP · ${mine.length} card${mine.length === 1 ? "" : "s"} in hand · every log tips ${E.POT_TIP} pts into the pot`
         : `${esc(runner.name)} · ◈ ${E.boardPoints(match, runnerId)} RP`}
     </p>
     <button class="pop-btn pop-btn--big pop-btn--full" id="logGo" data-sfx="chip">Log it</button>`);
@@ -919,7 +922,7 @@ function renderResult(state, match) {
   const you = state.player;
   const rows = E.finalStandings(match);
   const win = rows[0];
-  const kitty = match.board?.kitty ?? 0;
+  const pot = match.board?.pot ?? 0;
   const designated = S.potFor(match.config.id, state).designatedCharityId;
   const podium = rows.slice(0, 3);
   const order = [podium[1], podium[0], podium[2]].filter(Boolean); // 2,1,3
@@ -934,10 +937,10 @@ function renderResult(state, match) {
           ${Array.from({ length: 18 }, (_, i) =>
             `<i style="left:${(i * 5.4 + 4) % 96}%;--c:${["var(--lime)", "var(--rar-legendary)", "var(--sky)", "var(--coral)"][i % 4]};--dur:${2.2 + (i % 5) * 0.4}s;--delay:${(i % 7) * 0.3}s"></i>`).join("")}
         </div>
-        <div class="bd-kitty" id="kitty">
-          <span class="bd-kitty__label">KITTY</span>
-          <span class="bd-kitty__total" id="kittyTotal">${kitty}</span>
-          <span class="bd-kitty__pts">PTS</span>
+        <div class="bd-pot" id="pot" title="The pot — every log adds points">
+          <span class="bd-pot__label">THE POT</span>
+          <span class="bd-pot__total" id="potTotal">${pot}</span>
+          <span class="bd-pot__pts">PTS</span>
           <div class="bd-stacks" id="stacks"></div>
         </div>
         <div class="bd-podium">
@@ -967,7 +970,7 @@ function renderResult(state, match) {
             <span class="bd-prow__rp">${r.rawReps}r</span>
           </div>`).join("")}
       </div>
-      <p class="bd-kicker" style="margin-top:18px">${esc(win.player.name)} directs the ${kitty}-pt kitty</p>
+      <p class="bd-kicker" style="margin-top:18px">${esc(win.player.name)} directs the ${pot}-pt pot</p>
       <div class="bd-chiprow" style="margin-top:8px" id="charRow">
         ${S.CHARITIES.map((c) => `
           <button class="bd-pick ${designated === c.id ? "is-on" : ""}" data-charity="${c.id}" data-sfx="press">
@@ -982,7 +985,7 @@ function renderResult(state, match) {
   </div>`;
 
   $app.querySelectorAll("[data-go]").forEach((b) => (b.onclick = () => { sfx("press"); go(b.dataset.go); }));
-  $("#stacks").innerHTML = E.chipMix(kitty).map((s) => `
+  $("#stacks").innerHTML = E.chipMix(pot).map((s) => `
     <span class="bd-stack bd-stack--${s.id}">
       ${Array.from({ length: Math.min(5, s.count) }, () => `<i class="bd-chip bd-chip--${s.id}"></i>`).join("")}
       ${s.count > 1 ? `<span class="bd-stack__n">×${s.count}</span>` : ""}
@@ -993,7 +996,7 @@ function renderResult(state, match) {
     sfx("chip");
     S.designatePot(match.config.id, b.dataset.charity);
     $$("#charRow .bd-pick").forEach((x) => x.classList.toggle("is-on", x === b));
-    toast(`Kitty → ${S.CHARITIES.find((c) => c.id === b.dataset.charity).name}`, "ok");
+    toast(`Pot → ${S.CHARITIES.find((c) => c.id === b.dataset.charity).name}`, "ok");
   }));
   $("#rematchBtn").onclick = () => {
     sfx("deal");
@@ -1067,7 +1070,7 @@ window.__rwfBoard = {
     const m = new DOMMatrixReadOnly(getComputedStyle(el).transform);
     return { x: +m.e.toFixed(1), y: +m.f.toFixed(1) };
   },
-  kittyTotal: () => +(document.querySelector("#kittyTotal")?.textContent ?? -1),
+  potTotal: () => +(document.querySelector("#potTotal")?.textContent ?? -1),
   chipCount: () => document.querySelectorAll("#stacks .bd-chip").length,
   handKinds: () => [...document.querySelectorAll("#hand .bd-card")].map((c) => c.dataset.kind),
   cardTransform: (i = 0) => getComputedStyle(document.querySelectorAll("#hand .bd-card")[i] ?? document.body).transform,

@@ -193,6 +193,13 @@ try {
   // 6 · guide widget opens and hits /api/ai
   await evalJs(`window.scrollTo(0, 0)`);
   await sleep(300);
+  // The guide auto-intro (guide.js) opens the panel by itself ~5s after load
+  // on desktop. By the time we get here it may already be open — clicking the
+  // launcher would TOGGLE it closed and fail the check below. Close first if
+  // the intro beat us, so this always asserts click → OPEN.
+  const alreadyOpen: any = await evalJs(`document.getElementById('guidePanel').classList.contains('open')`);
+  if (alreadyOpen) await evalJs(`document.getElementById('guideLauncher').click()`);
+  await sleep(200);
   await evalJs(`document.getElementById('guideLauncher').click()`);
   await sleep(500);
   const panelOpen: any = await evalJs(`document.getElementById('guidePanel').classList.contains('open')`);

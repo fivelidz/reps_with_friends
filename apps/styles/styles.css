@@ -146,6 +146,23 @@ b { color: var(--text); }
   border: 1px solid var(--line); border-radius: var(--radius-lg); background: var(--bg);
 }
 
+/* ── ON THE APP strip — the V2 board game in the eight skins ────────── */
+.st-appstrip {
+  display: grid; grid-auto-flow: column; grid-auto-columns: max-content;
+  gap: 18px; overflow-x: auto; padding: 4px 4px 18px;
+  scroll-snap-type: x proximity; -webkit-overflow-scrolling: touch;
+}
+.st-appcell { scroll-snap-align: start; display: flex; flex-direction: column; gap: 10px; }
+.st-apppair iframe {
+  width: 824px; height: 920px; border: 1px solid var(--line);
+  border-radius: var(--radius-lg); background: var(--bg); display: block;
+}
+.st-appstrip[data-screen="home"] .st-apppair iframe,
+.st-appstrip[data-screen="battle"] .st-apppair iframe {
+  width: 424px;
+}
+
+
 .st-lib {
   display: grid; grid-template-columns: repeat(auto-fit, minmax(300px, 1fr));
   gap: 16px; margin-top: 18px; align-items: start;
@@ -200,6 +217,7 @@ b { color: var(--text); }
 @media (max-width: 720px) {
   .st-header__row, .st-sec, .st-footer { padding-left: 16px; padding-right: 16px; }
   .st-strip iframe { width: 424px; }
+  .st-apppair iframe { width: 424px; }
 }
 
 @media (prefers-reduced-motion: reduce) {

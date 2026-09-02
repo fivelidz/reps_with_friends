@@ -1,5 +1,5 @@
 /* ═══════════════════════════════════════════════════════════════════════
-   RWF ENGINE — apps/board FORK (V2 · the poker-table × track-and-field app)
+   RWF ENGINE — apps/board FORK (V2 · the track-and-field board game app)
    ┄┄┄┄┄┄┄┄┄┄┄┄┄┄┄┄┄┄┄┄┄┄┄┄┄┄┄┄┄┄┄┄┄┄┄┄┄┄┄┄┄┄┄┄┄┄┄┄┄┄┄┄┄┄┄┄┄┄┄┄┄┄┄┄┄┄┄┄┄
    FORK POINT: copied verbatim from apps/figma-app/engine.js @ 2026-09-02
    (v1.0.0 FLOW-05 state). This is an INDEPENDENT fork — apps/figma-app
@@ -13,8 +13,8 @@
        uncommitted at fork time) — when it settles, diff + re-sync this
        section against it rather than carrying two systems.
      · RP points economy (CARD_COSTS / boardPoints / boardEconomy) —
-       cards cost Rep Points, reps earn RP, every log tips the kitty.
-     · kitty ledger (board ante + per-entry contributions, chip mix).
+       cards cost Rep Points, reps earn RP, every log tips the pot.
+     · pot ledger (board entry + per-entry contributions, chip mix).
    Everything above this banner is the unmodified v1 port:
    tier multipliers, match lifecycle (create/start/log/close), comeback,
    closure bonus, standings with adjusted scores, charity pot, seasons,
@@ -290,7 +290,7 @@ export function grantPowerUp(match, playerId, kind, { at = Date.now(), rarity } 
   const def = POWER_UPS[kind];
   if (!def) throw new Error(`unknown power-up ${kind}`);
   if (!match.players.some((p) => p.id === playerId)) throw new Error(`player ${playerId} not in match`);
-  const inv = [...inventoryOf(match, playerId), { kind, rarity: rarity ?? def.rarity, grantedAt: at }];
+  const inv = [...inventoryOf(match, playerId), { kind, rarity: rarity ?? def.rarity, awardedAt: at }];
   return { ...match, inventory: { ...(match.inventory ?? {}), [playerId]: inv } };
 }
 
@@ -540,7 +540,7 @@ export function endSeason(s) {
 /* ═══════════════════════════════════════════════════════════════════════
    V2 BOARD ADDITIONS (fork-only · everything above is the v1 port)
    ───────────────────────────────────────────────────────────────────────
-   The board layer: DRAFT-FROM-3, the RP POINTS economy, and the KITTY.
+   The board layer: DRAFT-FROM-3, the RP POINTS economy, and the POT.
 
    DRAFT-FROM-3 (simple version)
      At match creation every player is offered THREE distinct cards and
@@ -554,8 +554,8 @@ export function endSeason(s) {
      Costs: shield 10 · freeze 15 · steal 30 · lightning 50. This is what
      the "cost" line on every card face means.
 
-   KITTY (the pot in the middle of the table)
-     Every player antes at the deal; every log tips chips into the kitty.
+   POT (the shared points pool in the middle of the table)
+     Every player posts an entry at the start; every log tips chips into the pot.
      Pure points ledger — board-game money. The charity designation at the
      result screen still rides the real pot (createPot/designate above).
    ═══════════════════════════════════════════════════════════════════════ */
@@ -564,11 +564,11 @@ export function endSeason(s) {
 export const CARD_COSTS = { shield: 10, freeze: 15, steal: 30, lightning: 50 };
 /** Starting RP per player at the deal (enough for one cheap play early). */
 export const START_RP = 40;
-/** Ante (kitty points) every player posts when the table is set. */
-export const ANTE = 20;
-/** Flat kitty tip (points) per logged entry — chips animate into the pot. */
-export const KITTY_TIP = 5;
-/** Chip denominations for the kitty stack (points → chip colour). */
+/** Entry (pot points) every runner posts when the table is set. */
+export const ENTRY = 20;
+/** Flat pot tip (points) per logged entry — chips animate into the pot. */
+export const POT_TIP = 5;
+/** Chip denominations for the pot stack (points → chip colour). */
 export const CHIP_DENOMS = [
   { value: 100, id: "gold" },
   { value: 25, id: "blue" },
@@ -576,7 +576,7 @@ export const CHIP_DENOMS = [
   { value: 1, id: "white" },
 ];
 
-/** Greedy chip mix for a kitty total (gold → blue → red → white). */
+/** Greedy chip mix for a pot total (gold → blue → red → white). */
 export function chipMix(total) {
   let left = Math.max(0, Math.round(total));
   const mix = [];
@@ -592,15 +592,15 @@ export function chipMix(total) {
 }
 
 /** The board sub-state initialised on every new match. Pure data. */
-export function initBoard(match, { ante = ANTE, startRp = START_RP } = {}) {
+export function initBoard(match, { entry = ENTRY, startRp = START_RP } = {}) {
   const points = Object.fromEntries(match.players.map((p) => [p.id, startRp]));
   const drafts = Object.fromEntries(match.players.map((p) => [p.id, draftChoices(p.id)]));
   return {
     ...match,
     board: {
-      ante,
-      kitty: ante * match.players.length,
-      contributions: match.players.map((p) => ({ playerId: p.id, amount: ante, at: match.createdAt ?? 0 })),
+      entry,
+      pot: entry * match.players.length,
+      contributions: match.players.map((p) => ({ playerId: p.id, amount: entry, at: match.createdAt ?? 0 })),
       points,
       drafts,
       picked: {},
@@ -642,7 +642,7 @@ export function applyDraft(match, playerId, kind) {
     ...match,
     inventory: {
       ...(match.inventory ?? {}),
-      [playerId]: [...inventoryOf(match, playerId), { kind, rarity: POWER_UPS[kind].rarity, grantedAt: Date.now() }],
+      [playerId]: [...inventoryOf(match, playerId), { kind, rarity: POWER_UPS[kind].rarity, awardedAt: Date.now() }],
     },
     board: {
       ...match.board,
@@ -662,9 +662,9 @@ export function boardPoints(match, playerId) {
   return match.board?.points?.[playerId] ?? 0;
 }
 
-/** Post-log economy: award RP for the entry + tip the kitty. PURE.
+/** Post-log economy: award RP for the entry + tip the pot. PURE.
  *  Chain AFTER E.logReps on the returned state (see state.js fork). */
-export function boardEconomy(match, entry, { tip = KITTY_TIP } = {}) {
+export function boardEconomy(match, entry, { tip = POT_TIP } = {}) {
   if (!match.board) return match;
   const player = match.players.find((p) => p.id === entry.playerId);
   if (!player) return match;
@@ -677,7 +677,7 @@ export function boardEconomy(match, entry, { tip = KITTY_TIP } = {}) {
         ...match.board.points,
         [entry.playerId]: (match.board.points[entry.playerId] ?? 0) + earned,
       },
-      kitty: match.board.kitty + (entry.reps > 0 ? tip : 0),
+      pot: match.board.pot + (entry.reps > 0 ? tip : 0),
       contributions: [
         ...(entry.reps > 0 ? [...match.board.contributions, { playerId: entry.playerId, amount: tip, at: entry.at }] : match.board.contributions),
       ],

@@ -4,13 +4,18 @@
    Protocol (same pattern as apps/figma-app/e2e.mjs).
 
    Walk:
-     1. /styles gallery boots — 5 theme cards, 5 live iframes
-     2. window.__rwfStylesVerify() — every check passes (distinct
-        --primary/--bg per theme, AA ratios, fonts loaded)
-     3. screenshots: compare strip (both / battle) + full preview ×5
-     4. /figma-app boots in EACH theme — home + battle screens, zero
-        console errors, data-theme applied, primary-button text follows
-        the theme (no unthemed patches)
+      1. /styles gallery boots — 13 theme cards, 13 demo iframes,
+         8 app-demo iframes (the V2 board game showcase)
+      2. window.__rwfStylesVerify() — every check passes (distinct
+         --primary/--bg per theme, AA ratios, fonts loaded)
+      3. ON THE APP — appdemo.html?t=… × 8: renders clean, zero console
+         errors, and computed STYLE SIGNATURES (radius/border/shadow/
+         pattern/font) differ per theme pair in ≥3/10 dims — proof the
+         overhaul is structural, not hue-only
+      4. screenshots: compare strip + app strip + appdemo ×8 + preview ×5
+      5. /figma-app boots in EACH theme — home + battle screens, zero
+         console errors, data-theme applied, primary-button text follows
+         the theme (no unthemed patches)
 
    Run:  bun apps/styles/e2e.mjs
    ═══════════════════════════════════════════════════════════════════════ */
@@ -28,6 +33,7 @@ const SHOTS = join(HERE, "shots");
 const CHROMIUM = "/usr/bin/chromium";
 const CDP_PORT = 9227;
 const THEMES = ["lime", "gold", "sunset", "neon", "forest"];
+const V2_THEMES = ["board", "mycelial", "techy", "track", "cardtable", "caveman", "n64", "goldeneye"];
 
 /* ── assertions bookkeeping ───────────────────────────────────────────── */
 let step = 0, passed = 0;
@@ -59,6 +65,11 @@ const server = Bun.serve({
     if (p.startsWith("/figma-app")) {
       if (p === "/figma-app" || p === "/figma-app/") p = "/figma-app/index.html";
       return map(`apps/figma-app${p.replace(/^\/figma-app/, "").replace(/^\/index\.html$/, "/index.html")}`);
+    }
+    if (p === "/v2" || p.startsWith("/v2/")) {
+      /* appdemo.html loads the REAL board app stylesheet at /v2/board.css */
+      if (p === "/v2" || p === "/v2/") p = "/v2/index.html";
+      return map(`apps/board${p.replace(/^\/v2/, "")}`);
     }
     return new Response("not found", { status: 404 });
   },
@@ -190,7 +201,116 @@ await evalJs(`window.__rwfStyles.exitPreview(); true`);
 await sleep(300);
 ok(await evalJs(`document.documentElement.dataset.theme === "lime"`), "exit preview restores lime");
 
-/* ── C · figma-app boots in every theme ──────────────────────────────── */
+/* ── C · ON THE APP — the V2 board game in the eight overhauled skins ── */
+console.log("— APP DEMOS (V2 board game × 8)");
+consoleErrors = [];
+await send("Emulation.setDeviceMetricsOverride", { width: 1480, height: 1100, deviceScaleFactor: 1, mobile: false });
+ok(await evalJs(`document.querySelectorAll('[data-app-frame]').length === 8`),
+   "8 app-demo iframes in the On-the-app strip (one per overhauled theme)");
+await waitFor(() => evalJs(`[...document.querySelectorAll('[data-app-frame]')].every(f =>
+  f.contentDocument?.querySelector('#battle .bd-pot') &&
+  f.contentDocument?.querySelector('#battle .bd-card') &&
+  f.contentDocument?.querySelector('#home .bd-tcard') &&
+  f.contentWindow.__appDemoReady === true)`).catch(() => false),
+  { label: "app demos ready (fonts settled)" });
+await sleep(1200);
+for (const t of V2_THEMES) {
+  ok(await evalJs(`(() => {
+    const f = document.querySelector('[data-app-frame="${t}"]'); if (!f) return false;
+    const d = f.contentDocument;
+    return d.documentElement.dataset.theme === "${t}" &&
+           d.querySelectorAll('.demo-phone').length === 2 &&
+           !!d.querySelector('#battle .bd-table .bd-track .bd-lane') &&
+           d.querySelectorAll('#battle .bd-chip').length >= 6 &&
+           d.querySelectorAll('#battle .bd-card').length === 3;
+  })()`), `${t}: app demo renders home + battle (track, pot chips, 3-card hand)`);
+  /* geometry probe — the demo must not just exist but LAYOUT correctly:
+     pot centred on the table, tokens on the felt, hand inside the phone,
+     no horizontal overflow on either screen */
+  const geo = JSON.parse(await evalJs(`(() => {
+    const f = document.querySelector('[data-app-frame="${t}"]');
+    const d = f.contentDocument, r = (el) => { const b = el.getBoundingClientRect();
+      return { x: +b.x.toFixed(0), y: +b.y.toFixed(0), w: +b.width.toFixed(0), h: +b.height.toFixed(0) }; };
+    return JSON.stringify({
+      table: r(d.querySelector('#battle .bd-table')),
+      pot: r(d.querySelector('#battle .bd-pot')),
+      hand: r(d.querySelector('#battle .bd-hand')),
+      battlePhone: r(d.querySelector('#battle.demo-phone')),
+      phones: [...d.querySelectorAll('.demo-phone')].map((p) => ({ sw: p.scrollWidth, cw: p.clientWidth, sh: p.scrollHeight, ch: p.clientHeight })),
+      tok: [...d.querySelectorAll('#battle .bd-token')].map(r),
+    });
+  })()`));
+  const dx = Math.abs((geo.pot.x + geo.pot.w / 2) - (geo.table.x + geo.table.w / 2));
+  const dy = Math.abs((geo.pot.y + geo.pot.h / 2) - (geo.table.y + geo.table.h / 2));
+  ok(dx <= 3 && dy <= 3 && geo.pot.w >= 90,
+     `${t}: pot medallion centred on the table (${geo.pot.w}px, Δ${dx}/${dy})`);
+  const tokOk = geo.tok.length === 4 && geo.tok.every((k) =>
+    k.x >= geo.table.x && k.x <= geo.table.x + geo.table.w && k.y >= geo.table.y && k.y <= geo.table.y + geo.table.h);
+  ok(tokOk, `${t}: 4 runner tokens render inside the felt`);
+  const noOver = geo.phones.every((p) => p.sw <= p.cw + 1);
+  const handInside = geo.hand.w > 60 && geo.hand.h > 60 &&
+    geo.hand.y + geo.hand.h <= geo.battlePhone.y + geo.battlePhone.h - 4;
+  ok(handInside && noOver,
+     `${t}: card hand fully inside the phone ${geo.hand.w}×${geo.hand.h} (bottom ${geo.hand.y + geo.hand.h} ≤ ${geo.battlePhone.y + geo.battlePhone.h}) · overflow ${geo.phones.map((p) => p.sw + "/" + p.cw).join(" ")}`);
+}
+ok(consoleErrors.length === 0, `app demos: zero console errors${consoleErrors.length ? " — " + consoleErrors[0] : ""}`);
+
+/* distinctness: computed LAYOUT/STYLE signature per theme (radius, border,
+   shadow, background pattern, font) — structure, not hue. Every pair of
+   the eight must differ in ≥3 dimensions. */
+const sigs = JSON.parse(await evalJs(`(() => {
+  const out = {};
+  for (const f of document.querySelectorAll('[data-app-frame]')) {
+    const d = f.contentDocument;
+    const cs = (el, p) => (el ? getComputedStyle(el)[p] : "none");
+    const pot = d.querySelector('.bd-pot'), card = d.querySelector('.bd-card__face--front'),
+          btn = d.querySelector('.pop-btn--big'), lane = d.querySelector('.bd-lane'),
+          table = d.querySelector('.bd-table'), h1 = d.querySelector('.bd-h1');
+    out[f.dataset.appFrame] = {
+      potPattern: cs(pot, 'backgroundImage').slice(0, 70),
+      potShadow: cs(pot, 'boxShadow').slice(0, 70),
+      cardRadius: cs(card, 'borderRadius'),
+      cardBorder: cs(card, 'borderTopWidth') + ' ' + cs(card, 'borderTopColor'),
+      btnRadius: cs(btn, 'borderRadius'),
+      btnShadow: cs(btn, 'boxShadow').slice(0, 50),
+      btnFont: cs(btn, 'fontFamily'),
+      laneBorder: cs(lane, 'borderTopWidth') + ' ' + cs(lane, 'borderTopStyle') + ' ' + cs(lane, 'borderTopColor'),
+      tablePattern: cs(table, 'backgroundImage').slice(0, 50),
+      h1Font: cs(h1, 'fontFamily'),
+    };
+  }
+  return JSON.stringify(out);
+})()`));
+let minDims = 99, worstPair = "";
+for (let i = 0; i < V2_THEMES.length; i++) {
+  for (let j = i + 1; j < V2_THEMES.length; j++) {
+    const a = sigs[V2_THEMES[i]], b = sigs[V2_THEMES[j]];
+    const dims = Object.keys(a).filter((k) => a[k] !== b[k]).length;
+    if (dims < minDims) { minDims = dims; worstPair = `${V2_THEMES[i]}↔${V2_THEMES[j]}`; }
+  }
+}
+ok(minDims >= 3, `style signatures distinct: every theme pair differs in ≥3/10 dims (worst ${worstPair} = ${minDims})`);
+for (const t of V2_THEMES)
+  console.log(`      ${t.padEnd(10)} card=${sigs[t].cardRadius.padEnd(24)} lane=${sigs[t].laneBorder}`);
+
+/* strip screenshot, then per-theme app shots (direct navigation) */
+await evalJs(`document.getElementById('ontheapp').scrollIntoView(); true`);
+await sleep(900);
+await shot("app-strip-both", 1480, 1400);
+for (const t of V2_THEMES) {
+  consoleErrors = [];
+  await send("Page.navigate", { url: `${BASE}/styles/appdemo.html?t=${t}&screen=both` });
+  await waitFor(() => evalJs(`window.__appDemoReady === true && document.querySelectorAll('.demo-phone').length === 2`).catch(() => false),
+    { label: `${t} appdemo load` });
+  await sleep(500);
+  ok(consoleErrors.length === 0, `${t}: appdemo standalone boots clean`);
+  await shot(`appdemo-${t}`, 860, 940);
+}
+await send("Page.navigate", { url: `${BASE}/styles/` });
+await waitFor(() => evalJs(`window.__rwfStylesReady === true`).catch(() => false), { label: "gallery re-load" });
+await sleep(800);
+
+/* ── D · figma-app boots in every theme ──────────────────────────────── */
 console.log("— FIGMA-APP × 5 THEMES");
 await send("Emulation.setDeviceMetricsOverride", { width: 390, height: 844, deviceScaleFactor: 1, mobile: true });
 for (const t of THEMES) {

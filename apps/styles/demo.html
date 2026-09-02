@@ -12,7 +12,7 @@
     (() => {
       /* original five + V2 expansion (board flagship + 7 — same list as
          gallery.js/verify.js; keep the three in sync when adding skins) */
-      const OK = /^(lime|gold|sunset|neon|forest|board|mycelial|techy|track|poker|caveman|n64|goldeneye)$/;
+      const OK = /^(lime|gold|sunset|neon|forest|board|mycelial|techy|track|cardtable|caveman|n64|goldeneye)$/;
       const t = new URLSearchParams(location.search).get("t") || "lime";
       if (OK.test(t)) document.documentElement.dataset.theme = t;
       const assert = () => {

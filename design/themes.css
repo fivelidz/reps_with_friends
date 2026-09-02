@@ -432,28 +432,49 @@
 }
 
 /* ═══════════════════════════════════════════════════════════════════════
-   V2 EXPANSION — eight more directions (board flagship + 7 quick sets).
-   Added for the V2 board app (apps/board · /v2 — poker-table × track-and-
-   field). Same slot contract as the five above; blocks 6–12 are compact
-   token sets for the /styles gallery, block 6 (board) also carries the
-   BOARD EXTRAS the app reads: felt/track/chip/card-back/pop tokens.
-   Contrast targets match the originals (AA — scripts/styles_contrast.py).
-    6  board     Board Game — the V2 flagship. Deep racing felt, gold
-                 chips, Anton + mono clock, chunky radii + offset shadows.
-    7  mycelial  Mycelial — bioluminescent. Deep soil browns, glow teals,
-                 organic radii, Fredoka.
-    8  techy     Techy — graph paper + terminal. Mono display, cyan.
-    9  track     Athletic Track & Field — track red, lane-stripe white,
-                 stopwatch numerals (Anton).
-   10  poker     Poker Room — burgundy felt, gold, serif display.
-   11  caveman   Caveman — stone browns, bone white, primitive chunky
-                 borders (Archivo 900).
-   12  n64       N64 Retro — flat bright polys over fog indigo, Fredoka.
-   13  goldeneye GoldenEye 64 — grey-blue steel + gold watch-menu HUD,
-                 mono display, sharp corners.
+   V2 OVERHAUL — the board eight, rebuilt as FULL DESIGN LANGUAGES.
+   Founder verdict on the first pass (token swaps only): "nowhere near as
+   varied, interesting or intricate." This section is the answer: every
+   V2 theme is now a complete presentation, not a palette.
+
+   Each theme carries five layers:
+     · TOKENS        — the slot re-points (AA-verified values, unchanged
+                       where they passed) + BOARD EXTRAS (felt, lanes,
+                       chips, card faces) so the /v2 app re-skins fully
+     · TYPE          — weights, tracking, case, numeral style
+     · SURFACES      — the fg-* component library restructured: buttons,
+                       cards, leaderboards, countdowns, events, DZ banners
+     · BOARD APP     — bd-* (the /v2 table: felt, lanes, the pot, tokens,
+                       the fanned hand) in the same language
+     · MOTION        — a named signature animation set (all guards at the
+                       bottom of this file honour prefers-reduced-motion)
+
+   The eight (see /styles → "On the app" for live phone demos ×2 each):
+     6  board      Stadium Board — the V2 flagship: scoreboard panels,
+                   lane-stripe progress, photo-finish tape, trophy pot
+     7  mycelial   Mycelial — bioluminescent forest: blob cards, spore
+                   drift, growth-ring bars, a breathing mycelium pot
+     8  techy      Techy — mission control: graph grids, scanlines,
+                   telemetry labels, boot-sequence reveals, T− clocks
+     9  track      Track & Field — pure stadium: bib ranks, timing
+                   numerals, lane-numbered track, finish-clock pot
+    10  cardtable  Card Table — the felt kept as PURE visual style: serif
+                   small-caps, gold hairlines, chip-edged buttons, cream
+                   card faces, candlelit vignette
+    11  caveman    Caveman — chalk on stone: wobbled hand-drawn radii,
+                   rock strata surfaces, ochre fire, carved bone buttons
+    12  n64        N64 Retro — fog wash, chunky outlines, memory-card
+                   corner screws, square avatars, segmented bars
+    13  goldeneye  GoldenEye 64 — watch-menu HUD: notched panels, corner
+                   brackets, health-meter bars, dossier mono, alarm DZ
    ═══════════════════════════════════════════════════════════════════════ */
 
-/* ═══ 6 · BOARD GAME (V2 flagship — default skin of apps/board) ═══ */
+/* ═════════════════════════════════════════════════════════════════════
+   6 · BOARD — STADIUM BOARD  (V2 flagship · default skin of apps/board)
+   Concept: the table IS a stadium. Dark-green infield under floodlights,
+   a terracotta lane ring, gold scoreboard numerals, white lane paint.
+   Athletic language everywhere; the pot sits on a trophy pedestal.
+   ═════════════════════════════════════════════════════════════════════ */
 [data-theme="board"] {
   --bg: #0c1d14;                /* deep racing felt green-black */
   --surface: #122619;
@@ -489,7 +510,7 @@
   --font-body: 'Space Grotesk', system-ui, sans-serif;
   --font-mono: 'JetBrains Mono', ui-monospace, 'Cascadia Code', Menlo, monospace;
 
-  --radius: 14px;               /* chunky board-game radii */
+  --radius: 14px;
   --radius-sm: 10px;
   --radius-lg: 18px;
   --radius-xl: 24px;
@@ -501,14 +522,16 @@
 
   --on-gold: var(--on-accent);
 
-  /* ── BOARD EXTRAS (apps/board reads these; safe defaults elsewhere) ── */
-  --felt: #12492c;              /* the table felt — racing green */
-  --felt-deep: #0a2c1a;
-  --felt-line: rgba(238, 244, 232, 0.16);
-  --rail: #06170e;              /* wooden rail edge */
+  /* ── BOARD EXTRAS — the stadium table (apps/board reads these) ────── */
+  --felt: #17492a;              /* floodlit infield green */
+  --felt-deep: #0a2415;
+  --felt-line: rgba(238, 244, 232, 0.20);
+  --lane: #b3372c;              /* the running-track ring */
+  --lane-paint: rgba(255, 255, 255, 0.34);
+  --rail: #06170e;              /* stadium boundary rail */
   --rail-edge: rgba(255, 201, 77, 0.22);
 
-  --chip-white: #f2eee2;        /* kitty denominations: 1 / 5 / 25 / 100 */
+  --chip-white: #f2eee2;        /* pot denominations: 1 / 5 / 25 / 100 */
   --chip-red: #d8434e;
   --chip-blue: #3d7bd9;
   --chip-gold: #e8b54a;
@@ -517,10 +540,181 @@
   --card-back-2: #0d2417;
   --card-face: #1b3527;
 
-  --pop-shadow: #8a6420;        /* the offset under POPPING buttons */
+  --pop-shadow: #7c5a16;        /* the offset under POPPING buttons */
+  --speed: 0.9s;
 }
 
-/* ═══ 7 · MYCELIAL (bioluminescent — soil browns + glow teals) ═══ */
+/* ── board · TYPE — scoreboard numerals, ticket-stub kickers ─────────── */
+[data-theme="board"] :is(.fg-battle__title, .fg-sheet__title, .fg-pwr__name,
+                         .fg-event__title, .fg-state__title, .fg-dialog__title) {
+  letter-spacing: 0.03em;
+}
+[data-theme="board"] :is(.fg-count__time, .fg-lbrow__pct, .fg-lbrow__ruf,
+                         .fg-battle__meta, .fg-event__tag) {
+  font-family: var(--font-display);      /* Anton numerals everywhere */
+  font-variant-numeric: tabular-nums;
+  letter-spacing: 0.04em;
+}
+[data-theme="board"] :is(.fg-battle__meta, .fg-count__sub, .fg-battle__foot) {
+  text-transform: uppercase;
+}
+
+/* ── board · SURFACES — floodlit panels with a gold keyline ──────────── */
+[data-theme="board"] :is(.fg-battle, .fg-sheet, .fg-dialog, .fg-state, .fg-pro) {
+  background:
+    linear-gradient(180deg, rgba(255, 255, 255, 0.03), transparent 42%),
+    var(--surface);
+  border: 1px solid var(--line);
+  border-top: 3px solid var(--lime);              /* scoreboard keyline */
+  box-shadow: 0 5px 0 rgba(4, 10, 6, 0.85), 0 14px 30px rgba(4, 10, 6, 0.5);
+}
+[data-theme="board"] .fg-count {
+  background: #081710;                            /* the dark LED panel */
+  border: 1px solid var(--line);
+  box-shadow: inset 0 0 0 1px rgba(255, 201, 77, 0.12), 0 4px 0 rgba(4, 10, 6, 0.85);
+}
+[data-theme="board"] .fg-count__time {
+  color: var(--lime);
+  text-shadow: 0 0 18px rgba(255, 201, 77, 0.35); /* lit scoreboard glass */
+}
+/* lane-stripe progress: gold fill, white lane paint dashes */
+[data-theme="board"] :is(.fg-battle__bar, .fg-lbrow__bar) { border-radius: 5px; background: rgba(4, 10, 6, 0.6); padding: 2px; }
+[data-theme="board"] :is(.fg-battle__bar i, .fg-lbrow__bar i) {
+  background-image: repeating-linear-gradient(90deg,
+    rgba(255, 255, 255, 0.55) 0 7px, transparent 7px 14px);
+  border-radius: 3px;
+}
+/* leaderboard: rank sits in a gold bib block, leader takes the tape */
+[data-theme="board"] .fg-lbrow {
+  border: 1px solid var(--line);
+  box-shadow: 0 3px 0 rgba(4, 10, 6, 0.8);
+}
+[data-theme="board"] .fg-lbrow__rank {
+  display: grid; place-items: center; min-width: 24px; height: 24px;
+  background: var(--lime); color: var(--on-accent);
+  font: 400 14px/1 var(--font-display);
+  border: 1.5px solid #241a04; border-radius: 5px;
+}
+[data-theme="board"] .fg-lbrow--leader {
+  border-left: 4px solid var(--lime);
+  background: linear-gradient(90deg, rgba(255, 201, 77, 0.10), transparent 55%), var(--surface);
+}
+/* photo-finish tape edge on the battle head */
+[data-theme="board"] .fg-battle__head {
+  border-bottom: 3px solid transparent;
+  border-image: repeating-linear-gradient(90deg,
+    var(--lime) 0 12px, #14100a 12px 24px) 3;
+  padding-bottom: 8px;
+}
+/* LIVE status = stadium lamp */
+[data-theme="board"] .fg-status {
+  background: #081710; color: var(--lime);
+  border: 1px solid rgba(255, 201, 77, 0.4);
+  box-shadow: 0 0 12px rgba(255, 201, 77, 0.18);
+}
+[data-theme="board"] .fg-status::before {
+  content: ""; display: inline-block; width: 6px; height: 6px;
+  border-radius: 50%; background: var(--lime); margin-right: 7px;
+  vertical-align: 1px;
+  animation: bdBoardLamp 1.6s steps(2) infinite;
+}
+/* buttons: bib-fronted, thick dark edge, hard offset */
+[data-theme="board"] :is(.fg-nav__log, .fg-sheet__cta, .fg-dialog__cta,
+                         .fg-pro__cta, .fg-state__cta, .fg-chip[aria-pressed="true"],
+                         .fg-chip.is-selected, .fg-plan--selected) {
+  border: 2px solid #241a04;
+  box-shadow: inset 0 2px 0 rgba(255, 255, 255, 0.35), 0 4px 0 #241a04;
+  border-radius: 10px;
+}
+[data-theme="board"] :is(.fg-nav__log, .fg-sheet__cta, .fg-dialog__cta, .fg-pro__cta, .fg-state__cta):active {
+  box-shadow: inset 0 2px 0 rgba(255, 255, 255, 0.35), 0 1px 0 #241a04;
+  transform: translateY(3px);
+}
+[data-theme="board"] .pop-btn { border: 2px solid #241a04; }
+/* DZ banner = track marshal board */
+[data-theme="board"] .fg-dz {
+  background-image: repeating-linear-gradient(45deg,
+    rgba(0, 0, 0, 0.22) 0 10px, transparent 10px 20px);
+  border-radius: 8px;
+}
+
+/* ── board · BOARD APP — the stadium table ───────────────────────────── */
+[data-theme="board"] .bd-table {
+  background:
+    radial-gradient(120% 90% at 50% 30%,
+      color-mix(in srgb, var(--felt) 86%, var(--text) 6%) 0%,
+      var(--felt) 46%,
+      color-mix(in srgb, var(--felt) 70%, var(--lane)) 82%,
+      var(--felt-deep) 100%);
+}
+[data-theme="board"] .bd-lane {
+  border-width: 3px;
+  border-color: var(--lane-paint);
+}
+[data-theme="board"] .bd-lane:nth-child(even) { border-color: rgba(255, 255, 255, 0.18); }
+[data-theme="board"] .bd-finish {                       /* photo-finish tape */
+  width: 64px; height: 16px;
+  background: repeating-linear-gradient(45deg,
+    #ffd94d 0 6px, #14100a 6px 12px);
+  box-shadow: 0 0 0 2px rgba(238, 244, 232, 0.35);
+}
+[data-theme="board"] .bd-pot {                          /* trophy pedestal */
+  background:
+    radial-gradient(circle at 50% 30%, rgba(255, 217, 122, 0.22) 0%,
+      color-mix(in srgb, var(--felt) 65%, var(--text) 10%) 55%, var(--felt-deep) 100%);
+  box-shadow:
+    inset 0 0 0 3px var(--felt-line),
+    inset 0 0 0 8px color-mix(in srgb, var(--lime) 34%, transparent),
+    inset 0 0 0 10px var(--felt-line),
+    0 6px 18px rgba(0, 0, 0, 0.5);
+}
+[data-theme="board"] .bd-pot::after {                   /* engraved ring */
+  content: ""; position: absolute; inset: 7px; border-radius: 50%;
+  border: 1.5px dashed color-mix(in srgb, var(--lime) 55%, transparent);
+  pointer-events: none;
+}
+[data-theme="board"] .bd-pot__label { color: var(--lime); }
+[data-theme="board"] .bd-card__face--front {
+  border-width: 2px;
+  box-shadow: 0 8px 18px rgba(4, 10, 6, 0.5), inset 0 2px 0 rgba(255, 255, 255, 0.06);
+}
+[data-theme="board"] .bd-prow { box-shadow: 0 3px 0 rgba(4, 10, 6, 0.8); }
+[data-theme="board"] .bd-prow__pos {
+  display: grid; place-items: center; min-width: 24px; height: 20px;
+  background: var(--lime); color: var(--on-accent);
+  border: 1.5px solid #241a04; border-radius: 4px;
+  font-family: var(--font-display);
+}
+[data-theme="board"] .bd-top { border-bottom: 2px solid color-mix(in srgb, var(--lime) 35%, var(--line)); }
+
+/* ── board · MOTION — photo-finish sheen + stadium lamp ──────────────── */
+[data-theme="board"] .fg-battle__bar { position: relative; overflow: hidden; }
+[data-theme="board"] .fg-battle__bar::after {
+  content: ""; position: absolute; inset: 0;
+  background: linear-gradient(100deg, transparent 30%,
+    rgba(255, 255, 255, 0.5) 50%, transparent 70%);
+  transform: translateX(-130%);
+  animation: bdBoardSheen 3.2s ease-in-out infinite;
+  pointer-events: none;
+}
+@keyframes bdBoardSheen {
+  0% { transform: translateX(-130%); }
+  55%, 100% { transform: translateX(130%); }
+}
+@keyframes bdBoardLamp { 50% { opacity: 0.35; } }
+[data-theme="board"] .bd-pot.is-bump { animation: bdBoardTrophy 0.5s cubic-bezier(0.22, 1, 0.36, 1); }
+@keyframes bdBoardTrophy {
+  0% { transform: translate(-50%, -50%) scale(1); }
+  35% { transform: translate(-50%, -50%) scale(1.08) rotate(1.5deg); }
+  100% { transform: translate(-50%, -50%) scale(1); }
+}
+
+/* ═════════════════════════════════════════════════════════════════════
+   7 · MYCELIAL — bioluminescent forest
+   Concept: the game grows in a night forest. Every card is an asymmetric
+   organism; progress reads as growth rings; the pot is a living
+   mycelium core that breathes. Teal spore-light on deep soil.
+   ═════════════════════════════════════════════════════════════════════ */
 [data-theme="mycelial"] {
   --bg: #171009;                /* deep soil */
   --surface: #1f1710;
@@ -556,7 +750,7 @@
   --font-body: 'Inter', system-ui, sans-serif;
   --font-mono: ui-monospace, 'Cascadia Code', 'SF Mono', Menlo, monospace;
 
-  --radius: 20px;               /* organic — no hard corners anywhere */
+  --radius: 20px;
   --radius-sm: 14px;
   --radius-lg: 26px;
   --radius-xl: 34px;
@@ -567,12 +761,163 @@
   --on-warn: #241304;           /* 8.0:1 on urgency */
 
   --on-gold: var(--on-accent);
-}
-[data-theme="mycelial"] :is(.fg-battle, .fg-sheet, .fg-count) {
-  box-shadow: 0 0 28px rgba(79, 227, 193, 0.10), 0 10px 28px rgba(10, 6, 2, 0.5);
+
+  /* board extras — mossy forest floor */
+  --felt: #1d1c0e;
+  --felt-deep: #100f08;
+  --felt-line: rgba(79, 227, 193, 0.20);
+  --rail: #0b0a06;
+  --rail-edge: rgba(79, 227, 193, 0.14);
+  --card-back-1: #1c332b;
+  --card-back-2: #0e1a14;
+  --card-face: #262017;
+  --pop-shadow: #0c5b49;
+  --speed: 1.05s;               /* drifting, unhurried */
 }
 
-/* ═══ 8 · TECHY (graph paper + terminal mono, cyan) ═══ */
+/* ── mycelial · TYPE — rounded, soft, never shouty ───────────────────── */
+[data-theme="mycelial"] :is(.fg-battle__title, .fg-sheet__title, .fg-pwr__name,
+                            .fg-event__title, .fg-dialog__title, .fg-state__title) {
+  font-weight: 600;
+  letter-spacing: 0.01em;
+  text-transform: none;
+}
+[data-theme="mycelial"] :is(.fg-count__time) { font-weight: 600; }
+
+/* ── mycelial · SURFACES — asymmetric organisms with inner glow ──────── */
+[data-theme="mycelial"] :is(.fg-battle, .fg-dialog, .fg-state) {
+  border-radius: 34px 46px 38px 50px / 48px 36px 52px 38px;
+  background-image:
+    radial-gradient(circle at 16% 10%, rgba(79, 227, 193, 0.10), transparent 44%),
+    radial-gradient(circle at 86% 90%, rgba(79, 227, 193, 0.07), transparent 42%);
+  border: 1px solid rgba(79, 227, 193, 0.16);
+  box-shadow: 0 0 28px rgba(79, 227, 193, 0.08), 0 12px 28px rgba(6, 4, 1, 0.55);
+}
+[data-theme="mycelial"] .fg-count {
+  border-radius: 46px 34px 50px 38px / 38px 50px 34px 46px;
+  background-image: radial-gradient(circle at 70% 20%, rgba(79, 227, 193, 0.10), transparent 55%);
+  border: 1px solid rgba(79, 227, 193, 0.16);
+}
+[data-theme="mycelial"] .fg-sheet { border-radius: 40px 30px 44px 34px / 34px 44px 30px 40px; }
+[data-theme="mycelial"] .fg-stack .fg-lbrow:nth-child(odd)  { border-radius: 26px 38px 30px 42px / 40px 28px 44px 30px; }
+[data-theme="mycelial"] .fg-stack .fg-lbrow:nth-child(even) { border-radius: 38px 26px 42px 30px / 28px 40px 30px 44px; }
+[data-theme="mycelial"] .fg-event { border-radius: 32px 22px 34px 24px / 24px 34px 22px 32px; }
+/* growth-ring progress: segmented like tree rings */
+[data-theme="mycelial"] :is(.fg-battle__bar i, .fg-lbrow__bar i) {
+  background-image: repeating-linear-gradient(90deg,
+    rgba(10, 20, 16, 0.38) 0 2px, transparent 2px 9px);
+  border-radius: 8px;
+}
+/* glow grows with the streak chip + the leader organism */
+[data-theme="mycelial"] .fg-chip {
+  border-radius: 18px 24px 18px 22px / 22px 18px 24px 18px;
+}
+[data-theme="mycelial"] .fg-chip[aria-pressed="true"],
+[data-theme="mycelial"] .fg-chip.is-selected {
+  box-shadow: 0 0 18px rgba(79, 227, 193, 0.30);
+  animation: bdMycBreathe 5.2s ease-in-out infinite;
+}
+[data-theme="mycelial"] .fg-lbrow--leader {
+  border-color: rgba(79, 227, 193, 0.35);
+  box-shadow: 0 0 22px rgba(79, 227, 193, 0.16);
+}
+/* buttons: soft glow capsules */
+[data-theme="mycelial"] :is(.fg-nav__log, .fg-sheet__cta, .fg-dialog__cta,
+                            .fg-pro__cta, .fg-state__cta) {
+  border-radius: 22px 26px 22px 26px / 26px 22px 26px 22px;
+  box-shadow: 0 0 20px rgba(79, 227, 193, 0.22), 0 8px 18px rgba(6, 4, 1, 0.4);
+  font-family: var(--font-display);
+  text-transform: none;
+  letter-spacing: 0.02em;
+}
+[data-theme="mycelial"] .pop-btn {
+  border-radius: 20px 24px 20px 24px / 24px 20px 24px 20px;
+  font-family: var(--font-display);
+  text-transform: none; letter-spacing: 0.02em;
+  box-shadow: 0 6px 0 var(--pop-shadow), 0 0 22px rgba(79, 227, 193, 0.18);
+}
+[data-theme="mycelial"] .pop-btn:active, [data-theme="mycelial"] .pop-btn.is-pressed {
+  box-shadow: 0 0 0 var(--pop-shadow), 0 0 10px rgba(79, 227, 193, 0.18);
+}
+/* root-curve dividers: feed rows grow from a curved root */
+[data-theme="mycelial"] .fg-feed {
+  border-left: 2px solid rgba(79, 227, 193, 0.25);
+  border-radius: 18px 0 0 18px;
+  padding-left: 12px;
+}
+[data-theme="mycelial"] .fg-feed--power { border-left-color: rgba(201, 161, 255, 0.3); }
+
+/* ── mycelial · BOARD APP — moss floor + living core ──────────────────── */
+[data-theme="mycelial"] .bd-table {
+  background:
+    radial-gradient(120% 90% at 50% 30%,
+      color-mix(in srgb, var(--felt) 88%, #4fe3c1 5%) 0%,
+      var(--felt) 48%,
+      var(--felt-deep) 100%);
+}
+[data-theme="mycelial"] .bd-lane {
+  border-width: 2px;
+  border-style: dashed;
+  border-color: rgba(79, 227, 193, 0.28);   /* root rings */
+}
+[data-theme="mycelial"] .bd-lane:nth-child(even) { border-color: rgba(79, 227, 193, 0.16); }
+[data-theme="mycelial"] .bd-finish {
+  background: repeating-conic-gradient(rgba(79, 227, 193, 0.7) 0% 25%, var(--felt-deep) 0% 50%) 0 0 / 12px 7px;
+  box-shadow: 0 0 12px rgba(79, 227, 193, 0.25);
+}
+[data-theme="mycelial"] .bd-pot {                    /* the mycelium core */
+  background:
+    radial-gradient(circle at 50% 38%, rgba(79, 227, 193, 0.30) 0%,
+      #12352b 58%, #0b1f18 100%);
+  box-shadow:
+    inset 0 0 0 2px rgba(79, 227, 193, 0.28),
+    inset 0 0 26px rgba(79, 227, 193, 0.16),
+    0 0 30px rgba(79, 227, 193, 0.14),
+    0 8px 20px rgba(0, 0, 0, 0.55);
+  animation: bdMycBreathe 5.2s ease-in-out infinite;
+}
+[data-theme="mycelial"] .bd-pot__label { color: #8ef0da; }
+[data-theme="mycelial"] .bd-token--you .bd-token__chip { outline-color: rgba(79, 227, 193, 0.7); }
+[data-theme="mycelial"] .bd-card__face--front {
+  border-radius: 18px 26px 20px 28px / 26px 18px 28px 20px;
+  box-shadow: 0 10px 22px rgba(6, 4, 1, 0.5), 0 0 16px rgba(79, 227, 193, 0.08);
+}
+[data-theme="mycelial"] .bd-card__face--back { border-radius: 18px 26px 20px 28px / 26px 18px 28px 20px; }
+[data-theme="mycelial"] .bd-prow { border-radius: 18px 24px 18px 24px / 24px 18px 24px 18px; }
+[data-theme="mycelial"] .bd-feed__row { border-radius: 12px 0 0 12px; }
+
+/* ── mycelial · MOTION — spore drift + breathing glow ────────────────── */
+[data-theme="mycelial"] .bd-pot::after {               /* drifting spores */
+  content: ""; position: absolute; inset: -18px; border-radius: 50%;
+  background:
+    radial-gradient(circle 2.5px at 30% 60%, rgba(142, 240, 218, 0.8), transparent 70%),
+    radial-gradient(circle 2px at 58% 38%, rgba(142, 240, 218, 0.6), transparent 70%),
+    radial-gradient(circle 1.5px at 74% 66%, rgba(142, 240, 218, 0.7), transparent 70%);
+  pointer-events: none;
+  animation: bdSporeDrift 7s ease-in-out infinite;
+}
+@keyframes bdSporeDrift {
+  0%   { transform: translateY(4px) scale(1); opacity: 0.2; }
+  30%  { opacity: 1; }
+  100% { transform: translateY(-34px) scale(1.15); opacity: 0; }
+}
+@keyframes bdMycBreathe {
+  0%, 100% { filter: brightness(1); }
+  50%      { filter: brightness(1.22); }
+}
+[data-theme="mycelial"] .bd-card--deal { animation: bdMycGrow 0.7s cubic-bezier(0.22, 1, 0.36, 1) both; }
+@keyframes bdMycGrow {
+  from { transform: translateY(24px) scale(0.6); opacity: 0; }
+  60%  { transform: translateY(-4px) scale(1.05); opacity: 1; }
+  to   { transform: none; opacity: 1; }
+}
+
+/* ═════════════════════════════════════════════════════════════════════
+   8 · TECHY — mission control
+   Concept: the season is a telemetry feed. Graph-paper surfaces under
+   scanlines, mono telemetry labels, T− countdown clocks, boot-sequence
+   reveals, and a plotting table instead of a felt.
+   ═════════════════════════════════════════════════════════════════════ */
 [data-theme="techy"] {
   --bg: #0a1014;                /* blueprint dark */
   --surface: #0f171d;
@@ -608,7 +953,7 @@
   --font-body: 'Inter', system-ui, sans-serif;
   --font-mono: 'JetBrains Mono', ui-monospace, Menlo, monospace;
 
-  --radius: 8px;                /* technical — small radii */
+  --radius: 8px;
   --radius-sm: 6px;
   --radius-lg: 10px;
   --radius-xl: 14px;
@@ -619,14 +964,194 @@
   --on-warn: #241304;           /* 8.2:1 on urgency */
 
   --on-gold: var(--on-accent);
-}
-[data-theme="techy"] :is(.fg-battle, .fg-count, .fg-sheet) {
-  background-image: linear-gradient(var(--line) 1px, transparent 1px),
-                    linear-gradient(90deg, var(--line) 1px, transparent 1px);
-  background-size: 22px 22px;   /* graph paper */
+
+  /* board extras — plotting table */
+  --felt: #0d1620;
+  --felt-deep: #080e15;
+  --felt-line: rgba(63, 212, 255, 0.20);
+  --rail: #060b10;
+  --rail-edge: rgba(63, 212, 255, 0.16);
+  --card-back-1: #14324a;
+  --card-back-2: #0a1a28;
+  --card-face: #0f1b24;
+  --pop-shadow: #085e7a;
+  --speed: 0.8s;                /* telemetry-quick */
 }
 
-/* ═══ 9 · TRACK (Athletic Track & Field — track red + white lanes) ═══ */
+/* ── techy · TYPE — everything is telemetry ──────────────────────────── */
+[data-theme="techy"] :is(.fg-battle__meta, .fg-count__sub, .fg-event__sub,
+                         .fg-battle__foot, .fg-feed__meta) {
+  font-family: var(--font-mono);
+  text-transform: uppercase;
+  letter-spacing: 0.12em;
+}
+[data-theme="techy"] :is(.fg-battle__meta, .fg-event__sub)::before {
+  content: "// ";
+  color: var(--lime);
+  opacity: 0.75;
+}
+[data-theme="techy"] :is(.fg-battle__title, .fg-sheet__title, .fg-event__title) {
+  letter-spacing: 0.06em;
+}
+[data-theme="techy"] .fg-count__time::before {         /* mission clock */
+  content: "T−";
+  font-size: 0.62em;
+  opacity: 0.8;
+  margin-right: 0.14em;
+  vertical-align: 0.18em;
+}
+
+/* ── techy · SURFACES — graph paper + scanlines + corner brackets ────── */
+[data-theme="techy"] :is(.fg-battle, .fg-sheet, .fg-count, .fg-dialog, .fg-state, .fg-pro) {
+  position: relative;
+  background-image:
+    repeating-linear-gradient(0deg, rgba(0, 0, 0, 0.16) 0 1px, transparent 1px 3px),
+    linear-gradient(var(--line) 1px, transparent 1px),
+    linear-gradient(90deg, var(--line) 1px, transparent 1px);
+  background-size: 100% 3px, 22px 22px, 22px 22px;    /* scanlines + grid */
+  border: 1px solid var(--line-bright);
+  border-radius: 4px;
+}
+[data-theme="techy"] :is(.fg-battle, .fg-count, .fg-dialog)::before,
+[data-theme="techy"] :is(.fg-battle, .fg-count, .fg-dialog)::after {
+  content: ""; position: absolute; width: 12px; height: 12px;
+  border-color: var(--lime); border-style: solid; opacity: 0.85;
+  pointer-events: none;
+}
+[data-theme="techy"] :is(.fg-battle, .fg-count, .fg-dialog)::before {
+  top: 6px; left: 6px; border-width: 2px 0 0 2px;
+}
+[data-theme="techy"] :is(.fg-battle, .fg-count, .fg-dialog)::after {
+  bottom: 6px; right: 6px; border-width: 0 2px 2px 0;
+}
+[data-theme="techy"] .fg-battle { overflow: hidden; }   /* clip the scan sweep */
+/* telemetry bars with tick ruler */
+[data-theme="techy"] :is(.fg-battle__bar, .fg-lbrow__bar) {
+  border: 1px solid var(--line-bright);
+  border-radius: 2px;
+  background: repeating-linear-gradient(90deg,
+    rgba(63, 212, 255, 0.12) 0 1px, transparent 1px 10%);
+}
+[data-theme="techy"] :is(.fg-battle__bar i, .fg-lbrow__bar i) { border-radius: 1px; }
+/* leaderboard rows: readouts + corner sparkline */
+[data-theme="techy"] .fg-lbrow {
+  position: relative;
+  border: 1px solid var(--line);
+  border-left: 3px solid var(--line-bright);
+  border-radius: 3px;
+  font-family: var(--font-mono);
+}
+[data-theme="techy"] .fg-lbrow__pct { font-family: var(--font-mono); }
+[data-theme="techy"] .fg-lbrow--leader { border-left-color: var(--lime); }
+[data-theme="techy"] .fg-lbrow::after {                /* telemetry spark */
+  content: ""; position: absolute; right: 10px; bottom: 5px;
+  width: 42px; height: 9px; opacity: 0.55;
+  background: repeating-linear-gradient(115deg, var(--lime) 0 2px, transparent 2px 5px);
+  clip-path: polygon(0 68%, 18% 44%, 38% 58%, 58% 22%, 78% 34%, 100% 8%, 100% 100%, 0 100%);
+}
+/* status: console LED */
+[data-theme="techy"] .fg-status {
+  font-family: var(--font-mono);
+  background: transparent; color: var(--success);
+  border: 1px solid color-mix(in srgb, var(--success) 45%, transparent);
+}
+[data-theme="techy"] .fg-status::before {
+  content: ""; display: inline-block; width: 6px; height: 6px; border-radius: 50%;
+  background: var(--success); margin-right: 7px; vertical-align: 1px;
+  animation: bdTechLed 1.2s steps(2) infinite;
+}
+/* buttons: square console keys */
+[data-theme="techy"] :is(.fg-nav__log, .fg-sheet__cta, .fg-dialog__cta,
+                         .fg-pro__cta, .fg-state__cta, .fg-chip[aria-pressed="true"],
+                         .fg-chip.is-selected) {
+  border-radius: 3px;
+  border: 1px solid #04303e;
+  font-family: var(--font-mono);
+  letter-spacing: 0.08em;
+}
+[data-theme="techy"] .pop-btn {
+  border-radius: 4px; border: 1px solid #04303e;
+  font-family: var(--font-mono); letter-spacing: 0.1em;
+}
+/* DZ: hazard stripes */
+[data-theme="techy"] .fg-dz {
+  background-image: repeating-linear-gradient(45deg,
+    rgba(0, 0, 0, 0.30) 0 10px, transparent 10px 20px);
+  border-radius: 3px;
+}
+
+/* ── techy · BOARD APP — the plotting table ──────────────────────────── */
+[data-theme="techy"] .bd-table {
+  background:
+    radial-gradient(120% 90% at 50% 30%,
+      color-mix(in srgb, var(--felt) 90%, #3fd4ff 4%) 0%,
+      var(--felt) 50%, var(--felt-deep) 100%);
+}
+[data-theme="techy"] .bd-lane {
+  border-width: 1px;
+  border-color: rgba(63, 212, 255, 0.34);
+}
+[data-theme="techy"] .bd-lane:nth-child(even) { border-style: dashed; border-color: rgba(63, 212, 255, 0.18); }
+[data-theme="techy"] .bd-finish {
+  background: repeating-conic-gradient(rgba(63, 212, 255, 0.75) 0% 25%, var(--felt-deep) 0% 50%) 0 0 / 10px 6px;
+}
+[data-theme="techy"] .bd-pot {                         /* data core + crosshair */
+  background:
+    linear-gradient(rgba(63, 212, 255, 0.25), rgba(63, 212, 255, 0.25)) center / 100% 1px no-repeat,
+    linear-gradient(rgba(63, 212, 255, 0.25), rgba(63, 212, 255, 0.25)) center / 1px 100% no-repeat,
+    radial-gradient(circle at 50% 36%, rgba(63, 212, 255, 0.20) 0%, #10202c 62%, var(--felt-deep) 100%);
+  box-shadow:
+    inset 0 0 0 1px rgba(63, 212, 255, 0.30),
+    inset 0 0 0 7px rgba(63, 212, 255, 0.07),
+    0 0 24px rgba(63, 212, 255, 0.12),
+    0 8px 20px rgba(0, 0, 0, 0.55);
+}
+[data-theme="techy"] .bd-pot__label { color: var(--lime); }
+[data-theme="techy"] .bd-clock__time { color: var(--lime); }
+[data-theme="techy"] .bd-card__face--front { border-radius: 5px; border-width: 1px; }
+[data-theme="techy"] .bd-card__face--back { border-radius: 5px; }
+[data-theme="techy"] .bd-prow {
+  border-left: 3px solid var(--line-bright);
+  border-radius: 3px;
+}
+[data-theme="techy"] .bd-prow--you { border-left-color: var(--lime); }
+[data-theme="techy"] .bd-top { border-bottom: 1px solid var(--line-bright); box-shadow: 0 1px 0 rgba(63, 212, 255, 0.08); }
+
+/* ── techy · MOTION — boot sequence + scan sweep ─────────────────────── */
+[data-theme="techy"] :is(.fg-battle, .fg-count, .fg-sheet, .fg-event) {
+  animation: bdTechBoot 0.5s both;
+}
+[data-theme="techy"] .fg-count { animation-delay: 0.08s; }
+[data-theme="techy"] .fg-stack .fg-lbrow:nth-child(1) { animation: bdTechBoot 0.45s 0.12s both; }
+[data-theme="techy"] .fg-stack .fg-lbrow:nth-child(2) { animation: bdTechBoot 0.45s 0.18s both; }
+[data-theme="techy"] .fg-stack .fg-lbrow:nth-child(3) { animation: bdTechBoot 0.45s 0.24s both; }
+[data-theme="techy"] .fg-stack .fg-lbrow:nth-child(4) { animation: bdTechBoot 0.45s 0.30s both; }
+@keyframes bdTechBoot {
+  0%   { opacity: 0; transform: translateY(6px); }
+  35%  { opacity: 0.35; }
+  45%  { opacity: 0.15; }
+  60%  { opacity: 1; transform: translateY(0); }
+  100% { opacity: 1; transform: none; }
+}
+[data-theme="techy"] .fg-battle::before {              /* scan sweep band */
+  content: ""; position: absolute; left: 0; right: 0; top: 0; height: 34%;
+  border: 0; width: auto; opacity: 0.5;
+  background: linear-gradient(180deg, rgba(63, 212, 255, 0.10), transparent);
+  animation: bdTechScan 6s linear infinite;
+  pointer-events: none;
+}
+@keyframes bdTechScan {
+  0%   { transform: translateY(-40%); }
+  100% { transform: translateY(320%); }
+}
+@keyframes bdTechLed { 50% { opacity: 0.25; } }
+
+/* ═════════════════════════════════════════════════════════════════════
+   9 · TRACK — pure Track & Field
+   Concept: stadium signage and lane discipline. Terracotta track under
+   floodlights, white lane paint, race-bib rank blocks, Anton timing
+   numerals, and a finish-clock pot. The loudest athletic skin.
+   ═════════════════════════════════════════════════════════════════════ */
 [data-theme="track"] {
   --bg: #2b1012;                /* terracotta track, floodlit */
   --surface: #351518;
@@ -673,14 +1198,170 @@
   --on-warn: #241304;           /* 7.9:1 on urgency */
 
   --on-gold: var(--on-accent);
-}
-[data-theme="track"] .fg-lbrow__bar {
-  background-image: repeating-linear-gradient(90deg,
-    var(--line-bright) 0 10px, transparent 10px 20px); /* lane stripes */
+
+  /* board extras — the running track itself */
+  --felt: #8e2f26;
+  --felt-deep: #571a14;
+  --felt-line: rgba(255, 255, 255, 0.30);
+  --lane-paint: rgba(255, 255, 255, 0.34);
+  --rail: #2b0f0c;
+  --rail-edge: rgba(255, 255, 255, 0.14);
+  --card-back-1: #7e2a22;
+  --card-back-2: #4a1813;
+  --card-face: #3a1a17;
+  --pop-shadow: #4a100c;
+  --speed: 0.75s;               /* race pace */
 }
 
-/* ═══ 10 · POKER (burgundy felt + gold + serif) ═══ */
-[data-theme="poker"] {
+/* ── track · TYPE — timing numerals, signage caps ────────────────────── */
+[data-theme="track"] :is(.fg-count__time, .fg-lbrow__pct, .fg-lbrow__ruf,
+                         .fg-battle__meta, .fg-event__tag) {
+  font-family: var(--font-display);
+  font-variant-numeric: tabular-nums;
+  letter-spacing: 0.05em;
+}
+[data-theme="track"] :is(.fg-battle__title, .fg-sheet__title, .fg-event__title,
+                         .fg-state__title, .fg-dialog__title) {
+  letter-spacing: 0.02em;
+}
+
+/* ── track · SURFACES — signage panels, bibs, marshal flags ──────────── */
+[data-theme="track"] :is(.fg-battle, .fg-sheet, .fg-dialog, .fg-state, .fg-pro) {
+  background: linear-gradient(180deg, rgba(255, 255, 255, 0.04), transparent 30%), var(--surface);
+  border: 1px solid var(--line);
+  border-top: 4px solid var(--text);                /* signage cap rail */
+  box-shadow: 0 5px 0 rgba(20, 6, 5, 0.8);
+}
+[data-theme="track"] .fg-battle__head {             /* moving lane paint */
+  border-bottom: 2px dashed rgba(255, 255, 255, 0.22);
+  background-image: repeating-linear-gradient(90deg,
+    rgba(255, 255, 255, 0.10) 0 22px, transparent 22px 44px);
+  animation: bdTrackMarquee 1.6s linear infinite;
+  padding-bottom: 7px;
+}
+[data-theme="track"] .fg-count {
+  background: #200c0d;
+  border: 1px solid rgba(255, 255, 255, 0.18);
+  border-left: 5px solid var(--text);
+  box-shadow: 0 4px 0 rgba(20, 6, 5, 0.8);
+}
+[data-theme="track"] .fg-count__time { font-size: 1.9em; }   /* BIG clock */
+/* bars: full lanes with dashed centre line */
+[data-theme="track"] :is(.fg-battle__bar, .fg-lbrow__bar) { border-radius: 4px; }
+[data-theme="track"] :is(.fg-battle__bar i, .fg-lbrow__bar i) {
+  background-image: repeating-linear-gradient(90deg,
+    transparent 0 12px, rgba(43, 16, 18, 0.55) 12px 14px);
+}
+/* leaderboard: bib-number blocks, record-board hairlines */
+[data-theme="track"] .fg-lbrow {
+  border: 1px solid var(--line);
+  border-bottom: 1px solid rgba(255, 255, 255, 0.16);
+  box-shadow: none;
+}
+[data-theme="track"] .fg-lbrow__rank {              /* the race bib */
+  display: grid; place-items: center; min-width: 26px; height: 26px;
+  background: var(--text); color: #2b1012;
+  font: 400 15px/1 var(--font-display);
+  border-radius: 5px;
+  box-shadow: 0 2px 0 rgba(20, 6, 5, 0.7);
+}
+[data-theme="track"] .fg-lbrow--leader {
+  border-left: 4px solid var(--text);
+  background: linear-gradient(90deg, rgba(255, 255, 255, 0.10), transparent 60%), var(--surface);
+}
+[data-theme="track"] .fg-lbrow--leader .fg-lbrow__rank {
+  background: var(--coral); color: #2b1012;
+}
+/* events: marshal flags — white card, red band */
+[data-theme="track"] .fg-event {
+  border-left: 5px solid var(--coral);
+  border-radius: 6px 12px 12px 6px;
+}
+[data-theme="track"] .fg-event--storm { border-left-color: var(--energy); }
+[data-theme="track"] .fg-event--charity { border-left-color: var(--success); }
+/* buttons: lane-paint white with ink edge */
+[data-theme="track"] :is(.fg-nav__log, .fg-sheet__cta, .fg-dialog__cta,
+                         .fg-pro__cta, .fg-state__cta, .fg-chip[aria-pressed="true"],
+                         .fg-chip.is-selected) {
+  border: 2px solid #2b1012;
+  border-radius: 8px;
+  box-shadow: 0 4px 0 #4a100c;
+}
+[data-theme="track"] :is(.fg-nav__log, .fg-sheet__cta, .fg-dialog__cta,
+                         .fg-pro__cta, .fg-state__cta):active {
+  transform: translateY(4px); box-shadow: 0 0 0 #4a100c;
+}
+[data-theme="track"] .pop-btn { border: 2px solid #2b1012; }
+[data-theme="track"] .fg-status {
+  background: var(--text); color: #2b1012;
+  font-family: var(--font-display); letter-spacing: 0.08em;
+}
+
+/* ── track · BOARD APP — the running track with lane numbers ─────────── */
+[data-theme="track"] .bd-table {
+  background:
+    radial-gradient(120% 90% at 50% 30%,
+      color-mix(in srgb, var(--felt) 86%, var(--text) 6%) 0%,
+      var(--felt) 50%,
+      var(--felt-deep) 100%);
+}
+[data-theme="track"] .bd-track { counter-reset: bdLane; }
+[data-theme="track"] .bd-lane {
+  counter-increment: bdLane;
+  border-width: 3px;
+  border-style: solid;                            /* real tracks don't dash */
+  border-color: var(--lane-paint);
+}
+[data-theme="track"] .bd-lane:nth-child(even) { border-color: rgba(255, 255, 255, 0.22); }
+[data-theme="track"] .bd-lane::before {            /* lane number at the top straight */
+  content: counter(bdLane);
+  position: absolute; top: 7%; left: 50%; transform: translateX(-50%);
+  font: 400 13px/1 var(--font-display);
+  color: rgba(255, 255, 255, 0.55);
+}
+[data-theme="track"] .bd-finish {
+  width: 70px; height: 18px;
+  box-shadow: 0 0 0 2px rgba(255, 255, 255, 0.4);
+}
+[data-theme="track"] .bd-pot {                     /* the finish clock */
+  background: radial-gradient(circle at 50% 32%, #fffdf9 0%, #fdf5ef 62%, #e8d5cc 100%);
+  box-shadow:
+    inset 0 0 0 3px rgba(43, 16, 18, 0.85),
+    inset 0 0 0 6px #fdf5ef,
+    0 6px 18px rgba(0, 0, 0, 0.55);
+}
+[data-theme="track"] .bd-pot__total { color: #8e2f26; }
+[data-theme="track"] .bd-pot__label { color: #a2402f; }
+[data-theme="track"] .bd-pot__pts { color: #8e2f26; }
+[data-theme="track"] .bd-pot .bd-stack__n { background: #fdf5ef; color: #2b1012; }
+[data-theme="track"] .bd-top { border-bottom: 3px solid var(--text); }
+[data-theme="track"] .bd-prow__pos {
+  display: grid; place-items: center; min-width: 24px; height: 22px;
+  background: var(--text); color: #2b1012;
+  font-family: var(--font-display); border-radius: 4px;
+}
+[data-theme="track"] .bd-prow { border-bottom: 1px solid rgba(255, 255, 255, 0.14); }
+
+/* ── track · MOTION — marquee lane paint ─────────────────────────────── */
+@keyframes bdTrackMarquee {
+  from { background-position: 0 0; }
+  to   { background-position: 44px 0; }
+}
+[data-theme="track"] .bd-card--deal { animation: bdTrackDeal 0.55s cubic-bezier(0.2, 1.2, 0.3, 1) both; }
+@keyframes bdTrackDeal {
+  from { transform: translateX(120px) rotate(14deg); opacity: 0; }
+  to   { transform: none; opacity: 1; }
+}
+
+/* ═════════════════════════════════════════════════════════════════════
+   10 · CARD TABLE (the old card-room theme, renamed — the felt stays as
+       PURE visual style)
+   Concept: card night at a wood-panelled club. Burgundy felt, casino
+   gold, serif small-caps, gold hairlines, chip-edged round buttons and
+   CREAM card faces. Zero card-game jargon in the language — the felt,
+   chips and cards live on as craft.
+   ═════════════════════════════════════════════════════════════════════ */
+[data-theme="cardtable"] {
   --bg: #221016;                /* burgundy felt room */
   --surface: #2a151c;
   --surface-2: #331a22;
@@ -691,7 +1372,7 @@
   --faint: #b09aa5;
   --faint-deco: #806d77;
 
-  --lime: #e6b654;              /* casino gold — primary */
+  --lime: #e6b654;              /* club gold — primary */
   --lime-dim: #c29340;
   --lime-glow: rgba(230, 182, 84, 0.15);
   --coral: #ff8468;
@@ -721,22 +1402,169 @@
   --radius-xl: 18px;
   --pill: 999px;
 
-  --on-accent: #241703;         /* 8.9:1 on casino gold */
+  --on-accent: #241703;         /* 8.9:1 on club gold */
   --primary-hover: #f2c96e;
   --on-warn: #241304;           /* 8.1:1 on urgency */
 
   --on-gold: var(--on-accent);
 
-  /* board app: burgundy felt under the same table chrome */
+  /* board extras — club felt under the same table chrome */
   --felt: #4a1622;
   --felt-deep: #2a0d14;
-  --rail: #1c0a0f;
-}
-[data-theme="poker"] :is(.fg-battle__title, .fg-sheet__title, .fg-count__time) {
-  letter-spacing: 0.02em;
+  --felt-line: rgba(230, 182, 84, 0.20);
+  --rail: #1a090d;              /* mahogany rail */
+  --rail-edge: rgba(230, 182, 84, 0.25);
+
+  --card-back-1: #572031;       /* burgundy pinstripe back */
+  --card-back-2: #341220;
+  --card-face: #f4ead6;         /* CREAM card faces */
+
+  /* rarity inks darkened for cream faces (same hue axes) */
+  --rar-common: #6f6270;
+  --rar-rare: #2f5fd0;
+  --rar-epic: #8a4fd8;
+  --rar-legendary: #a5721c;
+
+  --pop-shadow: #5e3a12;
+  --speed: 1.05s;               /* unhurried, deliberate */
 }
 
-/* ═══ 11 · CAVEMAN (stone browns, bone white, primitive chunk) ═══ */
+/* ── cardtable · TYPE — serif small-caps with gold hairlines ─────────── */
+[data-theme="cardtable"] :is(.fg-battle__title, .fg-sheet__title,
+                             .fg-dialog__title, .fg-state__title, .fg-pro__title) {
+  font-variant: small-caps;
+  letter-spacing: 0.05em;
+  text-transform: none;
+}
+[data-theme="cardtable"] .fg-battle__title::after {
+  content: ""; display: block; width: 64px; height: 1px;
+  margin-top: 7px;
+  background: linear-gradient(90deg, var(--lime), transparent);
+}
+[data-theme="cardtable"] :is(.fg-pwr__name) { font-style: italic; }
+
+/* ── cardtable · SURFACES — candlelit felt + ornate double borders ───── */
+[data-theme="cardtable"] body {
+  background: radial-gradient(120% 100% at 50% 0%, #2e151d 0%, var(--bg) 72%);
+}
+[data-theme="cardtable"] :is(.fg-battle, .fg-sheet, .fg-dialog, .fg-state, .fg-pro) {
+  border: 1px solid rgba(230, 182, 84, 0.32);
+  border-radius: 14px;
+  background-image:
+    repeating-linear-gradient(45deg, rgba(0, 0, 0, 0.05) 0 3px, transparent 3px 7px),
+    radial-gradient(120% 100% at 50% 0%, rgba(230, 182, 84, 0.05), transparent 55%);
+  box-shadow: inset 0 0 0 1px rgba(230, 182, 84, 0.12), 0 16px 34px rgba(8, 2, 5, 0.55);
+}
+[data-theme="cardtable"] .fg-count {
+  border: 1px solid rgba(230, 182, 84, 0.32);
+  border-radius: 12px;
+  box-shadow: inset 0 0 0 1px rgba(230, 182, 84, 0.12), 0 10px 26px rgba(8, 2, 5, 0.5);
+}
+/* leaderboard: the ledger — dotted gold rules */
+[data-theme="cardtable"] .fg-lbrow {
+  background: color-mix(in srgb, var(--surface) 55%, transparent);
+  border: 1px solid rgba(230, 182, 84, 0.16);
+  border-bottom: 1px dotted rgba(230, 182, 84, 0.35);
+}
+[data-theme="cardtable"] .fg-lbrow__rank { color: var(--lime); font-family: var(--font-display); }
+[data-theme="cardtable"] .fg-lbrow--leader {
+  box-shadow: inset 0 0 0 1px rgba(230, 182, 84, 0.30);
+  animation: bdCardShimmer 8s ease-in-out infinite;
+}
+[data-theme="cardtable"] :is(.fg-battle__bar i, .fg-lbrow__bar i) {
+  border-radius: 6px 6px 6px 6px;
+  box-shadow: inset 0 1px 0 rgba(255, 255, 255, 0.28);
+}
+/* buttons: chips — round with dashed edge insets */
+[data-theme="cardtable"] :is(.fg-nav__log, .fg-sheet__cta, .fg-dialog__cta,
+                             .fg-pro__cta, .fg-state__cta) {
+  border-radius: 999px;
+  outline: 2px dashed rgba(255, 248, 234, 0.38);
+  outline-offset: -7px;
+  font-family: var(--font-display);
+  text-transform: none; letter-spacing: 0.04em;
+  box-shadow: 0 5px 0 var(--pop-shadow), 0 10px 22px rgba(8, 2, 5, 0.45);
+}
+[data-theme="cardtable"] :is(.fg-chip, .fg-chip--exercise, .fg-chip--lg) {
+  border-radius: 999px;
+}
+[data-theme="cardtable"] .fg-chip[aria-pressed="true"],
+[data-theme="cardtable"] .fg-chip.is-selected {
+  outline: 2px dashed rgba(36, 23, 3, 0.5);
+  outline-offset: -6px;
+}
+[data-theme="cardtable"] .pop-btn {
+  border-radius: 999px;
+  outline: 2px dashed rgba(255, 248, 234, 0.32);
+  outline-offset: -8px;
+  font-family: var(--font-display);
+  text-transform: none; letter-spacing: 0.04em;
+}
+[data-theme="cardtable"] .pop-btn--ghost {
+  outline-color: rgba(230, 182, 84, 0.35);
+}
+[data-theme="cardtable"] .fg-status {
+  font-family: var(--font-mono);
+  color: var(--lime); background: transparent;
+  border: 1px solid rgba(230, 182, 84, 0.4);
+}
+
+/* ── cardtable · BOARD APP — club table, cream cards ─────────────────── */
+[data-theme="cardtable"] .bd-table {
+  background:
+    radial-gradient(120% 90% at 50% 30%,
+      color-mix(in srgb, var(--felt) 88%, #e6b654 5%) 0%,
+      var(--felt) 50%,
+      var(--felt-deep) 100%);
+}
+[data-theme="cardtable"] .bd-lane {
+  border-width: 1px;
+  border-color: rgba(230, 182, 84, 0.26);
+}
+[data-theme="cardtable"] .bd-lane:nth-child(even) { border-style: dashed; }
+[data-theme="cardtable"] .bd-finish {
+  background: repeating-linear-gradient(45deg, #e6b654 0 5px, #1a090d 5px 10px);
+}
+[data-theme="cardtable"] .bd-pot {                  /* brass plate */
+  background:
+    radial-gradient(circle at 50% 30%, rgba(230, 182, 84, 0.22) 0%,
+      color-mix(in srgb, var(--felt) 60%, var(--text) 8%) 58%, var(--felt-deep) 100%);
+  box-shadow:
+    inset 0 0 0 2px rgba(230, 182, 84, 0.4),
+    inset 0 0 0 4px color-mix(in srgb, var(--felt) 80%, #000),
+    inset 0 0 0 6px rgba(230, 182, 84, 0.22),
+    0 6px 18px rgba(0, 0, 0, 0.55);
+}
+[data-theme="cardtable"] .bd-pot__label { font-variant: small-caps; letter-spacing: 0.34em; color: var(--lime); }
+/* CREAM card faces with ink text */
+[data-theme="cardtable"] .bd-card__face--front {
+  background: linear-gradient(165deg, #faf3e3 0%, var(--card-face) 58%, #e7d8bd 100%);
+}
+[data-theme="cardtable"] .bd-card__name { color: #2a151c; }
+[data-theme="cardtable"] .bd-card__fx { color: #5d4a53; }
+[data-theme="cardtable"] .bd-card__cost { color: #6a4a1c; }
+[data-theme="cardtable"] .bd-card__rar { color: #fff6e6; }
+[data-theme="cardtable"] .bd-card__face--back {
+  background: repeating-linear-gradient(45deg, var(--card-back-1) 0 6px, var(--card-back-2) 6px 12px);
+  border-color: rgba(230, 182, 84, 0.4);
+}
+[data-theme="cardtable"] .bd-prow { border-radius: 10px; }
+
+/* ── cardtable · MOTION — one slow gold shimmer, nothing frantic ─────── */
+@keyframes bdCardShimmer {
+  0%, 100% { box-shadow: inset 0 0 0 1px rgba(230, 182, 84, 0.30); }
+  50%      { box-shadow: inset 0 0 0 1px rgba(230, 182, 84, 0.55), 0 0 18px rgba(230, 182, 84, 0.10); }
+}
+@media (hover: hover) {
+  [data-theme="cardtable"] .bd-card:not(.is-playing):hover { transform: translateY(-14px) scale(1.07) rotate(1.2deg); }
+}
+
+/* ═════════════════════════════════════════════════════════════════════
+   11 · CAVEMAN — chalk on stone
+   Concept: the first scoreboard was a cave wall. Stone strata surfaces,
+   bone-white chalk strokes with wobbled hand-drawn radii, ochre fire for
+   danger, carved bone buttons, tally-mark energy.
+   ═════════════════════════════════════════════════════════════════════ */
 [data-theme="caveman"] {
   --bg: #1c1611;                /* cave stone */
   --surface: #251d15;
@@ -772,7 +1600,7 @@
   --font-body: 'Inter', system-ui, sans-serif;
   --font-mono: ui-monospace, Menlo, monospace;
 
-  --radius: 8px;                /* primitive — hewn, not machined */
+  --radius: 8px;
   --radius-sm: 6px;
   --radius-lg: 12px;
   --radius-xl: 16px;
@@ -783,17 +1611,182 @@
   --on-warn: #241304;           /* 8.0:1 on urgency */
 
   --on-gold: var(--on-accent);
-}
-[data-theme="caveman"] :is(.fg-battle, .fg-sheet, .fg-count, .fg-lbrow) {
-  border-width: 2px;            /* crude, thick borders */
-  border-color: var(--line-bright);
-  box-shadow: 4px 4px 0 rgba(23, 16, 8, 0.55);
-}
-[data-theme="caveman"] :is(.fg-battle__title, .fg-sheet__title) {
-  font-weight: 900; letter-spacing: 0.03em;
+
+  /* board extras — stone arena */
+  --felt: #3a2c1c;
+  --felt-deep: #241a10;
+  --felt-line: rgba(236, 224, 192, 0.22);
+  --rail: #171008;
+  --rail-edge: rgba(236, 224, 192, 0.14);
+  --card-back-1: #4a3a24;
+  --card-back-2: #2a2012;
+  --card-face: #33281a;
+  --pop-shadow: #171008;
+  --speed: 0.95s;
 }
 
-/* ═══ 12 · N64 RETRO (flat bright polys over fog indigo) ═══ */
+/* ── caveman · TYPE — heavy, bashed-in letters ───────────────────────── */
+[data-theme="caveman"] :is(.fg-battle__title, .fg-sheet__title, .fg-pwr__name,
+                           .fg-event__title, .fg-state__title, .fg-dialog__title) {
+  font-weight: 900;
+  letter-spacing: 0.03em;
+}
+[data-theme="caveman"] .fg-count__time {
+  font-family: var(--font-display);
+  font-weight: 900;
+  border-bottom: 3px dashed rgba(236, 224, 192, 0.35);   /* scratched tally */
+  display: inline-block;
+  padding-bottom: 2px;
+}
+[data-theme="caveman"] .fg-event__title::before { content: "▲ "; color: var(--coral); }
+
+/* ── caveman · SURFACES — rock strata + wobbled chalk strokes ────────── */
+[data-theme="caveman"] :is(.fg-battle, .fg-sheet, .fg-dialog, .fg-state, .fg-pro) {
+  border: 2.5px solid rgba(236, 224, 192, 0.5);
+  border-radius: 18px 8px 20px 10px / 10px 22px 8px 18px;
+  background-image:
+    radial-gradient(rgba(0, 0, 0, 0.22) 1px, transparent 1.6px),
+    radial-gradient(rgba(0, 0, 0, 0.16) 1px, transparent 1.5px),
+    repeating-linear-gradient(112deg, rgba(0, 0, 0, 0.08) 0 3px, transparent 3px 9px),
+    linear-gradient(180deg, rgba(255, 244, 218, 0.04), transparent 40%);
+  background-size: 11px 13px, 17px 19px, auto, auto;
+  box-shadow: 5px 5px 0 rgba(16, 10, 4, 0.65);
+}
+[data-theme="caveman"] .fg-count {
+  border: 2.5px solid rgba(236, 224, 192, 0.5);
+  border-radius: 22px 10px 18px 8px / 8px 20px 10px 22px;
+  background-image: radial-gradient(rgba(0, 0, 0, 0.20) 1px, transparent 1.6px);
+  background-size: 13px 15px;
+  box-shadow: 4px 4px 0 rgba(16, 10, 4, 0.6);
+}
+[data-theme="caveman"] .fg-stack .fg-lbrow:nth-child(odd) {
+  border: 2px solid rgba(236, 224, 192, 0.34);
+  border-radius: 16px 7px 18px 9px / 9px 18px 7px 16px;
+  transform: rotate(-0.35deg);
+}
+[data-theme="caveman"] .fg-stack .fg-lbrow:nth-child(even) {
+  border: 2px solid rgba(236, 224, 192, 0.34);
+  border-radius: 7px 16px 9px 18px / 18px 9px 16px 7px;
+  transform: rotate(0.3deg);
+}
+[data-theme="caveman"] .fg-stack .fg-lbrow--leader {
+  border-color: rgba(236, 224, 192, 0.7);
+}
+[data-theme="caveman"] .fg-lbrow__rank { font-family: var(--font-display); font-weight: 900; }
+[data-theme="caveman"] :is(.fg-battle__bar, .fg-lbrow__bar) {
+  border: 1.5px solid rgba(236, 224, 192, 0.28);
+  border-radius: 10px 4px 12px 5px / 5px 12px 4px 10px;
+}
+[data-theme="caveman"] :is(.fg-battle__bar i, .fg-lbrow__bar i) {
+  border-radius: 8px 3px 9px 4px / 4px 9px 3px 8px;
+}
+[data-theme="caveman"] .fg-event {
+  border: 2px solid rgba(236, 224, 192, 0.3);
+  border-radius: 14px 6px 16px 7px / 7px 16px 6px 14px;
+  transform: rotate(-0.25deg);
+}
+/* buttons: carved bone — thick dark edge + top highlight */
+[data-theme="caveman"] :is(.fg-nav__log, .fg-sheet__cta, .fg-dialog__cta,
+                           .fg-pro__cta, .fg-state__cta, .fg-chip[aria-pressed="true"],
+                           .fg-chip.is-selected) {
+  border: 3px solid #171008;
+  border-radius: 14px 6px 12px 8px / 8px 12px 6px 14px;
+  box-shadow: inset 0 3px 0 rgba(255, 255, 255, 0.35), 0 5px 0 #171008;
+  font-family: var(--font-display); font-weight: 800;
+  letter-spacing: 0.04em;
+}
+[data-theme="caveman"] :is(.fg-nav__log, .fg-sheet__cta, .fg-dialog__cta,
+                           .fg-pro__cta, .fg-state__cta):active {
+  transform: translateY(5px);
+  box-shadow: inset 0 3px 0 rgba(255, 255, 255, 0.35), 0 0 0 #171008;
+}
+[data-theme="caveman"] .pop-btn {
+  border: 3px solid #171008;
+  border-radius: 14px 6px 12px 8px / 8px 12px 6px 14px;
+  box-shadow: inset 0 3px 0 rgba(255, 255, 255, 0.35), 0 6px 0 #171008,
+              0 9px 18px rgba(0, 0, 0, 0.35);
+}
+[data-theme="caveman"] .pop-btn:active, [data-theme="caveman"] .pop-btn.is-pressed {
+  transform: translateY(6px);
+  box-shadow: inset 0 3px 0 rgba(255, 255, 255, 0.35), 0 0 0 #171008;
+}
+[data-theme="caveman"] .fg-status {
+  background: transparent; color: var(--coral);
+  border: 2px solid rgba(255, 139, 94, 0.5);
+  border-radius: 10px 4px 12px 5px / 5px 12px 4px 10px;
+}
+/* DZ: the fire wall */
+[data-theme="caveman"] .fg-dz {
+  background-image: repeating-linear-gradient(45deg,
+    rgba(0, 0, 0, 0.28) 0 9px, transparent 9px 18px);
+  border-radius: 12px 5px 12px 5px / 5px 12px 5px 12px;
+}
+
+/* ── caveman · BOARD APP — the stone arena with a fire pit ───────────── */
+[data-theme="caveman"] .bd-table {
+  background:
+    radial-gradient(120% 90% at 50% 34%,
+      color-mix(in srgb, var(--felt) 88%, #ff8b5e 4%) 0%,
+      var(--felt) 50%,
+      var(--felt-deep) 100%);
+}
+[data-theme="caveman"] .bd-lane {
+  border-width: 2.5px;
+  border-style: dashed;                            /* chalk circles */
+  border-color: rgba(236, 224, 192, 0.4);
+}
+[data-theme="caveman"] .bd-lane:nth-child(even) { border-color: rgba(236, 224, 192, 0.24); }
+[data-theme="caveman"] .bd-finish {
+  background: repeating-conic-gradient(rgba(236, 224, 192, 0.8) 0% 25%, var(--felt-deep) 0% 50%) 0 0 / 13px 8px;
+  border-radius: 8px 3px 8px 3px / 5px 8px 3px 8px;
+  transform: rotate(-1.5deg);
+}
+[data-theme="caveman"] .bd-pot {                    /* the fire pit */
+  background:
+    radial-gradient(circle at 50% 62%, #ffb35e 0%, #e2621d 26%, #8e3a12 55%,
+      #3a2412 78%, #241a10 100%);
+  box-shadow:
+    inset 0 0 0 3px rgba(23, 16, 8, 0.8),
+    inset 0 0 22px rgba(255, 150, 60, 0.35),
+    0 0 26px rgba(255, 139, 94, 0.18),
+    0 8px 18px rgba(0, 0, 0, 0.6);
+  animation: bdCaveFlicker 2.4s steps(3) infinite;
+}
+[data-theme="caveman"] .bd-pot__label { color: #ffe6c4; text-shadow: 0 1px 3px rgba(60, 20, 4, 0.9); }
+[data-theme="caveman"] .bd-pot__total { text-shadow: 0 2px 4px rgba(60, 20, 4, 0.9); }
+[data-theme="caveman"] .bd-card__face--front {
+  border-width: 2.5px;
+  border-radius: 14px 7px 16px 8px / 8px 16px 7px 14px;
+}
+[data-theme="caveman"] .bd-card__face--back {
+  border-radius: 14px 7px 16px 8px / 8px 16px 7px 14px;
+  background: repeating-linear-gradient(-48deg, var(--card-back-1) 0 6px, var(--card-back-2) 6px 12px);
+}
+[data-theme="caveman"] .bd-prow {
+  border: 1.5px solid rgba(236, 224, 192, 0.2);
+  border-radius: 12px 5px 12px 5px / 5px 12px 5px 12px;
+}
+
+/* ── caveman · MOTION — thud + fire flicker ──────────────────────────── */
+@keyframes bdCaveFlicker {
+  0%, 100% { filter: brightness(1); }
+  33%      { filter: brightness(1.12); }
+  66%      { filter: brightness(0.94); }
+}
+[data-theme="caveman"] .bd-card--deal { animation: bdCaveThud 0.6s cubic-bezier(0.3, 1.5, 0.4, 1) both; }
+@keyframes bdCaveThud {
+  from { transform: translateY(120px) rotate(-10deg) scale(1.12); opacity: 0; }
+  60%  { transform: translateY(-3px) rotate(1deg) scale(1); opacity: 1; }
+  80%  { transform: translateY(2px); }
+  to   { transform: none; opacity: 1; }
+}
+
+/* ═════════════════════════════════════════════════════════════════════
+   12 · N64 — 1997 console
+   Concept: fog-washed low-poly worlds. Bright flat colour over indigo
+   fog, chunky dark outlines, memory-card corner screws, SQUARE avatars
+   (character select!), segmented health-style bars, cartridge buttons.
+   ═════════════════════════════════════════════════════════════════════ */
 [data-theme="n64"] {
   --bg: #1e2946;                /* fog indigo */
   --surface: #263356;
@@ -840,14 +1833,176 @@
   --on-warn: #241304;           /* 8.1:1 on urgency */
 
   --on-gold: var(--on-accent);
-}
-[data-theme="n64"] :is(.fg-battle, .fg-sheet, .fg-count) {
-  border: 3px solid var(--line-bright); /* flat poly outline */
-  box-shadow: 6px 6px 0 rgba(12, 17, 33, 0.6);
-}
-[data-theme="n64"] :is(.fg-battle__title, .fg-sheet__title) { font-weight: 600; }
 
-/* ═══ 13 · GOLDENEYE 64 (grey-blue steel + gold watch HUD) ═══ */
+  /* board extras — the poly arena */
+  --felt: #2e3d66;
+  --felt-deep: #1a2340;
+  --felt-line: rgba(255, 255, 255, 0.30);
+  --rail: #101830;
+  --rail-edge: rgba(255, 255, 255, 0.16);
+  --card-back-1: #3d5290;
+  --card-back-2: #1c2a52;
+  --card-face: #33406e;
+  --pop-shadow: #131c3a;
+  --speed: 0.8s;                /* 20fps energy */
+}
+
+/* ── n64 · TYPE — rounded chunk, playful caps ────────────────────────── */
+[data-theme="n64"] :is(.fg-battle__title, .fg-sheet__title, .fg-pwr__name,
+                       .fg-event__title, .fg-state__title, .fg-dialog__title) {
+  font-weight: 600;
+  letter-spacing: 0.05em;
+}
+[data-theme="n64"] .fg-count__time { font-family: var(--font-display); font-weight: 700; }
+
+/* ── n64 · SURFACES — fog wash, outlines, corner screws ──────────────── */
+[data-theme="n64"] body {
+  background: linear-gradient(180deg, #2b3a63 0%, var(--bg) 62%);
+}
+[data-theme="n64"] :is(.fg-battle, .fg-sheet, .fg-dialog, .fg-state, .fg-pro) {
+  border: 3px solid #101830;
+  border-radius: 14px;
+  background-image:
+    radial-gradient(circle 2.5px at 10px 10px, rgba(9, 13, 28, 0.85) 98%, transparent),
+    radial-gradient(circle 2.5px at calc(100% - 10px) 10px, rgba(9, 13, 28, 0.85) 98%, transparent),
+    radial-gradient(circle 2.5px at 10px calc(100% - 10px), rgba(9, 13, 28, 0.85) 98%, transparent),
+    radial-gradient(circle 2.5px at calc(100% - 10px) calc(100% - 10px), rgba(9, 13, 28, 0.85) 98%, transparent),
+    linear-gradient(180deg, rgba(255, 255, 255, 0.08), transparent 38%);
+  box-shadow: inset 0 0 0 2px rgba(255, 255, 255, 0.14), 6px 6px 0 rgba(10, 15, 33, 0.55);
+}
+[data-theme="n64"] .fg-count {
+  border: 3px solid #101830;
+  border-radius: 12px;
+  box-shadow: inset 0 0 0 2px rgba(255, 255, 255, 0.14), 5px 5px 0 rgba(10, 15, 33, 0.55);
+}
+/* SQUARE avatars — character-select portraits */
+[data-theme="n64"] :is(.fg-avatar, .fg-lbrow .fg-avatar, .fg-battle__crew .fg-avatar) {
+  border-radius: 9px;
+}
+[data-theme="n64"] :is(.fg-battle__bar, .fg-lbrow__bar) {
+  border: 2px solid #101830;
+  border-radius: 6px;
+  padding: 2px;
+  background: #1a2340;
+}
+[data-theme="n64"] :is(.fg-battle__bar i, .fg-lbrow__bar i) {
+  background-image: repeating-linear-gradient(90deg,
+    transparent 0 9px, rgba(16, 24, 48, 0.6) 9px 12px);
+  border-radius: 3px;
+}
+[data-theme="n64"] .fg-lbrow {
+  border: 2px solid #101830;
+  border-radius: 12px;
+  background: color-mix(in srgb, var(--surface) 80%, transparent);
+}
+[data-theme="n64"] .fg-lbrow--leader {
+  border-color: var(--lime);
+  box-shadow: 0 0 14px rgba(255, 225, 77, 0.35);
+}
+[data-theme="n64"] .fg-lbrow__rank { font-family: var(--font-display); color: var(--lime); }
+/* buttons: cartridges — gloss top + chunky outline */
+[data-theme="n64"] :is(.fg-nav__log, .fg-sheet__cta, .fg-dialog__cta,
+                       .fg-pro__cta, .fg-state__cta, .fg-chip[aria-pressed="true"],
+                       .fg-chip.is-selected, .fg-plan--selected) {
+  border: 3px solid #101830;
+  border-radius: 11px;
+  background-image: linear-gradient(180deg, rgba(255, 255, 255, 0.30) 0 20%, transparent 20%);
+  box-shadow: inset 0 0 0 1.5px rgba(255, 255, 255, 0.22), 0 5px 0 #131c3a;
+  font-family: var(--font-display);
+  letter-spacing: 0.04em;
+}
+[data-theme="n64"] :is(.fg-nav__log, .fg-sheet__cta, .fg-dialog__cta,
+                       .fg-pro__cta, .fg-state__cta):active {
+  transform: translateY(5px);
+  box-shadow: inset 0 0 0 1.5px rgba(255, 255, 255, 0.22), 0 0 0 #131c3a;
+}
+[data-theme="n64"] .pop-btn {
+  border: 3px solid #101830;
+  border-radius: 11px;
+  background-image: linear-gradient(180deg, rgba(255, 255, 255, 0.30) 0 20%, transparent 20%);
+  box-shadow: inset 0 0 0 1.5px rgba(255, 255, 255, 0.22), 0 6px 0 var(--pop-shadow);
+}
+[data-theme="n64"] .pop-btn:active, [data-theme="n64"] .pop-btn.is-pressed {
+  box-shadow: inset 0 0 0 1.5px rgba(255, 255, 255, 0.22), 0 0 0 var(--pop-shadow);
+}
+[data-theme="n64"] .fg-status {
+  font-family: var(--font-display);
+  border: 2px solid #101830;
+  border-radius: 8px;
+}
+
+/* ── n64 · BOARD APP — the poly arena ────────────────────────────────── */
+[data-theme="n64"] .bd-table {
+  background:
+    linear-gradient(180deg, rgba(255, 255, 255, 0.05), transparent 45%),
+    radial-gradient(120% 90% at 50% 30%,
+      color-mix(in srgb, var(--felt) 90%, #7fd0ff 5%) 0%,
+      var(--felt) 50%,
+      var(--felt-deep) 100%);
+}
+[data-theme="n64"] .bd-lane {
+  border-width: 3px;
+  border-color: rgba(255, 255, 255, 0.36);
+}
+[data-theme="n64"] .bd-lane:nth-child(even) { border-color: rgba(255, 255, 255, 0.22); }
+[data-theme="n64"] .bd-finish {
+  background: repeating-conic-gradient(#ffe14d 0% 25%, #101830 0% 50%) 0 0 / 12px 7px;
+  border: 2px solid #101830;
+}
+[data-theme="n64"] .bd-pot {                        /* the star core */
+  background:
+    radial-gradient(circle at 50% 34%, #fff3a8 0%, var(--lime) 34%, #d6be3c 62%, #8a7420 100%);
+  box-shadow:
+    inset 0 0 0 3px rgba(35, 29, 4, 0.85),
+    inset 0 0 0 7px rgba(255, 243, 168, 0.35),
+    0 6px 0 rgba(19, 28, 58, 0.9),
+    0 10px 24px rgba(0, 0, 0, 0.5);
+  animation: bdN64Bob 3.4s ease-in-out infinite;
+}
+[data-theme="n64"] .bd-pot__label { color: #231d04; }
+[data-theme="n64"] .bd-pot__total { color: #231d04; }
+[data-theme="n64"] .bd-pot__pts { color: #4a3d08; }
+[data-theme="n64"] .bd-token__chip, [data-theme="n64"] .bd-prow__chip,
+[data-theme="n64"] .bd-ped__chip { border-radius: 9px; }   /* square tokens! */
+[data-theme="n64"] .bd-card__face--front {
+  border-width: 3px;
+  border-color: #101830;
+  box-shadow: inset 0 0 0 1.5px rgba(255, 255, 255, 0.14), 0 8px 18px rgba(10, 15, 33, 0.5);
+}
+[data-theme="n64"] .bd-card__face--back {
+  border-width: 3px;
+  border-color: #101830;
+}
+[data-theme="n64"] .bd-prow { border: 2px solid #101830; border-radius: 12px; }
+[data-theme="n64"] .bd-prow--you { border-color: var(--lime); }
+
+/* ── n64 · MOTION — spawn pops with overshoot ────────────────────────── */
+[data-theme="n64"] :is(.fg-battle, .fg-count, .fg-event) {
+  animation: bdN64Spawn 0.5s cubic-bezier(0.3, 1.7, 0.5, 1) both;
+}
+[data-theme="n64"] .fg-count { animation-delay: 0.07s; }
+@keyframes bdN64Spawn {
+  from { transform: scale(0.7); opacity: 0; }
+  70%  { transform: scale(1.04); opacity: 1; }
+  to   { transform: scale(1); opacity: 1; }
+}
+@keyframes bdN64Bob {
+  0%, 100% { transform: translate(-50%, -50%) scale(1); }
+  50%      { transform: translate(-50%, -50%) scale(1.035); }
+}
+[data-theme="n64"] .bd-card--deal { animation: bdN64Deal 0.55s cubic-bezier(0.3, 1.7, 0.5, 1) both; }
+@keyframes bdN64Deal {
+  from { transform: translateY(110px) scale(0.5); opacity: 0; }
+  70%  { transform: translateY(-6px) scale(1.1); opacity: 1; }
+  to   { transform: none; opacity: 1; }
+}
+
+/* ═════════════════════════════════════════════════════════════════════
+   13 · GOLDENEYE 64 — the watch-menu HUD
+   Concept: Bond's wristwatch. Gunmetal panels with notched corners,
+   gold monospace dossier type, segmented health-armor meters, reticle
+   brackets on the leader, mission-objective event tags, alarm-state DZ.
+   ═════════════════════════════════════════════════════════════════════ */
 [data-theme="goldeneye"] {
   --bg: #141a20;                /* gunmetal */
   --surface: #1a222a;
@@ -894,11 +2049,210 @@
   --on-warn: #241304;           /* 8.2:1 on urgency */
 
   --on-gold: var(--on-accent);
+
+  /* board extras — the facility map */
+  --felt: #1b232c;
+  --felt-deep: #10161d;
+  --felt-line: rgba(240, 196, 69, 0.22);
+  --rail: #0b1015;
+  --rail-edge: rgba(240, 196, 69, 0.18);
+  --card-back-1: #2c3844;
+  --card-back-2: #151d25;
+  --card-face: #1e2833;
+  --pop-shadow: #6b5210;
+  --speed: 0.85s;
 }
-[data-theme="goldeneye"] :is(.fg-status, .fg-badge) {
+
+/* ── goldeneye · TYPE — dossier mono, wide tracking ──────────────────── */
+[data-theme="goldeneye"] :is(.fg-battle__title, .fg-sheet__title, .fg-event__title,
+                             .fg-state__title, .fg-dialog__title, .fg-pwr__name) {
+  text-transform: uppercase;
+  letter-spacing: 0.16em;
+  font-weight: 700;
+}
+[data-theme="goldeneye"] :is(.fg-battle__meta, .fg-count__sub, .fg-event__sub) {
+  font-family: var(--font-mono);
+  text-transform: uppercase;
+  letter-spacing: 0.14em;
+}
+[data-theme="goldeneye"] .fg-pwr__rarity::before { content: "[ "; }
+[data-theme="goldeneye"] .fg-pwr__rarity::after  { content: " ]"; }
+
+/* ── goldeneye · SURFACES — notched panels + gold hairlines ──────────── */
+[data-theme="goldeneye"] :is(.fg-battle, .fg-sheet, .fg-dialog, .fg-state, .fg-pro) {
   border: 1px solid var(--line-bright);
-  clip-path: polygon(6px 0, 100% 0, 100% calc(100% - 6px), calc(100% - 6px) 100%, 0 100%, 0 6px); /* notched HUD corner */
+  border-top: 2px solid color-mix(in srgb, var(--lime) 55%, var(--line-bright));
+  border-radius: 2px;
+  clip-path: polygon(12px 0, 100% 0, 100% calc(100% - 12px), calc(100% - 12px) 100%, 0 100%, 0 12px);
+  background-image: linear-gradient(180deg, rgba(240, 196, 69, 0.04), transparent 36%);
+  box-shadow: 0 10px 26px rgba(4, 8, 12, 0.55);
 }
-[data-theme="goldeneye"] :is(.fg-count__time, .fg-battle__title) {
-  text-shadow: 0 0 12px rgba(240, 196, 69, 0.35);
+[data-theme="goldeneye"] :is(.fg-count, .fg-event) {
+  border: 1px solid var(--line-bright);
+  border-radius: 2px;
+  clip-path: polygon(8px 0, 100% 0, 100% calc(100% - 8px), calc(100% - 8px) 100%, 0 100%, 0 8px);
+}
+[data-theme="goldeneye"] .fg-count__time { text-shadow: 0 0 14px rgba(240, 196, 69, 0.30); }
+/* health-armor segmented meters */
+[data-theme="goldeneye"] :is(.fg-battle__bar, .fg-lbrow__bar) {
+  border: 1px solid var(--line-bright);
+  border-radius: 1px;
+  background: #0d1319;
+  padding: 2px;
+}
+[data-theme="goldeneye"] :is(.fg-battle__bar i, .fg-lbrow__bar i) {
+  background-image: repeating-linear-gradient(90deg,
+    rgba(13, 19, 25, 0.7) 0 2px, transparent 2px 11px);
+  border-radius: 0;
+}
+/* leaderboard: dossier rows + reticle brackets on the target */
+[data-theme="goldeneye"] .fg-lbrow {
+  border: 1px solid var(--line);
+  border-radius: 2px;
+  font-family: var(--font-mono);
+}
+[data-theme="goldeneye"] .fg-lbrow__rank { color: var(--lime); font-family: var(--font-mono); }
+[data-theme="goldeneye"] .fg-lbrow--leader { position: relative; border-color: color-mix(in srgb, var(--lime) 45%, transparent); }
+[data-theme="goldeneye"] .fg-lbrow--leader::before,
+[data-theme="goldeneye"] .fg-lbrow--leader::after {
+  content: ""; position: absolute; width: 12px; height: 12px;
+  border: 0 solid var(--lime); opacity: 0.9;
+  animation: bdGeReticle 2.4s ease-in-out infinite;
+}
+[data-theme="goldeneye"] .fg-lbrow--leader::before {
+  top: -4px; left: -4px; border-top-width: 2px; border-left-width: 2px;
+}
+[data-theme="goldeneye"] .fg-lbrow--leader::after {
+  bottom: -4px; right: -4px; border-bottom-width: 2px; border-right-width: 2px;
+}
+/* objective tags + status */
+[data-theme="goldeneye"] .fg-event__tag {
+  font-family: var(--font-mono);
+  color: var(--lime); background: transparent;
+  border: 1px solid color-mix(in srgb, var(--lime) 45%, transparent);
+  border-radius: 1px;
+}
+[data-theme="goldeneye"] .fg-status {
+  font-family: var(--font-mono);
+  color: var(--lime); background: transparent;
+  border: 1px solid color-mix(in srgb, var(--lime) 45%, transparent);
+  border-radius: 1px;
+}
+[data-theme="goldeneye"] .fg-status::after {
+  content: "_"; margin-left: 3px;
+  animation: bdGeCursor 1.1s steps(2) infinite;
+}
+/* buttons: sharp HUD keys */
+[data-theme="goldeneye"] :is(.fg-nav__log, .fg-sheet__cta, .fg-dialog__cta,
+                             .fg-pro__cta, .fg-state__cta, .fg-chip[aria-pressed="true"],
+                             .fg-chip.is-selected) {
+  border: 1px solid #4d3c0c;
+  border-radius: 2px;
+  font-family: var(--font-mono);
+  letter-spacing: 0.12em;
+  box-shadow: inset 0 0 0 1px rgba(240, 196, 69, 0.25), 0 4px 0 #4d3c0c;
+}
+[data-theme="goldeneye"] :is(.fg-nav__log, .fg-sheet__cta, .fg-dialog__cta,
+                             .fg-pro__cta, .fg-state__cta):active {
+  transform: translateY(4px);
+  box-shadow: inset 0 0 0 1px rgba(240, 196, 69, 0.25), 0 0 0 #4d3c0c;
+}
+[data-theme="goldeneye"] .pop-btn {
+  border: 1px solid #4d3c0c; border-radius: 3px;
+  font-family: var(--font-mono); letter-spacing: 0.12em;
+  box-shadow: inset 0 0 0 1px rgba(240, 196, 69, 0.25), 0 6px 0 var(--pop-shadow);
+}
+[data-theme="goldeneye"] .pop-btn:active, [data-theme="goldeneye"] .pop-btn.is-pressed {
+  box-shadow: inset 0 0 0 1px rgba(240, 196, 69, 0.25), 0 0 0 var(--pop-shadow);
+}
+/* DZ: alarm state */
+[data-theme="goldeneye"] .fg-dz {
+  background-image: repeating-linear-gradient(45deg,
+    rgba(0, 0, 0, 0.32) 0 9px, transparent 9px 18px);
+  border-radius: 2px;
+  animation: bdGeAlarm 1.2s steps(2) infinite;
+}
+[data-theme="goldeneye"] .fg-dz--l3 { animation-duration: 0.6s; }
+
+/* ── goldeneye · BOARD APP — the facility map ────────────────────────── */
+[data-theme="goldeneye"] .bd-table {
+  background:
+    linear-gradient(var(--felt-line) 1px, transparent 1px),
+    linear-gradient(90deg, var(--felt-line) 1px, transparent 1px),
+    radial-gradient(120% 90% at 50% 30%,
+      color-mix(in srgb, var(--felt) 92%, #f0c445 3%) 0%,
+      var(--felt) 50%,
+      var(--felt-deep) 100%);
+  background-size: 26px 26px, 26px 26px, auto;
+}
+[data-theme="goldeneye"] .bd-lane {
+  border-width: 1.5px;
+  border-color: rgba(240, 196, 69, 0.38);
+}
+[data-theme="goldeneye"] .bd-lane:nth-child(even) { border-color: rgba(240, 196, 69, 0.2); }
+[data-theme="goldeneye"] .bd-finish {
+  background: repeating-conic-gradient(rgba(240, 196, 69, 0.85) 0% 25%, var(--felt-deep) 0% 50%) 0 0 / 10px 6px;
+}
+[data-theme="goldeneye"] .bd-pot {                    /* the objective */
+  background:
+    radial-gradient(circle at 50% 34%, rgba(240, 196, 69, 0.26) 0%,
+      #232f3a 58%, var(--felt-deep) 100%);
+  box-shadow:
+    inset 0 0 0 1.5px rgba(240, 196, 69, 0.5),
+    inset 0 0 0 6px rgba(240, 196, 69, 0.08),
+    0 0 22px rgba(240, 196, 69, 0.12),
+    0 8px 20px rgba(0, 0, 0, 0.6);
+  clip-path: polygon(14px 0, 100% 0, 100% calc(100% - 14px), calc(100% - 14px) 100%, 0 100%, 0 14px);
+}
+[data-theme="goldeneye"] .bd-pot__label { color: var(--lime); }
+[data-theme="goldeneye"] .bd-clock__time { text-shadow: 0 0 12px rgba(240, 196, 69, 0.35); }
+[data-theme="goldeneye"] .bd-card__face--front {
+  border-radius: 3px;
+  border-width: 1px;
+  box-shadow: inset 0 0 0 1px rgba(240, 196, 69, 0.14), 0 8px 18px rgba(4, 8, 12, 0.5);
+}
+[data-theme="goldeneye"] .bd-card__face--back { border-radius: 3px; }
+[data-theme="goldeneye"] .bd-prow {
+  border: 1px solid var(--line);
+  border-left: 3px solid var(--line-bright);
+  border-radius: 2px;
+}
+[data-theme="goldeneye"] .bd-prow--you { border-left-color: var(--lime); }
+[data-theme="goldeneye"] .bd-top { border-bottom: 1px solid color-mix(in srgb, var(--lime) 30%, var(--line)); }
+
+/* ── goldeneye · MOTION — HUD flicker, cursor, reticle, alarm ────────── */
+[data-theme="goldeneye"] :is(.fg-battle, .fg-count, .fg-event) {
+  animation: bdGeHudIn 0.45s both;
+}
+[data-theme="goldeneye"] .fg-count { animation-delay: 0.06s; }
+@keyframes bdGeHudIn {
+  0%   { opacity: 0; transform: translateY(4px); }
+  30%  { opacity: 0.5; }
+  40%  { opacity: 0.2; }
+  55%  { opacity: 1; transform: none; }
+  100% { opacity: 1; transform: none; }
+}
+@keyframes bdGeCursor { 50% { opacity: 0; } }
+@keyframes bdGeReticle {
+  0%, 100% { opacity: 0.9; transform: scale(1); }
+  50%      { opacity: 0.45; transform: scale(1.25); }
+}
+@keyframes bdGeAlarm { 50% { filter: brightness(1.3); } }
+[data-theme="goldeneye"] .bd-pot.is-bump { animation: bdGePulse 0.5s cubic-bezier(0.22, 1, 0.36, 1); }
+@keyframes bdGePulse {
+  0% { transform: translate(-50%, -50%) scale(1); }
+  35% { transform: translate(-50%, -50%) scale(1.06); }
+  100% { transform: translate(-50%, -50%) scale(1); }
+}
+
+/* ═════════════════════════════════════════════════════════════════════
+   V2 OVERHAUL — motion safety + picker plumbing
+   ═════════════════════════════════════════════════════════════════════ */
+@media (prefers-reduced-motion: reduce) {
+  [data-theme] :is(.fg-battle, .fg-count, .fg-event, .fg-lbrow, .fg-lbrow--leader,
+                   .fg-status, .fg-chip, .fg-dz, .fg-battle__bar, .fg-battle__bar::after,
+                   .bd-pot, .bd-card--deal) {
+    animation: none !important;
+  }
+  [data-theme="track"] .fg-battle__head { animation: none !important; }
 }

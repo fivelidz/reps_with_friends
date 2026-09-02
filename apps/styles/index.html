@@ -20,9 +20,8 @@
         <p class="st-overline">RWF · theme exploration</p>
         <h1 class="st-title">Thirteen design directions</h1>
         <p class="st-sub">One design system, thirteen complete skins — the original five plus the
-          V2 board expansion. Every theme re-points <b>all</b> core tokens — surfaces, text,
-          action colour, type, radii, shadow — so each reads like a different product, not a
-          hue swap.</p>
+          V2 board eight, each rebuilt as a <b>full design language</b>: components, type and
+          motion per theme (see <i>On the app</i> below), not a hue swap.</p>
       </div>
       <nav class="st-links" aria-label="Related pages">
         <a href="/system">/system · library</a>
@@ -57,9 +56,27 @@
       (<code>demo.html?t=…</code>) wearing one theme.</p>
   </section>
 
-  <!-- ═══════════════ 3 · FULL PREVIEW (revealed per theme) ═══════════ -->
+  <!-- ═══════════════ 3 · ON THE APP — the V2 board game, every skin ════ -->
+  <section class="st-sec" id="ontheapp" aria-label="The V2 app in every overhauled theme">
+    <p class="st-kicker">03 · On the app — the V2 board game (/v2) in every overhauled skin</p>
+    <p class="st-note">The eight V2 themes are full design languages now, not palette swaps —
+      each rebuilds the app's real components (the table, lanes, the pot, runner tokens,
+      the fanned card hand, buttons, boards) with its own type, structure and motion.
+      These are the app's actual screens wearing each skin: home + battle, per theme.</p>
+    <div class="st-switch" role="group" aria-label="Which app screens to show">
+      <button class="st-switch__btn is-on" data-appscreen="both" type="button">Home + Battle</button>
+      <button class="st-switch__btn" data-appscreen="home" type="button">Home</button>
+      <button class="st-switch__btn" data-appscreen="battle" type="button">Battle</button>
+    </div>
+    <div class="st-appstrip" id="appStrip"><!-- iframes rendered by gallery.js --></div>
+    <p class="st-note">Live <code>bd-*</code> markup from <code>apps/board</code> (the real
+      <code>/v2</code> stylesheet) — <code>appdemo.html?t=…</code> wearing one theme at a time.
+      The same skins switch live in the app: <a href="/v2">/v2</a> → theme row on the home screen.</p>
+  </section>
+
+  <!-- ═══════════════ 4 · FULL PREVIEW (revealed per theme) ═══════════ -->
   <section class="st-sec st-preview" id="preview" aria-label="Full-screen preview" hidden>
-    <p class="st-kicker">03 · Full preview — <span id="previewName">theme</span></p>
+    <p class="st-kicker">04 · Full preview — <span id="previewName">theme</span></p>
     <div class="st-preview__hero">
       <iframe id="previewFrame" title="Phone mock in the selected theme" loading="lazy"></iframe>
     </div>
@@ -285,9 +302,9 @@
     </div>
   </section>
 
-  <!-- ═══════════════ 4 · CHECKS ═══════════════ -->
+  <!-- ═══════════════ 5 · CHECKS ═══════════════ -->
   <section class="st-sec" id="checks" aria-label="Automated checks">
-    <p class="st-kicker">04 · Checks — computed styles + WCAG, live in this page</p>
+    <p class="st-kicker">05 · Checks — computed styles + WCAG, live in this page</p>
     <div class="st-checks__row">
       <button class="st-runbtn" id="runChecks" type="button">▸ Run checks</button>
       <span class="st-checks__sum" id="checksSummary">not run yet</span>
@@ -301,11 +318,14 @@
 
   <!-- ═══════════════ FOOTER ═══════════════ -->
   <footer class="st-footer">
-    <p><b>How it works</b> — <code>design/themes.css</code> holds five
+    <p><b>How it works</b> — <code>design/themes.css</code> holds thirteen
       <code>[data-theme]</code> blocks over the slot contract in
-      <code>design/tokens.css</code>. Load both stylesheets, set
+      <code>design/tokens.css</code>: five originals (tokens + component feel)
+      and the V2 eight as full languages (tokens + component CSS + type +
+      motion for the <code>fg-*</code> library <i>and</i> the <code>bd-*</code>
+      board app). Load both stylesheets, set
       <code>&lt;html data-theme="…"&gt;</code>, and every token consumer flips.
-      The app ships the same picker: <a href="/figma-app/#/set-007">Settings → Theme (beta)</a>.</p>
+      The v2 app ships the same skins: <a href="/v2">/v2</a> → theme row.</p>
     <p class="st-footer__fine">Fonts vendored in <code>design/fonts/</code> (Google woff2,
       latin subset, offline) · no new dependencies · themes are opt-in — the default
       product skin stays <b>Lime Athletic</b>.</p>

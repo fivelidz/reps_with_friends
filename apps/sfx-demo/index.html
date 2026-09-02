@@ -1,0 +1,148 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>RWF · Sound FX — the live app sounds</title>
+<meta name="description" content="Every sound effect in Reps With Friends, tappable. Same WebAudio synthesis as the live app — zero audio files.">
+<link rel="icon" href="data:image/svg+xml,%3Csvg%20xmlns='http://www.w3.org/2000/svg'%20viewBox='0%200%2016%2016'%3E%3Ccircle%20cx='8'%20cy='8'%20r='7'%20fill='%23c6f32e'/%3E%3C/svg%3E">
+<link rel="stylesheet" href="/design/tokens.css">
+<link rel="stylesheet" href="/design/fonts/fonts.css">
+<style>
+  /* sfx demo — token-styled, one page, no other assets */
+  * { box-sizing: border-box; margin: 0; padding: 0; }
+  body {
+    background: var(--bg); color: var(--text);
+    font-family: var(--font-body); min-height: 100vh;
+    -webkit-font-smoothing: antialiased;
+  }
+  .wrap { max-width: 880px; margin: 0 auto; padding: 28px 20px 64px; }
+
+  header.sfx-head { display: flex; align-items: center; justify-content: space-between; gap: 12px; margin-bottom: 26px; }
+  .sfx-brand { display: flex; align-items: baseline; gap: 10px; min-width: 0; }
+  .sfx-brand b { font-size: 1.05rem; letter-spacing: 0.04em; }
+  .sfx-brand span { color: var(--muted); font-size: 0.8rem; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
+  .sfx-back {
+    color: var(--muted); text-decoration: none; font-size: 0.82rem; border: 1px solid var(--line);
+    border-radius: var(--pill); padding: 7px 14px; white-space: nowrap; transition: var(--ease);
+  }
+  .sfx-back:hover { color: var(--lime); border-color: var(--lime-dim); }
+
+  h1 { font-size: clamp(1.6rem, 5vw, 2.2rem); line-height: 1.1; margin-bottom: 10px; }
+  h1 em { font-style: normal; color: var(--lime); }
+  .lede { color: var(--muted); font-size: 0.95rem; line-height: 1.55; max-width: 56ch; margin-bottom: 22px; }
+  .lede b { color: var(--text); font-weight: 600; }
+
+  .mute-row { display: flex; align-items: center; gap: 12px; margin-bottom: 30px; flex-wrap: wrap; }
+  #muteBtn {
+    display: inline-flex; align-items: center; gap: 9px; cursor: pointer;
+    background: var(--surface-2); color: var(--text); border: 1px solid var(--line-bright);
+    border-radius: var(--pill); padding: 9px 18px; font: 600 0.85rem var(--font-body);
+    transition: var(--ease);
+  }
+  #muteBtn:hover { border-color: var(--lime-dim); }
+  #muteBtn .dot { width: 8px; height: 8px; border-radius: 50%; background: var(--lime); transition: var(--ease); }
+  #muteBtn.off .dot { background: var(--danger); }
+  #muteBtn.off { color: var(--muted); }
+  .mute-note { color: var(--muted); font-size: 0.78rem; }
+
+  .sfx-grid { display: grid; grid-template-columns: repeat(auto-fill, minmax(160px, 1fr)); gap: 12px; }
+  .sfx-btn {
+    position: relative; cursor: pointer; text-align: left;
+    background: var(--surface); border: 1px solid var(--line); border-radius: var(--radius);
+    padding: 16px 15px 14px; color: var(--text); font-family: var(--font-body);
+    transition: border-color var(--ease), transform var(--ease), background var(--ease);
+  }
+  .sfx-btn:hover { border-color: var(--lime-dim); transform: translateY(-2px); }
+  .sfx-btn:active { transform: translateY(0); background: var(--surface-2); }
+  .sfx-btn:focus-visible { outline: 2px solid var(--lime); outline-offset: 2px; }
+  .sfx-btn .nm { font: 600 0.95rem var(--font-mono); color: var(--lime); display: block; margin-bottom: 6px; }
+  .sfx-btn .ds { color: var(--muted); font-size: 0.78rem; line-height: 1.45; display: block; }
+  .sfx-btn .flash { position: absolute; top: 10px; right: 12px; width: 8px; height: 8px; border-radius: 50%;
+    background: var(--lime); opacity: 0; transition: opacity 60ms; }
+  .sfx-btn.playing .flash { opacity: 1; }
+
+  footer.sfx-foot { margin-top: 34px; padding-top: 18px; border-top: 1px solid var(--line); }
+  footer.sfx-foot p { color: var(--muted); font-size: 0.78rem; line-height: 1.6; }
+  footer.sfx-foot code { font-family: var(--font-mono); color: var(--faint); font-size: 0.74rem; }
+
+  @media (max-width: 560px) {
+    .sfx-grid { grid-template-columns: repeat(2, 1fr); }
+    .sfx-btn .ds { font-size: 0.72rem; }
+  }
+  @media (prefers-reduced-motion: reduce) {
+    .sfx-btn, .sfx-btn:hover, .sfx-btn:active { transition: none; transform: none; }
+  }
+</style>
+</head>
+<body>
+<div class="wrap">
+
+  <header class="sfx-head">
+    <div class="sfx-brand">
+      <b>RWF<span style="color:var(--lime)">/</span>SFX</b>
+      <span>sound-effect demo</span>
+    </div>
+    <a class="sfx-back" href="/">← Full hub</a>
+  </header>
+
+  <h1>Every sound the app makes, <em>tappable</em></h1>
+  <p class="lede"><b>These are the live app sounds.</b> This page runs the exact WebAudio synthesis module the apps play — same catalogue, same envelopes, same combo-climbing log pitch. There are no audio files anywhere in the repo; every sound is generated at the moment you tap.</p>
+
+  <div class="mute-row">
+    <button id="muteBtn" type="button" aria-pressed="false"><span class="dot" aria-hidden="true"></span><span id="muteLabel">Sound on</span></button>
+    <p class="mute-note">Mute is shared with the app (localStorage <span style="font-family:var(--font-mono)">rwf.sfx.muted</span>).</p>
+  </div>
+
+  <div class="sfx-grid" id="sfxGrid">
+    <button class="sfx-btn" type="button" data-sfx="tap"><span class="flash" aria-hidden="true"></span><span class="nm">tap</span><span class="ds">Every button press in the app</span></button>
+    <button class="sfx-btn" type="button" data-sfx="primary"><span class="flash" aria-hidden="true"></span><span class="nm">primary</span><span class="ds">Big CTA — create match, start early</span></button>
+    <button class="sfx-btn" type="button" data-sfx="log"><span class="flash" aria-hidden="true"></span><span class="nm">log</span><span class="ds">Rep logged — tap 3–4× fast: the pitch climbs</span></button>
+    <button class="sfx-btn" type="button" data-sfx="deal"><span class="flash" aria-hidden="true"></span><span class="nm">deal</span><span class="ds">Power-up cards dealt to your hand</span></button>
+    <button class="sfx-btn" type="button" data-sfx="flip"><span class="flash" aria-hidden="true"></span><span class="nm">flip</span><span class="ds">Draft pick — a card flips over</span></button>
+    <button class="sfx-btn" type="button" data-sfx="play"><span class="flash" aria-hidden="true"></span><span class="nm">play</span><span class="ds">Power-up activated</span></button>
+    <button class="sfx-btn" type="button" data-sfx="win"><span class="flash" aria-hidden="true"></span><span class="nm">win</span><span class="ds">Day won</span></button>
+    <button class="sfx-btn" type="button" data-sfx="lose"><span class="flash" aria-hidden="true"></span><span class="nm">lose</span><span class="ds">Day lost — cheeky, never mean</span></button>
+    <button class="sfx-btn" type="button" data-sfx="pot"><span class="flash" aria-hidden="true"></span><span class="nm">pot</span><span class="ds">Charity pot coin drop</span></button>
+    <button class="sfx-btn" type="button" data-sfx="tick"><span class="flash" aria-hidden="true"></span><span class="nm">tick</span><span class="ds">Battle final-minute countdown</span></button>
+    <button class="sfx-btn" type="button" data-sfx="dz"><span class="flash" aria-hidden="true"></span><span class="nm">dz</span><span class="ds">Danger-zone heartbeat</span></button>
+    <button class="sfx-btn" type="button" data-sfx="error"><span class="flash" aria-hidden="true"></span><span class="nm">error</span><span class="ds">Rejected — bad input, dead action</span></button>
+    <button class="sfx-btn" type="button" data-sfx="swipe"><span class="flash" aria-hidden="true"></span><span class="nm">swipe</span><span class="ds">Screen change / navigation</span></button>
+  </div>
+
+  <footer class="sfx-foot">
+    <p>Source: <code>apps/figma-app/sfx.js</code> (the live module) defensively copied to <code>apps/sfx-demo/sfx.js</code> — same catalogue, same synth; only the app-DOM wiring differs. The v2 board app calls <code>window.rwfSfx?.play(name)</code> — this page exposes the identical global.</p>
+  </footer>
+
+</div>
+
+<script type="module">
+  // Wire the demo buttons to the SAME module the app ships (./sfx.js).
+  // The page paints its own mute control (the app's MutationObserver painter
+  // is not part of the demo copy — see the header comment in sfx.js).
+  // NOTE: /sfx (absolute path) — the page is served at /sfx with no trailing
+  // slash, so a bare "./sfx.js" would resolve against "/" and hit the HTML
+  // fallthrough. Absolute works at /sfx, /sfx/ and /sfx/index.html alike.
+  import { play, toggleMute, isMuted } from "/sfx/sfx.js";
+
+  const muteBtn = document.getElementById("muteBtn");
+  const muteLabel = document.getElementById("muteLabel");
+  function paintMute() {
+    const m = isMuted();
+    muteBtn.classList.toggle("off", m);
+    muteBtn.setAttribute("aria-pressed", String(m));
+    muteLabel.textContent = m ? "Muted" : "Sound on";
+  }
+  muteBtn.addEventListener("click", () => { toggleMute(); paintMute(); });
+  paintMute();
+
+  for (const btn of document.querySelectorAll(".sfx-btn")) {
+    btn.addEventListener("click", () => {
+      play(btn.dataset.sfx);
+      btn.classList.add("playing");
+      setTimeout(() => btn.classList.remove("playing"), 180);
+    });
+  }
+</script>
+</body>
+</html>

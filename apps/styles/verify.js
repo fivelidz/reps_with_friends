@@ -25,7 +25,7 @@
     { id: "mycelial",  font: { spec: "600 16px 'Fredoka'",        label: "Fredoka" } },
     { id: "techy",     font: { spec: "700 16px 'JetBrains Mono'", label: "JetBrains Mono" } },
     { id: "track",     font: { spec: "400 16px 'Anton'",          label: "Anton" } },
-    { id: "poker",     font: { spec: "400 16px Georgia",          label: "Georgia (system serif)" } },
+    { id: "cardtable", font: { spec: "400 16px Georgia",        label: "Georgia (system serif)" } },
     { id: "caveman",   font: { spec: "900 16px 'Archivo'",        label: "Archivo" } },
     { id: "n64",       font: { spec: "600 16px 'Fredoka'",        label: "Fredoka" } },
     { id: "goldeneye", font: { spec: "700 16px 'JetBrains Mono'", label: "JetBrains Mono" } },

@@ -4,8 +4,8 @@
    (same harness pattern as apps/figma-app/e2e.mjs).
 
    Walk: home → setup (identity) → create table → DRAFT (deal-in cards)
-   → table (felt + lanes + tokens + kitty) → LOG REPS (token moves along
-   the track, kitty grows, chip flies) → MATES sim (rival tokens race)
+   → table (felt + lanes + tokens + pot) → LOG REPS (token moves along
+   the track, pot grows, chip flies) → MATES sim (rival tokens race)
    → DEAL (daily drop) → PLAY CARD (flip→fly→burst animation) → closure
    → RESULT podium on the table → charity designation → rematch → squad
    → theme switch. Asserts computed STYLES (transforms for the card/
@@ -212,8 +212,8 @@ const m0 = st2.matches.find((m) => m.config.id === mid);
 ok(m0?.status === "live", "match live after draft");
 ok((await evalJs(`document.querySelectorAll('.bd-token').length`)) === 4, "4 runner tokens on the track");
 ok((await evalJs(`document.querySelectorAll('.bd-lane').length`)) === 4, "4 lanes drawn");
-ok(await call("kittyTotal()") === 80, "kitty = 4 × 20 ante");
-ok((await evalJs(`document.querySelectorAll('#stacks .bd-chip').length`)) >= 4, "ante chips stacked in the kitty");
+ok(await call("potTotal()") === 80, "pot = 4 × 20 entry");
+ok((await evalJs(`document.querySelectorAll('#stacks .bd-chip').length`)) >= 4, "entry chips stacked in the pot");
 ok((await evalJs(`document.querySelectorAll('#hand .bd-card--deal').length`)) === 1, "drafted card dealt into hand (deal-in anim)");
 ok((await exists("#raceClock")), "race clock present");
 ok((await text("#lapTag")) === "RACE CLOCK", "clock label present");
@@ -229,7 +229,7 @@ console.log("— CARD ANIMATION (computed transform)");
 const cardT = await call("cardTransform(0)");
 ok(typeof cardT === "string" && cardT !== "none", `card carries a computed transform (3D rig) → ${cardT.slice(0, 44)}…`);
 
-console.log("— LOG REPS (token moves · kitty grows · chip flies)");
+console.log("— LOG REPS (token moves · pot grows · chip flies)");
 const pos0 = await call(`tokenPos("you")`);
 const chipCount0 = await call("chipCount()");
 await click("#logBtn");
@@ -243,7 +243,7 @@ await sleep(1200); // token transition (0.9s) + chip fly (0.85s)
 const pos1 = await call(`tokenPos("you")`);
 ok(pos0 && pos1 && (Math.abs(pos1.x - pos0.x) > 4 || Math.abs(pos1.y - pos0.y) > 4),
    `your token moved along the track (${pos0?.x},${pos0?.y} → ${pos1?.x},${pos1?.y})`);
-ok(await call("kittyTotal()") === 85, "kitty grew +5 (log tip)");
+ok(await call("potTotal()") === 85, "pot grew +5 (log tip)");
 ok(await call("chipCount()") > chipCount0, "chip stack grew");
 ok(await evalJs(`window.__chipFlySeen === true`), "chip fly-in animation fired (.bd-chipfly)");
 const rpRow = await text(".bd-prow--you .bd-prow__rp");
@@ -268,7 +268,7 @@ ok(hand1.length === hand0.length + 1, `hand grew (${hand0.length} → ${hand1.le
 ok((await evalJs(`document.querySelectorAll('#hand .bd-card--deal').length`)) >= 1, "new card deals in (animation class)");
 await shot("table-dealt");
 
-console.log("— PLAY A CARD (flip → fly to kitty → burst)");
+console.log("— PLAY A CARD (flip → fly to pot → burst)");
 // pick an affordable card: cheapest first (shield 10 / freeze 15) — RP starts 40 + earned
 await evalJs(`(() => {
   const kinds = window.__rwfBoard.handKinds();
@@ -286,7 +286,7 @@ await click("#playIt");
 await sleep(300);
 ok(await evalJs(`!!document.querySelector('.bd-card.is-playing')`), "play animation class fires (.is-playing flip+fly)");
 await sleep(1000);
-ok(await evalJs(`window.__burstSeen === true`), "kitty effect burst fired (.bd-burst)");
+ok(await evalJs(`window.__burstSeen === true`), "pot effect burst fired (.bd-burst)");
 const hand2 = await call("handKinds()");
 ok(hand2.length === hand1.length - 1, "card left the hand after playing");
 ok((await evalJs(`document.querySelectorAll('.bd-fx').length`)) >= 0, "fx dock alive");
@@ -305,7 +305,7 @@ ok(await call("view()") === "result", "routed to the result view");
 ok(await exists(".bd-ped--1"), "podium on the table — 1st pedestal");
 ok((await evalJs(`document.querySelectorAll('.bd-ped').length`)) === 3, "3 pedestals (2-1-3)");
 ok(await exists(".bd-confetti"), "confetti celebration");
-ok(await exists("#kittyTotal"), "kitty shown at the podium");
+ok(await exists("#potTotal"), "pot shown at the podium");
 await shot("result");
 
 console.log("— CHARITY + REMATCH");
@@ -313,7 +313,7 @@ await evalJs(`document.querySelector('#charRow .bd-pick').click(); true`);
 await sleep(300);
 const stPot = await evalJs(`JSON.parse(localStorage.getItem('rwf.board.v2'))`);
 const pot = stPot.pots?.[mid];
-ok(pot?.designatedCharityId != null, "kitty designated to a charity (pot ledger)");
+ok(pot?.designatedCharityId != null, "pot designated to a charity (pot ledger)");
 await shot("result-charity");
 await click("#rematchBtn");
 await waitFor(() => exists("#draftFan .bd-card").catch(() => false), { label: "rematch draft" });
@@ -329,12 +329,27 @@ await shot("squad");
 
 console.log("— THEME SWITCH (re-skin live)");
 await goto("#/home");
-await evalJs(`document.querySelector('[data-theme-btn="poker"]').click(); true`);
+await evalJs(`document.querySelector('[data-theme-btn="cardtable"]').click(); true`);
 await sleep(250);
-ok((await evalJs(`document.documentElement.dataset.theme`)) === "poker", "felt theme switches (board → poker)");
+ok((await evalJs(`document.documentElement.dataset.theme`)) === "cardtable", "felt theme switches (board → cardtable)");
 const feltBg = await evalJs(`getComputedStyle(document.querySelector('.bd-tcard__felt')).backgroundImage`);
 ok(typeof feltBg === "string" && feltBg.startsWith("radial-gradient"), `table felt re-skinned (${feltBg.slice(0, 46)}…)`);
-await shot("theme-poker");
+await shot("theme-cardtable");
+/* the full V2 overhaul set boots on the REAL app (each is a full design
+   language — /styles "On the app" carries the per-theme demos) */
+{
+  const v2Skins = ["board", "track", "cardtable", "mycelial", "techy", "caveman", "n64", "goldeneye"];
+  const feltSigs = [];
+  for (const skin of v2Skins) {
+    await evalJs(`document.querySelector('[data-theme-btn="${skin}"]').click(); true`);
+    await sleep(260);
+    ok((await evalJs(`document.documentElement.dataset.theme`)) === skin, `skin "${skin}" applies live from the picker`);
+    const sig = await evalJs(`getComputedStyle(document.querySelector('.bd-tcard__felt')).backgroundImage + ' | ' + getComputedStyle(document.documentElement).getPropertyValue('--felt').trim()`);
+    feltSigs.push(sig);
+    await shot(`skin-${skin}`);
+  }
+  ok(new Set(feltSigs).size === v2Skins.length, "each overhauled skin gives the real app a distinct table (felt signatures differ)");
+}
 await evalJs(`document.querySelector('[data-theme-btn="board"]').click(); true`); // restore
 
 console.log("— DESKTOP (1280×800) CLEAN");

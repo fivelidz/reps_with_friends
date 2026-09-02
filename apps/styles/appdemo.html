@@ -1,0 +1,305 @@
+<!doctype html>
+<!-- ═══════════════════════════════════════════════════════════════════
+     RWF · appdemo.html — "On the app": the V2 board game (/v2) rendered
+     in each overhauled theme.
+     · Markup mirrors apps/board's REAL classes (bd-*) and loads the
+       app's real stylesheet (/v2/board.css) — so what you see here is
+       what /v2 looks like in that skin, driven by design/themes.css's
+       per-theme component languages (surfaces, type, motion).
+     · ?t=<theme> picks the skin (pre-paint, same pattern as demo.html).
+     · ?screen=home|battle|both — which phone(s) to show.
+     Language everywhere = REPS: cards, lanes, the pot. No card-room
+     jargon; the felt/chips/cards live on as pure visual style.
+     ═══════════════════════════════════════════════════════════════════ -->
+<html lang="en" data-theme="board">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <title>RWF · app theme demo</title>
+  <script>
+    (() => {
+      const OK = /^(board|mycelial|techy|track|cardtable|caveman|n64|goldeneye)$/;
+      const t = new URLSearchParams(location.search).get("t") || "board";
+      if (OK.test(t)) document.documentElement.dataset.theme = t;
+      const assert = () => {
+        const q = new URLSearchParams(location.search).get("t");
+        if (OK.test(q || "")) document.documentElement.dataset.theme = q;
+      };
+      document.addEventListener("DOMContentLoaded", assert, false);
+      addEventListener("load", assert, false);
+    })();
+  </script>
+  <link rel="stylesheet" href="/design/fonts/fonts.css">
+  <link rel="stylesheet" href="/design/tokens.css">
+  <link rel="stylesheet" href="/design/themes.css">
+  <link rel="stylesheet" href="/v2/board.css">
+  <style>
+    /* demo chrome only — every visible component is a real bd-* class */
+    body {
+      margin: 0; min-height: 100vh; background: var(--bg);
+      display: flex; align-items: flex-start; justify-content: center;
+      gap: 22px; padding: 20px 16px;
+      font-family: var(--font-body);
+    }
+    .demo-phone {
+      width: 393px; max-width: 100%; height: 844px; flex: none;
+      background: var(--bg); border: 1px solid var(--line);
+      border-radius: 30px; overflow: hidden;
+      display: flex; flex-direction: column;
+    }
+    .demo-phone .bd-app { display: flex; flex-direction: column; flex: 1; min-height: 0; }
+    .demo-scroll { flex: 1; min-height: 0; overflow: hidden; }
+    .demo-cap {
+      position: absolute; left: 0; right: 0; top: 0;
+    }
+    .demo-only { display: flex; gap: 22px; }
+    /* battle screen compaction for the fixed phone height */
+    .demo-battle .bd-table { aspect-ratio: 10 / 8.2; min-height: 210px; }
+    .demo-battle .bd-tablewrap { padding: 10px 10px 0; }
+    .demo-battle .bd-panels { padding: 8px 10px 0; gap: 8px; }
+    .demo-battle .bd-actions { padding: 8px 10px 2px; }
+    .demo-battle .bd-dock { padding: 6px 10px 8px; }
+    .demo-battle .bd-prow { padding: 5px 8px; }
+    .demo-battle .bd-hand { height: 118px; }
+    .demo-battle .bd-hand__slot { width: 82px; height: 114px; }
+    .demo-battle .bd-fxdock { min-height: 30px; margin-top: 6px; }
+    .demo-fontload { position: absolute; left: -9999px; top: 0; opacity: 0; pointer-events: none; }
+    .demo-fontload i { font-style: normal; }
+  </style>
+</head>
+<body>
+
+  <!-- ═══════════ HOME — the v2 "race night" list screen ═══════════ -->
+  <main class="demo-phone" id="home" aria-label="V2 home screen in this theme">
+    <div class="bd-app"><div class="demo-scroll"><div class="bd-screen">
+    <header class="bd-top">
+      <button class="bd-top__back" aria-label="back">‹</button>
+      <div class="bd-top__title">
+        <p class="bd-top__kicker">Reps With Friends</p>
+        <h2 class="bd-top__name">Race night · Alexei</h2>
+      </div>
+      <div class="bd-clock">
+        <div class="bd-clock__lap">LAP 2/3 · TUE</div>
+        <div class="bd-clock__time">2:59:41</div>
+      </div>
+    </header>
+    <div class="bd-pad">
+      <p class="bd-kicker">V2 · board battle</p>
+      <h1 class="bd-h1">Cards. Lanes.<br><em>The pot.</em></h1>
+      <p class="bd-sub">A board game that's also a track. Run your lane, hold your
+        cards, take the pot — power-ups play as cards, progress runs as laps.</p>
+      <button class="pop-btn pop-btn--big pop-btn--full">Set a new table</button>
+
+      <p class="bd-kicker" style="margin-top:22px">Your tables</p>
+      <div class="bd-tables">
+        <button class="bd-tcard">
+          <span class="bd-tcard__felt">
+            <i style="left:18%;top:42%;background:#6ec1ff"></i>
+            <i style="left:56%;top:26%;background:#34d399"></i>
+            <i style="left:82%;top:46%;background:#ffb03a"></i>
+          </span>
+          <span style="min-width:0">
+            <p class="bd-tcard__name">The 300 Club</p>
+            <p class="bd-tcard__meta">4 runners · 300 reps · pot 85</p>
+            <p class="bd-tcard__meta">lead: Sam K · 162</p>
+          </span>
+          <span class="bd-tcard__status bd-tcard__status--live">Racing</span>
+        </button>
+        <button class="bd-tcard">
+          <span class="bd-tcard__felt">
+            <i style="left:12%;top:44%;background:#6ec1ff"></i>
+            <i style="left:40%;top:38%;background:#b78cff"></i>
+          </span>
+          <span style="min-width:0">
+            <p class="bd-tcard__name">Friday Laps</p>
+            <p class="bd-tcard__meta">3 runners · 500 reps · pot 60</p>
+            <p class="bd-tcard__meta">lead: Jordan P · 240</p>
+          </span>
+          <span class="bd-tcard__status bd-tcard__status--open">Drafting</span>
+        </button>
+      </div>
+
+      <p class="bd-kicker" style="margin-top:22px">Table felt <span style="opacity:.6">(theme)</span></p>
+      <div class="bd-themes">
+        <button class="bd-thbtn is-on" title="Stadium Board" style="--sw:#0c1d14"></button>
+        <button class="bd-thbtn" title="Track &amp; Field" style="--sw:#2b1012"></button>
+        <button class="bd-thbtn" title="Card Table" style="--sw:#221016"></button>
+        <button class="bd-thbtn" title="Mycelial" style="--sw:#171009"></button>
+        <button class="bd-thbtn" title="Mission Control" style="--sw:#0a1014"></button>
+        <button class="bd-thbtn" title="Caveman" style="--sw:#1c1611"></button>
+        <button class="bd-thbtn" title="N64" style="--sw:#1e2946"></button>
+        <button class="bd-thbtn" title="GoldenEye" style="--sw:#141a20"></button>
+      </div>
+    </div>
+    </div></div></div>
+  </main>
+
+  <!-- ═══════════ BATTLE — the v2 table screen ═══════════ -->
+  <main class="demo-phone demo-battle" id="battle" aria-label="V2 battle screen in this theme">
+    <div class="bd-app"><div class="demo-scroll"><div class="bd-screen demo-battle__scroll">
+    <header class="bd-top">
+      <button class="bd-top__back" aria-label="back">‹</button>
+      <div class="bd-top__title">
+        <p class="bd-top__kicker">LAP 2/3 · TUE</p>
+        <h2 class="bd-top__name">The 300 Club</h2>
+      </div>
+      <div class="bd-clock" data-dz="2">
+        <div class="bd-clock__lap">RACE CLOCK</div>
+        <div class="bd-clock__time">1:04:07</div>
+      </div>
+    </header>
+    <div class="bd-dz" data-dz="2">DANGER ZONE — LEVEL 2 · 1 HOUR LEFT</div>
+
+    <div class="bd-stage">
+      <div class="bd-tablewrap">
+        <div class="bd-table">
+          <div class="bd-track">
+            <div class="bd-lane" style="inset:2px"></div>
+            <div class="bd-lane" style="inset:13px"></div>
+            <div class="bd-lane" style="inset:24px"></div>
+            <div class="bd-lane" style="inset:35px"></div>
+            <div class="bd-finish"></div>
+            <!-- runners on the track (positions approximate the live app) -->
+            <button class="bd-token bd-token--armed" style="transform:translate(60px,258px) translate(-50%,-50%)">
+              <span class="bd-token__chip" style="--tier:#6ec1ff"><svg viewBox="0 0 24 24" aria-hidden="true"><ellipse cx="12" cy="14" rx="9" ry="7" fill="#5cb85c"/><circle cx="7.5" cy="7.5" r="3.2" fill="#5cb85c"/><circle cx="16.5" cy="7.5" r="3.2" fill="#5cb85c"/><circle cx="7.5" cy="7.2" r="1.7" fill="#fff"/><circle cx="16.5" cy="7.2" r="1.7" fill="#fff"/><circle cx="7.7" cy="7.4" r="0.8" fill="#111"/><circle cx="16.3" cy="7.4" r="0.8" fill="#111"/></svg></span>
+              <span class="bd-token__flag">Sam K</span>
+            </button>
+            <button class="bd-token bd-token--you" style="transform:translate(150px,284px) translate(-50%,-50%)">
+              <span class="bd-token__chip" style="--tier:var(--lime)">AB</span>
+              <span class="bd-token__flag">You</span>
+            </button>
+            <button class="bd-token" style="transform:translate(255px,160px) translate(-50%,-50%)">
+              <span class="bd-token__chip" style="--tier:#ffb03a"><svg viewBox="0 0 24 24" aria-hidden="true"><ellipse cx="12" cy="14" rx="9" ry="7" fill="#5cb85c"/><circle cx="7.5" cy="7.5" r="3.2" fill="#5cb85c"/><circle cx="16.5" cy="7.5" r="3.2" fill="#5cb85c"/><circle cx="7.5" cy="7.2" r="1.7" fill="#fff"/><circle cx="16.5" cy="7.2" r="1.7" fill="#fff"/><circle cx="7.7" cy="7.4" r="0.8" fill="#111"/><circle cx="16.3" cy="7.4" r="0.8" fill="#111"/></svg></span>
+              <span class="bd-token__flag">Jordan P</span>
+            </button>
+            <button class="bd-token bd-token--shield" style="transform:translate(310px,90px) translate(-50%,-50%)">
+              <span class="bd-token__chip" style="--tier:#b78cff"><svg viewBox="0 0 24 24" aria-hidden="true"><ellipse cx="12" cy="14" rx="9" ry="7" fill="#5cb85c"/><circle cx="7.5" cy="7.5" r="3.2" fill="#5cb85c"/><circle cx="16.5" cy="7.5" r="3.2" fill="#5cb85c"/><circle cx="7.5" cy="7.2" r="1.7" fill="#fff"/><circle cx="16.5" cy="7.2" r="1.7" fill="#fff"/><circle cx="7.7" cy="7.4" r="0.8" fill="#111"/><circle cx="16.3" cy="7.4" r="0.8" fill="#111"/></svg></span>
+              <span class="bd-token__flag">Alex T</span>
+            </button>
+          </div>
+          <div class="bd-pot" title="The pot — every log adds points">
+            <span class="bd-pot__label">THE POT</span>
+            <span class="bd-pot__total">85</span>
+            <span class="bd-pot__pts">PTS</span>
+            <div class="bd-stacks">
+              <span class="bd-stack bd-stack--gold" title="3 × 25pt">
+                <i class="bd-chip bd-chip--gold"></i><i class="bd-chip bd-chip--gold"></i><i class="bd-chip bd-chip--gold"></i>
+                <span class="bd-stack__n">×3</span>
+              </span>
+              <span class="bd-stack bd-stack--blue" title="1 × 5pt"><i class="bd-chip bd-chip--blue"></i></span>
+              <span class="bd-stack bd-stack--red" title="3 × 5pt">
+                <i class="bd-chip bd-chip--red"></i><i class="bd-chip bd-chip--red"></i><i class="bd-chip bd-chip--red"></i>
+                <span class="bd-stack__n">×3</span>
+              </span>
+              <span class="bd-stack bd-stack--white" title="5 × 1pt">
+                <i class="bd-chip bd-chip--white"></i><i class="bd-chip bd-chip--white"></i><i class="bd-chip bd-chip--white"></i>
+                <span class="bd-stack__n">×5</span>
+              </span>
+            </div>
+          </div>
+        </div>
+      </div>
+      <div class="bd-panels">
+        <div class="bd-positions">
+          <div class="bd-prow">
+            <span class="bd-prow__pos">P1</span>
+            <span class="bd-prow__chip" style="--tier:#6ec1ff">SK</span>
+            <span class="bd-prow__name">Sam K</span>
+            <span class="bd-prow__tags"><span class="bd-tag">⚡ ARMED</span></span>
+            <span class="bd-prow__gap">LEADING</span>
+            <span class="bd-prow__rp">◈68</span>
+          </div>
+          <div class="bd-prow bd-prow--you">
+            <span class="bd-prow__pos">P2</span>
+            <span class="bd-prow__chip" style="--tier:var(--lime)">AB</span>
+            <span class="bd-prow__name">You · YOU</span>
+            <span class="bd-prow__tags"><span class="bd-tag bd-tag--lit">×3</span></span>
+            <span class="bd-prow__gap">21 BACK</span>
+            <span class="bd-prow__rp">◈44</span>
+          </div>
+          <div class="bd-prow">
+            <span class="bd-prow__pos">P3</span>
+            <span class="bd-prow__chip" style="--tier:#ffb03a">JP</span>
+            <span class="bd-prow__name">Jordan P</span>
+            <span class="bd-prow__tags"></span>
+            <span class="bd-prow__gap">38 BACK</span>
+            <span class="bd-prow__rp">◈31</span>
+          </div>
+        </div>
+        <div class="bd-feed">
+          <div class="bd-feed__row"><span class="bd-feed__lap">L2</span><span><b>Sam K</b> logs 25 squats</span></div>
+          <div class="bd-feed__row"><span class="bd-feed__lap">L2</span><span><b>⚡ LIGHTNING</b> — you're ×3 for 10:00</span></div>
+          <div class="bd-feed__row"><span class="bd-feed__lap">L2</span><span><b>Alex T</b> logs 10 push-ups</span></div>
+        </div>
+      </div>
+    </div>
+
+    <div class="bd-actions">
+      <button class="pop-btn pop-btn--big">Log reps</button>
+      <button class="pop-btn pop-btn--ghost">Mates</button>
+      <button class="pop-btn pop-btn--ghost">Deal</button>
+    </div>
+
+    <div class="bd-dock">
+      <div class="bd-hand">
+        <div class="bd-hand__slot"><div class="bd-card bd-card--deal" style="animation-delay:0s" tabindex="0">
+          <div class="bd-card__inner">
+            <div class="bd-card__face bd-card__face--front" style="--rar:var(--rar-epic)">
+              <span class="bd-card__rar">epic</span>
+              <span class="bd-card__icon" style="color:var(--rar-epic)"><svg viewBox="0 0 24 24" aria-hidden="true"><path d="M12 1v22M2 6l20 12M22 6L2 18M12 1l-2.5 2.5M12 1l2.5 2.5M12 23l-2.5-2.5M12 23l2.5-2.5M2 6l3.4.4M2 6l.4 3.4M22 18l-3.4-.4M22 18l-.4-3.4M22 6l-3.4.4M22 6l-.4 3.4M2 18l3.4-.4M2 18l.4-3.4" stroke="currentColor" stroke-width="1.7" fill="none" stroke-linecap="round"/></svg></span>
+              <p class="bd-card__name">Freeze</p>
+              <p class="bd-card__fx">extends the clock +30:00</p>
+              <span class="bd-card__cost">◈ 30 RP</span>
+            </div>
+            <div class="bd-card__face bd-card__face--back"></div>
+          </div>
+        </div></div>
+        <div class="bd-hand__slot"><div class="bd-card bd-card--deal" style="animation-delay:0.08s" tabindex="0">
+          <div class="bd-card__inner">
+            <div class="bd-card__face bd-card__face--front" style="--rar:var(--rar-legendary)">
+              <span class="bd-card__rar">legendary</span>
+              <span class="bd-card__icon" style="color:var(--rar-legendary)"><svg viewBox="0 0 24 24" aria-hidden="true"><path d="M13 2 5 13.5h5L8.5 22 19 10.5h-6L13 2z" fill="currentColor"/></svg></span>
+              <p class="bd-card__name">Lightning</p>
+              <p class="bd-card__fx">×3 reps for 10 minutes</p>
+              <span class="bd-card__cost">◈ 50 RP</span>
+            </div>
+            <div class="bd-card__face bd-card__face--back"></div>
+          </div>
+        </div></div>
+        <div class="bd-hand__slot"><div class="bd-card bd-card--deal" style="animation-delay:0.16s" tabindex="0">
+          <div class="bd-card__inner">
+            <div class="bd-card__face bd-card__face--front" style="--rar:var(--rar-rare)">
+              <span class="bd-card__rar">rare</span>
+              <span class="bd-card__icon" style="color:var(--rar-rare)"><svg viewBox="0 0 24 24" aria-hidden="true"><path d="M12 2l8 3v6c0 5.2-3.4 8.8-8 11-4.6-2.2-8-5.8-8-11V5l8-3z" fill="currentColor" opacity="0.9"/></svg></span>
+              <p class="bd-card__name">Shield</p>
+              <p class="bd-card__fx">blocks the next steal</p>
+              <span class="bd-card__cost">◈ 20 RP</span>
+            </div>
+            <div class="bd-card__face bd-card__face--back"></div>
+          </div>
+        </div></div>
+      </div>
+      <div class="bd-fxdock">
+        <span class="bd-fx" data-fx="lightning"><span class="bd-fx__ring" style="--p:0.62"><span>⚡</span></span>×3 · 6:12</span>
+        <span class="bd-fx" data-fx="shield"><span class="bd-fx__ring" style="background:var(--sky)"><span>🛡</span></span>shielded</span>
+      </div>
+    </div>
+    </div></div></div>
+  </main>
+
+  <p class="demo-fontload" aria-hidden="true"><i style="font-family:'Space Grotesk';font-weight:700">A1</i><i style="font-family:'Anton';font-weight:400">A2</i><i style="font-family:'Inter';font-weight:600">A3</i><i style="font-family:'Archivo';font-weight:900">A4</i><i style="font-family:'JetBrains Mono';font-weight:700">A5</i><i style="font-family:'Fredoka';font-weight:600">A6</i></p>
+
+  <script>
+    (() => {
+      const s = new URLSearchParams(location.search).get("screen") || "both";
+      const show = (id, on) => { const el = document.getElementById(id); if (el) el.style.display = on ? "" : "none"; };
+      show("home", s === "home" || s === "both");
+      show("battle", s === "battle" || s === "both");
+      document.title = `RWF · app · ${new URLSearchParams(location.search).get("t") || "board"} · ${s}`;
+      const ready = () => { window.__appDemoReady = true; };
+      if (document.fonts?.ready) document.fonts.ready.then(ready); else addEventListener("load", ready);
+      if (document.fonts) for (const el of document.querySelectorAll(".demo-fontload i")) void el.offsetWidth;
+    })();
+  </script>
+</body>
+</html>

@@ -67,3 +67,16 @@ coverage hub (rwf.qalarc.com/v1).
 - Pilot: nobody plays → the handicap/comeback numbers need tuning from
   figma-app telemetry; power-up economy rebalance
 - Post-pilot: legal stalls charity pots → employer-funded pots are the bridge
+
+---
+
+## UPDATE 2 Sep (evening) — new points recorded from founder directives
+
+- v2 IS the direction: track-and-field board game, REPS language only ("the
+  pot", never kitty; poker words swept — style references only)
+- Themes overhauled to true design languages (8 rebuilt + app-screen demos
+  at /styles §03 "On the app")
+- Main page = the FULL HUB (version links, SFX demo at /sfx, everything)
+- v1 preserved forever at /figma-app (design progression)
+- New standing directives live in agents/ORCHESTRATION.md — that file is the
+  contract for every future agent

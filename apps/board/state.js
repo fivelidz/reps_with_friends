@@ -1,5 +1,5 @@
 /* ═══════════════════════════════════════════════════════════════════════
-   RWF STATE — apps/board FORK (V2 · poker-table × track-and-field).
+   RWF STATE — apps/board FORK (V2 · track-and-field board game).
    FORK POINT: copied from apps/figma-app/state.js @ 2026-09-02 (v1.0.0).
    Same shape, DIFFERENT localStorage keys (rwf.board.v2 — a v2 save can
    never collide with the v1 app's rwf.figma.v1) plus the board layer:
@@ -133,7 +133,7 @@ export function createFastBattle({ name, days, pack, target, withMates = true })
     withMates ? [state.player, ...MATES.slice(0, 3)] : [state.player]
   );
   match.createdAt = Date.now();
-  match = E.initBoard(match); // V2: ante → kitty, RP balances, 3-card drafts
+  match = E.initBoard(match); // V2: entry → pot, RP balances, 3-card drafts
   // mates pick their draft immediately (first dealt); YOU pick on the draft screen
   for (const p of match.players) {
     if (p.id === state.player?.id) continue;
@@ -189,7 +189,7 @@ export function logToMatch(matchId, { exerciseId, reps, playerId, verified = fal
   });
   entry = E.applyLightning(match, entry); // FLOW-05: tag ×3 while the window is open
   const res = E.logReps(match, entry);
-  // V2 board economy: RP for the logger, kitty tip chips (post-log, pure)
+  // V2 board economy: RP for the logger, pot tip chips (post-log, pure)
   const withBoard = E.boardEconomy(res.state, entry);
   const out = mutate((s) => {
     const i = s.matches.findIndex((m) => m.config.id === matchId);
@@ -251,7 +251,7 @@ export function rematch(matchId) {
     )
   );
   fresh.createdAt = Date.now();
-  fresh = E.initBoard(fresh); // V2: fresh ante, RP, drafts — draft again on rematch
+  fresh = E.initBoard(fresh); // V2: fresh entry, RP, drafts — draft again on rematch
   for (const p of fresh.players) {
     if (p.id === s.player?.id) continue;
     fresh = E.applyDraft(fresh, p.id, fresh.board.drafts[p.id][0]);
@@ -359,18 +359,18 @@ export function activateInMatch(matchId, { playerId, kind }) {
 export function devGrant(matchId) {
   const pre = load();
   let m = pre.matches.find((x) => x.config.id === matchId);
-  if (!m) return { granted: 0, matchId };
+  if (!m) return { awarded: 0, matchId };
   for (const p of m.players) {
     for (const kind of ["lightning", "steal", "shield", "freeze"]) {
       m = E.grantPowerUp(m, p.id, kind);
     }
   }
-  const granted = m.players.length * 4;
+  const awarded = m.players.length * 4;
   mutate((s) => {
     const i = s.matches.findIndex((x) => x.config.id === matchId);
     if (i >= 0) s.matches[i] = m;
   });
-  return { granted, matchId };
+  return { awarded, matchId };
 }
 
 /** Daily-drop style grant of one random card (the loot chest reveal). */

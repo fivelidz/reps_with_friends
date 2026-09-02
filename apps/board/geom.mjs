@@ -74,14 +74,14 @@ async function walk(width, height, mobile, tag) {
   ok(F.w > 200 && F.h >= 230, `felt is table-sized (${F.w.toFixed(0)}×${F.h.toFixed(0)})`);
   ok(F.w <= width + 1, `felt fits the viewport width`);
 
-  const kitty = JSON.parse(await evalJs(`(() => {
-    const k = document.querySelector("#kitty").getBoundingClientRect();
+  const pot = JSON.parse(await evalJs(`(() => {
+    const k = document.querySelector("#pot").getBoundingClientRect();
     const f = document.querySelector("#felt").getBoundingClientRect();
     return JSON.stringify({ cx: k.x + k.width / 2, cy: k.y + k.height / 2, w: k.width,
                             fx: f.x + f.width / 2, fy: f.y + f.height / 2 });
   })()`));
-  ok(Math.abs(kitty.cx - kitty.fx) <= 2 && Math.abs(kitty.cy - kitty.fy) <= 2, "kitty medallion centred in the felt");
-  ok(kitty.w >= 100, `kitty medallion reads at a glance (${kitty.w.toFixed(0)}px)`);
+  ok(Math.abs(pot.cx - pot.fx) <= 2 && Math.abs(pot.cy - pot.fy) <= 2, "pot medallion centred in the felt");
+  ok(pot.w >= 100, `pot medallion reads at a glance (${pot.w.toFixed(0)}px)`);
 
   const toks = await evalJs(`(() => {
     const felt = document.querySelector("#felt").getBoundingClientRect();
@@ -97,7 +97,7 @@ async function walk(width, height, mobile, tag) {
   ok(T.every((t) => t.inside && t.disp !== "none"), "every token inside the felt bounds");
   const lanes = JSON.parse(await evalJs(`JSON.stringify([...document.querySelectorAll(".bd-lane")].map((l) => { const r = l.getBoundingClientRect(); return { w: r.width, h: r.height }; }))`));
   ok(lanes.length === 4 && lanes[0].w > lanes[3].w, "nested lanes (outer > inner)");
-  ok((await evalJs(`document.querySelectorAll("#stacks .bd-chip").length`)) >= 4, "kitty chips visible");
+  ok((await evalJs(`document.querySelectorAll("#stacks .bd-chip").length`)) >= 4, "pot chips visible");
 
   // hand + buttons visible in-viewport
   const hand = JSON.parse(await evalJs(`(function(){ const r = document.querySelector("#hand").getBoundingClientRect(); return JSON.stringify({ top:r.top, bottom:r.bottom, ih: innerHeight }); })()`));

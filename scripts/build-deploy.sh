@@ -14,6 +14,9 @@ mkdir -p deploy/public/site deploy/public/design deploy/public/app deploy/public
 cp site/index.html deploy/public/index.html
 cp site/*.css site/*.js deploy/public/site/
 cp -r site/lib deploy/public/site/lib
+# hub thumbnails — version-card shots for the main-page hub (resized app
+# screenshots; source-of-truth + provenance in site/hub-shots/README.md)
+mkdir -p deploy/public/site/hub-shots && cp site/hub-shots/*.png deploy/public/site/hub-shots/
 cp -r design/. deploy/public/design/
 cp -r apps/web/dist/. deploy/public/app/
 cp apps/hub/index.html apps/hub/hub.js apps/hub/hub.css deploy/public/hub/
@@ -24,6 +27,9 @@ cp apps/demo/index.html apps/demo/demo.js apps/demo/demo.css deploy/public/demo/
 cp apps/systempage/index.html apps/systempage/system.js apps/systempage/system.css deploy/public/system/
 # theme exploration gallery (design/themes.css rides the existing design/ copy)
 mkdir -p deploy/public/styles && cp apps/styles/index.html apps/styles/demo.html apps/styles/styles.css apps/styles/gallery.js apps/styles/verify.js deploy/public/styles/
+# sfx demo — the /sfx link (live app sound catalogue; defensive one-file copy
+# of the figma-app synthesis module — see apps/sfx-demo/sfx.js header)
+mkdir -p deploy/public/sfx && cp apps/sfx-demo/index.html apps/sfx-demo/sfx.js deploy/public/sfx/
 # ── figma-app version stamp (v1.0.0) ────────────────────────────────────
 # the app vendors a copy of design/themes.css (theme beta) — sync it so the
 # five skins can never drift between the gallery and the app
@@ -80,7 +86,7 @@ done
 mkdir -p deploy/public/apk
 cp apps/android/app/build/outputs/apk/debug/app-debug.apk deploy/public/apk/rwf-app-debug.apk 2>/dev/null || true
 
-# ── v2 board app (poker-table × track battle) — the /v2 link ──────────
+# ── v2 board app (track-and-field board game) — the /v2 link ────────
 # Independent fork of the v1 engine; shots/ + e2e stay local (like figma-app).
 mkdir -p deploy/public/v2
 find apps/board -maxdepth 1 -type f \( -name "*.html" -o -name "*.js" -o -name "*.css" \) \

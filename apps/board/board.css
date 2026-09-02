@@ -1,6 +1,6 @@
 /* ═══════════════════════════════════════════════════════════════════════
    RWF · V2 THE TABLE — board.css
-   The poker-table × track-and-field battle surface.
+   The track-and-field board game battle surface.
 
    Layers, top to bottom:
      0 · tokens        — bd-* slot defaults (board theme re-points them)
@@ -8,8 +8,8 @@
      2 · POPPING       — .pop-btn: chunky offset solid shadows, 120ms press
      3 · the table     — felt, vignette, rail, lanes, finish line
      4 · tokens        — player chips ON the track (comeback ⚡ glow)
-     5 · the kitty     — centre medallion + denomination chip stacks
-     6 · CARDS         — poker-fanned hand; deal / hover / play / expiry
+     5 · the pot     — centre medallion + denomination chip stacks
+     6 · CARDS         — fanned hand; deal / hover / play / expiry
                          (CSS 3D — perspective + preserve-3d, no libs)
      7 · panels        — race positions, commentary feed, fx dock
      8 · sheets        — log sheet, toasts, card detail
@@ -269,8 +269,8 @@ html, body { margin: 0; padding: 0; }
     0 0 10px 2px color-mix(in srgb, var(--sky) 45%, transparent);
 }
 
-/* ── 5 · THE KITTY — medallion + chip stacks ────────────────────────── */
-.bd-kitty {
+/* ── 5 · THE POT — medallion + chip stacks ────────────────────────── */
+.bd-pot {
   position: absolute; left: 50%; top: 50%;
   transform: translate(-50%, -50%);
   width: 118px; height: 118px; z-index: 6;
@@ -286,21 +286,21 @@ html, body { margin: 0; padding: 0; }
     inset 0 0 0 9px var(--felt-line),
     0 6px 18px color-mix(in srgb, #000 50%, transparent);
 }
-.bd-kitty.is-bump { animation: bdKittyBump 0.5s cubic-bezier(0.22, 1, 0.36, 1); }
-@keyframes bdKittyBump {
+.bd-pot.is-bump { animation: bdPotBump 0.5s cubic-bezier(0.22, 1, 0.36, 1); }
+@keyframes bdPotBump {
   0% { transform: translate(-50%, -50%) scale(1); }
   35% { transform: translate(-50%, -50%) scale(1.1); }
   100% { transform: translate(-50%, -50%) scale(1); }
 }
-.bd-kitty__label {
+.bd-pot__label {
   font: 700 9px/1 var(--font-mono); letter-spacing: 0.3em;
   text-transform: uppercase; color: var(--rar-legendary);
 }
-.bd-kitty__total {
+.bd-pot__total {
   font: 400 30px/1 var(--font-display); color: var(--text);
   font-variant-numeric: tabular-nums;
 }
-.bd-kitty__pts { font: 700 8.5px/1 var(--font-mono); color: var(--faint); letter-spacing: 0.12em; }
+.bd-pot__pts { font: 700 8.5px/1 var(--font-mono); color: var(--faint); letter-spacing: 0.12em; }
 
 /* denomination stacks tucked around the medallion */
 .bd-stacks { position: absolute; inset: -14px; pointer-events: none; }
@@ -333,7 +333,7 @@ html, body { margin: 0; padding: 0; }
   border: 1px solid var(--felt-line); border-radius: 5px; padding: 2px 4px;
 }
 
-/* a chip flying from a token into the kitty on every log */
+/* a chip flying from a token into the pot on every log */
 .bd-chipfly {
   position: absolute; z-index: 9; width: 15px; height: 15px; border-radius: 50%;
   pointer-events: none;
@@ -348,7 +348,7 @@ html, body { margin: 0; padding: 0; }
   100% { transform: translate(0, 0) scale(0.5); opacity: 0; }
 }
 
-/* card-play effect burst at the kitty */
+/* card-play effect burst at the pot */
 .bd-burst {
   position: absolute; left: 50%; top: 50%; z-index: 7;
   width: 40px; height: 40px; margin: -20px 0 0 -20px;
@@ -366,7 +366,7 @@ html, body { margin: 0; padding: 0; }
   to { transform: scale(4.2); opacity: 0; }
 }
 
-/* ── 6 · POWER-UP CARDS — poker fan, CSS 3D ─────────────────────────── */
+/* ── 6 · POWER-UP CARDS — fanned hand, CSS 3D ─────────────────────────── */
 .bd-dock {
   position: relative; z-index: 20;
   padding: 10px 12px 12px;
@@ -474,7 +474,7 @@ html, body { margin: 0; padding: 0; }
 .bd-card.is-sel { transform: translateY(-14px) scale(1.07); z-index: 9; filter: brightness(1.08); }
 .bd-card:focus-visible { outline: 2px solid var(--lime); outline-offset: 3px; }
 
-/* PLAY: flip face-down, fly to the kitty, shrink out */
+/* PLAY: flip face-down, fly to the pot, shrink out */
 .bd-card.is-playing { z-index: 30; }
 .bd-card.is-playing .bd-card__inner {
   animation: bdPlayFlipFly 0.95s cubic-bezier(0.5, 0.05, 0.4, 1) forwards;
@@ -857,14 +857,14 @@ html, body { margin: 0; padding: 0; }
   .bd-dock { max-width: 1080px; margin: 0 auto; }
   .bd-hand { height: 150px; }
   .bd-hand__slot { width: 102px; height: 142px; }
-  .bd-kitty { width: 138px; height: 138px; }
-  .bd-kitty__total { font-size: 36px; }
+  .bd-pot { width: 138px; height: 138px; }
+  .bd-pot__total { font-size: 36px; }
 }
 @media (max-width: 389px) {
   .bd-hand__slot { width: 84px; height: 118px; }
   .bd-token { width: 30px; height: 30px; }
-  .bd-kitty { width: 104px; height: 104px; }
-  .bd-kitty__total { font-size: 26px; }
+  .bd-pot { width: 104px; height: 104px; }
+  .bd-pot__total { font-size: 26px; }
 }
 
 /* accessibility — honour reduced motion */

@@ -15,15 +15,17 @@
     { id: "sunset", name: "Sunset Brutalist",line: "The light mode — cream paper, 2px ink borders, hard offset shadows, oversized flat type. Sport-poster loud." },
     { id: "neon",   name: "Midnight Neon",   line: "The esports skin — blue-black, electric cyan + magenta, mono numerals, subtle glow edges. Ranked-play energy." },
     { id: "forest", name: "Forest Retro",    line: "The family mode — walnut dark, mustard/burnt-orange/olive 70s palette, soft radii, rounded type. Everyone plays." },
-    /* ── V2 expansion (apps/board · /v2 — the poker-table × track app) ── */
-    { id: "board",     name: "Board Game",       line: "The V2 flagship — deep racing felt, gold chips, Anton + mono race clock, chunky radii + offset shadows." },
-    { id: "mycelial",  name: "Mycelial",         line: "Bioluminescent — deep soil browns, glow-teal spores, organic radii, friendly rounded type." },
-    { id: "techy",     name: "Techy",            line: "Graph paper + terminal — mono display, plotter cyan, hairline grids on every surface." },
-    { id: "track",     name: "Track & Field",    line: "Terracotta track red, lane-stripe white primary, stopwatch numerals. Floodlit stadium energy." },
-    { id: "poker",     name: "Poker Room",       line: "Burgundy felt, casino gold, serif display. The card-table skin for table night." },
-    { id: "caveman",   name: "Caveman",          line: "Stone browns + bone white, primitive chunky borders, fire-orange effort axis. Hewn, not machined." },
-    { id: "n64",       name: "N64 Retro",        line: "Flat bright polys over fog indigo, thick outlines, cartridge-yellow primary. 1997 energy." },
-    { id: "goldeneye", name: "GoldenEye 64",     line: "Grey-blue steel + gold watch-menu HUD, mono display, notched corners, sharp radii." },
+    /* ── V2 OVERHAUL (apps/board · /v2 — the track-and-field board game).
+       Full design languages now: components + type + motion per theme,
+       with two live app-screen demos each in the "On the app" section. ── */
+    { id: "board",     name: "Stadium Board",   line: "The V2 flagship — floodlit green infield, terracotta lane ring, gold scoreboard numerals, photo-finish tape, the pot on a trophy pedestal." },
+    { id: "mycelial",  name: "Mycelial",        line: "Bioluminescent forest — asymmetric organism cards, spore drift, growth-ring progress, a breathing mycelium pot." },
+    { id: "techy",     name: "Mission Control", line: "Telemetry — graph paper under scanlines, // prefixed labels, T− clocks, boot-sequence reveals, corner brackets." },
+    { id: "track",     name: "Track & Field",   line: "Pure stadium — terracotta track, lane-numbered lanes, race-bib ranks, Anton timing numerals, a finish-clock pot." },
+    { id: "cardtable", name: "Card Table",      line: "The felt kept as pure style — burgundy club felt, serif small-caps, gold hairlines, chip-edged buttons, cream card faces." },
+    { id: "caveman",   name: "Caveman",         line: "Chalk on stone — wobbled hand-drawn radii, rock-strata surfaces, ochre fire danger, carved bone buttons, tally clocks." },
+    { id: "n64",       name: "N64 Retro",       line: "1997 console — fog wash over indigo, chunky outlines, memory-card corner screws, square avatars, cartridge buttons." },
+    { id: "goldeneye", name: "GoldenEye 64",    line: "Watch-menu HUD — gunmetal notched panels, gold dossier mono, segmented health meters, reticle brackets, alarm DZ." },
   ];
   const SWATCH_SLOTS = [
     ["--bg", "bg"], ["--surface-2", "surface"], ["--lime", "primary"],
@@ -89,6 +91,39 @@
     });
   });
 
+  /* ── ON THE APP strip: the eight V2 themes × the real /v2 screens ──── */
+  /* appdemo.html renders the board app's actual bd-* markup (home +
+     battle phones) wearing one overhauled theme per iframe. */
+  const V2_THEMES = THEMES.filter((t) =>
+    ["board", "mycelial", "techy", "track", "cardtable", "caveman", "n64", "goldeneye"].includes(t.id));
+  const appStrip = document.getElementById("appStrip");
+  let appScreen = "both";
+  function buildAppStrip() {
+    if (!appStrip) return;
+    appStrip.dataset.screen = appScreen;
+    appStrip.innerHTML = V2_THEMES.map((t) => `
+      <div class="st-appcell">
+        <span class="st-cell__cap">
+          <span class="st-cell__dot" style="background:${tokFor(t.id, "--lime")}"></span>
+          ${t.name}
+          <span class="st-cell__hex">${tokFor(t.id, "--lime")}</span>
+        </span>
+        <div class="st-apppair">
+          <iframe data-app-frame="${t.id}" title="${t.name} on the app — home"
+                  src="appdemo.html?t=${t.id}&screen=${appScreen}"></iframe>
+        </div>
+      </div>`).join("");
+  }
+  buildAppStrip();
+
+  document.querySelectorAll("[data-appscreen]").forEach((b) => {
+    b.addEventListener("click", () => {
+      appScreen = b.dataset.appscreen;
+      document.querySelectorAll("[data-appscreen]").forEach((x) => x.classList.toggle("is-on", x === b));
+      buildAppStrip();
+    });
+  });
+
   /* ── preview mode: the page itself re-skins ────────────────────────── */
   const previewSec = document.getElementById("preview");
   const previewBar = document.getElementById("previewBar");
@@ -146,7 +181,8 @@
   }, false);
 
   /* e2e hooks */
-  window.__rwfStyles = { THEMES, enterPreview, exitPreview, active: () => active,
-                         get screen() { return screen; }, setScreen(s) { screen = s; buildStrip(); } };
+  window.__rwfStyles = { THEMES, V2_THEMES, enterPreview, exitPreview, active: () => active,
+                         get screen() { return screen; }, setScreen(s) { screen = s; buildStrip(); },
+                         get appScreen() { return appScreen; }, setAppScreen(s) { appScreen = s; buildAppStrip(); } };
   window.__rwfStylesReady = true;
 })();

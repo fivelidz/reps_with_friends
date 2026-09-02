@@ -9,6 +9,52 @@
 <link rel="stylesheet" href="/design/tokens.css">
 <link rel="stylesheet" href="/design/fonts/fonts.css">
 <link rel="stylesheet" href="/site/site.css">
+<style>
+  /* ── FULL-HUB additions (scoped to this page; tokens/site.css own the rest) ──
+     1. Design-versions cards (screenshots + version stories)
+     2. Explore clusters (labelled groups of route cards)
+     3. Footer full directory                                              */
+
+  /* 1 · design versions */
+  .ver-grid { display: grid; grid-template-columns: repeat(3, 1fr); gap: 16px; margin-top: 34px; }
+  .ver-card { display: flex; flex-direction: column; text-decoration: none; color: var(--text); padding: 20px 20px 18px; }
+  .ver-card:hover { text-decoration: none; }
+  .ver-card h3 { font-size: 1.12rem; margin-bottom: 8px; }
+  .ver-tagrow { display: flex; gap: 8px; align-items: center; flex-wrap: wrap; margin-bottom: 14px; }
+  .ver-story { color: var(--muted); font-size: .85rem; line-height: 1.55; flex: 1; }
+  .ver-shots { display: flex; gap: 8px; margin: 16px 0 0; }
+  .ver-shots img {
+    flex: 1; min-width: 0; width: 100%; height: auto; display: block;
+    border-radius: 8px; border: 1px solid var(--line);
+    aspect-ratio: 390 / 844; object-fit: cover; object-position: top;
+    background: var(--surface-2);
+  }
+  .ver-open {
+    margin-top: 14px; font-family: var(--font-mono); font-size: .72rem;
+    letter-spacing: .1em; text-transform: uppercase; color: var(--faint);
+    transition: var(--ease);
+  }
+  .ver-card:hover .ver-open { color: var(--lime); }
+  .ver-card--current { border-color: var(--lime-dim); box-shadow: 0 0 0 1px rgba(198,243,46,.08), 0 24px 48px -30px rgba(198,243,46,.3); }
+  @media (max-width: 1000px) { .ver-grid { grid-template-columns: 1fr; max-width: 460px; } }
+
+  /* 2 · explore clusters */
+  .x-cluster { margin-top: 38px; }
+  .x-cluster:first-of-type { margin-top: 30px; }
+  .x-cluster-label {
+    display: flex; align-items: center; gap: 12px; margin: 0 0 14px;
+    font-family: var(--font-mono); font-size: .72rem; letter-spacing: .16em;
+    text-transform: uppercase; color: var(--faint);
+  }
+  .x-cluster-label::after { content: ""; flex: 1; height: 1px; background: var(--line); }
+
+  /* 3 · footer directory */
+  .footer-dir { border-top: 1px solid var(--line); padding: 26px 28px 0; }
+  .footer-dir-head { font-family: var(--font-mono); font-size: 11px; letter-spacing: .2em; text-transform: uppercase; color: var(--faint); margin-bottom: 10px; }
+  .footer-dir-text { font-family: var(--font-mono); font-size: .74rem; line-height: 2.1; color: var(--faint); word-break: break-word; }
+  .footer-dir-text a { color: var(--muted); text-decoration: none; }
+  .footer-dir-text a:hover { color: var(--lime); }
+</style>
 <script type="importmap">
 {
   "imports": {
@@ -23,6 +69,7 @@
 <nav class="nav">
   <a class="nav-brand" href="#top"><span class="dot"></span>RWF<span class="nav-brand-sub">/ reps with friends</span></a>
   <div class="nav-links">
+    <a href="#versions">Versions</a>
     <a href="#how">The 300</a>
     <a href="#handicap">Handicap</a>
     <a href="#connections">System</a>
@@ -58,10 +105,56 @@
 
 <main>
 
+<!-- ============ 1 · DESIGN VERSIONS (the full hub starts here) ============ -->
+<section id="versions" class="section">
+  <div class="container">
+    <p class="kicker reveal">01 — Design versions</p>
+    <h2 class="reveal">Every version, preserved</h2>
+    <p class="lede reveal">The design has progressed in whole, preserved versions — nothing is thrown away. v1 is Ben's Figma built faithful; v2 is today's track-and-field board-game direction; the replay shows a full match in 90 seconds.</p>
+    <div class="ver-grid">
+
+      <a class="rwf-card ver-card reveal" href="/figma-app">
+        <div class="ver-tagrow"><span class="rwf-tag">V1</span><span class="rwf-tag rwf-tag--lime">Preserved forever</span></div>
+        <h3>The Figma-faithful app</h3>
+        <p class="ver-story">Ben's design, built faithful — the lime phone-first app. 65 screens, the real match engine, fully offline. The starting point, kept live as the design progression.</p>
+        <div class="ver-shots">
+          <img src="/site/hub-shots/v1-home.png" alt="v1 home screen" loading="lazy" width="240" height="519">
+          <img src="/site/hub-shots/v1-battle.png" alt="v1 live match standings" loading="lazy" width="240" height="519">
+          <img src="/site/hub-shots/v1-log.png" alt="v1 rep log sheet" loading="lazy" width="240" height="519">
+        </div>
+        <span class="ver-open">Open v1 → /figma-app</span>
+      </a>
+
+      <a class="rwf-card ver-card ver-card--current reveal" href="/v2" style="transition-delay:70ms">
+        <div class="ver-tagrow"><span class="rwf-tag rwf-tag--lime">V2</span><span class="rwf-tag">Current direction</span></div>
+        <h3>The track &amp; field board game</h3>
+        <p class="ver-story">Same engine, new presentation — a board-game table: lanes, dealt power-up cards, the pot, seasons. Where the design is heading now.</p>
+        <div class="ver-shots">
+          <img src="/site/hub-shots/v2-home.png" alt="v2 home screen" loading="lazy" width="240" height="519">
+          <img src="/site/hub-shots/v2-table.png" alt="v2 the table mid-match" loading="lazy" width="240" height="519">
+          <img src="/site/hub-shots/v2-result.png" alt="v2 result and charity pot" loading="lazy" width="240" height="519">
+        </div>
+        <span class="ver-open">Open v2 → /v2</span>
+      </a>
+
+      <a class="rwf-card ver-card reveal" href="/demo" style="transition-delay:140ms">
+        <div class="ver-tagrow"><span class="rwf-tag">Replay</span></div>
+        <h3>Watch a match</h3>
+        <p class="ver-story">A 90-second auto-playing replay of a full match — create, log, comeback, close, charity pot. The whole loop in one sitting, no taps needed.</p>
+        <div class="ver-shots">
+          <img src="/site/hub-shots/demo-final.png" alt="Match replay finale" loading="lazy" width="240" height="519">
+        </div>
+        <span class="ver-open">Play the replay → /demo</span>
+      </a>
+
+    </div>
+  </div>
+</section>
+
 <!-- ============ 2 · THE 300 ============ -->
 <section id="how" class="section">
   <div class="container">
-    <p class="kicker reveal">01 — The match</p>
+    <p class="kicker reveal">02 — The match</p>
     <h2 class="reveal">The 300</h2>
     <p class="lede reveal">One match, one week, one target: 300 raw reps. The match runs inside your existing group chat — no new app to open, no schedule to agree on.</p>
     <ol class="steps">
@@ -89,10 +182,10 @@
   </div>
 </section>
 
-<!-- ============ 3 · HANDICAP DEMO ============ -->
+<!-- ============ 4 · HANDICAP DEMO ============ -->
 <section id="handicap" class="section">
   <div class="container">
-    <p class="kicker reveal">02 — The handicap</p>
+    <p class="kicker reveal">03 — The handicap</p>
     <h2 class="reveal">Effort beats fitness</h2>
     <p class="lede reveal">Every player carries a fitness tier, and the tier multiplies every rep. A couch player's push-up is worth more than an athlete's. This is the real engine math — drag the slider.</p>
 
@@ -164,10 +257,10 @@
   </div>
 </section>
 
-<!-- ============ 4 · THE SQUAD ============ -->
+<!-- ============ 5 · THE SQUAD ============ -->
 <section id="squad" class="section">
   <div class="container">
-    <p class="kicker reveal">03 — The squad</p>
+    <p class="kicker reveal">04 — The squad</p>
     <h2 class="reveal">Same gym, four paces</h2>
     <p class="lede reveal">The couch potato grinds slow and heavy. The athlete flies. The handicap does the rest — watch the raw counters drift apart while the adjusted scores stay neck and neck.</p>
 
@@ -246,10 +339,10 @@
   </script>
 </section>
 
-<!-- ============ 5 · CONNECTIONS ============ -->
+<!-- ============ 6 · CONNECTIONS ============ -->
 <section id="connections" class="section">
   <div class="container">
-    <p class="kicker reveal">04 — The system</p>
+    <p class="kicker reveal">05 — The system</p>
     <h2 class="reveal">One engine, every chat</h2>
     <p class="lede reveal">Thin adapters translate platform events into a single command bus. One API, one match engine — every group chat. Adding Messenger later is one adapter, not a rewrite.</p>
     <div class="graph-wrap rwf-card reveal">
@@ -267,10 +360,10 @@
   </div>
 </section>
 
-<!-- ============ 6 · VERIFICATION ============ -->
+<!-- ============ 7 · VERIFICATION ============ -->
 <section id="verification" class="section">
   <div class="container">
-    <p class="kicker reveal">05 — Verification</p>
+    <p class="kicker reveal">06 — Verification</p>
     <h2 class="reveal">Counted, not trusted</h2>
     <p class="lede reveal">Rep counts are cheap to lie about, so the system verifies them — in layers, each shipping in a different phase.</p>
     <div class="v-grid">
@@ -297,10 +390,10 @@
   </div>
 </section>
 
-<!-- ============ 7 · FEATURES ============ -->
+<!-- ============ 8 · FEATURES ============ -->
 <section id="features" class="section">
   <div class="container">
-    <p class="kicker reveal">06 — Features</p>
+    <p class="kicker reveal">07 — Features</p>
     <h2 class="reveal">Built to stay fun</h2>
     <p class="lede reveal">The match is the hook. These are the reasons the group chat keeps playing on week twelve.</p>
     <div class="f-grid">
@@ -314,10 +407,10 @@
   </div>
 </section>
 
-<!-- ============ 8 · APP SHOWCASE ============ -->
+<!-- ============ 9 · APP SHOWCASE ============ -->
 <section id="app-showcase" class="section">
   <div class="container">
-    <p class="kicker reveal">07 — The app</p>
+    <p class="kicker reveal">08 — The app</p>
     <h2 class="reveal">Inside the app</h2>
     <p class="lede reveal">Phone-first and hand-built with the same design system as this site. Tap any screen to open the real thing.</p>
     <div class="show-row">
@@ -458,10 +551,10 @@
   </div>
 </section>
 
-<!-- ============ 9 · ROADMAP ============ -->
+<!-- ============ 10 · ROADMAP ============ -->
 <section id="roadmap" class="section">
   <div class="container">
-    <p class="kicker reveal">08 — Roadmap</p>
+    <p class="kicker reveal">09 — Roadmap</p>
     <h2 class="reveal">Where this goes</h2>
     <p class="lede reveal">From due diligence this week to a corporate revenue engine — each phase proves the loop before it adds a layer.</p>
     <ol class="timeline">
@@ -489,101 +582,226 @@
   </div>
 </section>
 
-<!-- ============ 10 · EXPLORE ============ -->
+<!-- ============ 11 · EXPLORE ============ -->
 <section id="explore" class="section">
   <div class="container">
-    <p class="kicker reveal">09 — Explore</p>
-    <h2 class="reveal">Explore the system</h2>
-    <p class="lede reveal">Everything below is live on this box right now — no mocks, no coming-soon pages.</p>
-    <div class="x-grid">
+    <p class="kicker reveal">10 — Explore</p>
+    <h2 class="reveal">Explore the full system</h2>
+    <p class="lede reveal">Everything below is live on this box right now — no mocks, no coming-soon pages. Every version, design surface, sound, document and dashboard of Reps With Friends.</p>
 
-      <a class="rwf-card x-card reveal" href="/demo">
-        <span class="x-icon" aria-hidden="true"><svg viewBox="0 0 24 24" width="18" height="18" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><circle cx="12" cy="12" r="9"/><path d="M10 8.5l6 3.5-6 3.5z" fill="currentColor" stroke="none"/></svg></span>
-        <p class="x-path">/demo</p>
-        <h3>Watch a match</h3>
-        <p>90-second auto-playing replay. The whole game in one sitting.</p>
-        <span class="x-arrow" aria-hidden="true"><svg viewBox="0 0 24 24" width="16" height="16" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round"><path d="M5 12h13M12 5l7 7-7 7"/></svg></span>
-      </a>
+    <!-- ── cluster · APP VERSIONS ── -->
+    <div class="x-cluster reveal">
+      <p class="x-cluster-label">App versions</p>
+      <div class="x-grid">
 
-      <a class="rwf-card x-card reveal" href="/figma-app" style="transition-delay:60ms">
-        <span class="x-icon" aria-hidden="true"><svg viewBox="0 0 24 24" width="18" height="18" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><rect x="7" y="3" width="10" height="18" rx="2.5"/><path d="M11 18h2"/></svg></span>
-        <p class="x-path">/app</p>
-        <h3>The app</h3>
-        <p>Onboard, crew, match, seasons. Phone-first, works right now.</p>
-        <span class="x-arrow" aria-hidden="true"><svg viewBox="0 0 24 24" width="16" height="16" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round"><path d="M5 12h13M12 5l7 7-7 7"/></svg></span>
-      </a>
+        <a class="rwf-card x-card reveal" href="/v2">
+          <span class="x-icon" aria-hidden="true"><svg viewBox="0 0 24 24" width="18" height="18" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><rect x="3" y="4" width="18" height="16" rx="2"/><path d="M7 9h10M7 13h10M7 17h6"/></svg></span>
+          <p class="x-path">/v2</p>
+          <h3>V2 — the board game <span class="rwf-tag rwf-tag--lime" style="margin-left:6px">current</span></h3>
+          <p>Track-and-field table: lanes, power-up cards, the pot. Today's direction.</p>
+          <span class="x-arrow" aria-hidden="true"><svg viewBox="0 0 24 24" width="16" height="16" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round"><path d="M5 12h13M12 5l7 7-7 7"/></svg></span>
+        </a>
 
-      <a class="rwf-card x-card reveal" href="/system" style="transition-delay:120ms">
-        <span class="x-icon" aria-hidden="true"><svg viewBox="0 0 24 24" width="18" height="18" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><rect x="3.5" y="3.5" width="7" height="7" rx="1.5"/><rect x="13.5" y="3.5" width="7" height="7" rx="1.5"/><rect x="3.5" y="13.5" width="7" height="7" rx="1.5"/><rect x="13.5" y="13.5" width="7" height="7" rx="1.5"/></svg></span>
-        <p class="x-path">/system</p>
-        <h3>Complete dissemination</h3>
-        <p>Every token, component, element and progress metric.</p>
-        <span class="x-arrow" aria-hidden="true"><svg viewBox="0 0 24 24" width="16" height="16" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round"><path d="M5 12h13M12 5l7 7-7 7"/></svg></span>
-      </a>
+        <a class="rwf-card x-card reveal" href="/figma-app" style="transition-delay:60ms">
+          <span class="x-icon" aria-hidden="true"><svg viewBox="0 0 24 24" width="18" height="18" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><rect x="7" y="3" width="10" height="18" rx="2.5"/><path d="M11 18h2"/></svg></span>
+          <p class="x-path">/figma-app</p>
+          <h3>V1 — the Figma-faithful app</h3>
+          <p>Ben's design, 65 screens, real engine, offline-capable. Preserved forever.</p>
+          <span class="x-arrow" aria-hidden="true"><svg viewBox="0 0 24 24" width="16" height="16" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round"><path d="M5 12h13M12 5l7 7-7 7"/></svg></span>
+        </a>
 
-      <a class="rwf-card x-card reveal" href="/connect" style="transition-delay:180ms">
-        <span class="x-icon" aria-hidden="true"><svg viewBox="0 0 24 24" width="18" height="18" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M4 6h16v10H9l-5 4z"/><path d="M8 11h8"/></svg></span>
-        <p class="x-path">/connect</p>
-        <h3>Link WhatsApp</h3>
-        <p>wa.me deep links + QR. Your group chat becomes the arena.</p>
-        <span class="x-arrow" aria-hidden="true"><svg viewBox="0 0 24 24" width="16" height="16" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round"><path d="M5 12h13M12 5l7 7-7 7"/></svg></span>
-      </a>
+        <a class="rwf-card x-card reveal" href="/demo" style="transition-delay:120ms">
+          <span class="x-icon" aria-hidden="true"><svg viewBox="0 0 24 24" width="18" height="18" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><circle cx="12" cy="12" r="9"/><path d="M10 8.5l6 3.5-6 3.5z" fill="currentColor" stroke="none"/></svg></span>
+          <p class="x-path">/demo</p>
+          <h3>Watch a match</h3>
+          <p>90-second auto-playing replay. The whole game in one sitting.</p>
+          <span class="x-arrow" aria-hidden="true"><svg viewBox="0 0 24 24" width="16" height="16" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round"><path d="M5 12h13M12 5l7 7-7 7"/></svg></span>
+        </a>
 
-      <a class="rwf-card x-card reveal" href="/slack">
-        <span class="x-icon x-icon--sky" aria-hidden="true"><svg viewBox="0 0 24 24" width="18" height="18" fill="none" stroke="currentColor" stroke-width="2.4" stroke-linecap="round"><path d="M9 4v16M15 4v16M4 9h16M4 15h16"/></svg></span>
-        <p class="x-path">/slack</p>
-        <h3>Add to Slack</h3>
-        <p>Manifest, tokens, one-click install link builder.</p>
-        <span class="x-arrow" aria-hidden="true"><svg viewBox="0 0 24 24" width="16" height="16" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round"><path d="M5 12h13M12 5l7 7-7 7"/></svg></span>
-      </a>
+      </div>
+    </div>
 
-      <a class="rwf-card x-card reveal" href="/hub" style="transition-delay:60ms">
-        <span class="x-icon" aria-hidden="true"><svg viewBox="0 0 24 24" width="18" height="18" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><rect x="3" y="4" width="18" height="13" rx="2"/><path d="M8 21h8M12 17v4"/><circle cx="12" cy="10.5" r="2.6"/><path d="M12 8v1.5M12 11.5V13M9.9 9.3l1.3.7M13.8 11.1l-1.3-.7M9.9 11.7l1.3-.7M13.8 9.9l-1.3-.7"/></svg></span>
-        <p class="x-path">/hub</p>
-        <h3>Ops console</h3>
-        <p>Live matches, bot health, corporate wellbeing views.</p>
-        <span class="x-arrow" aria-hidden="true"><svg viewBox="0 0 24 24" width="16" height="16" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round"><path d="M5 12h13M12 5l7 7-7 7"/></svg></span>
-      </a>
+    <!-- ── cluster · DESIGN & THEMES ── -->
+    <div class="x-cluster reveal">
+      <p class="x-cluster-label">Design &amp; themes</p>
+      <div class="x-grid">
 
-      <a class="rwf-card x-card reveal" href="/debug" style="transition-delay:120ms">
-        <span class="x-icon" aria-hidden="true"><svg viewBox="0 0 24 24" width="18" height="18" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><rect x="3" y="4" width="18" height="16" rx="2"/><path d="M7 9l3 3-3 3M13 15h4"/></svg></span>
-        <p class="x-path">/debug</p>
-        <h3>Debug console</h3>
-        <p>Live bot simulator and the full element gallery.</p>
-        <span class="x-arrow" aria-hidden="true"><svg viewBox="0 0 24 24" width="16" height="16" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round"><path d="M5 12h13M12 5l7 7-7 7"/></svg></span>
-      </a>
+        <a class="rwf-card x-card reveal" href="/styles">
+          <span class="x-icon" aria-hidden="true"><svg viewBox="0 0 24 24" width="18" height="18" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><rect x="3.5" y="3.5" width="7" height="7" rx="1.5"/><rect x="13.5" y="3.5" width="7" height="7" rx="1.5" fill="currentColor" stroke="none" opacity=".35"/><rect x="3.5" y="13.5" width="7" height="7" rx="1.5" fill="currentColor" stroke="none" opacity=".65"/><rect x="13.5" y="13.5" width="7" height="7" rx="1.5"/></svg></span>
+          <p class="x-path">/styles</p>
+          <h3>Theme gallery</h3>
+          <p>13 design directions — full app presentations, not token swaps.</p>
+          <span class="x-arrow" aria-hidden="true"><svg viewBox="0 0 24 24" width="16" height="16" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round"><path d="M5 12h13M12 5l7 7-7 7"/></svg></span>
+        </a>
 
-      <a class="rwf-card x-card reveal" href="/api/state" style="transition-delay:180ms">
-        <span class="x-icon" aria-hidden="true"><svg viewBox="0 0 24 24" width="18" height="18" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M8 4c-2.5 0-3 1.5-3 3v2c0 1.5-.5 3-3 3 2.5 0 3 1.5 3 3v2c0 1.5.5 3 3 3M16 4c2.5 0 3 1.5 3 3v2c0 1.5.5 3 3 3-2.5 0-3 1.5-3 3v2c0 1.5-.5 3-3 3"/></svg></span>
-        <p class="x-path">/api/state</p>
-        <h3>Live state API</h3>
-        <p>The JSON everything polls.</p>
-        <span class="x-arrow" aria-hidden="true"><svg viewBox="0 0 24 24" width="16" height="16" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round"><path d="M5 12h13M12 5l7 7-7 7"/></svg></span>
-      </a>
+        <a class="rwf-card x-card reveal" href="/system" style="transition-delay:60ms">
+          <span class="x-icon" aria-hidden="true"><svg viewBox="0 0 24 24" width="18" height="18" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><rect x="3.5" y="3.5" width="7" height="7" rx="1.5"/><rect x="13.5" y="3.5" width="7" height="7" rx="1.5"/><rect x="3.5" y="13.5" width="7" height="7" rx="1.5"/><rect x="13.5" y="13.5" width="7" height="7" rx="1.5"/></svg></span>
+          <p class="x-path">/system</p>
+          <h3>Design system</h3>
+          <p>Every token, component, element and progress metric — disseminated.</p>
+          <span class="x-arrow" aria-hidden="true"><svg viewBox="0 0 24 24" width="16" height="16" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round"><path d="M5 12h13M12 5l7 7-7 7"/></svg></span>
+        </a>
 
-      <a class="rwf-card x-card reveal" href="/apk/rwf-app-debug.apk" download style="transition-delay:220ms">
-        <span class="x-icon" aria-hidden="true"><svg viewBox="0 0 24 24" width="18" height="18" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M12 3v12m0 0l-4-4m4 4l4-4M4 17v2a2 2 0 002 2h12a2 2 0 002-2v-2"/></svg></span>
-        <p class="x-path">/apk/rwf-app-debug.apk</p>
-        <h3>Android app (APK)</h3>
-        <p>Download on your phone → open → allow install. The app in your launcher.</p>
-        <span class="x-arrow" aria-hidden="true"><svg viewBox="0 0 24 24" width="16" height="16" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round"><path d="M5 12h13M12 5l7 7-7 7"/></svg></span>
-      </a>
+        <a class="rwf-card x-card reveal" href="/figma" style="transition-delay:120ms">
+          <span class="x-icon" aria-hidden="true"><svg viewBox="0 0 24 24" width="18" height="18" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M12 19l7-7 3 3-7 7-3-3z"/><path d="M18 13l-1.5-7.5L2 2l3.5 14.5L13 18l5-5z"/><path d="M2 2l7.586 7.586"/><circle cx="11" cy="11" r="2"/></svg></span>
+          <p class="x-path">/figma</p>
+          <h3>Figma component library</h3>
+          <p>The adopted component reference extracted from Ben's file (lane F3).</p>
+          <span class="x-arrow" aria-hidden="true"><svg viewBox="0 0 24 24" width="16" height="16" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round"><path d="M5 12h13M12 5l7 7-7 7"/></svg></span>
+        </a>
 
-      <a class="rwf-card x-card reveal" href="/v1" style="transition-delay:260ms">
-        <span class="x-icon" aria-hidden="true"><svg viewBox="0 0 24 24" width="18" height="18" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><circle cx="12" cy="12" r="9"/><path d="M3 12h18M12 3a15 15 0 010 18M12 3a15 15 0 000 18"/></svg></span>
-        <p class="x-path">/v1</p>
-        <h3>Coverage hub v1.1</h3>
-        <p>Every element, document and dashboard — one shareable link.</p>
-        <span class="x-arrow" aria-hidden="true"><svg viewBox="0 0 24 24" width="16" height="16" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round"><path d="M5 12h13M12 5l7 7-7 7"/></svg></span>
-      </a>
+        <a class="rwf-card x-card reveal" href="/atelier" style="transition-delay:180ms">
+          <span class="x-icon" aria-hidden="true"><svg viewBox="0 0 24 24" width="18" height="18" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><circle cx="6" cy="6" r="3"/><circle cx="6" cy="18" r="3"/><path d="M20 4L8.12 15.88M14.47 14.48L20 20M8.12 8.12L12 12"/></svg></span>
+          <p class="x-path">/atelier</p>
+          <h3>Outfit atelier</h3>
+          <p>Garment workshop — x-ray seams, attachments, the frog's kit.</p>
+          <span class="x-arrow" aria-hidden="true"><svg viewBox="0 0 24 24" width="16" height="16" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round"><path d="M5 12h13M12 5l7 7-7 7"/></svg></span>
+        </a>
 
+      </div>
+    </div>
+
+    <!-- ── cluster · AVATARS ── -->
+    <div class="x-cluster reveal">
+      <p class="x-cluster-label">Avatars</p>
+      <div class="x-grid">
+
+        <a class="rwf-card x-card reveal" href="/avatars">
+          <span class="x-icon" aria-hidden="true"><svg viewBox="0 0 24 24" width="18" height="18" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><circle cx="12" cy="8" r="4"/><path d="M4 21c0-4 3.6-7 8-7s8 3 8 7"/></svg></span>
+          <p class="x-path">/avatars</p>
+          <h3>Avatar gallery</h3>
+          <p>Geno mocap, frogs, photo avatars — the character system, live.</p>
+          <span class="x-arrow" aria-hidden="true"><svg viewBox="0 0 24 24" width="16" height="16" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round"><path d="M5 12h13M12 5l7 7-7 7"/></svg></span>
+        </a>
+
+      </div>
+    </div>
+
+    <!-- ── cluster · SOUND ── -->
+    <div class="x-cluster reveal">
+      <p class="x-cluster-label">Sound</p>
+      <div class="x-grid">
+
+        <a class="rwf-card x-card reveal" href="/sfx">
+          <span class="x-icon" aria-hidden="true"><svg viewBox="0 0 24 24" width="18" height="18" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M11 5L6 9H2v6h4l5 4V5z"/><path d="M15.5 8.5a5 5 0 010 7M18.5 5.5a9 9 0 010 13"/></svg></span>
+          <p class="x-path">/sfx</p>
+          <h3>Sound effects</h3>
+          <p>The live app sounds — tap, log, deal, win, dz. Same synthesis, zero audio files.</p>
+          <span class="x-arrow" aria-hidden="true"><svg viewBox="0 0 24 24" width="16" height="16" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round"><path d="M5 12h13M12 5l7 7-7 7"/></svg></span>
+        </a>
+
+      </div>
+    </div>
+
+    <!-- ── cluster · DOCS & BUSINESS ── -->
+    <div class="x-cluster reveal">
+      <p class="x-cluster-label">Docs &amp; business</p>
+      <div class="x-grid">
+
+        <a class="rwf-card x-card reveal" href="/v1">
+          <span class="x-icon" aria-hidden="true"><svg viewBox="0 0 24 24" width="18" height="18" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><circle cx="12" cy="12" r="9"/><path d="M3 12h18M12 3a15 15 0 010 18M12 3a15 15 0 000 18"/></svg></span>
+          <p class="x-path">/v1</p>
+          <h3>Coverage hub</h3>
+          <p>Every element, document and dashboard — one shareable link (v1.1).</p>
+          <span class="x-arrow" aria-hidden="true"><svg viewBox="0 0 24 24" width="16" height="16" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round"><path d="M5 12h13M12 5l7 7-7 7"/></svg></span>
+        </a>
+
+        <a class="rwf-card x-card reveal" href="/wiki" style="transition-delay:60ms">
+          <span class="x-icon" aria-hidden="true"><svg viewBox="0 0 24 24" width="18" height="18" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M4 19.5A2.5 2.5 0 016.5 17H20"/><path d="M6.5 2H20v20H6.5A2.5 2.5 0 014 19.5v-15A2.5 2.5 0 016.5 2z"/></svg></span>
+          <p class="x-path">/wiki</p>
+          <h3>System wiki</h3>
+          <p>9 pages of living documentation — architecture to match flow.</p>
+          <span class="x-arrow" aria-hidden="true"><svg viewBox="0 0 24 24" width="16" height="16" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round"><path d="M5 12h13M12 5l7 7-7 7"/></svg></span>
+        </a>
+
+        <a class="rwf-card x-card reveal" href="/deck/RWF_Followup_Deck.pdf" target="_blank" rel="noopener" style="transition-delay:120ms">
+          <span class="x-icon" aria-hidden="true"><svg viewBox="0 0 24 24" width="18" height="18" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M14 2H6a2 2 0 00-2 2v16a2 2 0 002 2h12a2 2 0 002-2V8z"/><path d="M14 2v6h6"/><path d="M9 15l2 2 4-4"/></svg></span>
+          <p class="x-path">/deck/RWF_Followup_Deck.pdf</p>
+          <h3>Follow-up deck</h3>
+          <p>The founder follow-up deck for Ben — PDF, opens in a new tab.</p>
+          <span class="x-arrow" aria-hidden="true"><svg viewBox="0 0 24 24" width="16" height="16" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round"><path d="M5 12h13M12 5l7 7-7 7"/></svg></span>
+        </a>
+
+        <a class="rwf-card x-card reveal" href="/deck/RWF_Contract_Scope.pdf" target="_blank" rel="noopener" style="transition-delay:180ms">
+          <span class="x-icon" aria-hidden="true"><svg viewBox="0 0 24 24" width="18" height="18" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M14 2H6a2 2 0 00-2 2v16a2 2 0 002 2h12a2 2 0 002-2V8z"/><path d="M14 2v6h6"/><path d="M8 13h8M8 17h5"/></svg></span>
+          <p class="x-path">/deck/RWF_Contract_Scope.pdf</p>
+          <h3>Contract &amp; scope</h3>
+          <p>The $2,500 build contract scope — PDF.</p>
+          <span class="x-arrow" aria-hidden="true"><svg viewBox="0 0 24 24" width="16" height="16" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round"><path d="M5 12h13M12 5l7 7-7 7"/></svg></span>
+        </a>
+
+        <a class="rwf-card x-card reveal" href="/deck/RWF_Followup_Appendix.pdf" target="_blank" rel="noopener" style="transition-delay:220ms">
+          <span class="x-icon" aria-hidden="true"><svg viewBox="0 0 24 24" width="18" height="18" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M14 2H6a2 2 0 00-2 2v16a2 2 0 002 2h12a2 2 0 002-2V8z"/><path d="M14 2v6h6"/><path d="M8 13h8M8 17h8M8 9h2"/></svg></span>
+          <p class="x-path">/deck/RWF_Followup_Appendix.pdf</p>
+          <h3>Deck appendix</h3>
+          <p>Screens, flows and evidence behind the deck — PDF.</p>
+          <span class="x-arrow" aria-hidden="true"><svg viewBox="0 0 24 24" width="16" height="16" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round"><path d="M5 12h13M12 5l7 7-7 7"/></svg></span>
+        </a>
+
+        <a class="rwf-card x-card reveal" href="/apk/rwf-app-debug.apk" download style="transition-delay:260ms">
+          <span class="x-icon" aria-hidden="true"><svg viewBox="0 0 24 24" width="18" height="18" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M12 3v12m0 0l-4-4m4 4l4-4M4 17v2a2 2 0 002 2h12a2 2 0 002-2v-2"/></svg></span>
+          <p class="x-path">/apk/rwf-app-debug.apk</p>
+          <h3>Android app (APK)</h3>
+          <p>Download on your phone → open → allow install. The app in your launcher.</p>
+          <span class="x-arrow" aria-hidden="true"><svg viewBox="0 0 24 24" width="16" height="16" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round"><path d="M5 12h13M12 5l7 7-7 7"/></svg></span>
+        </a>
+
+      </div>
+    </div>
+
+    <!-- ── cluster · SYSTEMS & DASHBOARDS ── -->
+    <div class="x-cluster reveal">
+      <p class="x-cluster-label">Systems &amp; dashboards</p>
+      <div class="x-grid">
+
+        <a class="rwf-card x-card reveal" href="/hub">
+          <span class="x-icon" aria-hidden="true"><svg viewBox="0 0 24 24" width="18" height="18" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><rect x="3" y="4" width="18" height="13" rx="2"/><path d="M8 21h8M12 17v4"/><circle cx="12" cy="10.5" r="2.6"/><path d="M12 8v1.5M12 11.5V13M9.9 9.3l1.3.7M13.8 11.1l-1.3-.7M9.9 11.7l1.3-.7M13.8 9.9l-1.3-.7"/></svg></span>
+          <p class="x-path">/hub</p>
+          <h3>Ops console</h3>
+          <p>Live matches, bot health, corporate wellbeing views.</p>
+          <span class="x-arrow" aria-hidden="true"><svg viewBox="0 0 24 24" width="16" height="16" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round"><path d="M5 12h13M12 5l7 7-7 7"/></svg></span>
+        </a>
+
+        <a class="rwf-card x-card reveal" href="/debug" style="transition-delay:60ms">
+          <span class="x-icon" aria-hidden="true"><svg viewBox="0 0 24 24" width="18" height="18" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><rect x="3" y="4" width="18" height="16" rx="2"/><path d="M7 9l3 3-3 3M13 15h4"/></svg></span>
+          <p class="x-path">/debug</p>
+          <h3>Debug console</h3>
+          <p>Live bot simulator and the full element gallery.</p>
+          <span class="x-arrow" aria-hidden="true"><svg viewBox="0 0 24 24" width="16" height="16" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round"><path d="M5 12h13M12 5l7 7-7 7"/></svg></span>
+        </a>
+
+        <a class="rwf-card x-card reveal" href="/connect" style="transition-delay:120ms">
+          <span class="x-icon" aria-hidden="true"><svg viewBox="0 0 24 24" width="18" height="18" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M4 6h16v10H9l-5 4z"/><path d="M8 11h8"/></svg></span>
+          <p class="x-path">/connect</p>
+          <h3>Link WhatsApp</h3>
+          <p>wa.me deep links + QR. Your group chat becomes the arena.</p>
+          <span class="x-arrow" aria-hidden="true"><svg viewBox="0 0 24 24" width="16" height="16" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round"><path d="M5 12h13M12 5l7 7-7 7"/></svg></span>
+        </a>
+
+        <a class="rwf-card x-card reveal" href="/slack" style="transition-delay:180ms">
+          <span class="x-icon x-icon--sky" aria-hidden="true"><svg viewBox="0 0 24 24" width="18" height="18" fill="none" stroke="currentColor" stroke-width="2.4" stroke-linecap="round"><path d="M9 4v16M15 4v16M4 9h16M4 15h16"/></svg></span>
+          <p class="x-path">/slack</p>
+          <h3>Add to Slack</h3>
+          <p>Manifest, tokens, one-click install link builder.</p>
+          <span class="x-arrow" aria-hidden="true"><svg viewBox="0 0 24 24" width="16" height="16" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round"><path d="M5 12h13M12 5l7 7-7 7"/></svg></span>
+        </a>
+
+        <a class="rwf-card x-card reveal" href="/api/state" style="transition-delay:220ms">
+          <span class="x-icon" aria-hidden="true"><svg viewBox="0 0 24 24" width="18" height="18" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M8 4c-2.5 0-3 1.5-3 3v2c0 1.5-.5 3-3 3 2.5 0 3 1.5 3 3v2c0 1.5.5 3 3 3M16 4c2.5 0 3 1.5 3 3v2c0 1.5.5 3 3 3-2.5 0-3 1.5-3 3v2c0 1.5-.5 3-3 3"/></svg></span>
+          <p class="x-path">/api/state</p>
+          <h3>Live state API</h3>
+          <p>The JSON everything polls — server, bots, matches.</p>
+          <span class="x-arrow" aria-hidden="true"><svg viewBox="0 0 24 24" width="16" height="16" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round"><path d="M5 12h13M12 5l7 7-7 7"/></svg></span>
+        </a>
+
+      </div>
     </div>
   </div>
 </section>
 
 </main>
 
-<!-- ============ 11 · FOOTER ============ -->
+<!-- ============ 12 · FOOTER ============ -->
 <footer class="footer">
   <div class="container footer-grid">
     <div class="footer-brand">
@@ -591,24 +809,41 @@
       <p class="footer-tag">Reps With Friends — train together, win on effort.</p>
     </div>
     <div class="footer-col">
-      <p class="footer-head">Play</p>
-      <a href="/figma-app">Open the app</a>
-      <a href="/demo">Watch a match</a>
+      <p class="footer-head">Versions</p>
+      <a href="/v2">V2 — board game (current)</a>
+      <a href="/figma-app">V1 — Figma-faithful app</a>
+      <a href="/demo">Match replay</a>
+      <a href="/apk/rwf-app-debug.apk">Android app (APK)</a>
+    </div>
+    <div class="footer-col">
+      <p class="footer-head">Design &amp; sound</p>
+      <a href="/styles">Theme gallery</a>
+      <a href="/system">Design system</a>
+      <a href="/figma">Figma library</a>
+      <a href="/avatars">Avatar gallery</a>
+      <a href="/atelier">Outfit atelier</a>
+      <a href="/sfx">Sound effects</a>
+    </div>
+    <div class="footer-col">
+      <p class="footer-head">Docs &amp; business</p>
+      <a href="/v1">Coverage hub</a>
+      <a href="/wiki">System wiki</a>
+      <a href="/deck/RWF_Followup_Deck.pdf">Follow-up deck (PDF)</a>
+      <a href="/deck/RWF_Contract_Scope.pdf">Contract &amp; scope (PDF)</a>
+      <a href="/deck/RWF_Followup_Appendix.pdf">Deck appendix (PDF)</a>
+    </div>
+    <div class="footer-col">
+      <p class="footer-head">Systems</p>
+      <a href="/hub">Ops console</a>
+      <a href="/debug">Debug console</a>
       <a href="/connect">Connect WhatsApp</a>
       <a href="/slack">Add to Slack</a>
+      <a href="/api/state">Live state API</a>
     </div>
-    <div class="footer-col">
-      <p class="footer-head">System</p>
-      <a href="/system">Full system breakdown</a>
-      <a href="/hub">Ops console</a>
-      <a href="/debug">Debug — all elements</a>
-      <a href="/api/state">Live state</a>
-    </div>
-    <div class="footer-col">
-      <p class="footer-head">Status</p>
-      <p>Phase 0 — due diligence</p>
-      <p>Private monorepo · Bun workspaces<br>game-core · bots · app · site</p>
-    </div>
+  </div>
+  <div class="container footer-dir">
+    <p class="footer-dir-head">Full directory — every live route</p>
+    <p class="footer-dir-text"><a href="/">/</a> · <a href="/figma-app">/figma-app</a> · <a href="/v2">/v2</a> · <a href="/demo">/demo</a> · <a href="/styles">/styles</a> · <a href="/sfx">/sfx</a> · <a href="/avatars">/avatars</a> · <a href="/atelier">/atelier</a> · <a href="/system">/system</a> · <a href="/figma">/figma</a> · <a href="/v1">/v1</a> · <a href="/wiki">/wiki</a> · <a href="/deck/RWF_Followup_Deck.pdf">/deck/RWF_Followup_Deck.pdf</a> · <a href="/deck/RWF_Contract_Scope.pdf">/deck/RWF_Contract_Scope.pdf</a> · <a href="/deck/RWF_Followup_Appendix.pdf">/deck/RWF_Followup_Appendix.pdf</a> · <a href="/apk/rwf-app-debug.apk">/apk/rwf-app-debug.apk</a> · <a href="/hub">/hub</a> · <a href="/debug">/debug</a> · <a href="/connect">/connect</a> · <a href="/slack">/slack</a> · <a href="/api/state">/api/state</a></p>
   </div>
   <div class="container footer-base">
     <p>Built as a discovery prototype. Local-first, fully offline.</p>

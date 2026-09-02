@@ -271,11 +271,15 @@ const server = Bun.serve({
     } else if (p.startsWith("/styles")) {
       // Five-theme design exploration — side-by-side gallery + full previews.
       r = dirRoute("apps/styles", url) ?? new Response("styles gallery not found", { status: 404 });
+    } else if (p === "/sfx" || p.startsWith("/sfx/")) {
+      // SFX demo — the live app sound catalogue, tappable (apps/sfx-demo).
+      // Defensive one-file copy of the figma-app synthesis module.
+      r = dirRoute("apps/sfx-demo", url) ?? new Response("sfx demo not found", { status: 404 });
     } else if (p.startsWith("/wiki")) {
       // This documentation wiki (self-contained; shots copied into apps/wiki/shots).
       r = dirRoute("apps/wiki", url) ?? new Response("wiki not found", { status: 404 });
     } else if (p === "/v2" || p.startsWith("/v2/")) {
-      // V2 board app — the poker-table × track-and-field battle (apps/board).
+      // V2 board app — the track-and-field board game battle (apps/board).
       // Independent engine fork; v1 at /figma-app is untouched.
       r = dirRoute("apps/board", url) ?? new Response("board app not found", { status: 404 });
     } else if (p === "/v1" || p.startsWith("/v1/")) {
