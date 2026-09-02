@@ -1,0 +1,344 @@
+{
+ "id": "beacon-bust",
+ "components": [
+  {
+   "name": "torso",
+   "parent": "Shoulders",
+   "prim": "Box",
+   "dims": [
+    2.7,
+    1.15,
+    1.15
+   ],
+   "hex": "#8b5cf6",
+   "pos": [
+    0,
+    0.55,
+    0
+   ]
+  },
+  {
+   "name": "shoulderPads x2",
+   "parent": "Shoulders",
+   "prim": "Box",
+   "dims": [
+    0.62,
+    0.52,
+    1.1
+   ],
+   "hex": "#8b5cf6",
+   "pos": [
+    1.32,
+    1.02,
+    0
+   ],
+   "note": "mirrored x"
+  },
+  {
+   "name": "neck",
+   "parent": "Neck",
+   "prim": "Cylinder",
+   "dims": [
+    0.3,
+    0.36,
+    0.8
+   ],
+   "hex": "#e8b88a",
+   "pos": [
+    0,
+    0.32,
+    0
+   ]
+  },
+  {
+   "name": "head",
+   "parent": "Head",
+   "prim": "Sphere r1.0",
+   "hex": "#e8b88a",
+   "pos": [
+    0,
+    0.25,
+    0.05
+   ]
+  },
+  {
+   "name": "hairCap",
+   "parent": "Head",
+   "prim": "Sphere r1.05 thetaCap 0.42pi rotX .32",
+   "hex": "#ff5c38",
+   "pos": [
+    0,
+    0.25,
+    0.05
+   ]
+  },
+  {
+   "name": "hairBack",
+   "parent": "Head",
+   "prim": "Sphere r0.95 s(.95,.95,.8)",
+   "hex": "#ff5c38",
+   "pos": [
+    0,
+    0.3,
+    -0.32
+   ]
+  },
+  {
+   "name": "fringeSweep",
+   "parent": "Fringe",
+   "prim": "Sphere r0.55 s(1.35,.42,.6) rotZ .35",
+   "hex": "#ff5c38",
+   "pos": [
+    -0.28,
+    0.5,
+    0.68
+   ],
+   "note": "covers half of LEFT eye"
+  },
+  {
+   "name": "eyes x2",
+   "parent": "Head",
+   "prim": "Capsule r.1 L.18 sz.35",
+   "hex": "#6ec1ff",
+   "pos": [
+    0.36,
+    0.38,
+    0.95
+   ],
+   "note": "mirrored x"
+  },
+  {
+   "name": "mouthOpenSmile",
+   "parent": "Head",
+   "prim": "half-Sphere r.2 rotX pi/2 s(1.2,.6,.8)",
+   "hex": "#0a0b0d",
+   "pos": [
+    0,
+    -0.15,
+    0.94
+   ]
+  },
+  {
+   "name": "topKnot",
+   "parent": "TopKnot",
+   "prim": "Sphere r0.2 s(1,.85,1)",
+   "hex": "#ff5c38",
+   "pos": [
+    0,
+    1.58,
+    0.12
+   ]
+  },
+  {
+   "name": "headBand",
+   "parent": "Headphones",
+   "prim": "Torus r1.16 t.07 arc pi",
+   "hex": "#0a0b0d",
+   "pos": [
+    0,
+    0.25,
+    0.02
+   ]
+  },
+  {
+   "name": "cups x2",
+   "parent": "Headphones",
+   "prim": "Cylinder r.34 h.24 rotZ pi/2",
+   "hex": "#0a0b0d",
+   "pos": [
+    1.04,
+    0.25,
+    0.02
+   ],
+   "note": "ear height on head flanks"
+  },
+  {
+   "name": "goldRings x2",
+   "parent": "Headphones",
+   "prim": "Torus r.34 t.05 rotY pi/2",
+   "hex": "#ffc821",
+   "pos": [
+    1.17,
+    0.25,
+    0.02
+   ]
+  },
+  {
+   "name": "hoodCollar",
+   "parent": "Shoulders",
+   "prim": "Torus r.5 t.17 rotX pi/2+.12",
+   "hex": "#8b5cf6",
+   "pos": [
+    0,
+    1.14,
+    -0.02
+   ]
+  },
+  {
+   "name": "hoodBack",
+   "parent": "Shoulders",
+   "prim": "Sphere r.6 s(1.15,.85,.6)",
+   "hex": "#8b5cf6",
+   "pos": [
+    0,
+    1.22,
+    -0.58
+   ]
+  },
+  {
+   "name": "drawstrings x2",
+   "parent": "Drawstrings",
+   "prim": "Cylinder r.05 h.5",
+   "hex": "#c6f32e",
+   "pos": [
+    0.22,
+    -0.25,
+    0.1
+   ]
+  },
+  {
+   "name": "aglets x2",
+   "parent": "Drawstrings",
+   "prim": "Sphere r.06",
+   "hex": "#ffc821",
+   "pos": [
+    0.22,
+    -0.53,
+    0.1
+   ]
+  },
+  {
+   "name": "zipPull",
+   "parent": "Shoulders",
+   "prim": "Sphere r.09 s(.8,1.25,.6) emissive",
+   "hex": "#ffc821",
+   "pos": [
+    0,
+    0.7,
+    0.6
+   ]
+  }
+ ],
+ "palette": [
+  [
+   "skin",
+   "#e8b88a"
+  ],
+  [
+   "hair",
+   "#ff5c38"
+  ],
+  [
+   "eye",
+   "#6ec1ff"
+  ],
+  [
+   "dark",
+   "#0a0b0d"
+  ],
+  [
+   "hoodie",
+   "#8b5cf6"
+  ],
+  [
+   "gold",
+   "#ffc821"
+  ],
+  [
+   "lime",
+   "#c6f32e"
+  ]
+ ],
+ "pivots": [
+  [
+   "Shoulders",
+   "root",
+   [
+    0,
+    0,
+    0
+   ]
+  ],
+  [
+   "Neck",
+   "Shoulders",
+   [
+    0,
+    1.0,
+    0
+   ]
+  ],
+  [
+   "Head",
+   "Neck",
+   [
+    0,
+    0.72,
+    0
+   ]
+  ],
+  [
+   "Fringe",
+   "Head",
+   [
+    0,
+    0,
+    0
+   ]
+  ],
+  [
+   "TopKnot",
+   "Head",
+   [
+    0,
+    0,
+    0
+   ]
+  ],
+  [
+   "Headphones",
+   "Head",
+   [
+    0,
+    0,
+    0
+   ]
+  ],
+  [
+   "Drawstrings",
+   "Shoulders",
+   [
+    0,
+    1.12,
+    0.42
+   ]
+  ]
+ ],
+ "sockets": [
+  "root",
+  "shoulders",
+  "neck",
+  "head",
+  "fringe",
+  "topKnot",
+  "headphones",
+  "drawstrings"
+ ],
+ "tick_plan": [
+  "head bob: rotZ sin(1.4t)*.035, rotX sin(.9t)*.025, posY +sin(1.8t)*.02",
+  "breath: shoulders scale 1+sin(1.1t)*~.015",
+  "drawstring sway: rotZ sin(1.6t)*.06, rotX sin(1.1t+1.2)*.04",
+  "gold glint: zip emissiveIntensity .2..0.9 @2.4Hz",
+  "fringe flutter + topknot counter-sway"
+ ],
+ "mesh_budget": "24/34",
+ "must_nail": [
+  "gold-ringed dark cups at EAR height on head flanks (host arbitration overrides intake: not the eyes)",
+  "dark band arcing over crown joining both cups",
+  "eyes = small sky-blue rounded rects on face front, LEFT half-covered by coral fringe sweep",
+  "OPEN dark smile wedge (arbitration overrides intake's closed mouth)",
+  "coral hair vs tan face split; small coral top-knot above crown",
+  "lime drawstrings hanging from hoodie neckline + gold zip dot at centre chest",
+  "purple hood collar behind neck, wide squared shoulders, bust only \u2014 no arms"
+ ]
+}

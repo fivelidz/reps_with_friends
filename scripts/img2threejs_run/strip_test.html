@@ -1,0 +1,27 @@
+<!doctype html>
+<!-- strip wiring gate: PHOTO_AVATARS registry loads, every factory builds,
+     ticks, and has sockets — including the new generated beacon module. -->
+<html><head><meta charset="utf-8">
+<script type="importmap">{ "imports": { "three": "/site/lib/three.module.js" } }</script>
+</head><body>
+<div id="status">BOOT</div>
+<script type="module">
+const st = document.getElementById('status');
+window.addEventListener('error', e => { st.textContent = 'ERR:' + e.message; });
+try {
+  const { PHOTO_AVATARS } = await import('/site/models/photo_avatars/index.js');
+  const THREE = await import('three');
+  let n = 0, ids = [];
+  for (const A of PHOTO_AVATARS) {
+    const m = A.create();
+    if (!(m instanceof THREE.Group)) throw new Error(A.id + ': not a Group');
+    if (typeof m.userData.tick !== 'function') throw new Error(A.id + ': no tick');
+    if (!m.userData.sockets) throw new Error(A.id + ': no sockets');
+    for (let t = 0; t < 3; t += 0.5) m.userData.tick(t); // must not throw
+    const meshes = []; m.traverse(o => o.isMesh && meshes.push(o));
+    if (!meshes.length) throw new Error(A.id + ': no meshes');
+    n++; ids.push(A.id + '(' + meshes.length + 'm)');
+  }
+  st.textContent = 'OK avatars=' + n + ' [' + ids.join(', ') + ']';
+} catch (e) { st.textContent = 'ERR:' + e.message; }
+</script></body></html>

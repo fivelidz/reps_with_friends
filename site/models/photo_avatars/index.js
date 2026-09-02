@@ -10,13 +10,18 @@
 export { createPanteraModel, PANTERA_DESC } from './pantera.js';
 export { createMouseModel, MOUSE_DESC } from './mouse.js';
 export { createMonsterModel, MONSTER_DESC } from './monster.js';
+export { createBeaconModel, BEACON_DESC } from './generated/beacon.js';
 
 import { createPanteraModel, PANTERA_DESC } from './pantera.js';
 import { createMouseModel, MOUSE_DESC } from './mouse.js';
 import { createMonsterModel, MONSTER_DESC } from './monster.js';
+import { createBeaconModel, BEACON_DESC } from './generated/beacon.js';
 
 export const PHOTO_AVATARS = [
   { ...PANTERA_DESC, create: createPanteraModel, spin: 0.25 },
   { ...MOUSE_DESC, create: createMouseModel, spin: 0.35 },
   { ...MONSTER_DESC, create: createMonsterModel, spin: 0.18 },
+  // #4 — first REAL vision-driven run (docs/23 §5): glm-4.6v intake →
+  // glm-5.3 codegen → pixel gate 11/11 + glm review 0.95/pass.
+  { ...BEACON_DESC, create: createBeaconModel, spin: 0.22 },
 ];

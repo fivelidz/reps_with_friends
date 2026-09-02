@@ -1,0 +1,156 @@
+{
+ "suitable_for_3d": true,
+ "subject_class": "character bust",
+ "palette": [
+  {
+   "region": "background",
+   "hex": "#0a0e27",
+   "note": "dark blue background"
+  },
+  {
+   "region": "head (top)",
+   "hex": "#ff5722",
+   "note": "orange top of character's head"
+  },
+  {
+   "region": "hairband",
+   "hex": "#000000",
+   "note": "black band around head"
+  },
+  {
+   "region": "eye rings",
+   "hex": "#ffeb3b",
+   "note": "yellow rings around eyes"
+  },
+  {
+   "region": "eyes",
+   "hex": "#000000",
+   "note": "black circles inside eye rings"
+  },
+  {
+   "region": "tears",
+   "hex": "#64b5f6",
+   "note": "light blue streaks under eyes"
+  },
+  {
+   "region": "face",
+   "hex": "#d2b48c",
+   "note": "tan skin of character"
+  },
+  {
+   "region": "mouth",
+   "hex": "#000000",
+   "note": "black curved line on face"
+  },
+  {
+   "region": "garment",
+   "hex": "#673ab7",
+   "note": "purple clothing"
+  },
+  {
+   "region": "necklace strings",
+   "hex": "#8bc34a",
+   "note": "green strings hanging from neck"
+  },
+  {
+   "region": "necklace bead",
+   "hex": "#ffeb3b",
+   "note": "yellow bead on necklace"
+  }
+ ],
+ "zones": [
+  {
+   "name": "head",
+   "what": "top of character's head (orange)",
+   "colour_hex": "#ff5722",
+   "position": "top center",
+   "size": "medium"
+  },
+  {
+   "name": "hairband",
+   "what": "black band around head",
+   "colour_hex": "#000000",
+   "position": "around head",
+   "size": "thin"
+  },
+  {
+   "name": "eye rings",
+   "what": "yellow rings around eyes",
+   "colour_hex": "#ffeb3b",
+   "position": "around eyes",
+   "size": "medium"
+  },
+  {
+   "name": "eyes",
+   "what": "black circles inside eye rings",
+   "colour_hex": "#000000",
+   "position": "center of eye rings",
+   "size": "large"
+  },
+  {
+   "name": "tears",
+   "what": "light blue streaks under eyes",
+   "colour_hex": "#64b5f6",
+   "position": "under eyes",
+   "size": "small"
+  },
+  {
+   "name": "face",
+   "what": "tan skin of character",
+   "colour_hex": "#d2b48c",
+   "position": "center below head",
+   "size": "medium"
+  },
+  {
+   "name": "mouth",
+   "what": "black curved line on face",
+   "colour_hex": "#000000",
+   "position": "center of face",
+   "size": "small"
+  },
+  {
+   "name": "garment",
+   "what": "purple clothing",
+   "colour_hex": "#673ab7",
+   "position": "bottom of character",
+   "size": "large"
+  },
+  {
+   "name": "necklace strings",
+   "what": "green strings hanging from neck",
+   "colour_hex": "#8bc34a",
+   "position": "from neck to garment",
+   "size": "thin"
+  },
+  {
+   "name": "necklace bead",
+   "what": "yellow bead on necklace",
+   "colour_hex": "#ffeb3b",
+   "position": "center of necklace",
+   "size": "small"
+  }
+ ],
+ "proportions": {
+  "head_height_vs_canvas": 0.4,
+  "shoulder_width_vs_head_width": 1.5,
+  "notes": "stylized proportions with exaggerated eye rings and simplified features"
+ },
+ "silhouette_signature": [
+  "large yellow eye rings",
+  "orange head with black hairband"
+ ],
+ "expression": "neutral/slight smile, closed eyes",
+ "quality_contract": {
+  "target": "stylised flat-colour bust reconstruction",
+  "must_nail": [
+   "large yellow eye rings",
+   "orange head with black hairband",
+   "purple garment"
+  ],
+  "acceptable_approximations": [
+   "minor color shade variations",
+   "slight proportion differences"
+  ]
+ },
+ "hidden_sides_note": "single image cannot show: back of head, sides of garment, back of necklace"
+}

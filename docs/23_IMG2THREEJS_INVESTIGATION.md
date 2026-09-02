@@ -264,6 +264,98 @@ joints; **mixamo retarget = v1.8 roadmap**) instead of fighting it.
 
 ---
 
-*End of investigation. Sections §1–§4 complete; prototype live at
-`/avatars` (PHOTO AVATARS section) on the dev server.*
+## §5 The REAL run — photo → vision → code → gated avatar (2026-09-02, evening)
+
+Founder: *"Are you not able to use images of people and do image2threejs?"* — this section is
+the answer: a complete vision-driven run, executed for real, with every call logged
+(`scripts/img2threejs_run/glm_transcript.jsonl`). Result: **avatar #4 "Beacon" live in the
+/avatars photo strip**, gated 11/11 by deterministic pixel probes and 0.95/pass by the
+vision model's own review.
+
+### §5.1 The test subject (licence-clean by construction)
+
+No showcase images were copied (repo IS Apache-2.0, but the run needed *known ground truth*
+to score vision honestly). Instead: a flat-colour cartoon bust composed in PIL
+(`make_test_subject.py`) — coral top-knot hair, sky eyes (left one under an asymmetric
+fringe), gold-ringed headphones, purple hoodie with lime drawstrings + gold zip, drawn in
+RWF design tokens. Every hex and coordinate is authored, so vision output is scored against
+exact truth, not vibes. No person involved; the generator script is the source of truth.
+
+### §5.2 Operational findings — which GLM can actually see (the big one)
+
+| Route | Verdict | Evidence |
+|---|---|---|
+| `api.z.ai/api/anthropic/v1/messages`, `glm-5.3` + image block | **TEXT-ONLY.** Accepts the block, returns a fluent **confabulation** from priors | described our coral/purple bust as "crimson garment, grey-blue hair, cream accents" — 200 input tokens ≈ image ignored |
+| Same shim, `glm-4.6` | **Confabulates too** (claims to see, answers wrong) | canary (magenta/teal split + white ring) → "grey top, black bottom, diamond" |
+| `api.z.ai/api/paas/v4/chat/completions`, `glm-4.6v`, **zhipuai key** | **REAL VISION** | canary → "pink top, teal bottom, white circle" exact; image ~359 in-tokens |
+| v4 vision on `zai`/`zai3` keys | blocked | HTTP 429 code 1113 "insufficient balance" — vision models need a funded key |
+
+**Rules learned:** (1) the anthropic-compatible shim fronts text models only — never feed it
+images; (2) always run a colour canary before trusting any "vision" endpoint — glm-4.6's
+confident wrongness is more dangerous than a refusal; (3) vision = `-v` suffix models on the
+native v4 API; here only the `zhipuai` key has vision balance. A second surprise: **the host
+agent (this session) has no image input either** — so the skill's "agent vision" role was
+delegated to glm-4.6v itself (intake AND render review), with deterministic PIL probes as the
+ground-truth layer.
+
+### §5.3 The loop as run (13 calls, 10.5k in / 43.6k out tokens)
+
+```
+1  canary ×4           → route discovery (above)
+2  intake (glm-4.6v)   → palette 8/9 hex hits ≤ΔE60; but semantics misread:
+                        headphones→"eye rings", drawstrings→"necklace", "tears"
+3  correction ×1       → host-feedback pass (skill's refine-spec): recovered top-knot,
+                        hair-vs-skin, hoodie collar/zip/shoulders, drawstrings
+4  host arbitration    → pixel evidence settled cup placement at EAR height
+                        (cups at head flank x-extremes; eyes are separate sky rects)
+5  codegen (glm-5.3)   → 18-component spec + full module in our format (2 calls burned
+                        on thinking-token ceilings; 3rd, module-only, completed)
+6  gate render         → headless chromium (swiftshader), status-DOM + screenshot
+7  pixel gate v1       → 7/11: caught 3 REAL defects (topknot swallowed by headphone
+                        band; eyes buried inside head sphere r=1.0; metal gold rings
+                        rendering black with no envMap)
+8  vision review #1    → 0.85/pass — LENIENT: missed all three (called buried eyes
+                        "slightly offset"). Vision alone is NOT a sufficient gate.
+9  refine-code (host)  → knot lifted above band (1.58→1.80), eyes z 0.95→1.06,
+                        rings de-metaled + emissive lift; fringe widened
+10 re-gate             → pixel gate v2 bbox-relative 11/11 PASS
+11 vision review #2    → 0.95/pass (palette/silhouette/headphones 1.0; flagged
+                        drawstrings "not visible" — the pixel probe proves them present;
+                        thin features at 480px — probe wins, complements confirmed)
+12 strip gate          → registry test page: avatars=4 [pantera(37m), mouse(26m),
+                        wraith(43m), beacon(24m)], all tick+sockets, zero errors
+```
+
+Artifacts: `scripts/img2threejs_run/` (generator, caller with key-fallback + JSONL
+transcript, canary, intake JSONs, spec, module, gate pages, pixel gate, screenshots,
+reviews). Module landed: `site/models/photo_avatars/generated/beacon.js` (provenance
+header in-file); wired in `site/models/photo_avatars/index.js`.
+
+### §5.4 Costs & scaling verdict — "player photos as avatars"?
+
+- **Actual spend this run:** ~54k tokens total, of which only ~24k was productive
+  (canaries, confabulation test, and glm-5.3's invisible thinking-token burn on two
+  truncated attempts were tuition). **Repeat-run floor: ~15–24k tokens/avatar** for a
+  bounded bust with one correction pass — vs the skill's own 150k–350k estimate for a full
+  gated character. Wall-clock: ~8 min API + a few min host gating, unattended.
+- **What breaks at scale:** (a) intake semantics on flat/stylised art misreads
+  accessories — expect 1–2 correction passes per avatar, more for photos (faces have
+  priors, which cuts both ways); (b) the vision reviewer is generous — deterministic
+  probes must own the gate; (c) glm-5.3 codegen wastes ~40% tokens on hidden reasoning;
+  prompt for code-only output; (d) only ONE key on this machine has vision balance.
+- **Verdict:** YES, the pipeline is real and cheap enough for founder demos and small
+  batches (a "photo booth" at onboarding: player selfie → stylised bust in ~10 min for
+  well under a cent of tokens). NO for photoreal "this is me" likeness from one photo —
+  output is palette+silhouette stylisation, exactly as the skill's README warns. The
+  honest product framing: **"your photo becomes a stylised RWF-palette bust"**, with the
+  same tick/sockets contract as every other avatar in the gallery.
+- **Next step if we productise:** batch harness around `glm_call.py` + `pixel_gate.py`
+  (both stdlib-only, already key-fallback aware), queue user photos, human-review the
+  top-3 renders, land winners into `photo_avatars/generated/`.
+
+---
+
+*End of investigation. §1–§4 complete; §5 REAL vision-driven run complete —
+`/avatars` photo strip now shows 4 avatars: 3 manual prototypes + 1 fully
+vision-generated (Beacon). Transcript + evidence in `scripts/img2threejs_run/`.*
 

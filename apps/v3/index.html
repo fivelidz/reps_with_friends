@@ -1,0 +1,51 @@
+<!doctype html>
+<!-- ═══════════════════════════════════════════════════════════════════
+     RWF · V3 — THE BATTLE COURSE
+     The founder's original vision, finally literal: a 3D representation,
+     game-like, with avatars moving over a course to show reps progress
+     and the power-ups held by a player.
+       · THE COURSE — a stylised 3D running track (lane per player,
+         tier-coloured, distance markers every 25%) in a low-poly world
+       · RUNNERS — Geno avatars driven by real Soldier mocap (walk/run/
+         idle), tier-tinted; reps logged → the runner advances
+       · POWER-UPS — billboard card-sprites float over each runner;
+         playing one flies it up + bursts
+       · CHARITY POT — a 3D trophy pedestal at the finish; chip stacks
+         grow with every contribution
+     Engine: independent fork of the v2 board engine (points / draft /
+     dual deadline — close on the reps target OR the clock). Saves to
+     rwf.v3 — v1 (/figma-app) and v2 (/v2) are untouched.
+     LANGUAGE: battle language throughout (battle live · fast battle ·
+     danger zone · RUF · log reps · charity pot) — per the founder,
+     never poker/board-game words in UI copy.
+     three.js r177 via /site/lib (importmap); mocap via /site/
+     model-avatars.js (GENO_CLIPS — Soldier walk/run/idle are the
+     founder's preferred animation). No build step, no other deps.
+     ═══════════════════════════════════════════════════════════════════ -->
+<html lang="en">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
+  <title>Reps With Friends — V3 · The Battle Course</title>
+  <meta name="description" content="Reps With Friends V3 — the founder's vision: a 3D battle course. Geno runners under real mocap, power-up cards over every player, and the charity pot at the finish.">
+  <meta name="theme-color" content="#0a0b0d">
+  <!-- inline favicon (runner on a lane) — no extra request, no 404 -->
+  <link rel="icon" href="data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 32 32'%3E%3Crect width='32' height='32' rx='7' fill='%230a0b0d'/%3E%3Cpath d='M6 25h20' stroke='%23c6f32e' stroke-width='2.4' stroke-linecap='round'/%3E%3Cpath d='M10 25c1-6 3-9 6-11l2 3 3-2' stroke='%23c6f32e' stroke-width='2.2' fill='none' stroke-linecap='round' stroke-linejoin='round'/%3E%3Ccircle cx='19' cy='9' r='2.1' fill='%23c6f32e'/%3E%3C/svg%3E">
+  <!-- three.js r177 + addons — same importmap the avatar systems use -->
+  <script type="importmap">
+  {
+    "imports": {
+      "three": "/site/lib/three.module.js",
+      "three/addons/controls/OrbitControls.js": "/site/lib/OrbitControls.js"
+    }
+  }
+  </script>
+  <link rel="stylesheet" href="/design/fonts/fonts.css">
+  <link rel="stylesheet" href="/design/tokens.css">
+  <link rel="stylesheet" href="v3.css">
+</head>
+<body>
+  <div id="app" class="v3-app" aria-live="polite"></div>
+  <script type="module" src="app.js"></script>
+</body>
+</html>

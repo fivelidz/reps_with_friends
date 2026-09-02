@@ -1,0 +1,63 @@
+<!doctype html>
+<html lang="en" data-theme="gold">
+<head>
+<meta charset="utf-8" />
+<meta name="viewport" content="width=device-width, initial-scale=1.0" />
+<title>RWF · Ben's ideation board</title>
+<link rel="stylesheet" href="/design/tokens.css" />
+<link rel="stylesheet" href="/design/fonts/fonts.css" />
+<link rel="stylesheet" href="/pinboard/pinboard.css" />
+<link rel="icon" href="data:image/svg+xml,<svg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 100 100'><text y='.9em' font-size='90'>📌</text></svg>">
+</head>
+<body class="wall">
+<main class="wall-main">
+
+  <header class="wall-head">
+    <p class="wall-kicker">REPS WITH FRIENDS · INTERNAL · DESIGN REFERENCE</p>
+    <h1 class="wall-title">BEN'S IDEATION BOARD</h1>
+    <p class="wall-sub">
+      Design references from the Pinterest board Ben shared for the app —
+      layouts, brand identities, typography and photography to work with.
+      <span id="wallMeta" class="wall-meta">loading…</span>
+    </p>
+    <div class="wall-links">
+      <a class="wall-btn" href="https://au.pinterest.com/bengillies888/reps-with-friends/" target="_blank" rel="noopener">Open the board ↗</a>
+      <span class="wall-note">Ben Gillies · shared by Alexei for RWF design ideation · internal reference</span>
+    </div>
+    <div class="wall-tags" id="wallTags" aria-label="tag legend" hidden></div>
+  </header>
+
+  <section class="wall-grid" id="grid" aria-label="design reference pins"></section>
+
+  <footer class="wall-foot">
+    <p>
+      Scraped from <a href="https://au.pinterest.com/bengillies888/reps-with-friends/" target="_blank" rel="noopener">pinterest.com/bengillies888 · REPS WITH FRIENDS</a>
+      — pins 01–08 from the public board, 09–22 from Ben's shared ideation material via his profile feed.
+      Provenance &amp; method: <code>site/pinboard/README.md</code> · <code>manifest.json</code>.
+    </p>
+  </footer>
+</main>
+
+<!-- lightbox -->
+<div class="lb" id="lb" role="dialog" aria-modal="true" aria-label="pin detail" hidden>
+  <button class="lb-close" id="lbClose" aria-label="close">✕</button>
+  <button class="lb-nav lb-prev" id="lbPrev" aria-label="previous pin">‹</button>
+  <figure class="lb-fig">
+    <img id="lbImg" alt="" />
+    <figcaption class="lb-cap">
+      <span class="lb-count" id="lbCount"></span>
+      <strong class="lb-title" id="lbTitle"></strong>
+      <span class="lb-desc" id="lbDesc"></span>
+      <span class="lb-row">
+        <span class="chip" id="lbTag"></span>
+        <span class="chip chip--dim" id="lbSrc"></span>
+        <a id="lbPin" target="_blank" rel="noopener">view on Pinterest ↗</a>
+      </span>
+    </figcaption>
+  </figure>
+  <button class="lb-nav lb-next" id="lbNext" aria-label="next pin">›</button>
+</div>
+
+<script src="/pinboard/pinboard.js"></script>
+</body>
+</html>

@@ -7,7 +7,8 @@
        what /v2 looks like in that skin, driven by design/themes.css's
        per-theme component languages (surfaces, type, motion).
      · ?t=<theme> picks the skin (pre-paint, same pattern as demo.html).
-     · ?screen=home|battle|both — which phone(s) to show.
+     · ?screen=home|battle|both|log|cards|profile|dialogs|dz|matlab|all
+       — which phone(s) to show.
      Language everywhere = REPS: cards, lanes, the pot. No card-room
      jargon; the felt/chips/cards live on as pure visual style.
      ═══════════════════════════════════════════════════════════════════ -->
@@ -18,7 +19,7 @@
   <title>RWF · app theme demo</title>
   <script>
     (() => {
-      const OK = /^(board|mycelial|techy|track|cardtable|caveman|n64|goldeneye)$/;
+      const OK = /^(lime|gold|sunset|neon|forest|board|mycelial|techy|track|cardtable|caveman|n64|goldeneye|neobrut)$/;
       const t = new URLSearchParams(location.search).get("t") || "board";
       if (OK.test(t)) document.documentElement.dataset.theme = t;
       const assert = () => {
@@ -53,6 +54,21 @@
       position: absolute; left: 0; right: 0; top: 0;
     }
     .demo-only { display: flex; gap: 22px; }
+    body.demo-all { flex-wrap: wrap; justify-content: center; }
+    .demo-overlay .demo-scroll { overflow: auto; }
+    .demo-stack { display: flex; flex-direction: column; gap: 14px; }
+    .demo-row { display: flex; align-items: center; gap: 10px; flex-wrap: wrap; }
+    .demo-headrow { display: flex; align-items: center; justify-content: space-between; gap: 12px; }
+    .demo-cardgrid { display: grid; grid-template-columns: repeat(2, minmax(0, 1fr)); gap: 12px; }
+    .demo-cardgrid .bd-card { width: 100%; height: 172px; }
+    .demo-cardgrid .bd-card__inner { height: 100%; }
+    .demo-note { margin: 0; font: 600 12px/1.35 var(--font-body); color: var(--muted); }
+    .demo-profile-head { display: flex; align-items: center; gap: 12px; }
+    .demo-spacer { height: 8px; }
+    .mat-lab { display: grid; gap: 14px; padding: 16px; }
+    .mat-lab > * { margin: 0; font-family: inherit; }
+    .mat-lab .mat-surface, .mat-lab .mat-dialog { display: grid; gap: 12px; }
+    .mat-lab .mat-progress { width: 100%; }
     /* battle screen compaction for the fixed phone height */
     .demo-battle .bd-table { aspect-ratio: 10 / 8.2; min-height: 210px; }
     .demo-battle .bd-tablewrap { padding: 10px 10px 0; }
@@ -287,14 +303,218 @@
     </div></div></div>
   </main>
 
+  <!-- ═══════════ LOG — future quick-log sheet overlay ═══════════ -->
+  <main class="demo-phone demo-overlay" id="log" aria-label="Log reps overlay in this theme">
+    <div class="bd-app"><div class="demo-scroll"><div class="bd-screen"><div class="bd-pad demo-stack">
+      <div>
+        <p class="bd-kicker">Quick log</p>
+        <p class="bd-sub">Add reps to your lane and push the pot forward.</p>
+      </div>
+      <section class="fg-sheet" aria-label="Log reps">
+        <div class="fg-sheet__grab"></div>
+        <h3 class="fg-sheet__title">Log reps</h3>
+        <div class="fg-sheet__row" aria-label="Exercise">
+          <button class="fg-chip fg-chip--exercise" type="button" aria-pressed="true">squats</button>
+          <button class="fg-chip fg-chip--exercise" type="button" aria-pressed="false">push-ups</button>
+          <button class="fg-chip fg-chip--exercise" type="button" aria-pressed="false">sit-ups</button>
+        </div>
+        <div class="fg-count" aria-label="Reps count">
+          <span class="fg-count__time">25</span>
+          <span class="fg-count__sub">reps</span>
+        </div>
+        <div class="fg-battle__bar" aria-label="Progress to goal"><i style="width:58%"></i></div>
+        <button class="pop-btn pop-btn--big pop-btn--full" type="button">Add to log</button>
+        <p class="bd-kicker">Recent logs</p>
+        <div class="demo-stack">
+          <div class="fg-feed fg-feed--milestone">
+            <span class="fg-feed__bubble">25</span>
+            <span class="fg-feed__content"><span class="fg-feed__line"><b>Alexei</b> logged squats</span><span class="fg-feed__meta">2 min ago</span></span>
+            <span class="fg-feed__react">+25</span>
+          </div>
+          <div class="fg-feed fg-feed--lead">
+            <span class="fg-feed__bubble">15</span>
+            <span class="fg-feed__content"><span class="fg-feed__line"><b>Sam K</b> logged push-ups</span><span class="fg-feed__meta">9 min ago</span></span>
+            <span class="fg-feed__react">+15</span>
+          </div>
+          <div class="fg-feed">
+            <span class="fg-feed__bubble">40</span>
+            <span class="fg-feed__content"><span class="fg-feed__line"><b>Jordan P</b> logged sit-ups</span><span class="fg-feed__meta">18 min ago</span></span>
+            <span class="fg-feed__react">+40</span>
+          </div>
+        </div>
+      </section>
+    </div></div></div></div>
+  </main>
+
+  <!-- ═══════════ CARDS — future power-up gallery ═══════════ -->
+  <main class="demo-phone demo-overlay" id="cards" aria-label="Power-up cards gallery in this theme">
+    <div class="bd-app"><div class="demo-scroll"><div class="bd-screen"><div class="bd-pad demo-stack">
+      <div>
+        <p class="bd-kicker">Card gallery</p>
+        <h1 class="bd-h1">Power-up cards</h1>
+        <p class="bd-sub">Four sample rarities using the same card faces as battle.</p>
+      </div>
+      <div class="demo-cardgrid" aria-label="Power-up cards">
+        <div class="bd-card" tabindex="0">
+          <div class="bd-card__inner">
+            <div class="bd-card__face bd-card__face--front" style="--rar:var(--rar-common)">
+              <span class="bd-card__rar">common</span>
+              <span class="bd-card__icon" style="color:var(--rar-common)">S</span>
+              <p class="bd-card__name">Steal</p>
+              <p class="bd-card__fx">take 10 pts from the leader</p>
+              <span class="bd-card__cost">◈ 10 RP</span>
+            </div>
+            <div class="bd-card__face bd-card__face--back"></div>
+          </div>
+        </div>
+        <div class="bd-card" tabindex="0">
+          <div class="bd-card__inner">
+            <div class="bd-card__face bd-card__face--front" style="--rar:var(--rar-rare)">
+              <span class="bd-card__rar">rare</span>
+              <span class="bd-card__icon" style="color:var(--rar-rare)">S</span>
+              <p class="bd-card__name">Shield</p>
+              <p class="bd-card__fx">blocks the next steal</p>
+              <span class="bd-card__cost">◈ 20 RP</span>
+            </div>
+            <div class="bd-card__face bd-card__face--back"></div>
+          </div>
+        </div>
+        <div class="bd-card" tabindex="0">
+          <div class="bd-card__inner">
+            <div class="bd-card__face bd-card__face--front" style="--rar:var(--rar-epic)">
+              <span class="bd-card__rar">epic</span>
+              <span class="bd-card__icon" style="color:var(--rar-epic)">F</span>
+              <p class="bd-card__name">Freeze</p>
+              <p class="bd-card__fx">extends the clock +30:00</p>
+              <span class="bd-card__cost">◈ 30 RP</span>
+            </div>
+            <div class="bd-card__face bd-card__face--back"></div>
+          </div>
+        </div>
+        <div class="bd-card" tabindex="0">
+          <div class="bd-card__inner">
+            <div class="bd-card__face bd-card__face--front" style="--rar:var(--rar-legendary)">
+              <span class="bd-card__rar">legendary</span>
+              <span class="bd-card__icon" style="color:var(--rar-legendary)">L</span>
+              <p class="bd-card__name">Lightning</p>
+              <p class="bd-card__fx">×3 reps for 10 minutes</p>
+              <span class="bd-card__cost">◈ 50 RP</span>
+            </div>
+            <div class="bd-card__face bd-card__face--back"></div>
+          </div>
+        </div>
+      </div>
+      <p class="demo-note">Cards change pace, not the rules: log reps, move lanes, take the pot.</p>
+    </div></div></div></div>
+  </main>
+
+  <!-- ═══════════ PROFILE — future player profile ═══════════ -->
+  <main class="demo-phone demo-overlay" id="profile" aria-label="Profile overlay in this theme">
+    <div class="bd-app"><div class="demo-scroll"><div class="bd-screen"><div class="bd-pad demo-stack">
+      <div>
+        <p class="bd-kicker">Player profile</p>
+        <p class="bd-sub">Season progress, streaks, and table form.</p>
+      </div>
+      <section class="fg-pro" aria-label="Profile">
+        <div class="demo-profile-head">
+          <span class="fg-avatar fg-avatar--online">AB<span class="fg-avatar__dot"></span></span>
+          <div>
+            <h3 class="fg-pro__title">Alexei Brown</h3>
+            <p class="fg-pro__sub">Squats, push-ups, sit-ups</p>
+          </div>
+        </div>
+        <div class="fg-pro__table">
+          <div class="fg-pro__row fg-pro__row--head"><span>Stat</span><span>Now</span><span>Season</span></div>
+          <div class="fg-pro__row"><span>Streak</span><span>9d</span><span>42d</span></div>
+          <div class="fg-pro__row"><span>Reps</span><span>185</span><span>4,820</span></div>
+          <div class="fg-pro__row"><span>Tables won</span><span>2</span><span>18</span></div>
+        </div>
+        <div class="fg-battle__bar" aria-label="Season progress"><i style="width:72%"></i></div>
+        <button class="pop-btn pop-btn--big pop-btn--full" type="button">Edit profile</button>
+      </section>
+    </div></div></div></div>
+  </main>
+
+  <!-- ═══════════ DIALOGS — future modal and state overlays ═══════════ -->
+  <main class="demo-phone demo-overlay" id="dialogs" aria-label="Dialogs overlay in this theme">
+    <div class="bd-app"><div class="demo-scroll"><div class="bd-screen"><div class="bd-pad demo-stack">
+      <div class="demo-headrow">
+        <div>
+          <p class="bd-kicker">Dialogs</p>
+          <p class="bd-sub">Confirmations and finish states.</p>
+        </div>
+        <span class="fg-status">LIVE</span>
+      </div>
+      <section class="fg-dialog" role="dialog" aria-label="Play Lightning">
+        <h3 class="fg-dialog__title">Play Lightning?</h3>
+        <p class="fg-dialog__body">×3 reps for the next 10 minutes.</p>
+        <button class="fg-dialog__cta" type="button">Play card</button>
+        <button class="fg-dialog__dismiss" type="button">Cancel</button>
+      </section>
+      <section class="fg-state" aria-label="Victory state">
+        <span class="fg-state__icon">85</span>
+        <h3 class="fg-state__title">Victory!</h3>
+        <p class="fg-state__body">You took the pot — 85 pts</p>
+        <button class="fg-state__cta" type="button">Back to home</button>
+      </section>
+    </div></div></div></div>
+  </main>
+
+  <!-- ═══════════ DZ — future danger-zone states ═══════════ -->
+  <main class="demo-phone demo-overlay" id="dz" aria-label="Danger zone states in this theme">
+    <div class="bd-app"><div class="demo-scroll"><div class="bd-screen"><div class="bd-pad demo-stack">
+      <div>
+        <p class="bd-kicker">Danger zone</p>
+        <p class="bd-sub">Escalating time pressure near the end of a table.</p>
+      </div>
+      <div class="fg-dz"><span class="fg-dz__label">DANGER ZONE · LEVEL 1</span><span>3 hours left</span></div>
+      <div class="fg-dz fg-dz--l2"><span class="fg-dz__label">DANGER ZONE · LEVEL 2</span><span>1 hour left</span></div>
+      <div class="fg-dz fg-dz--l3"><span class="fg-dz__label">DANGER ZONE · LEVEL 3</span><span>10 min left</span></div>
+      <div class="demo-spacer"></div>
+      <div class="fg-count fg-count--dz3" aria-label="Danger zone countdown">
+        <span class="fg-count__time">09:42</span>
+        <span class="fg-count__sub">final push</span>
+      </div>
+    </div></div></div></div>
+  </main>
+
+  <!-- ═══════════ MATLAB — material kit primitives ═══════════ -->
+  <main class="demo-phone demo-overlay" id="matlab" aria-label="Material kit strip in this theme">
+    <div class="bd-app"><div class="demo-scroll"><div class="bd-screen"><div class="bd-pad">
+      <p class="bd-kicker">Material kit</p>
+      <p class="bd-sub">The material kit — one of every primitive, themed</p>
+      <div class="mat-lab" id="matlab" aria-label="Material kit demo">
+        <div class="mat-surface">
+          <span class="mat-badge">LIVE</span>
+          <p class="mat-num">85</p>
+          <div class="mat-progress"><i style="width:62%"></i></div>
+          <button class="mat-btn" type="button">Log reps</button>
+          <button class="mat-btn mat-btn--ghost" type="button">Mates</button>
+          <input class="mat-input" placeholder="reps…" aria-label="reps">
+          <button class="mat-chip is-on" type="button">squats</button>
+          <button class="mat-chip" type="button">push-ups</button>
+          <div class="mat-divider"></div>
+          <span class="mat-avatar">AB</span>
+        </div>
+        <div class="mat-dialog" role="dialog" aria-label="demo dialog">
+          <h3 class="mat-dialog__title">Play Lightning?</h3>
+          <p>×3 reps for 10 minutes.</p>
+          <button class="mat-btn" type="button">Play card</button>
+        </div>
+      </div>
+    </div></div></div></div>
+  </main>
+
   <p class="demo-fontload" aria-hidden="true"><i style="font-family:'Space Grotesk';font-weight:700">A1</i><i style="font-family:'Anton';font-weight:400">A2</i><i style="font-family:'Inter';font-weight:600">A3</i><i style="font-family:'Archivo';font-weight:900">A4</i><i style="font-family:'JetBrains Mono';font-weight:700">A5</i><i style="font-family:'Fredoka';font-weight:600">A6</i></p>
 
   <script>
     (() => {
-      const s = new URLSearchParams(location.search).get("screen") || "both";
+      const requested = new URLSearchParams(location.search).get("screen") || "both";
+      const screens = ["home", "battle", "log", "cards", "profile", "dialogs", "dz", "matlab"];
+      const s = ["home", "battle", "both", "log", "cards", "profile", "dialogs", "dz", "matlab", "all"].includes(requested) ? requested : "both";
       const show = (id, on) => { const el = document.getElementById(id); if (el) el.style.display = on ? "" : "none"; };
-      show("home", s === "home" || s === "both");
-      show("battle", s === "battle" || s === "both");
+      document.body.classList.toggle("demo-all", s === "all");
+      for (const id of screens) show(id, s === id || s === "all" || (s === "both" && (id === "home" || id === "battle")));
       document.title = `RWF · app · ${new URLSearchParams(location.search).get("t") || "board"} · ${s}`;
       const ready = () => { window.__appDemoReady = true; };
       if (document.fonts?.ready) document.fonts.ready.then(ready); else addEventListener("load", ready);

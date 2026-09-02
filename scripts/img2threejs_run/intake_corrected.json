@@ -1,0 +1,138 @@
+{
+ "corrections_confirmed": [
+  "1. The two large gold-ringed dark circles are on the FACE FRONT around the eyes, and the dark arc over the top of the head connects them (headphone band).",
+  "2. The orange region is hair on top of the head, with tan skin showing below on the face.",
+  "3. There is a small round orange shape (top-knot/bun) above the crown, separate from the head.",
+  "4. The two lime-green vertical bars hang from the garment neckline (hoodie drawstrings), not lie on the neck (necklace).",
+  "5. The purple garment has a hood collar around/behind the neck, wide and squared shoulders, and a gold dot (zip pull) at centre chest.",
+  "6. The mouth is closed (not open)."
+ ],
+ "palette": [
+  {
+   "region": "background",
+   "hex": "#0a0e1a"
+  },
+  {
+   "region": "head/hair",
+   "hex": "#ff5722"
+  },
+  {
+   "region": "face skin",
+   "hex": "#deb887"
+  },
+  {
+   "region": "eye circles",
+   "hex": "#000000"
+  },
+  {
+   "region": "eye rings",
+   "hex": "#ffd700"
+  },
+  {
+   "region": "tears",
+   "hex": "#87ceeb"
+  },
+  {
+   "region": "garment",
+   "hex": "#8a2be2"
+  },
+  {
+   "region": "drawstrings",
+   "hex": "#adff2f"
+  },
+  {
+   "region": "zip pull",
+   "hex": "#ffd700"
+  },
+  {
+   "region": "top-knot",
+   "hex": "#ff5722"
+  }
+ ],
+ "zones": [
+  {
+   "name": "head",
+   "what": "round shape with orange hair and tan face",
+   "colour_hex": "#ff5722",
+   "position": "center top",
+   "size": "medium"
+  },
+  {
+   "name": "eyes",
+   "what": "large dark circles with gold rings",
+   "colour_hex": "#000000",
+   "position": "face front",
+   "size": "large"
+  },
+  {
+   "name": "tears",
+   "what": "small blue shapes under eyes",
+   "colour_hex": "#87ceeb",
+   "position": "below eyes",
+   "size": "small"
+  },
+  {
+   "name": "mouth",
+   "what": "small closed black shape",
+   "colour_hex": "#000000",
+   "position": "face center",
+   "size": "tiny"
+  },
+  {
+   "name": "top-knot",
+   "what": "small round orange shape above head",
+   "colour_hex": "#ff5722",
+   "position": "above head",
+   "size": "tiny"
+  },
+  {
+   "name": "garment",
+   "what": "purple hooded top with wide shoulders",
+   "colour_hex": "#8a2be2",
+   "position": "below head",
+   "size": "large"
+  },
+  {
+   "name": "drawstrings",
+   "what": "lime-green vertical bars hanging from neckline",
+   "colour_hex": "#adff2f",
+   "position": "center chest",
+   "size": "small"
+  },
+  {
+   "name": "zip pull",
+   "what": "small gold dot at center chest",
+   "colour_hex": "#ffd700",
+   "position": "center chest",
+   "size": "tiny"
+  }
+ ],
+ "proportions": {
+  "head_height_vs_canvas": 0.33,
+  "shoulder_width_vs_head_width": 1.5,
+  "notes": "Stylized proportions with exaggerated head size and wide shoulders for a cartoonish look."
+ },
+ "silhouette_signature": [
+  "round head with top-knot",
+  "wide squared shoulders",
+  "hood collar",
+  "large eye circles with gold rings",
+  "drawstrings hanging from neckline"
+ ],
+ "expression": "closed mouth (neutral/slight smile)",
+ "quality_contract": {
+  "target": "stylised flat-colour bust reconstruction",
+  "must_nail": [
+   "accurate placement of eye circles (face front) with connecting headphone band",
+   "orange hair vs tan face distinction",
+   "small orange top-knot above crown",
+   "drawstrings hanging from garment neckline",
+   "hood collar around neck",
+   "gold dot at centre chest",
+   "closed mouth shape"
+  ],
+  "acceptable_approximations": [
+   "minor color hex variations (e.g., background shade) that don\u2019t alter core shapes or contrast"
+  ]
+ }
+}

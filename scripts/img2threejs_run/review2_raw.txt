@@ -1,0 +1,2 @@
+
+{"overall": 0.95, "layers": {"palette": 1.0, "silhouette": 1.0, "head_features": 1.0, "headphones": 1.0, "garment": 0.9}, "defects": [{"feature": "garment drawstrings", "what": "lime drawstrings not visible", "severity": "minor"}], "verdict": "pass", "notes": "Structure, palette, and feature placement align closely; minor drawstring omission."}

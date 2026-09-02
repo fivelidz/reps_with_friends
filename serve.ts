@@ -95,6 +95,9 @@ const MIME: Record<string, string> = {
   ".gltf": "model/gltf+json",
   ".svg": "image/svg+xml",
   ".png": "image/png",
+  ".jpg": "image/jpeg",
+  ".jpeg": "image/jpeg",
+  ".webp": "image/webp",
   ".ico": "image/x-icon",
   ".pdf": "application/pdf",
   ".apk": "application/vnd.android.package-archive",
@@ -282,6 +285,13 @@ const server = Bun.serve({
       // V2 board app — the track-and-field board game battle (apps/board).
       // Independent engine fork; v1 at /figma-app is untouched.
       r = dirRoute("apps/board", url) ?? new Response("board app not found", { status: 404 });
+    } else if (p === "/v3" || p.startsWith("/v3/")) {
+      // V3 BATTLE COURSE — the founder's real vision in 3D (apps/v3):
+      // Geno mocap runners on a stylised course, power-up cards floating
+      // over every player, the charity pot at the finish. Engine forked
+      // from board (v2); v1 + v2 untouched. three.js + models ride the
+      // existing /site/lib + /models routes.
+      r = dirRoute("apps/v3", url) ?? new Response("v3 not found", { status: 404 });
     } else if (p === "/v1" || p.startsWith("/v1/")) {
       // v1.1 coverage hub — the share page (rwf.qalarc.com/v1): every live
       // surface, dashboard and business document on one page (apps/hub-public).
@@ -293,6 +303,10 @@ const server = Bun.serve({
     } else if (p === "/apk" || p.startsWith("/apk/")) {
       // android APK — manual-install build, mirrored from the deploy bundle.
       r = dirRoute("deploy/public/apk", url);
+    } else if (p === "/pinboard" || p.startsWith("/pinboard/")) {
+      // Ben's shared Pinterest ideation board — design reference wall
+      // (site/pinboard: images + manifest + provenance README).
+      r = dirRoute("site/pinboard", url) ?? new Response("pinboard not found", { status: 404 });
     } else if (p.startsWith("/figma-app")) {
       // Offline Figma test app — Ben's full design, every screen (lane F4).
       // Must sit ABOVE /figma: startsWith("/figma") would swallow it.

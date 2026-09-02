@@ -82,6 +82,14 @@ for pdf in RWF_Contract_Scope.pdf; do
   fi
 done
 
+# ── Ben's Pinterest ideation wall (the /pinboard link) ────────────────
+# Design reference wall from Ben Gillies' shared board (internal only).
+# shots/ (verification screenshots) stay local, like figma-app's.
+mkdir -p deploy/public/pinboard
+cp site/pinboard/index.html site/pinboard/pinboard.css site/pinboard/pinboard.js \
+   site/pinboard/manifest.json site/pinboard/README.md deploy/public/pinboard/
+cp site/pinboard/pin_*.jpg site/pinboard/pin_*.png deploy/public/pinboard/ 2>/dev/null || true
+
 # android APK for manual install
 mkdir -p deploy/public/apk
 cp apps/android/app/build/outputs/apk/debug/app-debug.apk deploy/public/apk/rwf-app-debug.apk 2>/dev/null || true
@@ -91,6 +99,15 @@ cp apps/android/app/build/outputs/apk/debug/app-debug.apk deploy/public/apk/rwf-
 mkdir -p deploy/public/v2
 find apps/board -maxdepth 1 -type f \( -name "*.html" -o -name "*.js" -o -name "*.css" \) \
   -exec cp {} deploy/public/v2/ \;
+
+# ── v3 battle course (3D) — the /v3 link ────────────────────────────
+# The founder's real vision: Geno mocap runners on a 3D course, power-up
+# cards over every player, the charity pot at the finish. Engine forked
+# from board (v2). App files only — shots/ + e2e stay local; three.js +
+# models ride the existing /site/lib + /models deploy copies below.
+mkdir -p deploy/public/v3
+find apps/v3 -maxdepth 1 -type f \( -name "*.html" -o -name "*.js" -o -name "*.css" \) \
+  -exec cp {} deploy/public/v3/ \;
 
 # ── v1 coverage hub (v1.1.0) — the share page at rwf.qalarc.com/v1 ─────
 # One page linking every live surface, dashboard and business document.

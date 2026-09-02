@@ -3,8 +3,8 @@
 <head>
   <meta charset="utf-8">
   <meta name="viewport" content="width=device-width, initial-scale=1">
-  <title>Reps With Friends · Thirteen design directions</title>
-  <meta name="description" content="Five complete theme directions for RWF — side-by-side phone mocks, full-screen previews, and the component library in every skin.">
+  <title>Fourteen material libraries</title>
+  <meta name="description" content="Fourteen material libraries for RWF — side-by-side phone mocks, full-screen previews, and the component library in every skin.">
   <link rel="stylesheet" href="/design/fonts/fonts.css">
   <link rel="stylesheet" href="/design/tokens.css">
   <link rel="stylesheet" href="/design/themes.css">
@@ -18,10 +18,10 @@
     <div class="st-header__row">
       <div>
         <p class="st-overline">RWF · theme exploration</p>
-        <h1 class="st-title">Thirteen design directions</h1>
-        <p class="st-sub">One design system, thirteen complete skins — the original five plus the
-          V2 board eight, each rebuilt as a <b>full design language</b>: components, type and
-          motion per theme (see <i>On the app</i> below), not a hue swap.</p>
+        <h1 class="st-title">Fourteen material libraries</h1>
+        <p class="st-sub">One design system, fourteen material kits — the original five plus the
+          board-game nine, each rebuilt as a <b>full design language</b>: components, type,
+          motion and a contract-level <b>describe it as</b> label per theme.</p>
       </div>
       <nav class="st-links" aria-label="Related pages">
         <a href="/system">/system · library</a>
@@ -31,14 +31,16 @@
     </div>
     <div class="st-previewbar" id="previewBar" hidden>
       <span class="st-previewbar__chip" id="previewChip">THEME</span>
+      <span class="st-kbd">← → swap · 1–9 jump · esc exit</span>
       <span class="st-previewbar__copy">full-screen preview — this page + the component library are wearing the theme</span>
       <button class="st-previewbar__exit" id="previewExit" type="button">✕ &nbsp;Back to compare</button>
     </div>
   </header>
 
-  <!-- ═══════════════ 1 · PICKER — names, one-liners, swatches ═══════════ -->
-  <section class="st-sec" id="picker" aria-label="The thirteen themes">
-    <p class="st-kicker">01 · The catalogue — five originals + the V2 board eight</p>
+  <!-- ═══════════════ 1 · PICKER — names, descriptions, swatches ════════ -->
+  <section class="st-sec" id="picker" aria-label="The fourteen themes">
+    <p class="st-kicker">01 · The catalogue — five originals + nine material kits</p>
+    <span class="st-kbd" id="kbdHint">← → swap · 1–9 jump · esc exit</span>
     <div class="st-cards" id="cards"><!-- rendered by gallery.js --></div>
   </section>
 
@@ -57,9 +59,9 @@
   </section>
 
   <!-- ═══════════════ 3 · ON THE APP — the V2 board game, every skin ════ -->
-  <section class="st-sec" id="ontheapp" aria-label="The V2 app in every overhauled theme">
-    <p class="st-kicker">03 · On the app — the V2 board game (/v2) in every overhauled skin</p>
-    <p class="st-note">The eight V2 themes are full design languages now, not palette swaps —
+  <section class="st-sec" id="ontheapp" aria-label="The V2 app in every material kit">
+    <p class="st-kicker">03 · On the app — the V2 board game (/v2) in every material kit</p>
+    <p class="st-note">The nine board-game kits are full design languages now, not palette swaps —
       each rebuilds the app's real components (the table, lanes, the pot, runner tokens,
       the fanned card hand, buttons, boards) with its own type, structure and motion.
       These are the app's actual screens wearing each skin: home + battle, per theme.</p>
@@ -67,6 +69,13 @@
       <button class="st-switch__btn is-on" data-appscreen="both" type="button">Home + Battle</button>
       <button class="st-switch__btn" data-appscreen="home" type="button">Home</button>
       <button class="st-switch__btn" data-appscreen="battle" type="button">Battle</button>
+      <button class="st-switch__btn" data-appscreen="log" type="button">Log</button>
+      <button class="st-switch__btn" data-appscreen="cards" type="button">Cards</button>
+      <button class="st-switch__btn" data-appscreen="profile" type="button">Profile</button>
+      <button class="st-switch__btn" data-appscreen="dialogs" type="button">Dialogs</button>
+      <button class="st-switch__btn" data-appscreen="dz" type="button">DZ</button>
+      <button class="st-switch__btn" data-appscreen="matlab" type="button">Mat Lab</button>
+      <button class="st-switch__btn" data-appscreen="all" type="button">All</button>
     </div>
     <div class="st-appstrip" id="appStrip"><!-- iframes rendered by gallery.js --></div>
     <p class="st-note">Live <code>bd-*</code> markup from <code>apps/board</code> (the real
@@ -318,10 +327,10 @@
 
   <!-- ═══════════════ FOOTER ═══════════════ -->
   <footer class="st-footer">
-    <p><b>How it works</b> — <code>design/themes.css</code> holds thirteen
+    <p><b>How it works</b> — <code>design/themes.css</code> holds fourteen
       <code>[data-theme]</code> blocks over the slot contract in
       <code>design/tokens.css</code>: five originals (tokens + component feel)
-      and the V2 eight as full languages (tokens + component CSS + type +
+      and nine material kits including the new <b>Sports Poster</b> as full languages (tokens + component CSS + type +
       motion for the <code>fg-*</code> library <i>and</i> the <code>bd-*</code>
       board app). Load both stylesheets, set
       <code>&lt;html data-theme="…"&gt;</code>, and every token consumer flips.

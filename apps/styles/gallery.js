@@ -1,8 +1,8 @@
 /* /styles gallery logic — no deps.
-   · renders the five theme cards (swatches resolved from REAL computed
+   · renders the theme cards (swatches resolved from REAL computed
      tokens at runtime — a hidden probe per theme, so the cards can never
      drift from design/themes.css)
-   · builds the 5-iframe compare strip (demo.html?t=<id>&screen=…)
+   · builds the 14-iframe compare strip (demo.html?t=<id>&screen=…)
    · full-screen preview: sets data-theme on THIS page (everything re-skins)
      and reveals the component library section; #theme=<id> deep-links
    No app logic beyond this gallery. */
@@ -10,23 +10,23 @@
   "use strict";
 
   const THEMES = [
-    { id: "lime",   name: "Lime Athletic",   line: "The system as shipped — near-black steel, one loud lime, technical with a streak of arcade." },
-    { id: "gold",   name: "Gold Arcade",     line: "Ben's Figma direction — purple-ink surfaces, brand-gold actions, Anton display. Confident consumer product." },
-    { id: "sunset", name: "Sunset Brutalist",line: "The light mode — cream paper, 2px ink borders, hard offset shadows, oversized flat type. Sport-poster loud." },
-    { id: "neon",   name: "Midnight Neon",   line: "The esports skin — blue-black, electric cyan + magenta, mono numerals, subtle glow edges. Ranked-play energy." },
-    { id: "forest", name: "Forest Retro",    line: "The family mode — walnut dark, mustard/burnt-orange/olive 70s palette, soft radii, rounded type. Everyone plays." },
-    /* ── V2 OVERHAUL (apps/board · /v2 — the track-and-field board game).
-       Full design languages now: components + type + motion per theme,
-       with two live app-screen demos each in the "On the app" section. ── */
-    { id: "board",     name: "Stadium Board",   line: "The V2 flagship — floodlit green infield, terracotta lane ring, gold scoreboard numerals, photo-finish tape, the pot on a trophy pedestal." },
-    { id: "mycelial",  name: "Mycelial",        line: "Bioluminescent forest — asymmetric organism cards, spore drift, growth-ring progress, a breathing mycelium pot." },
-    { id: "techy",     name: "Mission Control", line: "Telemetry — graph paper under scanlines, // prefixed labels, T− clocks, boot-sequence reveals, corner brackets." },
-    { id: "track",     name: "Track & Field",   line: "Pure stadium — terracotta track, lane-numbered lanes, race-bib ranks, Anton timing numerals, a finish-clock pot." },
-    { id: "cardtable", name: "Card Table",      line: "The felt kept as pure style — burgundy club felt, serif small-caps, gold hairlines, chip-edged buttons, cream card faces." },
-    { id: "caveman",   name: "Caveman",         line: "Chalk on stone — wobbled hand-drawn radii, rock-strata surfaces, ochre fire danger, carved bone buttons, tally clocks." },
-    { id: "n64",       name: "N64 Retro",       line: "1997 console — fog wash over indigo, chunky outlines, memory-card corner screws, square avatars, cartridge buttons." },
-    { id: "goldeneye", name: "GoldenEye 64",    line: "Watch-menu HUD — gunmetal notched panels, gold dossier mono, segmented health meters, reticle brackets, alarm DZ." },
+    { id: "lime",      name: "Lime Athletic",     desc: "…a steel weight-room floor under fluorescent light — matte charcoal, one lime stripe, technical type." },
+    { id: "gold",      name: "Gold Arcade",       desc: "…a late-night arcade cabinet — deep purple shell, marquee-gold buttons, Anton capitals." },
+    { id: "sunset",    name: "Sunset Brutalist",  desc: "…a screen-printed sport poster — cream stock, ink-black rules, hard offset shadows." },
+    { id: "neon",      name: "Midnight Neon",     desc: "…an esports broadcast desk — blue-black glass, cyan + magenta rim-light, mono numerals." },
+    { id: "forest",    name: "Forest Retro",      desc: "…a 1970s family board-game box — walnut tones, mustard + burnt-orange, soft rounded everything." },
+    { id: "board",     name: "Stadium Board",     desc: "…a flip-scoreboard stadium — split-flap numerals, lane-paint stripes, starting-block buttons, photo-finish tape." },
+    { id: "mycelial",  name: "Mycelial",          desc: "…a bioluminescent root network — tendril dividers, spore-drift air, fungus-cap buttons, growth-ring progress. Everything breathes." },
+    { id: "techy",     name: "Mission Control",   desc: "…a flight telemetry console — brushed metal, corner rivets, scanlines, LED numerals, guarded switches, boot-up reveals." },
+    { id: "track",     name: "Track & Field",     desc: "…stadium signage — condensed timing type, painted lane rows, race-bib ranks, chalk grids." },
+    { id: "cardtable", name: "Card Table",        desc: "…green felt and bone — brushed felt noise, dealer-chip buttons, cream letterpress cards, brass hairlines." },
+    { id: "caveman",   name: "Caveman",           desc: "…carved stone and fire — ROCK buttons with chiselled facets, ochre cave-paint walls, bone-white type, fire-glow danger." },
+    { id: "n64",       name: "N64",               desc: "…a low-poly fog console — vertex-gradient washes, stepped bevels, cartridge-slot buttons, square avatars, fog reveals." },
+    { id: "goldeneye", name: "GoldenEye",         desc: "…a spy dossier HUD — gunmetal notched panels, watch gauges, typewriter objectives under redaction, reticle focus." },
+    { id: "neobrut",   name: "Sports Poster",     desc: "…a neo-brutalist sports poster with a soft underbelly — huge loud type on warm cream, thick rules, off-register duotone print edges; then every touch is buttery, pill-soft and gentle." },
   ];
+  const KIT_THEMES = ["board", "mycelial", "techy", "track", "cardtable", "caveman", "n64", "goldeneye", "neobrut"];
+  const V2_THEMES = ["board", "mycelial", "techy", "track", "cardtable", "caveman", "n64", "goldeneye"];
   const SWATCH_SLOTS = [
     ["--bg", "bg"], ["--surface-2", "surface"], ["--lime", "primary"],
     ["--coral", "effort"], ["--success", "success"], ["--text", "text"],
@@ -49,23 +49,54 @@
     const dots = SWATCH_SLOTS.map(([slot, label]) =>
       `<span class="st-card__sw ${label === "bg" ? "st-card__sw--bg" : ""}" title="${label} ${tokFor(t.id, slot)}"
              style="background:${tokFor(t.id, slot)}"></span>`).join("");
+    const num = String(i + 1).padStart(2, "0");
     return `
-      <button class="st-card" type="button" data-theme-card="${t.id}" aria-pressed="false">
-        <span class="st-card__num">0${i + 1} · ${t.id}</span>
+      <article class="st-card" role="button" tabindex="0" data-theme-card="${t.id}" aria-pressed="false">
+        <span class="st-card__num">${num} · ${t.id}</span>
         <h3 class="st-card__name">${t.name}</h3>
-        <p class="st-card__line">${t.line}</p>
+        <p class="st-card__desc">${t.desc}</p>
         <span class="st-card__swatches">${dots}</span>
         <span class="st-card__meta">
           <span class="st-card__hex">${tokFor(t.id, "--lime")}</span>
+          <button class="st-card__snip" type="button" data-theme-snippet="${t.id}">⧉ snippet</button>
           <span class="st-card__cta">Full preview →</span>
         </span>
-      </button>`;
+      </article>`;
   }).join("");
 
-  /* ── compare strip: 5 live iframes ────────────────────────────────── */
+  function snippetFor(id) {
+    return `<html data-theme="${id}">\nhttps://rwf.qalarc.com/styles/#theme=${id}`;
+  }
+
+  async function copySnippet(id, button) {
+    const text = snippetFor(id);
+    let copied = false;
+    try {
+      await navigator.clipboard.writeText(text);
+      copied = true;
+    } catch {
+      const ta = document.createElement("textarea");
+      ta.value = text;
+      ta.setAttribute("readonly", "");
+      ta.style.cssText = "position:fixed;left:-9999px;top:0";
+      document.body.appendChild(ta);
+      ta.select();
+      copied = document.execCommand("copy");
+      ta.remove();
+    }
+    if (!copied) return;
+    button.textContent = "✓ copied";
+    button.classList.add("is-copied");
+    window.setTimeout(() => {
+      button.textContent = "⧉ snippet";
+      button.classList.remove("is-copied");
+    }, 1300);
+  }
+
+  /* ── compare strip: 14 live iframes ───────────────────────────────── */
   const strip = document.getElementById("strip");
   let screen = "both";
-  /* strip iframes are EAGER (not lazy): with 13 themes, off-viewport
+  /* strip iframes are EAGER (not lazy): with 14 themes, off-viewport
      frames would never load in headless checks — the strip IS the check
      surface verify.js reads. The preview iframe below stays lazy. */
   function buildStrip() {
@@ -81,27 +112,28 @@
                 src="demo.html?t=${t.id}&screen=${screen}"></iframe>
       </div>`).join("");
   }
+  function setScreen(s) {
+    screen = s;
+    document.querySelectorAll("[data-screen]").forEach((x) => x.classList.toggle("is-on", x.dataset.screen === s));
+    buildStrip();
+  }
   buildStrip();
 
-  document.querySelectorAll(".st-switch__btn").forEach((b) => {
+  document.querySelectorAll("[data-screen]").forEach((b) => {
     b.addEventListener("click", () => {
-      screen = b.dataset.screen;
-      document.querySelectorAll(".st-switch__btn").forEach((x) => x.classList.toggle("is-on", x === b));
-      buildStrip();
+      setScreen(b.dataset.screen);
     });
   });
 
-  /* ── ON THE APP strip: the eight V2 themes × the real /v2 screens ──── */
+  /* ── ON THE APP strip: the nine material kits × the real /v2 screens ─ */
   /* appdemo.html renders the board app's actual bd-* markup (home +
      battle phones) wearing one overhauled theme per iframe. */
-  const V2_THEMES = THEMES.filter((t) =>
-    ["board", "mycelial", "techy", "track", "cardtable", "caveman", "n64", "goldeneye"].includes(t.id));
   const appStrip = document.getElementById("appStrip");
   let appScreen = "both";
   function buildAppStrip() {
     if (!appStrip) return;
     appStrip.dataset.screen = appScreen;
-    appStrip.innerHTML = V2_THEMES.map((t) => `
+    appStrip.innerHTML = KIT_THEMES.map((id) => THEMES.find((t) => t.id === id)).map((t) => `
       <div class="st-appcell">
         <span class="st-cell__cap">
           <span class="st-cell__dot" style="background:${tokFor(t.id, "--lime")}"></span>
@@ -114,13 +146,16 @@
         </div>
       </div>`).join("");
   }
+  function setAppScreen(s) {
+    appScreen = s;
+    document.querySelectorAll("[data-appscreen]").forEach((x) => x.classList.toggle("is-on", x.dataset.appscreen === s));
+    buildAppStrip();
+  }
   buildAppStrip();
 
   document.querySelectorAll("[data-appscreen]").forEach((b) => {
     b.addEventListener("click", () => {
-      appScreen = b.dataset.appscreen;
-      document.querySelectorAll("[data-appscreen]").forEach((x) => x.classList.toggle("is-on", x === b));
-      buildAppStrip();
+      setAppScreen(b.dataset.appscreen);
     });
   });
 
@@ -132,19 +167,34 @@
   const previewChip = document.getElementById("previewChip");
   let active = null;
 
-  function enterPreview(id) {
+  function updateActiveTheme(id, { frame = "instant" } = {}) {
     const t = THEMES.find((x) => x.id === id);
-    if (!t) return;
+    if (!t) return false;
     active = id;
     document.documentElement.dataset.theme = id;
-    previewSec.hidden = false;
-    previewBar.hidden = false;
     previewName.textContent = t.name;
     previewChip.textContent = t.name;
-    previewFrame.src = `demo.html?t=${id}&screen=both`;
     document.querySelectorAll("[data-theme-card]").forEach((c) =>
       c.setAttribute("aria-pressed", String(c.dataset.themeCard === id)));
     if (history.replaceState) history.replaceState(null, "", `#theme=${id}`);
+    if (frame === "reload") {
+      previewFrame.src = `demo.html?t=${id}&screen=both`;
+    } else if (frame === "instant") {
+      const doc = previewFrame.contentDocument;
+      if (doc?.documentElement) {
+        doc.documentElement.dataset.theme = id;
+      } else {
+        previewFrame.src = `demo.html?t=${id}&screen=both`;
+      }
+    }
+    return true;
+  }
+
+  function enterPreview(id) {
+    if (!THEMES.some((x) => x.id === id)) return;
+    previewSec.hidden = false;
+    previewBar.hidden = false;
+    updateActiveTheme(id, { frame: "reload" });
     previewSec.scrollIntoView({ behavior: "smooth", block: "start" });
     /* icons inside the library mount once via figma-components.js boot; the
        section existed from parse so they're already drawn. Re-run for safety
@@ -162,12 +212,62 @@
     document.getElementById("compare").scrollIntoView({ behavior: "smooth", block: "start" });
   }
 
+  function cycleTheme(dir) {
+    if (!active) return;
+    const current = THEMES.findIndex((t) => t.id === active);
+    const next = (current + dir + THEMES.length) % THEMES.length;
+    updateActiveTheme(THEMES[next].id, { frame: "instant" });
+  }
+
+  function jumpTo(i) {
+    if (i < 0 || i >= THEMES.length) return;
+    if (!active) {
+      enterPreview(THEMES[i].id);
+      return;
+    }
+    updateActiveTheme(THEMES[i].id, { frame: "instant" });
+  }
+
   cards.addEventListener("click", (e) => {
+    const snip = e.target.closest("[data-theme-snippet]");
+    if (snip) {
+      e.stopPropagation();
+      copySnippet(snip.dataset.themeSnippet, snip);
+      return;
+    }
     const card = e.target.closest("[data-theme-card]");
     if (card) enterPreview(card.dataset.themeCard);
   });
+  cards.addEventListener("keydown", (e) => {
+    if (e.key !== "Enter" && e.key !== " ") return;
+    const card = e.target.closest("[data-theme-card]");
+    if (!card || e.target.closest("[data-theme-snippet]")) return;
+    e.preventDefault();
+    enterPreview(card.dataset.themeCard);
+  });
   document.getElementById("previewExit").addEventListener("click", exitPreview);
-  addEventListener("keydown", (e) => { if (e.key === "Escape" && active) exitPreview(); });
+  addEventListener("keydown", (e) => {
+    if (e.target?.matches?.("input,textarea,select")) return;
+    if (e.key === "Escape" && active) {
+      e.preventDefault();
+      exitPreview();
+      return;
+    }
+    if (e.key === "ArrowRight" && active) {
+      e.preventDefault();
+      cycleTheme(1);
+      return;
+    }
+    if (e.key === "ArrowLeft" && active) {
+      e.preventDefault();
+      cycleTheme(-1);
+      return;
+    }
+    if (/^[1-9]$/.test(e.key)) {
+      e.preventDefault();
+      jumpTo(Number(e.key) - 1);
+    }
+  });
 
   /* deep link: /styles/#theme=forest */
   const m = location.hash.match(/^#theme=(\w+)$/);
@@ -181,8 +281,9 @@
   }, false);
 
   /* e2e hooks */
-  window.__rwfStyles = { THEMES, V2_THEMES, enterPreview, exitPreview, active: () => active,
-                         get screen() { return screen; }, setScreen(s) { screen = s; buildStrip(); },
-                         get appScreen() { return appScreen; }, setAppScreen(s) { appScreen = s; buildAppStrip(); } };
+  window.__rwfStyles = { THEMES, KIT_THEMES, V2_THEMES, enterPreview, exitPreview, active: () => active,
+                         cycleTheme, jumpTo,
+                         get screen() { return screen; }, set screen(s) { setScreen(s); }, setScreen,
+                         get appScreen() { return appScreen; }, set appScreen(s) { setAppScreen(s); }, setAppScreen };
   window.__rwfStylesReady = true;
 })();

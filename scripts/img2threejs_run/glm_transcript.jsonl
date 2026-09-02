@@ -1,0 +1,13 @@
+{"ts": "2026-09-02T22:22:25", "provider": "auth.json:zai", "model": "glm-5.3", "prompt": "vision_test", "seconds": 16.9, "in": 200, "out": 503, "stop": "end_turn"}
+{"ts": "2026-09-02T22:23:36", "provider": "auth.json:zai", "model": "glm-5.3", "prompt": "canary_glm53", "seconds": 6.2, "in": 199, "out": 200, "stop": "max_tokens"}
+{"ts": "2026-09-02T22:24:05", "provider": "auth.json:zai", "model": "glm-5.3", "prompt": "canary_glm-5.3", "seconds": 10.0, "in": 197, "out": 458, "stop": "end_turn"}
+{"ts": "2026-09-02T22:24:12", "provider": "auth.json:zai", "model": "glm-5.3", "prompt": "canary_glm-4.6", "seconds": 7.5, "in": 198, "out": 377, "stop": "end_turn"}
+{"ts": "2026-09-02T22:25:38", "provider": "auth.json:zhipuai@api.z.ai", "model": "glm-4.6v", "prompt": "canary_v4", "seconds": 5.6, "in": 359, "out": 188, "stop": "stop"}
+{"ts": "2026-09-02T22:25:49", "provider": "auth.json:zhipuai@bigmodel.cn", "model": "glm-4.6v", "prompt": "canary_v4", "seconds": 10.8, "in": 359, "out": 144, "stop": "stop"}
+{"ts": "2026-09-02T22:29:09", "provider": "v4:auth.json:zhipuai", "model": "glm-4.6v", "prompt": "intake_stage1", "seconds": 68.8, "in": 1018, "out": 2178, "stop": "stop"}
+{"ts": "2026-09-02T22:31:49", "provider": "v4:auth.json:zhipuai", "model": "glm-4.6v", "prompt": "intake_correction1", "seconds": 73.6, "in": 1136, "out": 1945, "stop": "stop"}
+{"ts": "2026-09-02T22:35:03", "provider": "auth.json:zai", "model": "glm-5.3", "prompt": "codegen_stage3", "seconds": 116.4, "in": 1801, "out": 8000, "stop": "max_tokens"}
+{"ts": "2026-09-02T22:39:16", "provider": "auth.json:zai", "model": "glm-5.3", "prompt": "codegen_stage3_retry", "seconds": 218.8, "in": 1371, "out": 16000, "stop": "max_tokens"}
+{"ts": "2026-09-02T22:42:00", "provider": "auth.json:zai", "model": "glm-5.3", "prompt": "codegen_module_only", "seconds": 119.7, "in": 2443, "out": 11513, "stop": "end_turn"}
+{"ts": "2026-09-02T22:48:16", "provider": "v4:auth.json:zhipuai", "model": "glm-4.6v", "prompt": "review_stage4", "seconds": 18.7, "in": 605, "out": 1369, "stop": "stop"}
+{"ts": "2026-09-02T22:52:58", "provider": "v4:auth.json:zhipuai", "model": "glm-4.6v", "prompt": "review_stage4_final", "seconds": 23.2, "in": 577, "out": 739, "stop": "stop"}
