@@ -183,3 +183,25 @@ agreement drafted within a fortnight.
 
 One sentence worth saying out loud: *"I've already made my bet — the last
 three weeks are it. Now we just make the paperwork match."*
+
+---
+
+## UPDATE — 2 Sep 2026: the negotiation landed
+
+**Agreed commercial frame (this supersedes the pure-vendor option for now):**
+- **AU$2,500 total** for the pilot-ready system — deposit on signing, balance tied
+  to early deliverables and pilot acceptance (the full schedule lives in
+  `docs/RWF_Contract_Scope.pdf`)
+- **Early deliverables structure**: M1 state unification + auth + Android shell
+  (week 1) → M2 always-on bots + Beeper + hardened verification (weeks 2–3) →
+  PILOT 3 real crews with the five product decisions implemented per Ben's calls
+- **The equity conversation stays open and separate** — the contract
+  acknowledges it in one line; the $2,500 prices the *pilot completion*, not
+  the venture. Per §2 above, delivered value is $93–158k equivalent — this fee
+  is a token of commitment both ways, which is exactly its function.
+- Change requests beyond scope: swap free / small items priced / large items
+  deferred to the equity conversation (the ladder is in the contract §4)
+
+**Read this with:** docs/RWF_Contract_Scope.pdf (the agreement itself) ·
+docs/RWF_Followup_Deck.pdf (what Ben sees) · docs/24_GAME_DESIGN.md (what the
+money buys).

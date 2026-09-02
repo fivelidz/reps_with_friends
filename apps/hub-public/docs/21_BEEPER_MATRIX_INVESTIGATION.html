@@ -1,0 +1,264 @@
+<!doctype html>
+<html lang="en">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <title>Beeper/Matrix Investigation — RWF Documents</title>
+  <link rel="icon" href="data:image/svg+xml,<svg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 100 100'><text y='.9em' font-size='90'>🏋️</text></svg>">
+  <!-- v1.1.0 · rendered from repo docs/ by apps/hub-public/docs/build.sh (pandoc) -->
+  <link rel="stylesheet" href="/design/tokens.css">
+  <link rel="stylesheet" href="/design/fonts/fonts.css">
+  <link rel="stylesheet" href="/v1/docs/docs.css">
+</head>
+<body>
+  <header class="doc-topbar">
+    <a class="doc-back" href="/v1#business">← Coverage hub</a>
+    <span class="doc-brand">REPS WITH FRIENDS · DOCUMENTS</span>
+    <span class="doc-ver mono">v1.1.0</span>
+  </header>
+  <main class="doc-page">
+    <article class="doc-body">
+<h1>21 — Beeper &amp; Matrix Investigation: Multi-Platform Chat Bridge for RWF</h1>
+<p><strong>Date:</strong> 2026-08-31 · <strong>Author:</strong> ops agent · <strong>Status:</strong> research complete, recommendation inside <strong>Trigger:</strong> Founder installed Beeper on superlocal (&quot;we have now installed the app Beeper&quot;). <strong>Question:</strong> How does Beeper connect to different chat interfaces, and could RWF use it (or the stack beneath it) to reach group chats on many platforms with ONE bot core?</p>
+<hr>
+<h2>TL;DR</h2>
+<ul>
+<li>
+<strong>Beeper is a Matrix app.</strong> Every Beeper account is a real Matrix user (<code>@alexeib:beeper.com</code> on <code>matrix.beeper.com</code> — verified in the local install's own database). All of its bridges are <strong>open source</strong> (the <code>mautrix/*</code> family + <code>bridgev2</code> framework).
+</li>
+<li>
+The <strong>new Beeper (2025+, post-Texts.com merger, Automattic-owned)</strong> connects most networks with <strong>on-device protocol implementations</strong> — messages go straight from your device to WhatsApp/Telegram/etc., never touching Beeper's servers. The older &quot;Beeper Cloud&quot; mode runs per-user bridge clusters on their infra.
+</li>
+<li>
+Beeper Desktop ships a <strong>local API (&quot;Beeper Connect&quot;): REST + WebSocket + a built-in MCP server</strong>. An agent on superlocal can already read and send chats across every network the founder connects — with zero new infrastructure. This is the fastest pilot path, but it drives <em>personal accounts</em> (ToS-grey, rate-limited, desktop must be running).
+</li>
+<li>
+<strong>Recommendation (staged):</strong>
+<ol>
+<li>
+<strong>Now:</strong> keep the Qalarc Hub as primary WhatsApp/Signal transport; add a <strong>Beeper Desktop API (MCP) transport</strong> for instant reach into the founder's other group chats (Telegram, Discord, LinkedIn, X, Messenger…). Days of effort, $0.
+</li>
+<li>
+<strong>Next:</strong> promote <strong>Matrix as the ONE bot transport layer</strong> — run <code>@rwf/bot-core</code> as a Matrix client; per-platform reach becomes &quot;which bridges are connected,&quot; not &quot;which bot code we wrote.&quot; Slot it behind the existing <code>ChatTransport</code> interface.
+</li>
+<li>
+<strong>Long-term:</strong> official APIs for scale/compliance (WhatsApp Business Cloud API — already the plan; Telegram Bot API; Slack Bolt stays), bridges for the long tail (Signal, Google Messages, iMessage). <strong>Never</strong> build stranger-facing product on unofficial WhatsApp sessions.
+</li>
+</ol>
+</li>
+<li>
+A minimal pilot needs no new servers and ~2–4 days: connect 1–2 networks in Beeper Desktop, drive them through the local MCP/REST API, post real battle updates to one real group chat.
+</li>
+</ul>
+<hr>
+<h2>1. What's actually installed on superlocal (read-only inspection)</h2>
+<table><thead><tr><th>Item</th><th>Finding</th></tr></thead><tbody><tr><td>Install</td><td><code>~/Applications/Beeper.AppImage</code> (AppImage, launcher <code>~/.local/share/applications/beeper.desktop</code>, &quot;All chats, one app — with local Desktop API + MCP&quot;)</td></tr><tr><td>Config/data</td><td><code>~/.config/BeeperTexts/</code> (new &quot;Beeper Texts&quot; architecture — no legacy <code>~/.config/Beeper</code>)</td></tr><tr><td>Account</td><td><code>@alexeib:beeper.com</code> on <code>https://matrix.beeper.com/</code> (from <code>account.db</code>, read-only) — a genuine Matrix identity with local olm/megolm E2E keys (<code>crypto_*</code> tables)</td></tr><tr><td>Local DBs</td><td><code>account.db</code> = embedded <strong>Matrix client SDK</strong> store (sync, rooms, E2E, per-bridge state). <code>index.db</code> = message index (threads/participants/messages/reactions/FTS). As of 2026-08-29: 3 threads, 11 participants, <strong>0 messages, no networks connected yet</strong> — freshly installed.</td></tr><tr><td>Backend endpoints it talks to</td><td><code>app-manifest-production.json</code>: <code>matrix.beeper.com</code>, <code>roomserv.beeper.com</code>, <code>sygnal.beeper.com</code> (push), <code>ai-services.beeper.com</code>, and per-user bridge clusters <code>https://{username}.users.{clusterId}.bridges.beeper.com</code></td></tr><tr><td>Local API</td><td><strong>Beeper Connect</strong> (log-verified): WebSocket at <code>/v1/ws</code>, REST <code>GET /v1/info</code>, <code>/v1/spec</code>, <code>/v1/chats</code>, and <strong><code>POST /v0/mcp</code> — a built-in MCP server</strong></td></tr></tbody></table>
+<p>So the local picture is: <strong>a Matrix-first client with an embedded SDK, plus a localhost agent API on top.</strong></p>
+<hr>
+<h2>2. Beeper's model (2026) — how it reaches other chats</h2>
+<pre><code>                        ┌────────────────────────────────────────────┐
+                        │            BEEPER DESKTOP/PHONE            │
+                        │                                            │
+   founder's human ───▶ │  unified inbox UI (all networks, one app)  │
+                        │                                            │
+                        │  ┌──────────────────────────────────────┐  │
+                        │  │ MODE A: On-Device Connections (new)  │  │
+                        │  │ WhatsApp/Telegram/Signal/... proto-  │  │
+                        │  │ col sessions run INSIDE the app.     │  │
+                        │  │ Messages never touch Beeper servers. │  │──▶ WhatsApp
+                        │  │ E2E preserved where network allows.  │  │──▶ Telegram
+                        │  └──────────────────────────────────────┘  │──▶ Signal, ...
+                        │  ┌──────────────────────────────────────┐  │
+                        │  │ MODE B: Beeper Cloud bridges (older) │  │
+                        │  │ per-user bridge clusters run on      │  │
+                        │  │ {user}.users.{id}.bridges.beeper.com │  │
+                        │  │ zero-access-encrypted history        │  │
+                        │  └──────────────────────────────────────┘  │
+                        │                                            │
+                        │  embedded Matrix SDK ⇄ matrix.beeper.com   │
+                        │  (Beeper account = Matrix account)         │
+                        └──────────────────┬─────────────────────────┘
+                                           │ localhost (Beeper Connect)
+                                           ▼
+                        REST /v1/*  ·  WS /v1/ws  ·  MCP POST /v0/mcp
+                                 (agents / SDKs: JS, Python, Go, PHP)</code></pre>
+<p>Key facts (from beeper.com FAQ + developers.beeper.com, fetched 2026-08-31):</p>
+<ul>
+<li>
+<strong>Two connection modes.</strong> On-Device (new default; direct device→network) vs Beeper Cloud (their servers bridge; encrypted at rest). Either way, from the user's chair it's &quot;one inbox.&quot;
+</li>
+<li>
+<strong>Every account is a Matrix account</strong> — Beeper is built on Matrix and funds/upstreams to the Matrix.org Foundation.
+</li>
+<li>
+<strong>All bridges are open source</strong>: <code>mautrix/whatsapp</code>, <code>telegram</code>, <code>signal</code>, <code>discord</code>, <code>slack</code>, <code>meta</code> (FB/IG), <code>gmessages</code>, <code>gvoice</code>, <code>googlechat</code>, <code>twitter</code>, <code>bluesky</code>, <code>imessage</code>, <code>linkedin</code>, <code>heisenbridge</code> (IRC), <code>beeper/imessage</code> (Go). Common framework: <code>mautrix/go</code> <strong>bridgev2</strong>.
+</li>
+<li>
+<strong>Self-hosting without your own homeserver:</strong> <code>bbctl</code> (Beeper Bridge Manager) runs official bridges on <em>your</em> hardware against <em>your Beeper account</em> (<code>bbctl run sh-whatsapp</code>, bridge bot appears as <code>@sh-whatsappbot:beeper.local</code>). Self-hosted accounts are free and don't count against account limits. Third-party/custom bridges plug in via <code>bbctl register</code> + <code>bbctl proxy</code>.
+</li>
+<li>
+<strong>Pricing:</strong> free ≤5 connected accounts; <strong>Beeper Plus $9.99/mo</strong> (10 accounts, multi-account-per-network, scheduling, reminders); Plus Plus $49.99/mo unlimited.
+</li>
+<li>
+<strong>Supported features:</strong> send/receive, <strong>group chats</strong>, images/video, reactions, replies, threads, stickers, disappearing messages, broadcast channels — &quot;feature availability varies by network.&quot; Video calls fall back to native apps.
+</li>
+<li>
+<strong>Desktop API caveats (their words):</strong> &quot;personal use recommended&quot;; &quot;sending too many messages might result in account suspension by the networks&quot;; requires Beeper Desktop running; local-only by default (a remote-access option exists).
+</li>
+</ul>
+<h3>How a bridge actually authenticates to each network</h3>
+<p>A Matrix bridge logs into the <em>remote network with a session of the bridge operator's own account</em> (for on-device mode: the app holds that session locally):</p>
+<table><thead><tr><th>Network</th><th>Session mechanism</th><th>ToS posture</th><th>Group-chat quality</th></tr></thead><tbody><tr><td>WhatsApp</td><td>QR-pair as a <strong>linked device</strong> of a personal account (whatsmeow)</td><td><strong>Unofficial client — ToS-grey; ban risk low but real</strong>; NOT for business scale</td><td>Excellent (existing groups bridgeable)</td></tr><tr><td>Telegram</td><td>Either <strong>official Bot API</strong> in groups (sanctioned) or personal MTProto session</td><td>Bot API: clean; MTProto: grey</td><td>Bot API: good (needs admin/privacy-mode off); MTProto: full</td></tr><tr><td>Signal</td><td>Linked-device session (signal-cli style)</td><td>Grey (no official bot API)</td><td>Good (GV2 groups)</td></tr><tr><td>Discord / Slack</td><td>Official bot tokens / OAuth</td><td>Clean</td><td>Good (channels, threads)</td></tr><tr><td>Meta (FB/IG)</td><td>Unofficial session</td><td>Grey</td><td>Variable</td></tr><tr><td>iMessage</td><td>macOS-only (BlueBubbles-class)</td><td>Apple-hostile history</td><td>Good on Mac</td></tr><tr><td>Google Messages/Voice</td><td>Phone-paired session</td><td>Grey</td><td>Adequate</td></tr></tbody></table>
+<p><strong>The WhatsApp row is the load-bearing caveat for RWF:</strong> bridged WhatsApp = personal-account automation. Fine for founder + friends dogfooding; wrong foundation for paying strangers (that's what the WhatsApp Business Cloud API is for — already our stated production plan in <code>apps/bot-whatsapp/hub-client.ts</code>).</p>
+<hr>
+<h2>3. Where RWF is today (baseline)</h2>
+<pre><code>                 ┌──────────────────────────────┐
+                 │      @rwf/bot-core           │
+                 │ CommandBus · MatchStore ·    │
+                 │ cards · digest · AI hooks    │
+                 └──────┬───────────────┬───────┘
+                        │               │
+             Slack transport      ChatTransport interface
+             (Bolt Socket Mode,   (apps/bot-whatsapp/hub-client.ts)
+              official)                       │
+                     │            ┌────────────┴────────────┐
+                     │            │ TODAY: QalarcHubClient  │
+                     ▼            │ → Qalarc Hub :8769      │
+               Slack workspace    │   (owns ONE Signal +    │
+                                  │    WhatsApp session)    │
+                                  │   → founder's phone     │
+                                  └────────────┬────────────┘
+                                               │ planned
+                                               ▼
+                                  WhatsApp Business Cloud API
+                                  (official, per-convo pricing)</code></pre>
+<p>Properties: one bot core, N hand-written transports; each new platform = new bot code + new session management; Signal has no official API; WhatsApp on a personal session is already ToS-grey <em>today</em> via the Hub.</p>
+<hr>
+<h2>4. The three options for RWF</h2>
+<h3>Option A — Bot via Beeper Desktop API (MCP / localhost REST)</h3>
+<pre><code>@rwf/bot-core (or qalcode agent) ──HTTP──▶ Beeper Connect (localhost)
+                                              │
+                                     whatever the founder has
+                                     connected in Beeper Desktop
+                                              │
+                        WhatsApp · Telegram · Signal · Discord · Slack ·
+                        Messenger · LinkedIn · X · Google Messages · ...</code></pre>
+<ul>
+<li>
+<strong>Effort:</strong> days. <strong>Cost:</strong> $0 (within free tier). <strong>Infra:</strong> none — rides the installed desktop app.
+</li>
+<li>
+<strong>Reach:</strong> every network <em>the founder personally</em> connects; group chats included.
+</li>
+<li>
+<strong>Risks:</strong> personal-account automation (Beeper itself warns about suspension); desktop app must stay running on superlocal; local-only by default; no story for other users' chats.
+</li>
+</ul>
+<h3>Option B — RWF bot as a Matrix user on beeper.com (+ managed / bbctl bridges)</h3>
+<pre><code>┌─────────────┐   Matrix    ┌────────────────────────┐
+│ @rwf:beeper │ ⇄ rooms ⇄  │ matrix.beeper.com      │
+│  .com       │            │ (their homeserver)     │
+└─────────────┘            └──────────┬─────────────┘
+       ▲  bot-core as Matrix client    │ per-user bridge clusters
+       │  (one room per battle)        ▼
+  founder uses ANY        ┌──────────────────────────────┐
+  Matrix client / Beeper  │ bridges: WhatsApp · Telegram │
+  as the human UI         │ Signal · Discord · Slack ... │
+                         │ (Beeper-managed, or bbctl    │
+                         │  self-hosted on our metal)   │
+                         └──────────────────────────────┘</code></pre>
+<ul>
+<li>
+<strong>Effort:</strong> 1–2 weeks. <strong>Cost:</strong> $0 now; $9.99/mo if we exceed 5 accounts. <strong>Infra:</strong> none (bridges managed) or one small host (bbctl).
+</li>
+<li>
+<strong>Reach:</strong> group chats on all bridged networks, from ONE bot codebase; humans can participate from Beeper itself or any Matrix client.
+</li>
+<li>
+<strong>Risks:</strong> our bot lives on <em>their</em> homeserver (account policy, availability); bridge sessions still ride personal accounts (same WhatsApp caveat); bridge quality varies per network.
+</li>
+</ul>
+<h3>Option C — Fully self-hosted Matrix (our homeserver + mautrix bridges)</h3>
+<pre><code>┌─────────────┐        ┌─────────────────────────────────┐
+│ @rwf:rwf.   │ ⇄ appservice / client API               │
+│  qalarc.com │        │ OUR homeserver                  │
+└─────────────┘        │ Synapse (ref) · Tuwunel ·       │
+       ▲               │ Continuwuity (Rust; conduwuit   │
+       │ bot-core      │ is now OBSOLETE)                │
+       │               └───────┬─────────────────────────┘
+  same human story             │ mautrix bridgev2 stack
+                               ▼ (docker/systemd, ours to run)
+                    whatsapp · telegram · signal · slack · discord</code></pre>
+<ul>
+<li>
+<strong>Effort:</strong> 2–4 weeks + ongoing ops. <strong>Cost:</strong> $5–10/mo VPS or $0 on minirig. <strong>Infra:</strong> homeserver + N bridges + backups.
+</li>
+<li>
+<strong>Reach:</strong> same as B, minus dependence on Beeper; we can also offer <em>users</em> Matrix accounts/rooms later.
+</li>
+<li>
+<strong>Risks:</strong> most maintenance of the three; E2E + bridge ops have real gotchas (key backup, verified devices, media repos).
+</li>
+</ul>
+<hr>
+<h2>5. Comparison</h2>
+<table><thead><tr><th>Dimension</th><th>A: Desktop API</th><th>B: Beeper-hosted Matrix</th><th>C: Self-hosted Matrix</th><th>Today: per-platform bots</th></tr></thead><tbody><tr><td>Time to first message</td><td><strong>hours–days</strong></td><td>1–2 weeks</td><td>2–4 weeks</td><td>✅ already live (WA/Slack)</td></tr><tr><td>Monthly cost</td><td>$0</td><td>$0–10</td><td>$0–10</td><td>$0 (Hub) + Cloud API later</td></tr><tr><td>New-platform cost</td><td>founder clicks &quot;connect&quot;</td><td>add a bridge</td><td>deploy a bridge</td><td><strong>write a new bot</strong></td></tr><tr><td>Group-chat reach</td><td>founder's own groups</td><td>bridged groups, all platforms</td><td>bridged groups, all platforms</td><td>per-platform, manual</td></tr><tr><td>WhatsApp ToS risk</td><td>personal (grey)</td><td>personal (grey)</td><td>personal (grey)</td><td>personal via Hub (grey today)</td></tr><tr><td>Compliance path for scale</td><td>✗</td><td>partial</td><td>partial</td><td><strong>✓ Cloud API planned</strong></td></tr><tr><td>Blast radius if it breaks</td><td>founder's desktop</td><td>Beeper infra</td><td>our infra</td><td>per-bot</td></tr><tr><td>One bot core for everything</td><td>✗ (it's a transport)</td><td><strong>✓</strong></td><td><strong>✓</strong></td><td>✗ (N transports, shared core)</td></tr><tr><td>Human can use same network natively</td><td>✓ Beeper</td><td>✓ Beeper/Element</td><td>✓ any Matrix client</td><td>n/a</td></tr></tbody></table>
+<hr>
+<h2>6. Recommendation</h2>
+<p><strong>Adopt Matrix as RWF's canonical bot transport layer — incrementally, on Beeper's rails first, our rails later.</strong></p>
+<ol>
+<li>
+<strong>This week (Option A, dogfood):</strong> add a <code>BeeperDesktopTransport implements ChatTransport</code> (and/or an MCP tool for agents) that talks to Beeper Connect on localhost. Instant multi-platform reach for founder-scale tests. Keep the Qalarc Hub for Signal/WhatsApp production dogfood — don't rip out what works. Tag agent traffic <code>source:&quot;ai&quot;</code> per house convention. Rate-limit sends (their warning is explicit).
+</li>
+<li>
+<strong>Next milestone (Option B):</strong> stand up the bot as a Matrix user (<code>@rwf:beeper.com</code> or a second account), one Matrix room per battle, bridges as transports. <code>bot-core</code> stops caring <em>which</em> platform a group chat lives on. Use <code>bbctl</code> self-hosting for the noisy/bridge-heavy networks so they run on our metal, free.
+</li>
+<li>
+<strong>Production (keep the plan):</strong> WhatsApp Business Cloud API for customer traffic; Telegram via official Bot API; Slack stays on Bolt. <strong>Bridges (self-hosted or Beeper) are for founder/friends/community groups, not paying strangers.</strong>
+</li>
+<li>
+<strong>Later (Option C):</strong> self-host a homeserver (Tuwunel or Continuwuity — conduwuit is obsolete; Synapse if we want reference-grade) only when we need rooms for <em>users</em>, federation, or Beeper-independence. Don't pay that ops tax before it buys something.
+</li>
+</ol>
+<p>Why this shape: our codebase already abstracts transports (<code>ChatTransport</code>); Matrix is the only model where &quot;add platform&quot; ≈ &quot;connect bridge&quot; instead of &quot;write a bot,&quot; and Beeper gives us the whole bridge stack, managed or self-hosted, open source, for free — while we keep the official-API path for scale.</p>
+<hr>
+<h2>7. Minimal pilot (concrete)</h2>
+<p><strong>Goal:</strong> a real RWF battle update lands in a real non-WhatsApp group chat with zero new servers.</p>
+<ol>
+<li>
+Founder connects 1–2 networks in Beeper Desktop (e.g. Telegram + one group).
+</li>
+<li>
+Agent side: <code>GET /v1/chats</code> → find the group; <code>POST /v1/messages/send</code>-equivalent via the Desktop API (or just use the MCP server) → post &quot;Sunday Showdown is LIVE — log your reps&quot; + a card image.
+</li>
+<li>
+Read replies through <code>/v1/chats</code> polling or the WS endpoint; feed into the existing <code>CommandBus</code>.
+</li>
+<li>
+Success criteria: message delivered + rendered in the native app; reply read back; no account warnings; end-to-end &lt; 5 s.
+</li>
+<li>
+Explicit non-goals: no customer traffic, no volume, no automation of strangers' chats.
+</li>
+</ol>
+<p><strong>Risk notes:</strong> personal-account rate limits; keep Beeper Desktop running (autostart exists); if a network balks, fall back to Hub/official APIs for that platform.</p>
+<hr>
+<h2>Appendix — evidence &amp; sources</h2>
+<ul>
+<li>
+Local: <code>~/.config/BeeperTexts/</code> (account.db = Matrix SDK store incl. <code>crypto_olm_session</code>, <code>mx_registrations</code>; <code>app-manifest-production.json</code>; <code>logs/desktop-api/desktop-api-0.log</code> shows <code>/v1/ws</code>, <code>/v1/chats</code>, <code>POST /v0/mcp</code>).
+</li>
+<li>
+beeper.com FAQ (connection modes, pricing, features, Matrix stance) · developers.beeper.com <code>/bridges</code>, <code>/bridges/self-hosting</code> (bbctl, bridge table, repos), <code>/desktop-api</code> (REST/WS/MCP/SDKs, personal-use warning).
+</li>
+<li>
+matrix.org <code>/ecosystem/servers</code> (Synapse stable; Tuwunel &amp; Continuwuity stable; Conduit/Dendrite beta; <strong>conduwuit obsolete</strong>).
+</li>
+<li>
+Repo: <code>apps/bot-whatsapp/hub-client.ts</code> (ChatTransport + Cloud-API plan), <code>apps/bot-slack/main.ts</code> (Bolt + CommandBus), <code>docs/03_CHAT_INTEGRATIONS.md</code>.
+</li>
+</ul>
+    </article>
+  </main>
+</body>
+</html>

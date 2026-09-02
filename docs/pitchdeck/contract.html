@@ -1,0 +1,478 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<title>Reps With Friends — Contract &amp; Scope</title>
+<link rel="stylesheet" href="fonts-embed.css">
+<style>
+/* ═══ RWF Contract & Scope — A4 portrait (794×1123 px), fixed sheets.
+   Visual system: deck/appendix tokens (lime on ink); body set in Inter.
+   Rebuild: python3 docs/pitchdeck/build.py ═══ */
+:root{
+  --bg:#0a0b0d; --surface:#121418; --surface-2:#1a1d23;
+  --line:#23262d; --line-bright:#31353e;
+  --text:#e8eaed; --muted:#9aa0a8; --faint:#868b92;
+  --lime:#c6f32e; --lime-glow:rgba(198,243,46,.14);
+  --coral:#ff5c38; --amber:#ffb020; --sky:#6ec1ff;
+}
+*{margin:0;padding:0;box-sizing:border-box;}
+html{background:var(--bg);}
+body{font-family:'Inter',system-ui,sans-serif;color:var(--text);font-size:11.5px;line-height:1.55;
+  -webkit-print-color-adjust:exact;print-color-adjust:exact;-webkit-font-smoothing:antialiased;}
+@page{size:794px 1123px;margin:0;}
+.sheet{width:794px;height:1123px;position:relative;overflow:hidden;background:var(--bg);
+  padding:46px 52px 62px;page-break-after:always;break-after:page;display:flex;flex-direction:column;}
+.sheet:last-child{page-break-after:auto;break-after:auto;}
+.sheet::before{content:"";position:absolute;inset:0;pointer-events:none;
+  background:radial-gradient(700px 460px at 90% -8%,rgba(198,243,46,.06),transparent 60%);}
+.k{font-family:'SpaceGrotesk',system-ui,sans-serif;font-size:10.5px;font-weight:700;letter-spacing:.22em;
+  color:var(--lime);text-transform:uppercase;}
+.sect{font-family:'SpaceGrotesk',system-ui,sans-serif;font-size:23px;font-weight:700;letter-spacing:-.01em;margin:8px 0 4px;}
+.lede{font-size:11.5px;color:var(--muted);margin-bottom:14px;max-width:640px;}
+.foot{position:absolute;left:52px;right:52px;bottom:24px;display:flex;justify-content:space-between;
+  font-family:'SpaceGrotesk',system-ui,sans-serif;font-size:8.5px;letter-spacing:.14em;color:var(--faint);
+  text-transform:uppercase;font-weight:600;}
+.foot .draft{color:var(--amber);}
+h3{font-family:'SpaceGrotesk',system-ui,sans-serif;font-size:12.5px;font-weight:700;color:var(--lime);
+  margin:15px 0 7px;letter-spacing:.05em;}
+h3 .sno{color:var(--faint);font-weight:600;letter-spacing:.18em;margin-right:8px;}
+p{margin-bottom:8px;color:var(--muted);}
+p b,li b,td b{color:var(--text);}
+ol,ul{margin:0 0 10px 16px;color:var(--muted);}
+li{margin-bottom:5px;}
+.card{background:var(--surface);border:1px solid var(--line);border-radius:12px;padding:13px 16px;margin-bottom:10px;}
+table.t{width:100%;border-collapse:collapse;}
+table.t th{font-family:'SpaceGrotesk',system-ui,sans-serif;font-size:9px;letter-spacing:.14em;text-transform:uppercase;
+  color:var(--faint);text-align:left;padding:0 8px 6px;font-weight:600;}
+table.t td{border-top:1px solid var(--line);padding:7px 8px;font-size:10.8px;vertical-align:top;line-height:1.5;color:var(--muted);}
+table.t td b{color:var(--text);font-weight:600;}
+.mono{font-variant-numeric:tabular-nums;}
+.lime{color:var(--lime);}
+.pill{display:inline-block;border-radius:999px;padding:2px 10px;font-family:'SpaceGrotesk',system-ui,sans-serif;
+  font-size:9px;font-weight:700;letter-spacing:.12em;text-transform:uppercase;}
+.pill.draft{color:var(--amber);border:1px solid rgba(255,176,32,.45);}
+.pill.m1{color:var(--lime);border:1px solid rgba(198,243,46,.4);}
+.pill.m2{color:var(--sky);border:1px solid rgba(110,193,255,.35);}
+.pill.pilot{color:var(--coral);border:1px solid rgba(255,92,56,.4);}
+.pill.pay{background:var(--lime-glow);color:var(--lime);border:1px solid rgba(198,243,46,.35);}
+.q{border-left:3px solid var(--lime);padding:2px 0 2px 14px;margin-bottom:14px;}
+.q .qt{font-weight:600;font-size:12px;color:var(--text);}
+.q .qb{font-size:11px;color:var(--muted);margin-top:3px;line-height:1.55;}
+.big{font-family:'SpaceGrotesk',system-ui,sans-serif;font-size:34px;font-weight:700;line-height:1.12;letter-spacing:-.01em;}
+.num{font-family:'Anton',Impact,sans-serif;font-weight:400;letter-spacing:.01em;}
+/* deliverable rows */
+.del{display:flex;gap:14px;align-items:flex-start;background:var(--surface);border:1px solid var(--line);
+  border-radius:12px;padding:12px 16px;margin-bottom:9px;}
+.del .n{flex:none;width:30px;height:30px;border-radius:9px;background:var(--lime-glow);border:1px solid rgba(198,243,46,.35);
+  display:flex;align-items:center;justify-content:center;font-family:'Anton',Impact,sans-serif;font-size:15px;color:var(--lime);}
+.del .dt{font-family:'SpaceGrotesk',system-ui,sans-serif;font-weight:700;font-size:12.5px;color:var(--text);}
+.del .db{font-size:10.8px;color:var(--muted);margin-top:3px;line-height:1.5;}
+.del .db b{color:var(--text);}
+.del .ref{float:right;font-family:'SpaceGrotesk',system-ui,sans-serif;font-size:8.5px;font-weight:600;letter-spacing:.12em;
+  color:var(--faint);text-transform:uppercase;border:1px solid var(--line-bright);border-radius:999px;padding:1px 8px;}
+/* acceptance checklist */
+.acc{background:var(--surface);border:1px solid rgba(198,243,46,.3);border-radius:12px;padding:6px 16px 8px;margin-bottom:9px;}
+.acc .ah{font-family:'SpaceGrotesk',system-ui,sans-serif;font-size:10px;font-weight:700;letter-spacing:.18em;
+  color:var(--lime);text-transform:uppercase;padding:9px 0 2px;}
+.ar{display:flex;align-items:flex-start;padding:7px 0;border-top:1px solid var(--line);font-size:11px;color:var(--text);}
+.ar:first-of-type{border-top:none;}
+.cb{flex:none;width:11px;height:11px;border:1.5px solid var(--lime);border-radius:3px;margin:4px 10px 0 0;}
+.ar .sub{color:var(--faint);font-size:10px;display:block;margin-top:1px;}
+/* in/out columns */
+.cols{display:grid;grid-template-columns:1fr 1fr;gap:12px;}
+.stat{background:var(--surface);border:1px solid var(--line);border-radius:12px;padding:14px 16px 12px;}
+.stat .v{font-family:'Anton',Impact,sans-serif;font-size:26px;color:var(--lime);line-height:1;}
+.stat .l{font-family:'SpaceGrotesk',system-ui,sans-serif;font-size:11px;font-weight:700;margin-top:7px;color:var(--text);}
+.stat .s{font-size:10px;color:var(--muted);margin-top:3px;line-height:1.45;}
+.sig{background:var(--surface);border:1px solid var(--line);border-radius:12px;padding:16px 18px;flex:1;}
+.sig .who{font-family:'SpaceGrotesk',system-ui,sans-serif;font-weight:700;font-size:13px;}
+.sig .role{font-size:10px;color:var(--faint);margin-top:2px;}
+.sline{border-bottom:1px solid var(--line-bright);height:26px;margin-top:22px;}
+.slab{font-size:9px;letter-spacing:.14em;text-transform:uppercase;color:var(--faint);margin-top:5px;font-weight:600;}
+.toc{display:grid;grid-template-columns:1fr 1fr;gap:4px 26px;margin-top:10px;}
+.toc div{font-size:10.5px;color:var(--muted);display:flex;gap:10px;}
+.toc .n{font-family:'SpaceGrotesk',system-ui,sans-serif;color:var(--lime);font-weight:700;flex:none;width:16px;}
+</style>
+</head>
+<body>
+
+<!-- ═══ SHEET 1 · COVER ═══ -->
+<section class="sheet">
+  <div style="flex:1;display:flex;flex-direction:column;justify-content:center;">
+    <div style="display:flex;justify-content:space-between;align-items:center;">
+      <div class="k">Reps With Friends · Contract &amp; scope</div>
+      <span class="pill draft">Draft for review — not legal advice</span>
+    </div>
+    <div class="big" style="margin-top:18px;font-size:52px;">Contract &amp;<br>Scope<span class="lime">.</span></div>
+    <div style="height:3px;width:90px;background:var(--lime);margin:24px 0;border-radius:2px;"></div>
+    <p style="max-width:560px;font-size:13px;">The paid build: taking Reps With Friends from working prototype to a
+    pilot-ready system — one state authority, always-on bots in the group chats, camera-verified reps, and three real
+    crews playing weekly by the end.</p>
+
+    <div class="card" style="margin-top:20px;">
+      <table class="t">
+        <tr><td style="width:120px;"><b>Parties</b></td><td>Alexei Brown, trading as <b>qalarc</b> (the builder) — engaged by <b>Ben [surname]</b>, founder of Reps With Friends (the client)</td></tr>
+        <tr><td><b>Fee</b></td><td class="mono"><b>AU$2,500</b> total, plus GST if applicable — deposit on signing, balance on milestones</td></tr>
+        <tr><td><b>Term</b></td><td class="mono">Week 1 → week 6+ — three milestones: M1 (week 1) · M2 (weeks 2–3) · Pilot (week 4 onward)</td></tr>
+        <tr><td><b>Basis</b></td><td>Fixed fee, fixed scope. The system substantially exists today (Appendix A); this engagement completes it.</td></tr>
+      </table>
+    </div>
+
+    <div style="display:grid;grid-template-columns:repeat(3,1fr);gap:12px;margin-top:4px;">
+      <div class="stat"><div class="v mono">AU$1,000</div><div class="l">On signing</div><div class="s">Deposit — non-refundable, secures the build schedule</div></div>
+      <div class="stat"><div class="v mono">AU$750</div><div class="l">Milestone 2 accepted</div><div class="s">Always-on bots, verification hardened</div></div>
+      <div class="stat"><div class="v mono">AU$750</div><div class="l">Pilot accepted</div><div class="s">Three crews live, data captured</div></div>
+    </div>
+
+    <div class="q" style="margin-top:18px;">
+      <div class="qt">The equity conversation stays open — and separate.</div>
+      <div class="qb">This document papers the paid build only. Nothing in it affects the co-founder discussion, in either
+      direction, for either party.</div>
+    </div>
+
+    <div style="margin-top:14px;">
+      <div class="k" style="color:var(--faint);letter-spacing:.18em;">Contents</div>
+      <div class="toc">
+        <div><span class="n">1</span>Parties &amp; purpose</div>
+        <div><span class="n">5</span>IP &amp; licence</div>
+        <div><span class="n">2</span>Fee &amp; payment</div>
+        <div><span class="n">6</span>Warranty &amp; support</div>
+        <div><span class="n">3</span>Deliverables &amp; milestones — M1 · M2 · Pilot</div>
+        <div><span class="n">7</span>Term &amp; termination</div>
+        <div><span class="n">4</span>Scope — in, out, and change rules</div>
+        <div><span class="n">8</span>Signatures · <span style="color:var(--faint);">Appendix A — current-state inventory</span></div>
+      </div>
+    </div>
+  </div>
+  <div class="foot"><span>Reps With Friends — contract &amp; scope</span><span class="draft">Draft for review — not legal advice</span><span>2 September 2026 · 1 / 8</span></div>
+</section>
+
+<!-- ═══ SHEET 2 · §1 PARTIES & PURPOSE + §2 FEE & PAYMENT ═══ -->
+<section class="sheet">
+  <div class="k">1 · Parties &amp; purpose</div>
+  <div class="sect">Who's agreeing, and to what</div>
+  <div class="lede">Plain words on purpose: this is a build agreement between two people who are also talking about
+  founding a company together. It covers the build.</div>
+
+  <table class="t" style="margin-bottom:12px;">
+    <tr><th style="width:110px;">Party</th><th>Details</th></tr>
+    <tr><td><b>The builder</b></td><td><b>Alexei Brown</b>, trading as <b>qalarc</b> (qalarc.com — recent work: tradez.au, endispute.com.au). ABN appears on the invoice.</td></tr>
+    <tr><td><b>The client</b></td><td><b>Ben [surname]</b>, founder of <b>Reps With Friends</b> ("RWF"), owner of the RWF product design and Master Product Blueprint.</td></tr>
+  </table>
+
+  <h3>Purpose</h3>
+  <p>Ben engages Alexei to deliver the <b>pilot-ready RWF system</b>: the working prototype that already exists
+  (Appendix A) plus the milestones in §3 — one shared state authority, real player identity, always-on bots in the
+  group chats, camera verification hardened for real users, and the first three crews playing weekly with data
+  captured and the five open product decisions implemented.</p>
+
+  <div class="q">
+    <div class="qt">One line on equity</div>
+    <div class="qb">The equity conversation remains open and separate — it is not priced into, or out of, this
+    document.</div>
+  </div>
+
+  <h3><span class="sno">2</span>Fee &amp; payment</h3>
+  <p>The total fee is <b class="mono lime" style="font-size:13px;">AU$2,500</b>, plus GST if applicable, paid in three
+  parts tied to the schedule and to demonstrated milestones:</p>
+
+  <table class="t" style="margin-bottom:10px;">
+    <tr><th style="width:30px;">#</th><th style="width:170px;">When</th><th style="width:90px;">Amount</th><th>What it buys</th></tr>
+    <tr><td class="mono"><b>1</b></td><td><b>On signing</b></td><td class="mono"><b>AU$1,000</b></td><td>Deposit — <b>non-refundable</b>; secures the build schedule (the calendar weeks are held for RWF) and carries Milestone 1</td></tr>
+    <tr><td class="mono"><b>2</b></td><td><b>On acceptance of Milestone 2</b></td><td class="mono"><b>AU$750</b></td><td>Always-on bots in two chat platforms; camera verification hardened for real users</td></tr>
+    <tr><td class="mono"><b>3</b></td><td><b>On acceptance of the Pilot milestone</b></td><td class="mono"><b>AU$750</b></td><td>Three crews live, data captured, the five product decisions implemented</td></tr>
+    <tr><td></td><td style="border-top:1px solid var(--line-bright);"><b>Total</b></td><td style="border-top:1px solid var(--line-bright);" class="mono"><b class="lime">AU$2,500</b></td><td style="border-top:1px solid var(--line-bright);">Plus GST if applicable</td></tr>
+  </table>
+
+  <h3>Payment terms</h3>
+  <ul>
+    <li><b>Invoices via qalarc</b>, payment due <b>14 days</b> from the invoice date.</li>
+    <li><b>Acceptance is written</b> — an email or message saying "accepted" is fine. If a milestone demonstration
+    gets no response within <b>7 days</b>, the milestone counts as accepted.</li>
+    <li><b>The deposit is non-refundable</b> once this agreement is signed: it holds the schedule. Work declined
+    beyond the deposit is handled pro-rata under §7 — nobody pays for nothing.</li>
+    <li>Hosting costs during the pilot (~AU$5–10/month) are the client's, per §6 — not part of this fee.</li>
+  </ul>
+  <div class="foot"><span>Reps With Friends — contract &amp; scope</span><span class="draft">Draft for review — not legal advice</span><span>2 / 8</span></div>
+</section>
+
+<!-- ═══ SHEET 3 · §3 M1 ═══ -->
+<section class="sheet">
+  <div class="k">3 · Deliverables &amp; milestones</div>
+  <div style="display:flex;justify-content:space-between;align-items:baseline;">
+    <div class="sect">Milestone 1 — one system, on a phone</div>
+    <span class="pill m1">Week 1 · deposit period</span>
+  </div>
+  <div class="lede">Goal: the app, the bots and the API stop being three systems and become one — and the whole thing
+  runs on a real phone, natively.</div>
+
+  <div class="del"><div class="n">1</div><div style="min-width:0;">
+    <div class="dt">App ↔ API state unification <span class="ref">blocker T5 · docs/22 P2</span></div>
+    <div class="db">One state authority (<span class="mono">apps/api</span>): a crew created anywhere is playable
+    everywhere. The bot→API mirror is <b>already landed and live-tested</b>; this milestone wires the app and the
+    running bots to it, killing the localStorage/file split for good.</div></div></div>
+
+  <div class="del"><div class="n">2</div><div style="min-width:0;">
+    <div class="dt">Auth-lite — magic-link sign-in <span class="ref">blocker T4</span></div>
+    <div class="db">Passwordless email sign-in via Resend (live infrastructure): one real identity per player,
+    multiple devices, no more free-typed names. No passwords to store, no accounts to babysit.</div></div></div>
+
+  <div class="del"><div class="n">3</div><div style="min-width:0;">
+    <div class="dt">The Figma app on Android, natively <span class="ref">native shell · TWA</span></div>
+    <div class="db">Ben's 65-screen design — already running as a working app — packaged in the native Android
+    shell and installed on real phones from a link. An app on the home screen, not a browser tab.</div></div></div>
+
+  <div class="acc">
+    <div class="ah">Acceptance — ticked or it isn't</div>
+    <div class="ar"><span class="cb"></span><span>A crew created on a phone (Android, native shell) plays a full match end-to-end</span></div>
+    <div class="ar"><span class="cb"></span><span>That same match is visible from the WhatsApp group bot — standings, result card, the lot<span class="sub">The Qalarc Hub carries WhatsApp during the build; see §4 for the Cloud API boundary</span></span></div>
+    <div class="ar"><span class="cb"></span><span>A player signs in by magic link on a second device; their identity and crews carry over</span></div>
+    <div class="ar"><span class="cb"></span><span>A crew code binds a chat to a crew with no manual steps from Alexei</span></div>
+  </div>
+
+  <p><b>M1 is covered by the deposit</b> — no further payment on acceptance. Accepting M1 locks in the M2 schedule
+  and releases the first AU$750 invoice when M2 lands.</p>
+  <p style="font-size:10.5px;color:var(--faint);">Every acceptance box in this document is written to be
+  demonstrable in one sitting: either the thing happens in front of you, or it doesn't. No vibes-based milestones.</p>
+  <div class="foot"><span>Reps With Friends — contract &amp; scope</span><span class="draft">Draft for review — not legal advice</span><span>3 / 8</span></div>
+</section>
+
+<!-- ═══ SHEET 4 · §3 M2 ═══ -->
+<section class="sheet">
+  <div class="k">3 · Deliverables &amp; milestones</div>
+  <div style="display:flex;justify-content:space-between;align-items:baseline;">
+    <div class="sect">Milestone 2 — always-on, real users</div>
+    <span class="pill m2">Weeks 2–3</span>
+  </div>
+  <div class="lede">Goal: the system runs itself — no orchestrator machine, no founder keeping the lights on.</div>
+
+  <div class="del"><div class="n">1</div><div style="min-width:0;">
+    <div class="dt">Always-on bots on the GMKtec box <span class="ref">blockers T3 + T1</span></div>
+    <div class="db">Bots move to the GMKtec minirig as auto-restarting system services — they survive reboots and
+    run without any dev machine on. <b>Slack goes live with real tokens</b> (needs the five-minute Slack-app
+    creation, done together on one call); <b>WhatsApp runs via the Qalarc Hub</b>.</div></div></div>
+
+  <div class="del"><div class="n">2</div><div style="min-width:0;">
+    <div class="dt">Beeper transport, live <span class="ref">built &amp; tested · docs/22</span></div>
+    <div class="db">One bot account reaching multiple bridged networks — the founder/friends/community lane. The
+    transport is already built and tested; this milestone switches it on against live state.</div></div></div>
+
+  <div class="del"><div class="n">3</div><div style="min-width:0;">
+    <div class="dt">Camera verification hardened for 3 real users <span class="ref">element family E</span></div>
+    <div class="db">On-device rep counting (MoveNet — nothing uploaded) tuned for real rooms: lighting and angle
+    tolerance, honest failure states, <span class="mono">verified</span> flags that mean something. Exercised by
+    three real people on their own phones.</div></div></div>
+
+  <div class="acc">
+    <div class="ah">Acceptance — 72 hours of proof</div>
+    <div class="ar"><span class="cb"></span><span><b>72 hours of uninterrupted bot uptime</b> — no orchestrator machine involved, demonstrated on the GMKtec box</span></div>
+    <div class="ar"><span class="cb"></span><span><b>2 real groups playing full matches</b> without Alexei intervening mid-match</span></div>
+    <div class="ar"><span class="cb"></span><span><b>3 real users</b> complete camera-verified sets on their own phones</span></div>
+    <div class="ar"><span class="cb"></span><span>The <b>weekly digest</b> posts to both groups automatically, on schedule</span></div>
+  </div>
+
+  <p><b>Payment:</b> AU$750 invoiced on acceptance, 14-day terms.</p>
+  <p style="font-size:10.5px;color:var(--faint);">The 72-hour run is the heart of this milestone: it proves the
+  pilot can happen without a babysitter, which is the difference between a demo and a product.</p>
+  <div class="foot"><span>Reps With Friends — contract &amp; scope</span><span class="draft">Draft for review — not legal advice</span><span>4 / 8</span></div>
+</section>
+
+<!-- ═══ SHEET 5 · §3 PILOT + FIVE DECISIONS ═══ -->
+<section class="sheet">
+  <div class="k">3 · Deliverables &amp; milestones</div>
+  <div style="display:flex;justify-content:space-between;align-items:baseline;">
+    <div class="sect">Pilot milestone — three crews, playing weekly</div>
+    <span class="pill pilot">Week 4 onward</span>
+  </div>
+  <div class="lede">Goal: evidence. Three real crews, real matches, real data — and the five open product decisions
+  made and shipped.</div>
+
+  <div class="cols" style="margin-bottom:10px;">
+    <div class="stat" style="margin:0;"><div class="l" style="margin-top:0;">1 · First 3 real crews onboarded</div>
+      <div class="s">Recruits are Ben's lane — network, publicity, the Silverchair lever. Onboarding, kit and
+      hand-holding are Alexei's.</div></div>
+    <div class="stat" style="margin:0;"><div class="l" style="margin-top:0;">2 · Data captured</div>
+      <div class="s">Matches, participation, verification rates, retention — the pilot evidence base, exportable.</div></div>
+    <div class="stat" style="margin:0;"><div class="l" style="margin-top:0;">3 · Weekly digest shipping</div>
+      <div class="s">Matches, margins, MVPs, pot, rivalry callout — posted to each crew on schedule, automatically.</div></div>
+    <div class="stat" style="margin:0;"><div class="l" style="margin-top:0;">4 · Five decisions implemented</div>
+      <div class="s">Per Ben's calls, within pilot scope — see the gates below. Both directions are already prototyped.</div></div>
+  </div>
+
+  <h3 style="margin-top:2px;">The five product decisions — gates, not blockers <span class="pill m1" style="margin-left:6px;">Ben calls each one</span></h3>
+  <table class="t" style="margin-bottom:10px;">
+    <tr><th style="width:80px;">Decision</th><th>Ben's Figma says</th><th>Our build says</th><th style="width:150px;">The gate</th></tr>
+    <tr><td><b class="lime">Fairness</b></td><td>Personalised targets; winner = completion % of own target</td><td>Shared 300 + tier multipliers (×1.5 → ×0.85)</td><td>Ben calls the direction; build implements it</td></tr>
+    <tr><td><b class="lime">Platform</b></td><td>Native app, store push, IAP</td><td>PWA + chat bots day one — shipped</td><td>Ben calls; native stays out of pilot scope (§4)</td></tr>
+    <tr><td><b class="lime">Rhythm</b></td><td>Multi-day battles, daily winners, nightly danger zone</td><td>One match to 300 with the close-moment finale</td><td>Ben calls; seasons contain whichever wins</td></tr>
+    <tr><td><b class="lime">Power-ups</b></td><td>Four at launch + rarity + store + Pro slots</td><td>None in MVP; comeback badge only</td><td>Ben calls scope; store economics stay out (§4)</td></tr>
+    <tr><td><b class="lime">Brand</b></td><td>Gold + purple · Anton/Inter · reps.fit</td><td>Lime + coral · Space Grotesk · rwf.qalarc.com</td><td>Founder taste — Ben leads, Alexei executes</td></tr>
+  </table>
+
+  <div class="acc">
+    <div class="ah">Acceptance — the pilot numbers</div>
+    <div class="ar"><span class="cb"></span><span><b>3 groups playing</b></span></div>
+    <div class="ar"><span class="cb"></span><span><b>≥2 matches per group per week</b>, sustained for two consecutive weeks</span></div>
+    <div class="ar"><span class="cb"></span><span><b>Week-2 retention ≥60%</b> of onboarded players still active</span></div>
+  </div>
+
+  <p><b>Payment:</b> AU$750 invoiced on acceptance, 14-day terms. Hosting handover per §6.</p>
+  <div class="foot"><span>Reps With Friends — contract &amp; scope</span><span class="draft">Draft for review — not legal advice</span><span>5 / 8</span></div>
+</section>
+
+<!-- ═══ SHEET 6 · §4 SCOPE ═══ -->
+<section class="sheet">
+  <div class="k">4 · Scope boundaries</div>
+  <div class="sect">In scope — and out</div>
+  <div class="lede">Clear edges keep a fixed fee honest. If it isn't listed here, the change rules at the bottom apply.</div>
+
+  <div class="cols">
+    <div>
+      <h3 style="margin-top:0;">In <span style="color:var(--faint);font-weight:600;">— the fee covers</span></h3>
+      <ul style="margin-top:4px;">
+        <li><b>All of §3</b> — the three milestones and their acceptance criteria, including the five product-decision implementations <i>within pilot scope</i></li>
+        <li><b>Defect fixes</b> for 30 days after pilot acceptance (§6)</li>
+        <li><b>Ops access</b> — the hub console, state API, digest output, and the Android install link</li>
+        <li><b>Deployment</b> — push-to-live hosting kept working and current through the pilot</li>
+        <li><b>Onboarding support</b> for the three crews — setup, first match, first week</li>
+      </ul>
+    </div>
+    <div>
+      <h3 style="margin-top:0;">Out <span style="color:var(--faint);font-weight:600;">— explicitly, and why</span></h3>
+      <table class="t">
+        <tr><td><b>App store releases</b><br><span style="font-size:9.5px;color:var(--faint);">Play / App Store submission &amp; review</span></td>
+            <td style="font-size:10px;">PWA + direct Android install cover the pilot with no review cycles</td></tr>
+        <tr><td><b>WhatsApp Cloud API migration</b><br><span style="font-size:9.5px;color:var(--faint);">official Meta API at scale</span></td>
+            <td style="font-size:10px;">Pilot runs on the Hub; Cloud API is the post-pilot production step (docs/22 P4)</td></tr>
+        <tr><td><b>Payments &amp; charity money</b><br><span style="font-size:9.5px;color:var(--faint);">any money handling</span></td>
+            <td style="font-size:10px;">Pledge-only until the legal opinion lands (raffle/betting classification risk — blocker L1)</td></tr>
+        <tr><td><b>Native iOS</b></td>
+            <td style="font-size:10px;">Android native shell + PWA everywhere else; iOS follows the platform decision</td></tr>
+      </table>
+    </div>
+  </div>
+
+  <h3>Change requests — swaps welcome, nothing silent</h3>
+  <div class="card">
+    <table class="t">
+      <tr><th style="width:190px;">Change type</th><th>How it's handled</th></tr>
+      <tr><td><b>Scope swap</b> — an OUT item in, an equal item out</td><td>Welcomed, no charge, as long as the effort roughly balances and the pilot dates hold</td></tr>
+      <tr><td><b>Addition — small</b> (a screen, a command, a tweak)</td><td>Priced per item as a written variation — agreed before it's built, never discovered on an invoice</td></tr>
+      <tr><td><b>Addition — large</b> (store economics, corporate suite, new integrations)</td><td>Deferred to the equity conversation — these are post-company build phases, not this engagement</td></tr>
+    </table>
+  </div>
+  <p style="font-size:10.5px;color:var(--faint);">Rule of thumb: if a change moves a pilot date or adds a platform,
+  it's written down first. Everything else is just good iteration.</p>
+  <div class="foot"><span>Reps With Friends — contract &amp; scope</span><span class="draft">Draft for review — not legal advice</span><span>6 / 8</span></div>
+</section>
+
+<!-- ═══ SHEET 7 · §5 IP + §6 WARRANTY + §7 TERM ═══ -->
+<section class="sheet">
+  <div class="k">5 · IP &amp; licence</div>
+  <div class="sect">Who owns what, and when</div>
+  <div class="lede">Three asset pools, kept clean: new code, Ben's design, and the infrastructure that already
+  exists. All of it ends up in the venture — this just sets the path.</div>
+
+  <table class="t" style="margin-bottom:9px;">
+    <tr><th style="width:190px;">Asset</th><th style="width:150px;">Owner today</th><th>What happens next</th></tr>
+    <tr><td><b>New code written under this agreement</b></td><td>Alexei / qalarc</td><td>Alexei's until <b>paid in full</b>; on final payment, <b>assigned to the joint venture / company to be formed</b>. If no company forms within 6 months of pilot acceptance, Ben instead holds a full, perpetual commercial licence</td></tr>
+    <tr><td><b>The existing system</b> (Appendix A — engine, bots, app, hosting)</td><td>Alexei / qalarc</td><td>Licensed to RWF from day one of this agreement — build on it, run it, demo it freely</td></tr>
+    <tr><td><b>Ben's Figma design + Master Product Blueprint</b></td><td>Ben</td><td>Remains Ben's; licensed to the venture — and to Alexei, to build and maintain the system</td></tr>
+    <tr><td><b>qalarc infrastructure</b> — Qalarc Hub (messaging sessions), deploy pipeline, AI proxy</td><td>qalarc</td><td><b>Licensed for RWF use, not transferred</b> — it serves other properties. The <span class="mono">rwf.qalarc.com</span> domain moves to the venture when the venture asks</td></tr>
+  </table>
+
+  <h3>Open-source &amp; attribution obligations <span style="color:var(--faint);font-weight:600;">— carried forward, no surprises</span></h3>
+  <ul>
+    <li><b>BVH motion data is CC-BY</b> — attribution is retained in-repo on every use.</li>
+    <li><b>The Geno base mesh is non-commercial-licensed</b> — flagged now; a replacement rig is planned before any
+    commercial use of avatar exports, so the obligation never follows the product out the door.</li>
+    <li>Everything else in the stack is permissively licensed; a full attribution sheet ships with the code.</li>
+  </ul>
+
+  <h3><span class="sno">6</span>Warranty &amp; support</h3>
+  <ul>
+    <li><b>30 days from pilot acceptance: defect fixes included.</b> A defect is a delivered feature not working as
+    this document describes it — not a new idea.</li>
+    <li><b>Hosting during the pilot (~AU$5–10/month</b>: Pages + the always-on box) <b>is borne by Ben</b>.</li>
+    <li><b>Support is best-effort:</b> faults get attended promptly; there's no uptime guarantee at pilot scale —
+    that's what M2's 72-hour run de-risks.</li>
+    <li><b>New features aren't defects</b> — they go through §4's change rules.</li>
+  </ul>
+
+  <h3><span class="sno">7</span>Term &amp; termination</h3>
+  <ul>
+    <li><b>Either party may end this agreement with 14 days' written notice</b> — email is fine.</li>
+    <li><b>On termination:</b> accepted milestones are payable; in-progress work is payable pro-rata; the deposit
+    is not refundable in any case.</li>
+    <li><b>Handover is clean:</b> everything paid for is handed over under §5's licence and assignment terms —
+    nobody leaves stranded, and nothing built together gets locked away.</li>
+  </ul>
+  <div class="foot"><span>Reps With Friends — contract &amp; scope</span><span class="draft">Draft for review — not legal advice</span><span>7 / 8</span></div>
+</section>
+
+<!-- ═══ SHEET 8 · §8 SIGNATURES + APPENDIX A ═══ -->
+<section class="sheet">
+  <div class="k">8 · Execution</div>
+  <div class="sect">Signatures</div>
+  <div class="lede">Commences on the later of both signatures and receipt of the deposit. Electronic signatures are
+  fine — a replied email confirming both parties' agreement counts.</div>
+
+  <div style="display:flex;gap:14px;margin-bottom:12px;">
+    <div class="sig">
+      <div class="who">Alexei Brown</div>
+      <div class="role">Trading as qalarc — "the builder"</div>
+      <div class="sline"></div><div class="slab">Signature</div>
+      <div class="sline"></div><div class="slab">Date</div>
+    </div>
+    <div class="sig">
+      <div class="who">Ben [surname]</div>
+      <div class="role">Founder, Reps With Friends — "the client"</div>
+      <div class="sline"></div><div class="slab">Signature</div>
+      <div class="sline"></div><div class="slab">Date</div>
+    </div>
+  </div>
+
+  <div class="k" style="color:var(--faint);letter-spacing:.2em;">Appendix A · current-state inventory</div>
+  <div class="sect" style="font-size:18px;">What already exists — Ben's to use from day one</div>
+  <p style="font-size:10.5px;margin-bottom:10px;">Everything below is built, tested and live at
+  <span class="mono">rwf.qalarc.com</span> today, licensed under §5. The fee in §2 buys the last mile — completion
+  to pilot-ready — on top of this base.</p>
+
+  <table class="t">
+    <tr><th style="width:150px;">System</th><th>What's there</th></tr>
+    <tr><td><b>Game engine</b><br><span style="font-size:9px;color:var(--faint);">@rwf/game-core</span></td>
+        <td>300-format matches · tier handicap v1 (couch ×1.5 → athlete ×0.85) · closure bonus · comeback ×1.2 · 4-week seasons with divisions &amp; belt · charity-pot ledger · %HRR blend math engine-ready — <b>100% branch coverage</b></td></tr>
+    <tr><td><b>Chat bots</b><br><span style="font-size:9px;color:var(--faint);">bot-core + WhatsApp/Slack</span></td>
+        <td>One command grammar across WhatsApp (Qalarc Hub) + Slack (Bolt): new · join · log · standings · taunt · result · rematch · digest · season · watch — result cards, Monday digest, nemesis detection; Beeper transport built &amp; tested</td></tr>
+    <tr><td><b>The app</b><br><span style="font-size:9px;color:var(--faint);">phone-first PWA</span></td>
+        <td>Onboard → crew → match → seasons · on-device camera rep counting (MoveNet — nothing uploaded) · BLE heart-rate straps with %HRR · installable, offline-capable</td></tr>
+    <tr><td><b>Your design, running</b><br><span style="font-size:9px;color:var(--faint);">the Figma app</span></td>
+        <td>65 of Ben's screens as a working app — <b>11/11 engine-parity tests</b>, honest DEMO chips on unwired screens, offline PWA</td></tr>
+    <tr><td><b>Platform</b></td>
+        <td><span class="mono">apps/api</span> state authority · hub ops console · site with AI guide · 90-second demo replay · wiki</td></tr>
+    <tr><td><b>Ops</b></td>
+        <td>Push-to-deploy (GitHub → Cloudflare Pages, ~20s) · <b>250+ automated checks green</b>, CI-gated · AI layer with server-side keys</td></tr>
+  </table>
+
+  <div class="q" style="margin-top:10px;">
+    <div class="qt">The honest maths</div>
+    <div class="qb">Priced as studio work, the delivered base above is <b>AU$93–158k</b> of equivalent effort
+    (docs/19 §2). This engagement completes it to pilot-ready for <b>AU$2,500</b> — because the pilot is the point,
+    not the fee.</div>
+  </div>
+  <div class="foot"><span>Reps With Friends — contract &amp; scope</span><span class="draft">Draft for review — not legal advice</span><span>8 / 8</span></div>
+</section>
+
+<script>
+/* DOM overflow self-check — used by the build verification step only.
+   Runs exclusively when the page is loaded with ?check=1; never in print. */
+if (location.search.indexOf('check') !== -1) {
+  document.querySelectorAll('.sheet').forEach(function (s, i) {
+    var h = s.scrollHeight, w = s.scrollWidth;
+    s.setAttribute('data-metrics', (i + 1) + ': ' + w + 'x' + h +
+      (h > 1123 || w > 794 ? ' OVERFLOW' : ' ok'));
+  });
+}
+</script>
+</body>
+</html>

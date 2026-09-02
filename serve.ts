@@ -96,6 +96,8 @@ const MIME: Record<string, string> = {
   ".svg": "image/svg+xml",
   ".png": "image/png",
   ".ico": "image/x-icon",
+  ".pdf": "application/pdf",
+  ".apk": "application/vnd.android.package-archive",
 };
 
 function file(path: string, urlPath: string): Response | null {
@@ -272,6 +274,17 @@ const server = Bun.serve({
     } else if (p.startsWith("/wiki")) {
       // This documentation wiki (self-contained; shots copied into apps/wiki/shots).
       r = dirRoute("apps/wiki", url) ?? new Response("wiki not found", { status: 404 });
+    } else if (p === "/v1" || p.startsWith("/v1/")) {
+      // v1.1 coverage hub — the share page (rwf.qalarc.com/v1): every live
+      // surface, dashboard and business document on one page (apps/hub-public).
+      r = dirRoute("apps/hub-public", url) ?? new Response("coverage hub not found", { status: 404 });
+    } else if (p === "/deck" || p.startsWith("/deck/")) {
+      // founder PDFs (deck, appendix, contract) — served from the deploy
+      // bundle so localhost:4173 mirrors production paths exactly.
+      r = dirRoute("deploy/public/deck", url);
+    } else if (p === "/apk" || p.startsWith("/apk/")) {
+      // android APK — manual-install build, mirrored from the deploy bundle.
+      r = dirRoute("deploy/public/apk", url);
     } else if (p.startsWith("/figma-app")) {
       // Offline Figma test app — Ben's full design, every screen (lane F4).
       // Must sit ABOVE /figma: startsWith("/figma") would swallow it.

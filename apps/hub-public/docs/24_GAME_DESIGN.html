@@ -1,0 +1,342 @@
+<!doctype html>
+<html lang="en">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <title>Game Design — RWF Documents</title>
+  <link rel="icon" href="data:image/svg+xml,<svg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 100 100'><text y='.9em' font-size='90'>🏋️</text></svg>">
+  <!-- v1.1.0 · rendered from repo docs/ by apps/hub-public/docs/build.sh (pandoc) -->
+  <link rel="stylesheet" href="/design/tokens.css">
+  <link rel="stylesheet" href="/design/fonts/fonts.css">
+  <link rel="stylesheet" href="/v1/docs/docs.css">
+</head>
+<body>
+  <header class="doc-topbar">
+    <a class="doc-back" href="/v1#business">← Coverage hub</a>
+    <span class="doc-brand">REPS WITH FRIENDS · DOCUMENTS</span>
+    <span class="doc-ver mono">v1.1.0</span>
+  </header>
+  <main class="doc-page">
+    <article class="doc-body">
+<h1>Reps With Friends — Game Design Document</h1>
+<p><em>Version 1.0 · 2 Sep 2026 · Owner: Alexei Brown (build) + Ben (design/vision)</em> <em>Companion doc: <a href="25_DESIGN_BRIEF.html">docs/25_DESIGN_BRIEF.md</a> — the 2-page handout. This is the bible.</em></p>
+<p><strong>What this document is.</strong> The complete game design of Reps With Friends as it exists today — a working system, not a concept deck. Every mechanic described here is implemented and tested somewhere in this repo, and every section says where. Where the design is genuinely undecided (five founder-level decisions), this document says so honestly and lays out both sides.</p>
+<p><strong>How to run everything in this repo</strong> (a reader who has never seen it):</p>
+<pre><code>bun serve.ts          # → http://localhost:4173</code></pre>
+<table><thead><tr><th>Route</th><th>What it is</th></tr></thead><tbody><tr><td><code>/figma-app</code></td><td>The offline test app — <strong>Ben's full design, every screen</strong>, running our real engine (lane F4)</td></tr><tr><td><code>/styles</code></td><td>Five-theme design exploration, side-by-side gallery</td></tr><tr><td><code>/system</code></td><td>Complete dissemination: tokens, 16 components, 36 elements A–G with status</td></tr><tr><td><code>/wiki</code></td><td>This documentation as browsable pages (Game Rules, App Screens, Bots, Verification, Avatars, Ops, Design, Status)</td></tr><tr><td><code>/atelier</code></td><td>Outfit Atelier — avatar garment inspection tool (x-ray, seams, poses)</td></tr><tr><td><code>/demo</code>, <code>/debug</code>, <code>/hub</code>, <code>/connect</code>, <code>/slack</code>, <code>/avatars</code></td><td>90-second match replay · live bot simulator · ops console · WhatsApp linking · Slack setup · avatar playground</td></tr></tbody></table>
+<p>The same content is publicly deployed at <strong>rwf.qalarc.com</strong>.</p>
+<p><strong>Source documents:</strong> Ben's original brief (summarised in <a href="01_BUSINESS_ANALYSIS.html">docs/01_BUSINESS_ANALYSIS.md</a> §2) · the founder-decision audit of his production Figma (<a href="figma_design_analysis.html">figma/notes/analysis.md</a>) · the element backlog (docs/07) · our MVP design spec (docs/13) · the wiki's own rules chapter (<code>apps/wiki/game.html</code>). Code references: <code>packages/game-core</code> (the TypeScript spec), <code>apps/figma-app/engine.js</code> (faithful browser port), <code>apps/figma-app/daily.js</code> (play-day/temporal layer), <code>packages/bot-core</code> (the chat bots).</p>
+<hr>
+<h2>1. The fantasy</h2>
+<p><strong>Training stops being something you grind alone.</strong></p>
+<p>The target user is a 35–50 year old who used to be fit, isn't anymore, and has a group chat full of mates in exactly the same position. Every fitness app on earth sells them the same lonely loop: open app → log workout → stare at your own graph → feel vaguely guilty → churn by week three.</p>
+<p>RWF replaces that with <strong>your mates</strong>. The gym session becomes a fixture of the group chat — with standings, deadlines, comebacks, theft, taunts and a charity pot. You are never training alone; someone is always ahead of you or coming for you. The game's promise, mechanically enforced (§4): <strong>everyone has a genuine shot until the last set.</strong></p>
+<p>Three load-bearing ideas arrived fully formed in Ben's original brief (docs/01 §2) and have survived every design pass unchanged:</p>
+<ol>
+<li>
+<strong>The &quot;300&quot; format</strong> — a real training-ground game Ben brought with him:&lt;br&gt;the group agrees on exercises, then any reps, any order, any mix, first to&lt;br&gt;300 total. Self-balancing (you choose your own mix), zero setup friction,&lt;br&gt;instantly understandable in one chat message. The name does half the&lt;br&gt;marketing (&amp;quot;tonight we do a 300&amp;quot; needs no explanation to anyone who has&lt;br&gt;ever seen &lt;em&gt;300&lt;/em&gt;).
+</li>
+<li>
+<strong>The handicap system</strong> — effort and consistency compete, not raw fitness.&lt;br&gt;A couch player's push-up is &lt;em&gt;worth more&lt;/em&gt; than an athlete's. This is the&lt;br&gt;moat: golf proved decades ago that handicaps keep weak players paying;&lt;br&gt;nobody in fitness does this well. It is also the hardest thing to get&lt;br&gt;right — which is why it's defensible (§4).
+</li>
+<li>
+<strong>Taunting as a feature, charity as the stakes.</strong> Banter is the content&lt;br&gt;engine; filming a mate mid-set is the ad. The pot gives trash talk real&lt;br&gt;consequence without gambling: <strong>the winner directs the pot to charity —&lt;br&gt;never receives it</strong> (Nico's idea, adopted; legal structure pending,&lt;br&gt;docs/01 §5). Losing money to a mate is a grudge; losing it to charity is a&lt;br&gt;story.
+</li>
+</ol>
+<p>Everything else in this document is those three ideas, elaborated.</p>
+<hr>
+<h2>2. The core loop</h2>
+<pre><code>┌─ PREP ─────────────────────────────────────────────────────────────────────┐
+│ crew picks play days + exercises → match created                           │
+│ (waiting room + crew code) · bot: `rwf new` · app: create-battle screen    │
+└────────────────────────────────────────────────────────────────────────────┘
+                                      │
+                                      ▼
+┌─ EVERY PLAY DAY (e.g. Mon/Wed/Fri) — loops ────────────────────────────────┐
+│                                                                            │
+│  log reps ───▶ live standings ───▶ deadline pressure ──▶ day closes        │
+│  (chat or app)   effort-adjusted    DZ1 ─▶ DZ2 ─▶ DZ3   21:00 AEST         │
+│                   comeback armed   ≤3h    ≤1h   ≤30min       │             │
+│                                                              ▼             │
+│  DAILY WINNER + RECAP — &quot;YOU WON TUESDAY&quot; · MOMENTS · next day opens       │
+│                                                                            │
+└────────────────────────────────────────────────────────────────────────────┘
+    │  at any moment: the first RAW total to reach the target…
+    ▼
+┌─ FINALE ──────────────────────────────┐        ┌─ SEASON · 4 weeks ────────────┐
+│ match CLOSES · closure bonus +15      │        │ 3/2/1 points · MVP +1         │
+│ RESULT CARD + CHARITY POT             │ ─────▶ │ champion · A/B swap           │
+│ (the winner directs the pot)          │        │ streaks · forgiveness $2      │
+└───────────────────────────────────────┘        └───────────────────────────────┘
+                   │
+                   ▼
+REMATCH — one tap, same crew, fresh pot ──▶ back to PREP</code></pre>
+<p>Each step, mapped to where it lives:</p>
+<table><thead><tr><th>Step</th><th>Where it's implemented (screen / bot command / engine)</th></tr></thead><tbody><tr><td>Group picks play days + exercises</td><td>App: create-battle screen (<code>/figma-app</code>, shot <code>10-create-battle.png</code>) → <code>config.playDays</code>; bot: <strong><code>rwf new [target]</code></strong> (default 300) announces exercises + play days (<code>packages/bot-core/src/bus.ts</code>)</td></tr><tr><td>Match created</td><td><code>createMatch()</code> — <code>apps/figma-app/engine.js</code> / <code>packages/game-core/src/match.ts</code>; waiting room with 5-char crew code (no 0/O/1/I) + QR/invite (<code>18-waiting-room.png</code>); bot <code>link &lt;code&gt;</code> binds the chat</td></tr><tr><td>Log reps from chat</td><td><strong><code>log pushups 25!</code></strong> — trailing <code>!</code> = camera-verified; chains <code>applyComeback</code> → closure check (bus.ts <code>cmdLog</code>)</td></tr><tr><td>Log reps from app</td><td>Log sheet: bottom sheet, preset chips 5/10/20/30/50, camera toggle (<code>27-log-sheet.png</code>, <code>57-camera-note.png</code>)</td></tr><tr><td>Live standings (effort-adjusted)</td><td><code>standings()</code> in engine — raw reps, adjusted score, progress %, verified %; app battle screen (<code>24-battle-live.png</code>); bot <strong><code>s</code></strong> replies with medal bars + ⚡ comeback markers + 👁 spectator count</td></tr><tr><td>Deadline pressure (danger zone)</td><td><code>apps/figma-app/daily.js</code> <code>dangerLevel / dzCopy / deadlineClock</code> — 1-second app ticker; DZ1/2/3 chrome (§3.3)</td></tr><tr><td>Daily winner + recap</td><td><code>closeDay / settleDay / recapFor</code> in daily.js — the day auto-closes at the 21:00 Australia/Sydney deadline, winner recorded to <code>dailyHistory</code>, recap card renders (<code>d48-recap-you-won.png</code>, <code>d59-recap-sam-took.png</code>)</td></tr><tr><td>Match closes at target</td><td><code>logReps()</code> — the first log taking a player's <strong>raw</strong> total to ≥ target flips status to <code>complete</code>, stamps <code>closedBy</code>, logging locks</td></tr><tr><td>Result + charity pot</td><td><code>finalStandings()</code> (closure bonus applied) → result screen (<code>38-39-result-final.png</code>), pot screens (<code>41-43-result-pot*.png</code>); engine <code>pot.ts</code>; bot <strong><code>result</code></strong> writes a 1200×675 SVG share card, <strong><code>pot 500</code></strong> = &quot;$5.00 banked. Winner picks where it goes.&quot;</td></tr><tr><td>Season arc</td><td><code>packages/game-core/src/season.ts</code> — <code>recordMatch</code> 3/2/1+MVP, <code>seasonLadder</code>, <code>endSeason</code>; app ladder screen (<code>48-49-season-ladder.png</code>); bot <strong><code>season new / ladder</code></strong></td></tr><tr><td>Rematch</td><td>One tap in app (<code>45-46-rematch-live.png</code>); bot <strong><code>rematch</code></strong> / <code>again</code> / <code>runitback</code> — same roster/rules, fresh pot</td></tr></tbody></table>
+<p>The loop is deliberately <strong>chat-first</strong>: every broadcast (standings, result cards, taunts) is an ad seen by the whole group chat; spectators convert via <code>watch &lt;code&gt;</code> (docs/01 §2 — &quot;the second moat&quot;).</p>
+<hr>
+<h2>3. The battles</h2>
+<p>This is the founder's explicit ask: <em>map out the battles.</em> There are five battle forms — three shipped, one designed, one genuinely open.</p>
+<h3>3.1 The Classic 300 <em>(shipped — the canonical form)</em></h3>
+<ul>
+<li>
+<strong>Setup:</strong> the crew agrees on 2–4 exercises and a play schedule (2–3&lt;br&gt;days/week — anti-burnout by design; &amp;quot;rest day, never *missed day*&amp;quot;).&lt;br&gt;Default target 300 raw reps; a &amp;quot;Light&amp;quot; match is 150 (&lt;code&gt;new 150&lt;/code&gt;).
+</li>
+<li>
+<strong>Play:</strong> any reps, any exercise from the agreed set, any order, any mix,&lt;br&gt;from the chat or the app. Reps can be camera-verified (&lt;code&gt;log pushups 25!&lt;/code&gt;).
+</li>
+<li>
+<strong>Win condition — the twist that IS the product:</strong> the first player to hit&lt;br&gt;the &lt;strong&gt;raw&lt;/strong&gt; target &lt;em&gt;closes&lt;/em&gt; the match (logging locks instantly), but the&lt;br&gt;winner is the highest &lt;strong&gt;effort-adjusted&lt;/strong&gt; score at closure. The closer gets&lt;br&gt;+15. An athlete can close on raw reps and still lose to a couch player who&lt;br&gt;moved less but earned more per rep.
+</li>
+</ul>
+<pre><code>entry value   = reps × tierMultiplier × (comeback? ×1.2) × (lightning? ×3)
+match winner  = max(Σ entry values), +15 to the player who closed</code></pre>
+<p><strong>Worked match (real numbers, from the live bot transcript — wiki → Bots):</strong> Target 150. Ben (couch ×1.5) logs 40 push-ups → <strong>60 adj</strong>. Nico (athlete ×0.85) logs 80 squats → <strong>68 adj</strong>. Ben is now &gt;30% behind on raw (40 vs 80 → gap 50%) → comeback armed ⚡. Ben logs 110 push-ups: 110 × 1.5 × 1.2 = <strong>198</strong>, and his raw (150) hits the target → match closes, +15 closure bonus. Final: <strong>Ben 273</strong> (60 + 198 + 15), Nico 68. Ben closed <em>and</em> won — but against a fitter closer, the upset is live: if Nico had also finished, the adjusted column decides, not the clock.</p>
+<h3>3.2 Fast Battle vs Custom Battle <em>(the two creation paths)</em></h3>
+<p>Ben's Figma defines both; the app ships the creation flow, the bots ship the one-line version.</p>
+<table><thead><tr><th></th><th><strong>Fast Battle</strong></th><th><strong>Custom Battle</strong></th></tr></thead><tbody><tr><td>Setup</td><td>One screen: name, days, exercise pack, target tier</td><td>8-step wizard: schedule &amp; clock → format → exercises &amp; scoring → power-ups → stakes → review (&quot;THE RULES, IN PLAIN ENGLISH&quot;) → create</td></tr><tr><td>Use it when</td><td>95% of matches — Tuesday-night energy</td><td>Corporate leagues, charity specials, weird stakes</td></tr><tr><td>Where</td><td><code>/figma-app</code> create flow (Figma <code>FLOW-02/03</code>); bot <code>new [target]</code> is the chat-native fast path</td><td>Designed in full fidelity in Ben's Figma; rules lock at start, everyone accepts the summary before joining</td></tr><tr><td>Stakes step</td><td>Defaults (bragging)</td><td>Bragging · dares · charity · cash-18+ (cash feature-flagged OFF pending legal, §6)</td></tr></tbody></table>
+<h3>3.3 Daily-rhythm multi-day battles <em>(shipped in the app — the hybrid, see 3.5)</em></h3>
+<ul>
+<li>
+<strong>Setup:</strong> a battle spans days — e.g. 2 weeks, active Mon/Wed/Fri. The group&lt;br&gt;shares one clock: every play day ends &lt;strong&gt;21:00 Australia/Sydney&lt;/strong&gt; (each player&lt;br&gt;sees the local equivalent — the dual clock: &amp;quot;ends 9:00 PM AEST · 7:00 PM for&lt;br&gt;you&amp;quot;). Time Freeze (+30 min, §5) is the only thing that moves a deadline.
+</li>
+<li>
+<strong>Play:</strong> log any time during the day. The final three hours escalate the&lt;br&gt;&lt;strong&gt;danger zone&lt;/strong&gt;: DZ1 ≤3h (gold chip) → DZ2 ≤1h (orange banner, pulse) →&lt;br&gt;DZ3 ≤30min (red banner with live minute count — &amp;quot;DANGER ZONE — 24 MINUTES&lt;br&gt;LEFT&amp;quot; — heartbeat on the timer, full screen wash, &amp;quot;LOG NOW&amp;quot;). Layout never&lt;br&gt;changes; only colour and the timer escalate (motion law, docs/25).
+</li>
+<li>
+<strong>Win condition:</strong> at the deadline the day <strong>closes itself exactly once</strong> —&lt;br&gt;logging locks, the day's winner (highest adjusted among &lt;em&gt;that day's&lt;/em&gt; entries&lt;br&gt;only) is recorded to &lt;code&gt;dailyHistory&lt;/code&gt;, a recap renders, and the next play day&lt;br&gt;begins. Tie-break: adjusted → raw reps → earliest first entry. A day nobody&lt;br&gt;logs closes as &amp;quot;NOBODY LOGGED. BRUTAL DAY.&amp;quot; (streaks survive; pride doesn't).&lt;br&gt;Absences never chain-generate a pile of brutal days — only the boundary day&lt;br&gt;auto-closes empty.
+</li>
+<li>
+<strong>The recap card (FLOW-07):</strong> &quot;YOU WON TUESDAY&quot; / &quot;SAM TOOK TUESDAY&quot; · your&lt;br&gt;line (&amp;quot;You finished 2nd at 92% — 10 RUF short.&amp;quot;) · the sting (&amp;quot;You led until&lt;br&gt;7:04 PM. Tomorrow, finish the job.&amp;quot;) · nemesis tease · MOMENTS strip&lt;br&gt;(biggest set, comeback claimed, clean sweep, lead change) · tomorrow's&lt;br&gt;stakes in your timezone.
+</li>
+<li>
+<strong>Where:</strong> all of it is <code>apps/figma-app/daily.js</code> (<code>isPlayDay /&lt;br&gt;deadlineFor / dangerLevel / closeDay / settleDay / recapFor</code>), proven by&lt;br&gt;&lt;code&gt;e2e-daily.mjs&lt;/code&gt; which time-travels the whole ramp. Screens: &lt;code&gt;d13&lt;/code&gt; calm →&lt;br&gt;&lt;code&gt;d19&lt;/code&gt; DZ1 → &lt;code&gt;d23&lt;/code&gt; DZ2 → &lt;code&gt;d30&lt;/code&gt; DZ3 → &lt;code&gt;d42&lt;/code&gt; close → &lt;code&gt;d48/d59&lt;/code&gt; recaps.
+</li>
+</ul>
+<p><strong>Worked day (numbers via the documented formula):</strong> You (casual ×1.25) log 40 push-ups at 7 AM → 50 adj. Sam (fit ×1.0) logs 60 squats at 6:30 PM → 60 adj. DZ2 fires at 8 PM. You log 20 push-ups at 8:20 — you're &gt;30% behind on raw (40 vs 60), comeback armed → 20 × 1.25 × 1.2 = 30 → <strong>You 80, Sam 60</strong>. Day closes at 9 PM: <em>&quot;YOU WON TUESDAY&quot;</em> · &quot;You beat Sam by 20 RUF today. They're coming for you.&quot; · pot grew $3 since yesterday's close · &quot;NEXT BATTLE DAY: WEDNESDAY — logs open now&quot;.</p>
+<h3>3.4 Crew vs Crew <em>(shipped in bots; corporate form designed)</em></h3>
+<ul>
+<li>
+<strong>Setup:</strong> two group chats, one match. Crew A's captain runs&lt;br&gt;&lt;strong&gt;&lt;code&gt;challenge &amp;lt;CREW-XXXX&amp;gt;&lt;/code&gt;&lt;/strong&gt;, crew B accepts (&lt;code&gt;challenge accept&lt;/code&gt;). Corporate&lt;br&gt;variant in Ben's Figma: dept-vs-dept / office-vs-office with a&lt;br&gt;&lt;strong&gt;contribution floor&lt;/strong&gt; (team score only counts in full once every member&lt;br&gt;clears ~40 RUF — nobody rides the bench) and an &lt;strong&gt;Assist Boost&lt;/strong&gt; send CTA.
+</li>
+<li>
+<strong>Play:</strong> identical to the classic 300, standings merged across both chats;&lt;br&gt;spectators in either chat see the combined board.
+</li>
+<li>
+<strong>Win condition:</strong> highest cumulative adjusted crew score at closure (bot&lt;br&gt;&lt;code&gt;s&lt;/code&gt; shows both crests); employer-funded charity pot is the cleanest stakes&lt;br&gt;structure for this form (docs/08 §6).
+</li>
+<li>
+<strong>Where:</strong> bot <code>challenge</code> + <code>watch</code> (bus.ts, live today); team battles +&lt;br&gt;contribution floor designed in Figma (V1.x); corporate surfaces seeded in&lt;br&gt;the &lt;code&gt;/hub&lt;/code&gt; console (aggregate-only, k≥5 suppression).
+</li>
+</ul>
+<h3>3.5 The rhythm decision — his model vs ours, honestly <em>(OPEN, §9 D3)</em></h3>
+<p>This is the one genuine structural fork left in the battle design, and it deserves a straight presentation rather than a dodge:</p>
+<ul>
+<li>
+<strong>Ben's model (his Figma, built as designed in <code>/figma-app</code>):</strong> multi-day&lt;br&gt;battles, &lt;em&gt;personalised daily targets&lt;/em&gt; in RUF — Light 60 / Solid 120 / Hero&lt;br&gt;200, picked privately when joining — and the <strong>daily winner is whoever hits&lt;br&gt;the highest completion-% of their own target</strong>. Every level can win the day;&lt;br&gt;ability differences are hidden rather than spotlighted. Retention thesis:&lt;br&gt;losers get a fresh start tomorrow, so the loop never feels over.
+</li>
+<li>
+<strong>Our model (the bots / original engine):</strong> one shared target (300), one&lt;br&gt;match, first-to-close finale, handicap multipliers as the <em>visible&lt;br&gt;spectacle</em> — the standings are a running argument about who's really trying.
+</li>
+<li>
+<strong>What's actually shipped is the hybrid, and that's the honest answer:</strong>&lt;br&gt;the app runs Ben's rhythm (play days, nightly deadline, DZ ramp, daily&lt;br&gt;winners, recaps) on top of our engine (shared target, tier multipliers,&lt;br&gt;comeback, closure finale, charity pot). Daily winners give everyone a&lt;br&gt;fresh start tomorrow; the 300 closure gives the match a real finale.
+</li>
+<li>
+<strong>Recommendation:</strong> keep the hybrid, and resolve the last sub-question —&lt;br&gt;shared 300 target vs personalised RUF targets — at the founder call with&lt;br&gt;both variants playable side by side (§9).
+</li>
+</ul>
+<hr>
+<h2>4. The handicap system (the moat)</h2>
+<p><em>Thesis, verbatim from the code comment: effort and consistency compete, not raw fitness.</em></p>
+<h3>4.1 Tier multipliers (v1 — live)</h3>
+<p>Chosen at onboarding (self-set, socially policed), applied to every rep:</p>
+<table><thead><tr><th>Tier</th><th>Multiplier</th><th>100 raw reps score as</th><th>Expected weekly volume (anti-sandbag baseline)</th></tr></thead><tbody><tr><td>Couch</td><td>×1.5</td><td>150</td><td>150 reps</td></tr><tr><td>Casual</td><td>×1.25</td><td>125</td><td>250 reps</td></tr><tr><td>Fit</td><td>×1.0</td><td>100</td><td>400 reps</td></tr><tr><td>Athlete</td><td>×0.85</td><td>85</td><td>550 reps</td></tr></tbody></table>
+<p><code>TIER_MULTIPLIERS</code> — <code>apps/figma-app/engine.js</code> / <code>packages/game-core/src/handicap.ts</code>; expected volumes: <code>TIER_EXPECTED_WEEKLY_REPS</code> in <code>baseline.ts</code>.</p>
+<h3>4.2 The comeback multiplier ×1.2 — &quot;everyone has a shot&quot;, mechanically enforced</h3>
+<p>More than <strong>30% behind the leader in raw reps</strong> while the match is live → your <em>next</em> entry is tagged ×1.2. Once per player per match. Eligibility recomputes on every log; bot standings mark eligible players ⚡ so the group can see it coming. The boost is <strong>tagged onto the entry at log time</strong>, not a global multiplier — so it composes (a comeback entry inside a Lightning window scores ×1.2 ×3 = ×3.6, §5).</p>
+<p><code>COMEBACK_THRESHOLD = 0.3</code>, <code>COMEBACK_MULTIPLIER = 1.2</code> — <code>comeback.ts</code> / engine.js <code>comebackEligible / applyComeback</code>.</p>
+<h3>4.3 The closure bonus +15</h3>
+<p>The player whose raw total hits the target first gets +15 adjusted points — urgency and glory for the closer, but deliberately small enough that real effort still beats raw speed. A closer who sandbagged their tier wins nothing: +15 doesn't rescue a thin adjusted column. (Found by the test suite — a bug in the original bonus placement was caught and fixed before it ever shipped.)</p>
+<p><code>CLOSURE_BONUS = 15</code> — engine.js / <code>match.ts</code> <code>finalStandings / winner</code>.</p>
+<h3>4.4 Effort handicap v2 — %HRR blend (engine-ready, waiting on strap data)</h3>
+<p>When an entry carries a measured <code>avgHrrPct</code> (heart-rate reserve %, Karvonen, from a BLE strap) and the player has a learned baseline, the multiplier blends live evidence with the declared tier:</p>
+<pre><code>effortMultiplier = 0.7 × (avgHrrPct / baselineHrrPct) + 0.3 × tierMultiplier</code></pre>
+<p>70% measured, 30% declared. This makes <em>effort itself</em> the score — a couch player red-lining scores like a champion; an athlete phoning it in doesn't. The blend math is implemented and tested; it activates the day heart-rate straps land (docs/05 phasing).</p>
+<p><code>HRR_WEIGHT = 0.7</code> — <code>handicap.ts</code> / engine.js <code>effortMultiplier</code>.</p>
+<h3>4.5 Anti-sandbagging — baseline drift (engine-ready)</h3>
+<p>Self-reported tiers have a loophole: a ringer declares &quot;couch&quot; and farms the ×1.5. Two drift correctors close it (<code>baseline.ts</code>, gated to at most one tier step per week):</p>
+<ul>
+<li>
+<strong>HR path:</strong> <code>baselineHrrPct</code> drifts toward your rolling measured average,&lt;br&gt;max &lt;strong&gt;10% per update&lt;/strong&gt; — you can't tank your baseline in a weekend.
+</li>
+<li>
+<strong>Volume path:</strong> consistently logging <strong>&gt;1.3× your tier's expected weekly&lt;br&gt;volume</strong> drifts your tier one step &lt;em&gt;fitter&lt;/em&gt;. The &amp;quot;couch&amp;quot; player doing 5×&lt;br&gt;everyone's reps quietly becomes a casual.
+</li>
+</ul>
+<h3>4.6 The couch-beats-athlete worked example</h3>
+<p>The full thesis in one table (target 150, from the bot transcript):</p>
+<table><thead><tr><th></th><th>Ben — couch ×1.5</th><th>Nico — athlete ×0.85</th></tr></thead><tbody><tr><td>Log 1</td><td>40 push-ups → 60.0 adj</td><td>—</td></tr><tr><td>Log 2</td><td>—</td><td>80 squats → 68.0 adj</td></tr><tr><td>State</td><td>40 raw vs 80 raw → 50% behind → <strong>comeback armed ⚡</strong></td><td>leading</td></tr><tr><td>Log 3</td><td>110 push-ups → 110×1.5×<strong>1.2</strong> = 198.0 → raw 150 → <strong>CLOSES</strong></td><td>—</td></tr><tr><td>Final</td><td><strong>273.0</strong> (60+198+15 closure) — <strong>WINNER</strong></td><td>68.0</td></tr></tbody></table>
+<p>The athlete did the bigger single set and led most of the match. The adjusted column says: Ben tried harder per rep, from further back, when it counted. That sentence is the product.</p>
+<hr>
+<h2>5. Power-ups &amp; the economy</h2>
+<p>Four cards, live in the app (<code>/figma-app</code>, Figma <code>FLOW-05</code>; engine.js — figma-app only, deliberately not yet in game-core). All activations are pure functions returning a new match state + a result card; every activation is audit-logged to <code>powerLog</code>.</p>
+<table><thead><tr><th>Card</th><th>Rarity (drop %)</th><th>Exact effect</th></tr></thead><tbody><tr><td>⚡ <strong>Lightning Round</strong></td><td>legendary (5%)</td><td>Reps count <strong>×3 for 10 minutes</strong>. One <em>activation</em> per player per match — the window can expire, the once-per-match flag never resets.</td></tr><tr><td>🗡 <strong>Rep Steal</strong></td><td>epic (15%)</td><td>Take <strong>10% of the leading rival's raw reps</strong> (floor, min 1 while they're above zero), instantly. Both raw ledgers move; entries are logged as ledger transfers, so tier multipliers apply — a couch thief gains more adjusted than the athlete victim loses.</td></tr><tr><td>🛡 <strong>Shield</strong></td><td>common (50%)</td><td><strong>Blocks one Rep Steal</strong> against you, then breaks. A blocked steal <em>never fires</em>: the shield is consumed, <strong>the thief keeps their card</strong> — the shield buys the block, not a free kill.</td></tr><tr><td>⏱ <strong>Time Freeze</strong></td><td>rare (30%)</td><td><strong>+30 minutes</strong> on the play-day deadline, for everyone. The one card that bends time.</td></tr></tbody></table>
+<p><strong>Drop odds</strong> (<code>DROP_ODDS</code>): common 50 / rare 30 / epic 15 / legendary 5 — daily-drop style, one card per battle day in the Figma economy. Rarity is cosmetic in v1: chip colour + drop odds only, no mechanical effect.</p>
+<p><strong>The counter-web is the design.</strong> Lightning is capped at one activation so it can't be chained. Steal targets only the <em>current</em> leading rival (preview shows exactly what you'd take and whether a shield is up — <code>stealPreview</code>), so you can't snipe someone harmless. Shield makes Steal honest: theft against a prepared leader is a wasted card, so steals happen when someone has actually run away with it — which is exactly when the table wants a correction. Steals never trigger the closure check; only real logged reps close a match.</p>
+<p><strong>Stacking rule:</strong> comeback and lightning both tag the entry, so they multiply — a couch player's comeback set inside a lightning window is ×1.5 ×1.2 ×3 = ×5.4 per rep. Rare, loud, and earned from behind. That's the point.</p>
+<p><strong>What is deliberately unpriced.</strong> Nothing in the current build can be bought: cards are granted (<code>grantPowerUp</code> / daily drop), never sold. Ben's Figma designs the full economy — store packs ($1.99–$4.99), daily loot chest, Reps Pro subscription with 12 inventory slots — under one hard rule we adopt verbatim: <strong>&quot;Cosmetic and convenience only — you can't buy the win.&quot;</strong> Whether any of that ships in the MVP is open decision #4 (§9).</p>
+<hr>
+<h2>6. The social layer</h2>
+<ul>
+<li>
+<strong>Taunts (live).</strong> Bot <strong><code>taunt &lt;name&gt;</code></strong> — AI-generated cheek via the&lt;br&gt;server-side GLM proxy with canned fallback (2s timeout), because taunting&lt;br&gt;is a feature, not abuse: the crew opted in by joining. Proposed: per-crew&lt;br&gt;&lt;strong&gt;roast-tier setting&lt;/strong&gt; — gentle / standard / feral — gates the AI engine&lt;br&gt;(also the corporate-safe switch, docs/07 G-34). Line that must never move:&lt;br&gt;cheeky, never mean; &amp;quot;rest day&amp;quot;, never &amp;quot;missed day&amp;quot;; money screens drop all&lt;br&gt;banter.
+</li>
+<li>
+<strong>MVP vote (live).</strong> One vote, best <em>effort</em> not winner, locks on tap.&lt;br&gt;Feeds the season (+1 point) — the second podium, so showing up hard with a&lt;br&gt;bad multiplier still gets recognised.
+</li>
+<li>
+<strong>Nemesis (live).</strong> Auto-detected from head-to-head history: your nemesis&lt;br&gt;is the opponent who has beaten you the most, with ≥2 shared matches and ≥1&lt;br&gt;loss (someone you always beat is prey, not a rival). Bot &lt;code&gt;nemesis&lt;/code&gt;; shown&lt;br&gt;on profiles and result cards — every player gets a personal storyline, not&lt;br&gt;just the leaders'. &lt;code&gt;packages/game-core/src/nemesis.ts&lt;/code&gt;.
+</li>
+<li>
+<strong>Photo finish (live).</strong> Top two within <strong>5%</strong> adjusted → special result&lt;br&gt;card + slow-mo styling. Manufactures shareable drama from close matches.&lt;br&gt;&lt;code&gt;photo-finish.ts&lt;/code&gt;, &lt;code&gt;PHOTO_FINISH_PCT = 5&lt;/code&gt;.
+</li>
+<li>
+<strong>Monday digest (live).</strong> AI-written weekly recap auto-postable to the&lt;br&gt;chat: results, margins, MVPs, pot total, rivalry callout, one-liner. Bot&lt;br&gt;&lt;code&gt;digest&lt;/code&gt; / alias &lt;code&gt;monday&lt;/code&gt;; &lt;code&gt;packages/bot-core/src/digest.ts&lt;/code&gt;. Re-opens the&lt;br&gt;loop every week without anyone lifting a finger.
+</li>
+<li>
+<strong>Spectators (live).</strong> <code>watch &lt;code&gt;</code> — read-only standings of another crew&lt;br&gt;in your chat; standings show 👁 count. Spectators are the funnel: they see&lt;br&gt;the leaderboard without joining, and joining is one command.
+</li>
+<li>
+<strong>Result cards — the viral artefact (live).</strong> Every match end auto-&lt;br&gt;generates a branded 1200×675 card (SVG from the bots — &lt;code&gt;/cards/…&lt;/code&gt;, PNG&lt;br&gt;export from the app). Direction adopted from Ben's file: <strong>server-rendered,&lt;br&gt;no health data, pre-written editable message, join link</strong> — every result&lt;br&gt;card is an ad with a call to action.
+</li>
+<li>
+<strong>Drop-cam (proposed).</strong> 10-second clip capture during verified sets —&lt;br&gt;Ben's &amp;quot;friends filming friends&amp;quot; content engine (docs/07 C-14).
+</li>
+<li>
+<strong>The charity pot ritual (live as a pledge ledger).</strong> Players chip in&lt;br&gt;(&lt;code&gt;pot 500&lt;/code&gt; = $5.00); at result time the &lt;strong&gt;winner directs&lt;/strong&gt; the pot to a&lt;br&gt;charity of their choice (&lt;code&gt;designate&lt;/code&gt;) — a dedicated picker screen, the one&lt;br&gt;moment the product goes quiet and warm. Pot growth is recapped daily&lt;br&gt;(&lt;code&gt;potDeltaCents&lt;/code&gt; — growth since the previous day's close).
+</li>
+<li>
+<strong>The legal line.</strong> No cash ever moves to a winner; the pot is a pledge&lt;br&gt;ledger today and stays one until a proper legal opinion lands (AU&lt;br&gt;state-law raffle/betting classification risk — docs/01 §5, docs/08 §6).&lt;br&gt;&lt;strong&gt;Employer-funded pots are the clean interim structure&lt;/strong&gt; — the company&lt;br&gt;puts the money in, the winning crew directs it; nothing to classify.&lt;br&gt;Ben's full cash-wagers suite (KYC, regions, responsible-play limits,&lt;br&gt;separate ledger, never the word &amp;quot;escrow&amp;quot;) is designed behind a&lt;br&gt;feature flag and stays there (§9, D17).
+</li>
+</ul>
+<hr>
+<h2>7. Progression &amp; retention</h2>
+<p>The retention stack answers the week-3 cliff (docs/01 §5) with four layers — each one cheap, each compounding:</p>
+<ol>
+<li>
+<strong>Seasons (live).</strong> 4-week series. Every finished match feeds&lt;br&gt;&lt;code&gt;recordMatch&lt;/code&gt;: 1st +3, 2nd +2, 3rd +1, MVP vote +1. Ladder sorts&lt;br&gt;points → wins → MVPs. At season end: champion crowned (the belt —&lt;br&gt;physical trophies proposed, docs/07 F), and &lt;strong&gt;A/B division swap&lt;/strong&gt; —&lt;br&gt;bottom of A ↔ top of B — so mid-table stays meaningful all season.&lt;br&gt;&lt;code&gt;season.ts&lt;/code&gt;; app &lt;code&gt;48-49-season-ladder.png&lt;/code&gt;; bot &lt;code&gt;season ladder&lt;/code&gt;.
+</li>
+<li>
+<strong>Streaks + forgiveness (live).</strong> Streaks count <em>played weeks</em> (you chose&lt;br&gt;your days — no streak guilt for resting). A streak about to break can be&lt;br&gt;saved &lt;strong&gt;once per season&lt;/strong&gt; by topping the charity pot &lt;strong&gt;≥ $2&lt;/strong&gt; —&lt;br&gt;preserved, not extended. Guilt converts to pot money; no free rides&lt;br&gt;(&lt;code&gt;FORGIVE_MIN_CENTS = 200&lt;/code&gt;, &lt;code&gt;forgiveStreak&lt;/code&gt;).
+</li>
+<li>
+<strong>The avatar/creature system — the identity layer (in active build).</strong>&lt;br&gt;The founder's tamagotchi concept: your avatar <strong>evolves with your&lt;br&gt;training</strong>. The reference creature is the dragon — three stages already&lt;br&gt;modelled and rigged: &lt;strong&gt;Hatchling&lt;/strong&gt; (round, stub-winged, all eyes) →&lt;br&gt;&lt;strong&gt;Fledgling&lt;/strong&gt; (wings come in, nub horns, first spikes) → &lt;strong&gt;Elder&lt;/strong&gt;&lt;br&gt;(&lt;code&gt;site/avatar-styles/dragon2.js&lt;/code&gt; — stages driven by a &lt;code&gt;stage&lt;/code&gt; param,&lt;br&gt;ready to wire to season/streak milestones). Learned the hard way&lt;br&gt;(documented post-mortem, &lt;code&gt;notes_avatars_investigation.md&lt;/code&gt;): creatures are&lt;br&gt;built on a &lt;strong&gt;dedicated creature rig&lt;/strong&gt; (&lt;code&gt;site/creature-rig.js&lt;/code&gt;, horizontal&lt;br&gt;silhouette — a dragon doesn't squat), never as humans-in-suits. The same&lt;br&gt;pipeline already carries 11 humanoid styles + 12 rigged GLBs across&lt;br&gt;species; the Outfit Atelier (&lt;code&gt;/atelier&lt;/code&gt;) stress-tests garments through&lt;br&gt;every extreme exercise pose. Design intent: your creature grows when you&lt;br&gt;show up — the identity layer makes absence &lt;em&gt;visible&lt;/em&gt; and progress&lt;br&gt;&lt;em&gt;adorable&lt;/em&gt;.
+</li>
+<li>
+<strong>Awards &amp; badges (designed, from Ben's file — adopt).</strong> Auto-computed on&lt;br&gt;final results: 🏅 most consistent · 🚀 best comeback · ⚡ most active ·&lt;br&gt;💪 personal best — zero coordination, covers the &amp;quot;effort ≠ winning&amp;quot; value&lt;br&gt;the MVP vote serves. Plus PB detection cards for the non-competitive half&lt;br&gt;(docs/07 G-29).
+</li>
+</ol>
+<p>Non-winner retention is a stated design lane in Ben's architecture (&quot;the loop must create a social ripple even when you lose&quot;) and everything above feeds it: comeback, MVP, awards, nemesis, revenge rematch prompts, daily fresh starts.</p>
+<hr>
+<h2>8. Verification &amp; fairness — the trust ladder</h2>
+<p>The existential technical problem (docs/01 §5): if reps are self-reported the game is a lying contest; if verification is annoying nobody plays. The answer is a ladder, not a gate — every rung is optional and every rung is visible:</p>
+<table><thead><tr><th>Rung</th><th>Mechanism</th><th>Status</th></tr></thead><tbody><tr><td>1 · Honour</td><td>Self-report + socially-policed tier + crew chat visibility (liar gets roasted)</td><td>Live — the default</td></tr><tr><td>2 · Camera</td><td>In-browser pose counting (MoveNet; push-ups/squats via angle-threshold state machine). <strong>On-device only — no video ever leaves the phone.</strong> Entry logs <code>verified:true</code>; standings show each player's <strong>verified %</strong></td><td>Live in app (<code>apps/web/src/verify/</code>); bot grammar <code>log pushups 25!</code></td></tr><tr><td>3 · Heart rate</td><td>BLE straps via Web Bluetooth (GATT 0x180D), Karvonen %HRR per set → <code>avgHrrPct</code> on the entry → feeds the v2 handicap blend (§4.4) — <em>effort becomes verifiable even when reps aren't</em></td><td>Engine live; strap hardware pending (docs/05)</td></tr><tr><td>4 · Peers</td><td>Long-press any log → challenge (typo / impossible pace / repeated pattern), anonymous, 3 per battle, misuse lowers your trust score; dispute timeline; admin queue</td><td>Designed in Ben's Figma (V1) — sequence decision §9</td></tr><tr><td>5 · Cloud</td><td>Apple Watch / HealthKit, WHOOP/Garmin cross-check, recovery-adjusted handicap</td><td>Phase 3 (docs/05)</td></tr></tbody></table>
+<p>Server-authoritative everything (Ben's engineering posture, adopted): the server computes all scoring, multipliers and deadlines; the client never decides a danger-zone level. The camera rung is deliberately the <em>positive</em> verification (&quot;honest by design&quot; — show off) with peer challenge as the <em>social</em> backstop, in that order (the sequencing itself is one of the adjacent open calls, §9).</p>
+<hr>
+<h2>9. The five open decisions</h2>
+<p>Full evidence and the 30-row divergence log: <code>figma/notes/analysis.md</code> (§4, §6 — the founder-call one-pager). The five that reshape the game:</p>
+<h3>① Fairness model — <em>the deepest divergence</em></h3>
+<ul>
+<li>
+<strong>Ben's design:</strong> personalised daily targets (Light 60 / Solid 120 / Hero&lt;br&gt;200 RUF), winner = completion-% of &lt;em&gt;your own&lt;/em&gt; target; tier private.&lt;br&gt;Ability differences hidden — privacy, simple math, &amp;quot;every level can win&lt;br&gt;the day&amp;quot;.
+</li>
+<li>
+<strong>Our build:</strong> shared target + tier multipliers; the handicap is the&lt;br&gt;spectacle — effort visible in the numbers.
+</li>
+<li>
+<strong>Recommended hybrid:</strong> personalised targets <em>and</em> our comeback multiplier&lt;br&gt;on top (both &amp;quot;everyone can win&amp;quot; mechanics, one hidden one visible).
+</li>
+<li>
+<strong>Downstream:</strong> standings math, comeback triggers, result cards, the whole&lt;br&gt;adjusted-score narrative reshape around this. Decide first.
+</li>
+</ul>
+<h3>② Platform / distribution</h3>
+<ul>
+<li>
+<strong>Ben:</strong> native app, app-store IAP, push notifications (DZ nudges basically&lt;br&gt;require push).
+</li>
+<li>
+<strong>Ours (shipped):</strong> PWA + WhatsApp/Slack bots day one — no install, &lt;30s&lt;br&gt;cold start, the chat IS the arena. The bots are built and are the&lt;br&gt;differentiation.
+</li>
+<li>
+<strong>Recommended:</strong> staged — bots + PWA now, native when retention is proven.
+</li>
+<li>
+<strong>Downstream:</strong> onboarding (12-screen native flow vs our &lt;20s name+tier),&lt;br&gt;notification strategy, payments.
+</li>
+</ul>
+<h3>③ Battle rhythm</h3>
+<ul>
+<li>
+<strong>Ben:</strong> daily winners inside multi-day battles + nightly danger zone.
+</li>
+<li>
+<strong>Ours:</strong> single match to 300 with the close-moment finale.
+</li>
+<li>
+<strong>What's built:</strong> the hybrid — daily winners + DZ <em>on top of</em> the 300&lt;br&gt;closure (§3.5), running in &lt;code&gt;/figma-app&lt;/code&gt; today.
+</li>
+<li>
+<strong>Recommended:</strong> keep the hybrid; settle the shared-target vs personalised-&lt;br&gt;target sub-question with both playable side by side.
+</li>
+<li>
+<strong>Downstream:</strong> if daily rhythm fully wins, seasons become its container&lt;br&gt;and the closure finale becomes the season finale.
+</li>
+</ul>
+<h3>④ Power-ups in the MVP?</h3>
+<ul>
+<li>
+<strong>Ben:</strong> 4 power-ups + rarity + daily drop + store + Pro inventory slots in&lt;br&gt;the launch gate — the monetisation spine.
+</li>
+<li>
+<strong>Ours (shipped):</strong> the same 4 power-ups, fully mechanised app-side; no&lt;br&gt;store, no prices, drops only.
+</li>
+<li>
+<strong>Recommended:</strong> ship the four cards (they're done and tested), hold the&lt;br&gt;store/Pro economy for post-retention-proof. Never break: &amp;quot;you can't buy&lt;br&gt;the win.&amp;quot;
+</li>
+<li>
+<strong>Downstream:</strong> a whole component family (cards, chest, banners) and the&lt;br&gt;Pro paywall design hang on this.
+</li>
+</ul>
+<h3>⑤ Brand — gold vs lime</h3>
+<ul>
+<li>
+<strong>Ben's file:</strong> gold <code>#FFC821</code> + purple <code>#8B5CF6</code> + Anton/Inter, domain&lt;br&gt;reps.fit — &amp;quot;game&amp;quot; energy; he flags the palette as needing sign-off.
+</li>
+<li>
+<strong>Ours:</strong> lime <code>#c6f32e</code> + coral <code>#ff5c38</code> + Space Grotesk, rwf.app —&lt;br&gt;&amp;quot;athletic&amp;quot; energy.
+</li>
+<li>
+<strong>Where it stands:</strong> <strong>both now exist as complete, switchable themes</strong>&lt;br&gt;(&lt;code&gt;/styles&lt;/code&gt; — Lime Athletic, Gold Arcade, Sunset Brutalist, Midnight Neon,&lt;br&gt;Forest Retro); the test app ships Anton + Inter &lt;em&gt;and&lt;/em&gt; Space Grotesk. This&lt;br&gt;is now a founder-taste call, not a build problem.
+</li>
+<li>
+<strong>Downstream:</strong> D5/D6 lock → tokens map 1:1 (<code>figma/notes</code> F3-ready), the&lt;br&gt;Figma variable table converts, the domain registers.
+</li>
+</ul>
+<p>Adjacent decisions already leaning resolved — money at launch (charity-only, wagers flagged; D17) and verification sequence (camera MVP → peer challenges V1; D10) — both with Ben's craft adopted and our shipped work kept.</p>
+<hr>
+<h2>10. Numbers appendix — every constant, one table</h2>
+<p>All values verified against the code on 2 Sep 2026. Any change to a number here must update this table, the wiki Game Rules page, and the tests.</p>
+<table><thead><tr><th>Constant</th><th>Value</th><th>Where it lives</th></tr></thead><tbody><tr><td>Default match target</td><td>300 raw reps (&quot;Light&quot; = 150)</td><td><code>match.ts</code> / engine.js <code>createMatch</code> · bot <code>new [target]</code></td></tr><tr><td>Tier multipliers</td><td>couch ×1.5 · casual ×1.25 · fit ×1.0 · athlete ×0.85</td><td><code>TIER_MULTIPLIERS</code> — engine.js / <code>handicap.ts</code></td></tr><tr><td>Comeback threshold</td><td>&gt;30% behind leader (raw)</td><td><code>COMEBACK_THRESHOLD = 0.3</code> — <code>comeback.ts</code> / engine.js</td></tr><tr><td>Comeback multiplier</td><td>×1.2, once per player per match, tagged on entry</td><td><code>COMEBACK_MULTIPLIER</code> — <code>comeback.ts</code> / engine.js</td></tr><tr><td>Closure bonus</td><td>+15 adjusted, to the closer only</td><td><code>CLOSURE_BONUS</code> — engine.js / <code>match.ts</code></td></tr><tr><td>Lightning window</td><td>10 minutes, ×3 rep value, 1 activation/player/match</td><td><code>LIGHTNING_MS</code>, <code>LIGHTNING_MULTIPLIER</code> — engine.js</td></tr><tr><td>Rep Steal share</td><td>10% of leading rival's raw (floor, min 1)</td><td><code>STEAL_SHARE = 0.1</code> — engine.js</td></tr><tr><td>Time Freeze</td><td>+30 min on the deadline</td><td><code>FREEZE_MS</code> — engine.js</td></tr><tr><td>Power-up drop odds</td><td>common 50% · rare 30% · epic 15% · legendary 5%</td><td><code>DROP_ODDS</code> — engine.js</td></tr><tr><td>Play-day deadline</td><td>21:00 Australia/Sydney (dual clock; freeze extends)</td><td><code>daily.js</code> <code>deadlineFor</code> · <code>state.js playDayEndMs</code></td></tr><tr><td>Danger zone ramp</td><td>DZ1 ≤3h gold · DZ2 ≤1h orange · DZ3 ≤30min red</td><td><code>daily.js dangerLevel</code></td></tr><tr><td>Daily tie-break</td><td>adjusted → raw reps → earliest first entry</td><td><code>daily.js dailyStandings</code></td></tr><tr><td>HR blend weight</td><td>0.7 measured + 0.3 declared tier (v2)</td><td><code>HRR_WEIGHT</code> — <code>handicap.ts</code> / engine.js</td></tr><tr><td>Baseline HR drift</td><td>max 10% per update</td><td><code>HR_DRIFT_MAX = 0.1</code> — <code>baseline.ts</code></td></tr><tr><td>Sandbag volume ratio</td><td>&gt;1.3× expected weekly reps → drift one tier fitter (max 1 step/week)</td><td><code>VOLUME_SANDBAG_RATIO = 1.3</code> — <code>baseline.ts</code></td></tr><tr><td>Expected weekly reps/tier</td><td>150 / 250 / 400 / 550 (couch→athlete)</td><td><code>TIER_EXPECTED_WEEKLY_REPS</code> — <code>baseline.ts</code></td></tr><tr><td>Photo finish</td><td>top two within 5% of leader's adjusted</td><td><code>PHOTO_FINISH_PCT = 5</code> — <code>photo-finish.ts</code></td></tr><tr><td>Season length</td><td>4 weeks</td><td><code>season.ts createSeason</code></td></tr><tr><td>Season points</td><td>1st +3 · 2nd +2 · 3rd +1 · MVP +1</td><td><code>recordMatch</code> — <code>season.ts</code> / engine.js</td></tr><tr><td>Streak forgiveness</td><td>≥ $2 to pot, once per season, preserves (not extends)</td><td><code>FORGIVE_MIN_CENTS = 200</code> — <code>season.ts</code> / engine.js</td></tr><tr><td>Nemesis eligibility</td><td>≥2 shared matches, ≥1 loss</td><td><code>nemesis.ts</code></td></tr><tr><td>Result card</td><td>1200×675 (16:9), SVG from bots / PNG from app</td><td><code>packages/bot-core/src/card-image.ts</code></td></tr><tr><td>Crew code</td><td><code>CREW-XXXXX</code>, 5 chars, alphabet excludes 0/O/1/I (design rule)</td><td>docs/13 §21 · generated in <code>apps/figma-app/state.js crewCode()</code></td></tr><tr><td>Bot commands</td><td>15 commands + aliases (<code>s</code>,<code>h</code>,<code>again</code>,<code>runitback</code>,<code>nem</code>,<code>monday</code>)</td><td><code>bus.ts COMMANDS / ALIASES</code> · wiki → Bots</td></tr></tbody></table>
+<p><strong>Proof of correctness</strong> (run any of these yourself):</p>
+<pre><code>cd packages/game-core &amp;&amp; bun test   # 59 tests, 134 expect() calls — engine spec
+cd apps/figma-app   &amp;&amp; bun test engine.test.js   # 23 parity tests: TS vs JS side by side
+cd packages/bot-core &amp;&amp; bun test    # 64 tests — command bus, cards, AI fallback
+cd apps/figma-app   &amp;&amp; bun e2e.mjs &amp;&amp; bun e2e-daily.mjs   # full app walks, injected time</code></pre>
+<p>90+ green across the repo, CI-gated on every push (docs/17).</p>
+<hr>
+<p><em>Cross-links: <a href="25_DESIGN_BRIEF.html">docs/25_DESIGN_BRIEF.md</a> (design handout) · <a href="01_BUSINESS_ANALYSIS.html">docs/01</a> (Ben's brief + market) · <a href="02_MASTER_PLAN.html">docs/02</a> (phasing) · docs/05 (verification research) · docs/07 (element backlog A–G) · docs/08 (legal) · docs/11 (systems) · docs/13 (our MVP spec + 30-row divergence log) · <a href="17_FEATURES_AND_PROGRESS.html">docs/17</a> (progress) · <code>figma/notes/analysis.md</code> (the Figma audit + founder-call one-pager) · wiki: <code>/wiki/game.html</code>, <code>/wiki/app.html</code>, <code>/wiki/bots.html</code>, <code>/wiki/verification.html</code>, <code>/wiki/avatars.html</code>, <code>/wiki/status.html</code>.</em></p>
+    </article>
+  </main>
+</body>
+</html>

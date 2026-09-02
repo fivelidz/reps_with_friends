@@ -69,3 +69,46 @@ echo "  deploy with: cd deploy && bunx wrangler pages deploy public --project-na
 # founder follow-up deck (PDFs for Ben)
 mkdir -p deploy/public/deck
 cp docs/RWF_Followup_Deck.pdf docs/RWF_Followup_Appendix.pdf deploy/public/deck/ 2>/dev/null || true
+# contract & scope PDF — copy-if-missing (idempotent; never clobbers a newer copy)
+for pdf in RWF_Contract_Scope.pdf; do
+  if [ -f "docs/$pdf" ] && [ ! -f "deploy/public/deck/$pdf" ]; then
+    cp "docs/$pdf" deploy/public/deck/
+  fi
+done
+
+# android APK for manual install
+mkdir -p deploy/public/apk
+cp apps/android/app/build/outputs/apk/debug/app-debug.apk deploy/public/apk/rwf-app-debug.apk 2>/dev/null || true
+
+# ── v1 coverage hub (v1.1.0) — the share page at rwf.qalarc.com/v1 ─────
+# One page linking every live surface, dashboard and business document.
+# shots/ (verification screenshots) stay local, like figma-app's.
+mkdir -p deploy/public/v1
+find apps/hub-public -maxdepth 1 -type f \( -name "*.html" -o -name "*.css" \) \
+  -exec cp {} deploy/public/v1/ \;
+mkdir -p deploy/public/v1/assets && cp apps/hub-public/assets/* deploy/public/v1/assets/
+mkdir -p deploy/public/v1/docs
+find apps/hub-public/docs -maxdepth 1 -type f \( -name "*.html" -o -name "*.css" \) \
+  ! -name "template.html" -exec cp {} deploy/public/v1/docs/ \;
+
+# ── avatar gallery + outfit atelier (the /avatars and /atelier links) ──
+# Model assets are SELECTIVE: site/models also holds ~300MB of meshy.ai
+# experiment artifacts that never ship. Cloudflare Pages caps a single
+# file at 25 MiB, so goblin_walk_stick.bvh (32M) stays local — its card
+# degrades gracefully at runtime (fetch fails, others load).
+mkdir -p deploy/public/avatars deploy/public/atelier
+cp apps/avatars/index.html apps/avatars/avatars.js apps/avatars/avatars.css deploy/public/avatars/
+cp apps/atelier/index.html apps/atelier/atelier.js apps/atelier/atelier.css deploy/public/atelier/
+mkdir -p deploy/public/models deploy/public/models/meshy \
+         deploy/public/site/models deploy/public/site/avatar-styles
+for f in orc.glb orc_marauder.glb Soldier.glb Xbot.glb Geno.glb Cranberry.glb \
+         wolf.glb dragon_hunter.glb dragon_elder.glb \
+         humanoid_adventurer.glb humanoid_brute.glb \
+         meshy_frog_full.glb meshy_frog_head_b.glb meshy_frog_head_c.glb \
+         goblin_limp.bvh goblin_drag.bvh goblin_one_arm.bvh goblin_combat.bvh; do
+  cp "site/models/$f" deploy/public/models/ 2>/dev/null || echo "  (skip $f — not found)"
+done
+cp site/models/geno_npz_*.json deploy/public/models/
+cp site/models/meshy/manifest.json deploy/public/models/meshy/
+cp site/models/*.js deploy/public/site/models/
+cp site/avatar-styles/*.js deploy/public/site/avatar-styles/

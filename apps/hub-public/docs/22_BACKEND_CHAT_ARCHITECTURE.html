@@ -1,0 +1,240 @@
+<!doctype html>
+<html lang="en">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <title>Backend Chat Architecture — RWF Documents</title>
+  <link rel="icon" href="data:image/svg+xml,<svg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 100 100'><text y='.9em' font-size='90'>🏋️</text></svg>">
+  <!-- v1.1.0 · rendered from repo docs/ by apps/hub-public/docs/build.sh (pandoc) -->
+  <link rel="stylesheet" href="/design/tokens.css">
+  <link rel="stylesheet" href="/design/fonts/fonts.css">
+  <link rel="stylesheet" href="/v1/docs/docs.css">
+</head>
+<body>
+  <header class="doc-topbar">
+    <a class="doc-back" href="/v1#business">← Coverage hub</a>
+    <span class="doc-brand">REPS WITH FRIENDS · DOCUMENTS</span>
+    <span class="doc-ver mono">v1.1.0</span>
+  </header>
+  <main class="doc-page">
+    <article class="doc-body">
+<h1>RWF Backend Chat Architecture — the single source of truth</h1>
+<p><strong>Date:</strong> 2026-08-31 · <strong>Status:</strong> living document (supersedes the transport sections of docs/03; builds on docs/21) <strong>Founder question this answers:</strong> <em>&quot;figure out how the tech backend of this should work so it is through slack or whatsapp etc.&quot;</em></p>
+<hr>
+<h2>TL;DR — the architecture in six lines</h2>
+<ol>
+<li>
+<strong>ONE game core</strong> (<code>@rwf/game-core</code>): pure engine — handicap scoring, comeback, seasons. No I/O, no platform code.
+</li>
+<li>
+<strong>ONE chat brain</strong> (<code>@rwf/bot-core</code> CommandBus): every command (<code>new/join/start/log/s/taunt/pot/result/rematch/nemesis/digest/season/watch/challenge/link/help</code>) enters here, regardless of platform.
+</li>
+<li>
+<strong>MANY dumb transports</strong> (implement <code>ChatTransport</code> in <code>packages/bot-core/src/transports/</code>): Slack Bolt (official) · WhatsApp via Qalarc Hub now → Cloud API at pilot · <strong>Beeper Desktop (new, built)</strong> · Telegram via bridge. Transports translate events in and cards out — nothing else.
+</li>
+<li>
+<strong>ONE state authority</strong> (<code>apps/api</code> on :4174, JSON file now → Postgres later): crews, matches, seasons, pots. Bots mirror into it (<code>MatchStore.api()</code> — landed); the app pulls from it (already built).
+</li>
+<li>
+<strong>The app is a first-class client of the same API</strong> — same scoreboard the bots write to, same crew codes (<code>link CREW-XXXX</code> binds a chat to the crew the app created).
+</li>
+<li>
+<strong>Official APIs at scale, bridges for reach</strong> (docs/21): never build stranger-facing product on unofficial sessions; bridges (Beeper/Matrix) are for founder/friends/community groups.
+</li>
+</ol>
+<pre><code>                        ┌────────────────────────────────────────────────────────┐
+                        │                    HUMANS                              │
+                        │  Slack   WhatsApp   Telegram   Discord   …   Web app    │
+                        └────┬─────────┬─────────┬─────────┬────────┴──────┬─────┘
+                             │         │         │         │               │
+                 ┌───────────▼──┐ ┌────▼─────┐ ┌─▼──────────▼──┐          │
+                 │ Slack Bolt   │ │ Qalarc   │ │ BEEPER DESKTOP│          │
+                 │ (official)   │ │ Hub →WA  │ │ local API+WS  │          │
+                 │              │ │ (Cloud   │ │ one transport,│          │
+                 │              │ │ API@pilot│ │ N networks)   │          │
+                 └──────┬───────┘ └────┬─────┘ └──────┬────────┘          │
+                        │              │              │                   │
+        ┌───────────────▼──────────────▼──────────────▼──────────┐        │
+        │        @rwf/bot-core  —  THE SINGLE CHAT BRAIN          │        │
+        │  ChatTransport (dumb pipes)  ·  CommandBus (grammar)    │        │
+        │  cards / digest / taunts / AI hooks                     │        │
+        └───────────────────────┬─────────────────────────────────┘        │
+                                │  MatchStore  ──.api() mirror (P1, landed)
+                                │  file primary · apps/api when reachable
+                                ▼                                           ▼
+        ┌───────────────────────────────────────────┐        ┌──────────────────────────┐
+        │  apps/api  :4174  —  STATE AUTHORITY      │◀───────│ apps/web (PWA)           │
+        │  crews · matches · seasons · pots         │  pull/  │ localStorage + outbox    │
+        │  JSON file now → Postgres at scale        │  sync   │ sync layer (built)       │
+        └───────────────────────┬───────────────────┘        └──────────────────────────┘
+                                │
+                        ┌───────▼────────┐
+                        │ @rwf/game-core │  pure engine: handicap, comeback,
+                        │ (no I/O)       │  seasons, photo-finish — used by ALL of the above
+                        └────────────────┘</code></pre>
+<hr>
+<h2>1. Component contracts (what each piece is allowed to do)</h2>
+<table><thead><tr><th>Component</th><th>Path</th><th>Contract</th></tr></thead><tbody><tr><td><strong>game-core</strong></td><td><code>packages/game-core/src/</code></td><td>Pure functions over <code>MatchState</code>. Never touches network, files, or platforms.</td></tr><tr><td><strong>CommandBus</strong></td><td><code>packages/bot-core/src/bus.ts</code></td><td><code>handle(InboundMessage) → card text</code>. Platform-agnostic (<code>chatId</code>/<code>playerId</code> are prefixed strings like <code>wa:+614…</code>, <code>slack:U123</code>, <code>beeper:@tg_ben:beeper.com</code>). Never throws — errors come back as cards.</td></tr><tr><td><strong>MatchStore</strong></td><td><code>packages/bot-core/src/store.ts</code></td><td>chatId → StoredMatch (+ seasons/spectators/challenges). File-primary. <strong><code>.api(baseUrl)</code> turns on the apps/api mirror (P1, landed)</strong> — see §5.</td></tr><tr><td><strong>ChatTransport</strong></td><td><code>packages/bot-core/src/transports/chat-transport.ts</code></td><td><code>send(text, to)</code> + <code>health()</code> (+ <code>start/stop</code> for receiving). The dumb-pipe rules: no game logic, never block, stay quiet on chatter, rate-limit personal-account sends.</td></tr><tr><td><strong>apps/api</strong></td><td><code>apps/api/src/</code></td><td>The state authority: <code>POST/GET /crews</code>, <code>/matches/:id/log</code>, <code>/mvp</code>, <code>/season</code>, <code>POST /bots/state</code> (bot mirror). JSON file store now; Postgres when a second writer appears.</td></tr><tr><td><strong>app sync layer</strong></td><td><code>apps/web/src/sync.ts</code></td><td>Offline-first mirror of app actions → apps/api, with outbox + crew pull. Already built; unifying is a matter of pointing it at a deployed API (T5, §6).</td></tr></tbody></table>
+<p><strong>Identity model (v1, pre-auth):</strong> a player is a per-platform id string. Cross-platform player merging (same human on WhatsApp + Telegram) is future work via invite links — do not silently merge. <strong>Crew codes are the join key today</strong>: a chat runs <code>link CREW-7Q2</code> and its matches surface under that crew everywhere (app + API + other chats' <code>watch CREW-7Q2</code>).</p>
+<hr>
+<h2>2. Data flow — worked example</h2>
+<p><em>A rep logged in a WhatsApp group flows everywhere it needs to go:</em></p>
+<pre><code> 1. Dave types &quot;log pushups 80&quot;  in the WhatsApp group (Qalarc Hub session)
+ 2. Hub writes the inbound line to messages.jsonl → bot-whatsapp tails it (2s poll)
+ 3. looksLikeCommand(&quot;log pushups 80&quot;) ✓ → CommandBus.handleAsync({chatId:&quot;wa:group-…&quot;,
+    playerId:&quot;wa:+614…&quot;, playerName:&quot;Dave&quot;})
+ 4. Bus: resolve exercise → applyComeback → game-core logReps → MatchStore.update()
+    → persist() writes .data/bot-matches.json  AND schedules the apps/api mirror push
+ 5. apps/api (POST /bots/state) upserts the crew-linked match under CREW-7Q2
+    → GET /crews/CREW-7Q2 (the app's existing pull) now shows Dave's reps
+ 6. Bus returns the log card → bot-whatsapp sends it via Hub → WhatsApp group
+ 7. (broadcast fan-out, P1.5 — seam exists, wiring TODO) every chat that ran
+    `watch CREW-7Q2` gets the standings milestone card — including a Telegram
+    group reachable through the Beeper transport, and the app's crew screen
+    on its next pull
+ 8. Match closes → result card + SVG → season ladder records it</code></pre>
+<p>Step 7 is the only piece not wired end-to-end today: the MatchStore already tracks spectators per crew (<code>spectators</code> map), but there is no cross-transport broadcaster. <strong>TODO (P1.5):</strong> add a <code>BusEvents.onMatchClosed</code> hook in bot-core and a small fan-out loop in each bot main. Design note: broadcasts must be batched (milestones/hourly), never per-rep — cost control (docs/03 §1).</p>
+<hr>
+<h2>3. Transport inventory &amp; status</h2>
+<table><thead><tr><th>Transport</th><th>Path</th><th>Status</th><th>Reach</th><th>ToS posture</th></tr></thead><tbody><tr><td><strong>Slack Bolt</strong></td><td><code>apps/bot-slack/</code></td><td>skeleton (T1: needs 5-min app setup)</td><td>corporate workspaces</td><td>✅ official</td></tr><tr><td><strong>WhatsApp — Qalarc Hub</strong></td><td><code>apps/bot-whatsapp/</code></td><td><strong>live</strong> (dogfood)</td><td>founder's groups/DMs</td><td>⚠️ personal session (grey)</td></tr><tr><td><strong>WhatsApp — Cloud API</strong></td><td>planned (same <code>ChatTransport</code> seam)</td><td>not started (T2: group support unverified)</td><td>customers at scale</td><td>✅ official, per-convo $</td></tr><tr><td><strong>Beeper Desktop</strong></td><td><code>packages/bot-core/src/transports/beeper.ts</code></td><td><strong>built + sim-green</strong>; live blocked on Beeper being open (§7)</td><td>every network the founder connects in Beeper: WhatsApp, Telegram, Discord, Signal, Messenger, LinkedIn, X, …</td><td>⚠️ personal sessions via on-device bridges (grey) — dogfood only</td></tr><tr><td><strong>Telegram Bot API</strong></td><td>P4</td><td>not started</td><td>clean bot path</td><td>✅ official (via Beeper bridge until then)</td></tr><tr><td><strong>Matrix bot core</strong></td><td>P3 (docs/21 option B/C)</td><td>design only</td><td>all bridged networks with ONE bot account</td><td>bridges grey; Matrix itself clean</td></tr></tbody></table>
+<p><strong>The Beeper insight (docs/21):</strong> because Beeper is a Matrix client whose bridges are all open source, &quot;add a platform&quot; becomes &quot;connect a bridge,&quot; not &quot;write a bot.&quot; The BeeperDesktopTransport is the cheapest possible proof of that — one transport, every network the founder has connected, zero new infrastructure.</p>
+<hr>
+<h2>4. ToS / risk table &amp; cost model</h2>
+<table><thead><tr><th>Transport</th><th>Account type</th><th>Ban risk at dogfood volume</th><th>Ban risk at scale</th><th>Cost</th><th>What breaks first</th></tr></thead><tbody><tr><td>Slack Bolt</td><td>org app</td><td>none</td><td>none</td><td>free tier → per-active-user $</td><td>Slack rate limits (~1 msg/s/burst)</td></tr><tr><td>WhatsApp via Hub</td><td>personal linked device</td><td>low but real</td><td><strong>unacceptable — never scale this</strong></td><td>$0</td><td>Meta device-pair bans; Hub is one session</td></tr><tr><td>WhatsApp Cloud API</td><td>business number</td><td>none</td><td>none</td><td>per-conversation (template/utility/marketing tiers) — model before pilot</td><td>cost at chatty-group volume; group support unverified (T2)</td></tr><tr><td>Beeper Desktop</td><td>founder's personal accounts (all networks)</td><td>low at ≤ a few msgs/min (Beeper's own warning: &quot;sending too many messages might result in account suspension&quot;)</td><td><strong>unacceptable</strong></td><td>$0 (≤5 accounts; Plus $9.99/mo beyond)</td><td>desktop must stay running; per-network rate limits; port may change per install</td></tr><tr><td>Telegram via bridge</td><td>personal MTProto session</td><td>low</td><td>grey</td><td>$0</td><td>session limits</td></tr><tr><td>Telegram Bot API</td><td>bot</td><td>none</td><td>none</td><td>free</td><td>privacy-mode/group-admin config</td></tr><tr><td>Matrix (P3)</td><td>bot account</td><td>none (Matrix)</td><td>bridge sessions still grey per network</td><td>$0–10/mo (bbctl self-host free)</td><td>homeserver ops (if self-hosted)</td></tr></tbody></table>
+<p><strong>Operating rules that fall out of this table:</strong></p>
+<ul>
+<li>
+Bridges and personal sessions are for <strong>founder + friends + community groups</strong> only. The moment a paying stranger appears, that platform's traffic must be on its official API.
+</li>
+<li>
+Every transport rate-limits sends (<code>minSendGapMs</code> in the Beeper transport; batched standings everywhere).
+</li>
+<li>
+Agent-generated traffic is tagged where the convention exists (Hub <code>source:&quot;ai&quot;</code>; Beeper sends as the founder — keep volume conversational).
+</li>
+</ul>
+<hr>
+<h2>5. Migration plan — each phase shippable</h2>
+<h3>P0 — where we were this morning ✅</h3>
+<p>Transports write their own stores (<code>bot-matches.json</code>), app is standalone localStorage. Works, splits state.</p>
+<h3>P1 — bots mirror into apps/api ✅ <strong>LANDED 2026-08-31</strong></h3>
+<ul>
+<li>
+<code>MatchStore.api(baseUrl)</code> (<code>packages/bot-core/src/api-sync.ts</code>): every persist pushes a state snapshot to <code>POST /bots/state</code>, debounced, fire-and-forget. <strong>File stays primary</strong> — bots keep playing when the API is down; the mirror marks <code>lastError</code> and retries on the next persist.
+</li>
+<li>
+apps/api adopts crew-linked bot matches into its real <code>crews</code>/<code>matches</code> tables (upsert by match id, players merged by id) → the app's existing <code>GET /crews/:code</code> pull sees bot-played matches. Idempotent.
+</li>
+<li>
+Verified live on :4174 (<code>packages/bot-core/src/transports/p1-live-demo.ts</code>): bot match → <code>GET /crews/CREW-P1LV</code> → 2 players, completed match, photo-finish standings.
+</li>
+<li>
+Tests: <code>packages/bot-core/test/api-sync.test.ts</code> (real apps/api on an ephemeral port; incl. API-down fallback).
+</li>
+<li>
+<strong>Still TODO in P1:</strong> wire <code>.api()</code> into the running bots' mains (<code>apps/bot-whatsapp/main.ts</code>, Slack when live, Beeper <code>--live</code>) — one line each: <code>new MatchStore(f).api(&quot;http://127.0.0.1:4174&quot;)</code>. Left undone so the dogfood bots' behaviour is unchanged until the founder opts in.
+</li>
+</ul>
+<h3>P2 — app onto the same authority 🟧 mostly built</h3>
+<p><code>apps/web/src/sync.ts</code> already mirrors app actions → apps/api (offline-first, outbox, armed opt-in) and pulls crews (<code>GET /crews/:code</code>). Remaining:</p>
+<ol>
+<li>
+Deploy apps/api somewhere always-on (minirig once it's back — T3 — or a $5 VPS / Cloudflare worker) so sync is available beyond localhost.
+</li>
+<li>
+Flip the app's crew-adopt path to prefer API ids when present (id mapping already exists in <code>rwf.sync.v1</code> meta).
+</li>
+<li>
+Result cards generated by bots (SVG in <code>.data/cards/</code>) need a URL the app can render — serve <code>cards/</code> through apps/api (static route) or upload to the same host.
+</li>
+</ol>
+<h3>P3 — Matrix as the canonical bot transport (docs/21 option B→C)</h3>
+<p>Run <code>@rwf/bot-core</code> as a Matrix user (<code>@rwf:beeper.com</code> first, our own homeserver later — Tuwunel/Continuwuity, not conduwuit). Per-platform reach = which bridges are connected (<code>bbctl</code> self-hosting for the noisy ones, free). The <code>ChatTransport</code> seam already fits: a <code>MatrixTransport</code> is a receiving transport whose chatIds ARE Matrix room ids — the Beeper transport's <code>beeper:!room:…</code> ids are already Matrix-shaped, so migration is renames, not rewrites. Exit criteria: bot posts to a bridged Telegram group without the founder's Beeper running.</p>
+<h3>P4 — official APIs at scale</h3>
+<p>WhatsApp Business Cloud API (Meta verification, per-convo cost model, template messages, DM-fallback design if groups are out — T2), Telegram Bot API, Slack stays Bolt. Bridges remain for the long tail (Signal, iMessage). Exit criteria: a stranger can join a paid crew on an official-API platform with a supportable ToS posture.</p>
+<hr>
+<h2>6. T5 (app ↔ bot state split) — concrete unblock steps</h2>
+<p>The blocker (docs/15): <em>app localStorage vs bot .data JSON, no sync; a crew created in the app can't be played by the bots.</em> P1 just closed the hard half. Remaining, in order:</p>
+<ol>
+<li>
+<strong>Wire the bots' stores to the mirror</strong> (P1 TODO above — one line per bot main; bots then WRITE to the authority).
+</li>
+<li>
+<strong>Always-on apps/api</strong> (T3): minirig systemd user service (pattern exists: <code>scripts/hosting/</code>) or VPS; CORS already allows <code>rwf.qalarc.com</code>.
+</li>
+<li>
+<strong>App reads through the API</strong> when armed: crew screen pulls <code>GET /crews/:code</code> (built) — bot matches appear because of P1's adoption.
+</li>
+<li>
+<strong>Shared crew code UX:</strong> app shows the crew code prominently (it already mints 5-char codes, same alphabet as bot <code>link</code>); bot <code>link &lt;CODE&gt;</code> binds the chat. No new id system needed.
+</li>
+<li>
+<strong>Identity (T4) later:</strong> magic-link auth via Resend unifies a human's platform ids under one account; until then, per-platform ids + crew codes are honest and work.
+</li>
+</ol>
+<hr>
+<h2>7. The Beeper transport (built today) — operator's guide</h2>
+<p><strong>Code:</strong> <code>packages/bot-core/src/transports/beeper.ts</code> (+ <code>beeper-cli.ts</code> harness, <code>mock-beeper.ts</code> sim server, <code>test/beeper.test.ts</code> — 21 tests). <strong>Implements:</strong> <code>ChatTransport</code> + receive (<code>start/stop</code>) → WS <code>/v1/ws</code> with <code>subscriptions.set [&quot;*&quot;]</code>; REST <code>GET /v1/chats</code>, <code>POST /v1/chats/{id}/messages</code>; Bearer auth; echo suppression via <code>isSender</code>; chatter filtered by <code>looksLikeCommand</code>; replies upgraded mrkdwn→markdown (<code>*x*</code>→<code>**x**</code>) for Beeper rich text; sends rate-limited (<code>minSendGapMs</code>, default 1.2s — personal-account safety). <strong>Crew mapping:</strong> every chat the bot speaks in is recorded in <code>.data/beeper-links.json</code> (id + network label); <code>link &lt;CODE&gt;</code> flows bus → CrewLinkMap; <code>chatsFor(crewCode)</code> is the fan-out join point for P1.5 broadcast.</p>
+<p><strong>Probe findings on this machine (2026-08-31):</strong></p>
+<ul>
+<li>
+Install: <code>~/Applications/Beeper.AppImage</code>, data <code>~/.config/BeeperTexts/</code>, account <code>@alexeib:beeper.com</code>.
+</li>
+<li>
+Local API port: <strong>23373</strong> (the documented default; confirmed in the install's own logs — <code>renderer-0.log</code> connects to <code>ws://127.0.0.1:23373/…</code> 1000+ times; <code>desktop-api-0.log</code> shows <code>/v1/info</code>, <code>/v1/spec</code>, <code>/v1/chats</code>, <code>POST /v0/mcp</code> traffic).
+</li>
+<li>
+<strong>Beeper Desktop is not currently running</strong> → probe reports <code>up:false</code> with the unblock steps below (this is the expected outcome until the founder opens the app).
+</li>
+<li>
+Auth model: <strong>every endpoint needs a Bearer token</strong> minted in-app. The desktop-api log shows <code>Loaded 0 existing access tokens</code> — <strong>no token exists yet</strong>.
+</li>
+</ul>
+<p><strong>To go live (founder, ~3 minutes):</strong></p>
+<pre><code># 1. Open the Beeper Desktop app (leave it running) and connect ≥1 network
+#    (e.g. Telegram) with a group you're willing to dogfood in.
+# 2. Beeper → Settings → Integrations → “+” next to “Approved connections”
+#    → create an access token.
+# 3. export BEEPER_ACCESS_TOKEN=&lt;that token&gt;
+# 4. bun packages/bot-core/src/transports/beeper-cli.ts --probe   # expect up ✓ authed ✓
+# 5. bun packages/bot-core/src/transports/beeper-cli.ts --live    # say `rwf help` in the group</code></pre>
+<p>Sim needs none of this: <code>bun packages/bot-core/src/transports/beeper-cli.ts --sim</code> runs the whole loop (probe → chats → link → match → photo-finish result → cross-network spectators) against the in-process mock.</p>
+<p><strong>Known caveats:</strong> the API port is chosen by the app (23373 today; the probe re-discovers it from logs); <code>--live</code> drives the founder's personal accounts — keep volume conversational; iMessage impossible off-macOS; message history may be partial until Beeper finishes indexing a newly-added account.</p>
+<hr>
+<h2>8. What is intentionally NOT in this architecture (yet)</h2>
+<ul>
+<li>
+<strong>No queue/broker</strong> (Redis, NATS…) — single-process bots + a JSON-file API are correct for ≤ a few crews. Introduce a real DB + job queue when: a second always-on writer exists, or match-close fan-out latency matters.
+</li>
+<li>
+<strong>No multi-instance bots</strong> — one process per transport, one store file each. The mirror makes their state visible, not shared; true shared-authority bots are P2/P3 (async store behind the bus).
+</li>
+<li>
+<strong>No webhooks into transports</strong> — polling (Hub tail) and WS (Beeper) are enough; webhook ingestion arrives with the Cloud API anyway.
+</li>
+<li>
+<strong>No payments in chat</strong> — pots are pledge-only until L1 (legal opinion) clears.
+</li>
+</ul>
+<h2>9. Cross-references</h2>
+<ul>
+<li>
+docs/21_BEEPER_MATRIX_INVESTIGATION.md — why Matrix/Beeper, bridge inventory, staged recommendation (this doc implements its step ①)
+</li>
+<li>
+docs/03_CHAT_INTEGRATIONS.md — command surface, verification flow, broadcast discipline
+</li>
+<li>
+docs/15_BLOCKERS.md — T1 Slack app, T2 Cloud API groups, T3 always-on host, T4 auth, T5 state split (§6 above closes it)
+</li>
+<li>
+docs/18_MESSAGING_PLATFORMS.md — WhatsApp Groups API status detail
+</li>
+<li>
+Code: <code>packages/bot-core/src/transports/</code> (Beeper + ChatTransport + mock + harness) · <code>packages/bot-core/src/api-sync.ts</code> (P1 mirror) · <code>apps/api/src/routes.ts</code> (<code>/bots/state</code>) · <code>apps/web/src/sync.ts</code> (app side)
+</li>
+</ul>
+    </article>
+  </main>
+</body>
+</html>

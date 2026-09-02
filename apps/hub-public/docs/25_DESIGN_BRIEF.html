@@ -1,0 +1,115 @@
+<!doctype html>
+<html lang="en">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <title>Design Brief — RWF Documents</title>
+  <link rel="icon" href="data:image/svg+xml,<svg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 100 100'><text y='.9em' font-size='90'>🏋️</text></svg>">
+  <!-- v1.1.0 · rendered from repo docs/ by apps/hub-public/docs/build.sh (pandoc) -->
+  <link rel="stylesheet" href="/design/tokens.css">
+  <link rel="stylesheet" href="/design/fonts/fonts.css">
+  <link rel="stylesheet" href="/v1/docs/docs.css">
+</head>
+<body>
+  <header class="doc-topbar">
+    <a class="doc-back" href="/v1#business">← Coverage hub</a>
+    <span class="doc-brand">REPS WITH FRIENDS · DOCUMENTS</span>
+    <span class="doc-ver mono">v1.1.0</span>
+  </header>
+  <main class="doc-page">
+    <article class="doc-body">
+<h1>Reps With Friends — Design Brief</h1>
+<p><em>Version 1.0 · 2 Sep 2026 · The one document you hand a designer or stakeholder. The full game rules live in <a href="24_GAME_DESIGN.html">docs/24_GAME_DESIGN.md</a> — read §3 (battles) and §4 (handicap) there before designing screens.</em></p>
+<hr>
+<h2>What Reps With Friends is</h2>
+<p>Reps With Friends is a real-time multiplayer fitness <strong>game</strong> for group chats. A crew agrees on exercises and picks 2–3 battle days a week; everyone races to a shared target (default: 300 total reps — any reps, any exercise, any order) by logging from WhatsApp, Slack, or the app. First player to the raw target <em>closes</em> the match — but the winner is the highest <strong>effort-adjusted</strong> score: a couch player's push-up is worth ×1.5, an athlete's ×0.85, comebacks get armed, theft gets shielded, and players' pledges flow into a charity pot the <strong>winner directs</strong> (never receives). It is competitive, cheeky, and never lonely — training stops being something you grind alone. The engine, two chat bots, and a full phone app are already built and tested (rwf.qalarc.com); the design work left is polish, brand, and the shareable surface.</p>
+<hr>
+<h2>The five design principles</h2>
+<ol>
+<li>
+<strong>Effort is the hero.</strong> Every screen shows two numbers: raw reps (who&lt;br&gt;moved more) and adjusted score (who tried harder). Never let UI imply the&lt;br&gt;raw number is the winner — the adjusted column is the product's soul.
+</li>
+<li>
+<strong>The chat is the arena; the app is the scoreboard.</strong> Most players never&lt;br&gt;open the app on a given day — they live in the group chat. Bot cards and&lt;br&gt;shareable images are first-class design surfaces, not afterthoughts.
+</li>
+<li>
+<strong>Cheeky, never mean.</strong> Aussie banter energy — &quot;OI. YOU'RE BACK.&quot; — but&lt;br&gt;shame is banned: it's always a &lt;em&gt;rest day&lt;/em&gt;, never a &lt;em&gt;missed day&lt;/em&gt;, and money&lt;br&gt;screens drop all banter for plain language.
+</li>
+<li>
+<strong>Sports-broadcast motion, never slot-machine.</strong> Calm setup (200ms&lt;br&gt;ease-outs) → counted-up logging → 400ms spring leaderboard re-ordering →&lt;br&gt;danger-zone colour steps (layout NEVER changes) → one loud 1.2s winner&lt;br&gt;confetti. No spinning reels, no near-miss fakery, full reduced-motion&lt;br&gt;respect. Intensity is budgeted across the arc.
+</li>
+<li>
+<strong>Everyone has a shot.</strong> The comeback ⚡ (×1.2 when &gt;30% behind),&lt;br&gt;handicap multipliers, daily fresh starts and MVP-votes-for-effort must be&lt;br&gt;&lt;em&gt;visible&lt;/em&gt; — the UI's job is to make fairness legible and defeat temporary.
+</li>
+</ol>
+<hr>
+<h2>Current visual identity</h2>
+<p><strong>Tokens (canonical): <code>design/tokens.css</code></strong> — dark athletic base (<code>--bg #0a0b0d</code>, <code>--surface #121418</code>), one loud accent (<code>--lime #c6f32e</code>, earned: verified/leading/CTA only), <code>--coral #ff5c38</code> for effort/comeback, mono numerals for every score (&quot;a score must read like a scoreboard, not prose&quot;), 14/9px radii, pills, one 160ms ease — with principle 4's strategic-intensity ramp superseding that single-speed law.</p>
+<p><strong>Five complete themes exist</strong> — explore them side-by-side at <strong><code>/styles</code></strong> (run <code>bun serve.ts</code>, then http://localhost:4173/styles):</p>
+<table><thead><tr><th>Theme</th><th>Read</th></tr></thead><tbody><tr><td><strong>Lime Athletic</strong></td><td>The system as shipped — near-black steel, one loud lime. Technical with a streak of arcade.</td></tr><tr><td><strong>Gold Arcade</strong></td><td>Ben's Figma direction — purple-ink surfaces, brand-gold actions, Anton display. Confident consumer product.</td></tr><tr><td>Sunset Brutalist</td><td>The light mode — cream paper, 2px ink borders, hard offset shadows. Sport-poster loud.</td></tr><tr><td>Midnight Neon</td><td>The esports skin — electric cyan + magenta, subtle glow. Ranked-play energy.</td></tr><tr><td>Forest Retro</td><td>The family mode — walnut dark, 70s mustard/olive, soft radii. Everyone plays.</td></tr></tbody></table>
+<p><strong>The open brand question (founder decision, §9 of the GDD):</strong> gold + purple</p>
+<ul>
+<li>
+Anton/Inter (Ben's file — &quot;game&quot;) vs lime + coral + Space Grotesk (ours —&lt;br&gt;&amp;quot;athletic&amp;quot;). Both are now fully built and switchable; the test app ships all&lt;br&gt;fonts (Anton, Inter, Space Grotesk, Archivo, Fredoka, JetBrains Mono). The&lt;br&gt;typographic &lt;em&gt;roles&lt;/em&gt; — display/score, heading, body, label, overline — map&lt;br&gt;cleanly either way, so the loser's hierarchy survives. Domain: reps.fit vs&lt;br&gt;rwf.app, same call.
+</li>
+</ul>
+<hr>
+<h2>The surfaces to design</h2>
+<ul>
+<li>
+<strong>App screens</strong> — the phone-first battle experience: waiting room → battle&lt;br&gt;live (standings + progress + danger-zone chrome) → log sheet → daily recap&lt;br&gt;→ final result → season ladder → profile. Ben's full 66-screen model&lt;br&gt;(incl. bottom nav with central raised LOG button) is implemented as an&lt;br&gt;offline test app at &lt;strong&gt;&lt;code&gt;/figma-app&lt;/code&gt;&lt;/strong&gt; — walk it; it runs the real engine.
+</li>
+<li>
+<strong>Bot cards</strong> — standings, results, digests rendered as chat messages and&lt;br&gt;branded SVG images (1200×675). These carry the game to people who never&lt;br&gt;install anything; they are the growth surface.
+</li>
+<li>
+<strong>Result &amp; recap cards</strong> — the viral artefact: every match end&lt;br&gt;auto-generates a shareable image (winner, margin, comeback story, charity&lt;br&gt;pot, join link). Direction: server-rendered, no health data, editable&lt;br&gt;pre-written caption. Photo-finish variant for top-two-within-5%.
+</li>
+<li>
+<strong>The avatar/creature system</strong> — the identity layer: your creature evolves&lt;br&gt;with your training (dragon: hatchling → fledgling → elder, already rigged).&lt;br&gt;Playground at &lt;code&gt;/avatars&lt;/code&gt;, garment/pose inspection at &lt;code&gt;/atelier&lt;/code&gt;.
+</li>
+<li>
+<strong>Motion &amp; sound</strong> — the intensity ramp in principle 4, plus haptics and&lt;br&gt;(someday) Ben's drum-track rep cues.
+</li>
+</ul>
+<hr>
+<h2>What a designer touches first — three concrete briefs</h2>
+<ol>
+<li>
+<strong>Lock the brand (1 week).</strong> Choose gold-vs-lime (accent + type + domain).&lt;br&gt;Deliverable: one chosen theme applied end-to-end in &lt;code&gt;/styles&lt;/code&gt; previews +&lt;br&gt;a tokens.css mapping table. Everything downstream (bot cards, app, site)&lt;br&gt;inherits this. Ben has asked for sign-off on this personally.
+</li>
+<li>
+<strong>The battle day (2 weeks).</strong> The live-standings screen family: league&lt;br&gt;table with adjusted-score emphasis, comeback-armed ⚡ states, the DZ1→DZ2&lt;br&gt;→DZ3 escalation (colour/timer only, layout frozen), power-up activation&lt;br&gt;moments (public, dramatic, honest — shield-blocks-steal must read as&lt;br&gt;justice, not glitch), and the log sheet (bottom sheet, presets, ≤3 taps).&lt;br&gt;This is where principles 1, 4 and 5 earn their keep.
+</li>
+<li>
+<strong>The shareable artefacts (2 weeks).</strong> Result card + daily recap + Monday&lt;br&gt;digest as one templated system (16:9 image + chat-message variant).&lt;br&gt;Success metric: a losing player still posts it. Include the charity-pot&lt;br&gt;&amp;quot;winner directs&amp;quot; moment — the one place the product goes quiet and warm.
+</li>
+</ol>
+<hr>
+<h2>Links</h2>
+<p>Run <code>bun serve.ts</code> → http://localhost:4173 (public mirror: rwf.qalarc.com):</p>
+<ul>
+<li>
+<strong><code>/figma-app</code></strong> — Ben's full design, every screen, running the real engine
+</li>
+<li>
+<strong><code>/styles</code></strong> — the five themes, side-by-side + live previews
+</li>
+<li>
+<strong><code>/system</code></strong> — design tokens, 16 components, 36 elements with status
+</li>
+<li>
+<strong><code>/wiki</code></strong> — browsable docs (Game Rules, App Screens, Bots, Verification, Avatars)
+</li>
+<li>
+<strong><code>/atelier</code></strong> — avatar garment/pose inspection tool
+</li>
+<li>
+<code>/demo</code> (90-second match replay) · <code>/debug</code> (live bot simulator — chat&lt;br&gt;&lt;code&gt;new&lt;/code&gt;, &lt;code&gt;log pushups 25!&lt;/code&gt;, &lt;code&gt;s&lt;/code&gt;, &lt;code&gt;result&lt;/code&gt;) · &lt;code&gt;/hub&lt;/code&gt; (ops console)
+</li>
+</ul>
+<p>Repo: <code>docs/24_GAME_DESIGN.md</code> (the game bible) · <code>docs/13</code> (MVP spec) · <code>figma/notes/analysis.md</code> (the Figma audit + open decisions) · <code>design/tokens.css</code> (canonical tokens).</p>
+    </article>
+  </main>
+</body>
+</html>

@@ -1,15 +1,16 @@
 #!/usr/bin/env python3
 """
-Build the RWF follow-up pitch deck + appendix PDFs.
+Build the RWF follow-up pitch deck + appendix + contract PDFs.
 
 What this does (no new deps; python3 + chromium only):
-  1. Base64-inlines Space Grotesk + Anton from design/fonts/ into
+  1. Base64-inlines Space Grotesk + Anton + Inter from design/fonts/ into
      docs/pitchdeck/fonts-embed.css (so the HTML source stays hand-editable
      and the PDFs embed real vector text in the brand fonts).
   2. Serves the repo root on a local HTTP port (avoids file:// asset
      restrictions).
   3. Prints docs/pitchdeck/deck.html     -> docs/RWF_Followup_Deck.pdf    (16:9, 1280x720 pages)
-     and   docs/pitchdeck/appendix.html -> docs/RWF_Followup_Appendix.pdf (A4 portrait pages)
+      and   docs/pitchdeck/appendix.html -> docs/RWF_Followup_Appendix.pdf (A4 portrait pages)
+      and   docs/pitchdeck/contract.html -> docs/RWF_Contract_Scope.pdf    (A4 portrait pages)
      via headless Chromium --print-to-pdf.
 
 Usage:  python3 docs/pitchdeck/build.py
@@ -39,6 +40,12 @@ FONT_SOURCES = [
         os.path.join(ROOT, "design/fonts/anton-regular.woff2"),
         "woff2",
         "normal",
+    ),
+    (
+        "Inter",
+        os.path.join(ROOT, "design/fonts/inter-var.woff2"),
+        "woff2",
+        "variable",
     ),
 ]
 
@@ -120,9 +127,17 @@ def main() -> None:
             f"{base}/docs/pitchdeck/appendix.html",
             os.path.join(DOCS, "RWF_Followup_Appendix.pdf"),
         )
+        print_pdf(
+            f"{base}/docs/pitchdeck/contract.html",
+            os.path.join(DOCS, "RWF_Contract_Scope.pdf"),
+        )
     finally:
         httpd.shutdown()
-    for f in ("RWF_Followup_Deck.pdf", "RWF_Followup_Appendix.pdf"):
+    for f in (
+        "RWF_Followup_Deck.pdf",
+        "RWF_Followup_Appendix.pdf",
+        "RWF_Contract_Scope.pdf",
+    ):
         p = os.path.join(DOCS, f)
         print(f"{f}: {os.path.getsize(p) / 1024:.0f} KB")
     print("done.")

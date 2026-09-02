@@ -95,6 +95,26 @@
     </p>
   </section>
 
+  <!-- ── PHOTO AVATARS — img2threejs-style code-only avatars (docs/23 §3) ── -->
+  <section class="studio-section" id="photoSection">
+    <div class="section-head">
+      <h2>Photo avatars — img2threejs prototype</h2>
+      <p class="section-sub">
+        Code-only avatars rebuilt from reference images by the img2threejs method
+        (reconstruction-by-code: component trees, pivots, sockets, idle ticks —
+        no meshes, no textures). This strip is a <em>lightweight manual pass</em>
+        (palettes sampled programmatically from the showcase reference pixels);
+        the full vision-gated pipeline costs ~150k–350k tokens per character.
+        Investigation: <code>docs/23_IMG2THREEJS_INVESTIGATION.md</code>.
+      </p>
+    </div>
+    <div class="style-grid" id="photoGrid"></div>
+    <p class="gallery-foot">
+      <span class="hud-chip hud-chip--dim" id="photoPerf">— ms/frame</span>
+      <span class="gallery-note">Factories in <code>site/models/photo_avatars/</code> · skill Apache-2.0 · output code is ours · references: img2threejs-showcase (no real people).</span>
+    </p>
+  </section>
+
   <!-- ── CREATURES — dragons on the dedicated creature rig ───────────────── -->
   <section class="studio-section" id="creatureSection">
     <div class="section-head">

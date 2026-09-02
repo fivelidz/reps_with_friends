@@ -1179,3 +1179,132 @@ if (modelGrid) {
     console.error('[creatures]', err);
   });
 }
+
+// ─────────────────────────────────────────────────────────────────────────────
+// PHOTO AVATARS — img2threejs prototype strip (docs/23 §3).
+//
+// Code-only procedural factories (site/models/photo_avatars/) built by the
+// img2threejs method from showcase reference images. Same lazy-context
+// contract as the model cards: renderer created on intersection, released 3s
+// off-screen, page-wide ctx budget respected. Each factory exposes pivots,
+// userData.sockets and a userData.tick(t) idle per the skill's runtime
+// hierarchy contract. Self-contained append-only block.
+// ─────────────────────────────────────────────────────────────────────────────
+{
+  const grid = $('photoGrid');
+  if (grid) {
+    const { PHOTO_AVATARS } = await import('/site/models/photo_avatars/index.js');
+    const W = 240, H = 300;
+    const cards = [];
+
+    for (const A of PHOTO_AVATARS) {
+      const card = document.createElement('article');
+      card.className = 'style-card style-card--model';
+      card.innerHTML = `
+        <div class="style-stage"></div>
+        <div class="style-meta">
+          <h3>${A.name}</h3>
+          <p class="style-blurb">${A.blurb}</p>
+          <div class="model-btns">
+            <button class="rwf-btn btn--xs is-on" data-spin="1" title="slow turntable">spin</button>
+          </div>
+        </div>`;
+      grid.appendChild(card);
+      const stage = card.querySelector('.style-stage');
+
+      const scene = new THREE.Scene();
+      const cam = new THREE.PerspectiveCamera(38, W / H, 0.01, 60);
+      const key = new THREE.DirectionalLight(0xffffff, 3.2); key.position.set(1.5, 3, 2); scene.add(key);
+      const key2 = new THREE.DirectionalLight(0xfff2e0, 1.6); key2.position.set(-1.2, 2, 2.4); scene.add(key2); // front-left fill — flat-colour code avatars need it on the dark stage
+      const warm = new THREE.PointLight(0xffd9a0, 2.4, 8); warm.position.set(1.8, 0.9, 1.8); scene.add(warm); // dark-palette characters (pantera/wraith) need the marauder lift to read on the dark stage
+      const fill = new THREE.HemisphereLight(0x8fb6ff, 0x1a1d23, 1.8); scene.add(fill);
+      const rim = new THREE.PointLight(0xc6f32e, 3, 8); rim.position.set(-2, 1.4, -2); scene.add(rim);
+      const ground = new THREE.Mesh(
+        new THREE.CircleGeometry(0.5, 40).rotateX(-Math.PI / 2),
+        new THREE.MeshStandardMaterial({ color: 0x14171c, roughness: 0.95 })
+      );
+      scene.add(ground);
+
+      const model = A.create();
+      // ground-centre + normalise to 1.5 units tall (same framing as creatures)
+      const box0 = new THREE.Box3().setFromObject(model);
+      const c0 = box0.getCenter(new THREE.Vector3());
+      model.position.sub(new THREE.Vector3(c0.x, box0.min.y, c0.z));
+      const s0 = 1.5 / Math.max(0.01, box0.max.y - box0.min.y);
+      model.scale.setScalar(s0);
+      const turn = new THREE.Group(); turn.name = 'Turntable'; turn.add(model); scene.add(turn);
+      const box = new THREE.Box3().setFromObject(model);
+      const sphere = box.getBoundingSphere(new THREE.Sphere());
+      const radius = Math.max(sphere.radius, 0.55);
+      const vFov = THREE.MathUtils.degToRad(cam.fov);
+      const hFov = 2 * Math.atan(Math.tan(vFov / 2) * (W / H));
+      const dist = (radius * 1.12) / Math.sin(Math.min(vFov, hFov) / 2);
+      cam.position.set(sphere.center.x + dist * 0.16, sphere.center.y + radius * 0.18, dist);
+      cam.lookAt(sphere.center);
+
+      const entry = { card, renderer: null, scene, cam, turn, model, spin: true, phase: Math.random(), renderMs: 0 };
+      cards.push(entry);
+
+      let releaseTimer = 0;
+      const ensureRenderer = () => {
+        if (entry.renderer) return;
+        ctxMakeRoom();
+        try {
+          const r = new THREE.WebGLRenderer({ antialias: true, alpha: true });
+          r.setPixelRatio(Math.min(devicePixelRatio, 2));
+          r.setSize(W, H);
+          r.outputColorSpace = THREE.SRGBColorSpace;
+          stage.appendChild(r.domElement);
+          entry.renderer = r;
+        } catch (e) {
+          card.querySelector('.style-blurb').textContent = 'WebGL unavailable';
+        }
+      };
+      const releaseRenderer = () => {
+        if (!entry.renderer) return;
+        entry.renderer.dispose();
+        if (entry.renderer.getContext().getExtension('WEBGL_lose_context')) entry.renderer.forceContextLoss?.();
+        entry.renderer.domElement.remove();
+        entry.renderer = null;
+      };
+      ctxRegister({ el: card, gl: () => entry.renderer?.getContext?.() ?? null, release: releaseRenderer, ensure: ensureRenderer });
+      new IntersectionObserver((es) => {
+        clearTimeout(releaseTimer);
+        if (es[0].isIntersecting) ensureRenderer();
+        else releaseTimer = setTimeout(releaseRenderer, 3000);
+      }, { threshold: 0 }).observe(card);
+
+      const spinBtn = card.querySelector('[data-spin]');
+      spinBtn?.addEventListener('click', () => {
+        entry.spin = !entry.spin;
+        spinBtn.classList.toggle('is-on', entry.spin);
+      });
+    }
+
+    // shared animation loop — idle tick + optional turntable
+    let last = performance.now();
+    (function tick(now) {
+      requestAnimationFrame(tick);
+      const t = now / 1000;
+      const dt = Math.min(0.05, (now - last) / 1000); last = now;
+      for (const e of cards) {
+        if (!e.renderer) continue;
+        const t0 = performance.now();
+        if (!REDUCED) {
+          e.phase += dt;
+          if (e.spin) e.turn.rotation.y += dt * 0.5;
+          e.model.userData.tick?.(e.phase);   // img2threejs idle contract
+        }
+        e.renderer.render(e.scene, e.cam);
+        e.renderMs = e.renderMs * 0.9 + (performance.now() - t0) * 0.1;
+      }
+      const perf = $('photoPerf');
+      if (perf && cards.some((c) => c.renderer)) {
+        const live = cards.filter((c) => c.renderer);
+        perf.textContent = `${(live.reduce((a, c) => a + c.renderMs, 0) / live.length).toFixed(1)} ms/frame`;
+      }
+    })(last);
+
+    window.__rwfPhotoAvatars = cards; // test hook (same pattern as __rwfModels)
+  }
+}

@@ -1,0 +1,65 @@
+<!doctype html>
+<html lang="en">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <title>Blockers — RWF Documents</title>
+  <link rel="icon" href="data:image/svg+xml,<svg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 100 100'><text y='.9em' font-size='90'>🏋️</text></svg>">
+  <!-- v1.1.0 · rendered from repo docs/ by apps/hub-public/docs/build.sh (pandoc) -->
+  <link rel="stylesheet" href="/design/tokens.css">
+  <link rel="stylesheet" href="/design/fonts/fonts.css">
+  <link rel="stylesheet" href="/v1/docs/docs.css">
+</head>
+<body>
+  <header class="doc-topbar">
+    <a class="doc-back" href="/v1#business">← Coverage hub</a>
+    <span class="doc-brand">REPS WITH FRIENDS · DOCUMENTS</span>
+    <span class="doc-ver mono">v1.1.0</span>
+  </header>
+  <main class="doc-page">
+    <article class="doc-body">
+<h1>RWF — Blockers Register</h1>
+<p><em>What's blocked, why, who unblocks it, and what it costs. Reviewed weekly. Status: 🟥 blocked · 🟧 partial · 🟩 clear</em></p>
+<h2>Technical</h2>
+<table><thead><tr><th>#</th><th>Blocker</th><th>Impact</th><th>Unblock path</th><th>Status</th></tr></thead><tbody><tr><td>T1</td><td><strong>Slack app doesn't exist yet</strong> — needs one human with a Slack login (5 min: create from <code>/slack/manifest.yml</code>, install, copy Client ID)</td><td>No live Slack play; no corporate pilot surface; <code>/slack</code> install link can't be generated until then</td><td>Alexei (or anyone) does the 5-min setup → paste Client ID at <code>/slack</code> → permanent Add-to-Slack link exists</td><td>🟥</td></tr><tr><td>T2</td><td><strong>WhatsApp Cloud API group messaging</strong> — likely 1:1-only [VERIFY]</td><td>Production architecture: group-native bot may be impossible on official API; per-player DM redesign needed at pilot</td><td>Verify with Meta at pilot application; design DM-fallback now (docs/14 notes the migration shape)</td><td>🟥</td></tr><tr><td>T3</td><td><strong>Bots only run while superlocal is on</strong> — no always-on host. <em>(27 Aug: minirig install attempt blocked — box offline ~96d, Tailscale node key expired; needs power-on + <code>tailscale up --force-reauth</code> first, see docs/16)</em></td><td>Demo reliability for Ben/Nico; &quot;is the bot up?&quot; becomes the story</td><td>Short-term: move bot processes to minirig (always-on, systemd user services — pattern exists). Long-term: small VPS or worker</td><td>🟥</td></tr><tr><td>T4</td><td><strong>No auth / identity</strong> — names are free-typed, per-device state</td><td>Multi-device play, real accounts, anti-cheat identity, payments</td><td>apps/api exists; add magic-link auth (Resend is live) at MVP</td><td>🟧</td></tr><tr><td>T5</td><td><strong>App ↔ bot state split</strong> — localStorage vs .data JSON, no sync</td><td>A crew created in the app can't be played by the bots yet (code binding is manual)</td><td>Wire app → apps/api ← bots (the API is built and tested; migration is mechanical)</td><td>🟧</td></tr><tr><td>T6</td><td><strong>AI key balance</strong> — primary Z.AI key exhausted; running on secondary</td><td>AI features (guide, narrator, taunts) die if secondary runs dry</td><td>Monitor usage; top up Z.AI; fallbacks already degrade gracefully</td><td>🟧</td></tr><tr><td>T7</td><td><strong>CF token lacks Tunnel:Edit</strong> — Pages works, named tunnel doesn't</td><td>Can't expose the LOCAL server (live bots, live /api/state) at rwf.qalarc.com</td><td>Widen token scope or <code>cloudflared tunnel login</code> once; then bots' live data can flow through the same domain</td><td>🟧</td></tr><tr><td>T8</td><td>~~GitHub Actions runners not assigning~~ <strong>RESOLVED — transient GitHub incident, not billing</strong> (26–27 Aug): runs for e03bc09/ffba9fe queued forever (<code>runner_id: null</code>, no logs), but the very next push (5091488, 26 Aug 16:12) got a runner and deployed green; a fresh <code>workflow_dispatch</code> on 27 Aug also got a runner and succeeded in &lt;60s. Stuck e03bc09 run is a harmless zombie (cancel API returns 409; ignore or delete via UI).</td><td>None — push-to-deploy works again; site verified live (200, /system fresh)</td><td>Nothing required. Watch item: repo is <strong>private</strong> so Actions minutes are paid — if it recurs, check github.com/settings/billing → raise spending limit, make repo public (Actions free), or self-host a runner on minirig</td><td>🟩</td></tr></tbody></table>
+<h2>Legal / compliance</h2>
+<table><thead><tr><th>#</th><th>Blocker</th><th>Impact</th><th>Unblock path</th><th>Status</th></tr></thead><tbody><tr><td>L1</td><td><strong>Charity-wager legal opinion</strong> — no lawyer has looked at the pot structure</td><td>No real money in pots, ever, until this lands. Pledge-only or employer-funded until then</td><td>Brief a charity/gaming lawyer (AUD 3–10k). Questions already framed in docs/08 §6. Employer-funded pots are the cleanest interim</td><td>🟥</td></tr><tr><td>L2</td><td><strong>Apple 3.2.2(iv)</strong> — no in-app charity collection</td><td>Pot payment UX must be web-only in any native app, forever</td><td>Already designed around: payments live on the web app</td><td>🟩</td></tr><tr><td>L3</td><td><strong>Privacy policy + data inventory</strong> — none written</td><td>App store submissions, corporate procurement, GDPR if global</td><td>One data-inventory sheet feeding policy + Apple labels + Play data safety (docs/08 §7 has the checklist)</td><td>🟥</td></tr></tbody></table>
+<h2>Business</h2>
+<table><thead><tr><th>#</th><th>Blocker</th><th>Impact</th><th>Unblock path</th><th>Status</th></tr></thead><tbody><tr><td>B1</td><td><strong>Figma + blueprint not received</strong> — design audit, divergence log, and scope alignment all wait on it</td><td>Can't finalise MVP scope; our design (docs/13) is deliberately independent until then</td><td>Email asks for it; call scheduled Tue/Wed</td><td>🟥</td></tr><tr><td>B2</td><td><strong>Equity terms undefined</strong> — split, vesting, IP assignment of Ben's blueprint</td><td>Co-founder-track commitment can't be papered</td><td>Call agenda item #5 (docs/09); get specific, get it in writing</td><td>🟥</td></tr><tr><td>B3</td><td><strong>Corporate prospects unvalidated</strong> — no LOIs or warm corporates identified</td><td>Corporate lane priority (and the employer-pot pilot) is a hypothesis</td><td>Ask Ben on the call: any real prospects? Sahha-network intros?</td><td>🟧</td></tr></tbody></table>
+<h2>Deliberately NOT blockers</h2>
+<ul>
+<li>
+<strong>Apple Messages</strong> — no API exists; parked permanently for MVP.
+</li>
+<li>
+<strong>App stores</strong> — PWA ships without them; native is Phase 3 (HealthKit).
+</li>
+<li>
+<strong>Strava</strong> — paid + capped; revisit at scale.
+</li>
+<li>
+<strong>Custom ML for rep counting</strong> — MoveNet in-browser covers MVP (lane 7 brief ready).
+</li>
+</ul>
+<h2>This week's unblock order</h2>
+<ol>
+<li>
+<strong>T1</strong> Slack app (5 min, human-in-loop) → corporate surface live
+</li>
+<li>
+<strong>B1/B2</strong> Send email → call → Figma + equity specifics
+</li>
+<li>
+<strong>T3</strong> Bots to minirig (always-on demo)
+</li>
+<li>
+<strong>T5</strong> App ↔ API ↔ bots wiring (mechanical, ~1 session)
+</li>
+<li>
+<strong>L3</strong> Data inventory sheet (feeds everything compliance)
+</li>
+</ol>
+    </article>
+  </main>
+</body>
+</html>

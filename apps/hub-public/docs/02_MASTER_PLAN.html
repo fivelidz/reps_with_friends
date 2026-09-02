@@ -1,0 +1,158 @@
+<!doctype html>
+<html lang="en">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <title>Master Plan — RWF Documents</title>
+  <link rel="icon" href="data:image/svg+xml,<svg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 100 100'><text y='.9em' font-size='90'>🏋️</text></svg>">
+  <!-- v1.1.0 · rendered from repo docs/ by apps/hub-public/docs/build.sh (pandoc) -->
+  <link rel="stylesheet" href="/design/tokens.css">
+  <link rel="stylesheet" href="/design/fonts/fonts.css">
+  <link rel="stylesheet" href="/v1/docs/docs.css">
+</head>
+<body>
+  <header class="doc-topbar">
+    <a class="doc-back" href="/v1#business">← Coverage hub</a>
+    <span class="doc-brand">REPS WITH FRIENDS · DOCUMENTS</span>
+    <span class="doc-ver mono">v1.1.0</span>
+  </header>
+  <main class="doc-page">
+    <article class="doc-body">
+<h1>Reps With Friends — Master Plan</h1>
+<p><em>Version 0.1 · 26 Aug 2026 · Alexei Brown</em></p>
+<hr>
+<h2>0. Strategy in one paragraph</h2>
+<p>Win the empty niche — <strong>handicapped, small-group fitness competition delivered inside the group chat</strong> — by shipping a playable WhatsApp/Slack bot fast (weeks), using in-browser pose counting for rep verification ($0, no approvals), and letting the chat broadcast loop do acquisition. The app is the scoreboard and the archive; the chat is the arena. Monetise later through corporate wellness once the loop is proven.</p>
+<hr>
+<h2>1. Phases</h2>
+<h3>Phase 0 — Due diligence &amp; alignment <em>(this week)</em></h3>
+<ul>
+<li>
+[x] Private repo + research (OpenGym landscape, wearables) — done, see docs 04/05
+</li>
+<li>
+[x] Business analysis — done, see doc 01
+</li>
+<li>
+[ ] Reply to Ben → get the <strong>Figma + full blueprint</strong> (ask explicitly)
+</li>
+<li>
+[ ] Call: align on MVP scope, equity conversation, roles. Key questions below.
+</li>
+<li>
+[ ] Audit the Figma against this plan; flag what's missing/rubbish/needs room (he asked for it)
+</li>
+</ul>
+<p><strong>Questions for the call:</strong></p>
+<ol>
+<li>
+Handicap mechanics as he imagines them — self-assessed baseline? Historical?&lt;br&gt;(Our v1: self-reported fitness tier → effort multiplier; v2: %HRR-based.)
+</li>
+<li>
+Rep verification expectations — is camera-in-browser acceptable for MVP?
+</li>
+<li>
+Charity pot: who holds the money? (Platform vs. honour-system vs. partner charity)
+</li>
+<li>
+Corporate mode: any live prospects/LOIs? That changes build priority.
+</li>
+<li>
+Equity: what split is he imagining, vesting, IP assignment on the blueprint.
+</li>
+<li>
+Who else is involved? (Nico's role, any other collaborators.)
+</li>
+</ol>
+<h3>Phase 2 — MVP: &quot;the 300 loop&quot; <em>(~6–8 weeks)</em></h3>
+<p><strong>Goal: 3–5 real group chats playing weekly.</strong></p>
+<p>Scope:</p>
+<ol>
+<li>
+<strong>game-core</strong> (this repo, started): match engine, handicap scoring v1,&lt;br&gt;standings, charity pot ledger. Pure TypeScript, fully tested.
+</li>
+<li>
+<strong>WhatsApp bot</strong> via Qalarc Hub (dev/dogfood) → WhatsApp Business Cloud API&lt;br&gt;(prod). Commands: create match, pick exercises, log reps, standings, winner.
+</li>
+<li>
+<strong>Slack bot</strong> (Bolt.js): same command surface, slash commands + interactive&lt;br&gt;buttons. Slack first for corporate pilots.
+</li>
+<li>
+<strong>Web app (PWA)</strong>: join link from chat → log reps with <strong>camera pose counting&lt;br&gt;(MoveNet/BlazePose in-browser)</strong> or manual entry → live match view →&lt;br&gt;shareable result card.
+</li>
+<li>
+<strong>Handicap v1</strong>: fitness tier (self-set, adjustable) → effort multiplier.&lt;br&gt;Honest, simple, tunable. Ship it, learn, replace with %HRR in Phase 3.
+</li>
+</ol>
+<p>Explicitly OUT: native apps, Apple Messages, cash anything, custom ML models.</p>
+<h3>Phase 3 — Effort truth &amp; wearables <em>(~+8 weeks)</em></h3>
+<ul>
+<li>
+<strong>Handicap v2: %HRR (Karvonen)</strong> — score = reps × (your %HRR ÷ your baseline&lt;br&gt;%HRR for that exercise). Any BLE chest strap via Web Bluetooth; Apple Watch&lt;br&gt;via HealthKit live HR; Android via Health Connect (sync-only, cross-check).
+</li>
+<li>
+WatchOS/Wear OS companions (rep counting from wrist accelerometer).
+</li>
+<li>
+Season/league structure (the long-arc retention fix).
+</li>
+<li>
+Shareable clip generation (auto-cut mid-set footage + result card overlay).
+</li>
+</ul>
+<h3>Phase 4 — Business layer</h3>
+<ul>
+<li>
+Corporate mode: Slack enterprise install, org dashboards, team-vs-team&lt;br&gt;leagues, invoicing. &lt;strong&gt;This is the revenue engine.&lt;/strong&gt;
+</li>
+<li>
+Charity pot mechanics with a partner charity (legal structure first).
+</li>
+<li>
+WHOOP/Garmin/Google Health cloud verification (recovery-adjusted handicaps).
+</li>
+<li>
+Messenger bot; revisit Apple when/unless an API ever appears.
+</li>
+</ul>
+<hr>
+<h2>2. Architecture (summary — full detail in doc 03)</h2>
+<pre><code>┌─────────────┐   ┌──────────────┐   ┌─────────────┐
+│ WhatsApp bot│   │  Slack bot   │   │   Web PWA   │
+│ (Hub→Cloud) │   │   (Bolt)     │   │ (React)     │
+└──────┬──────┘   └──────┬───────┘   └──────┬──────┘
+       └────────┬────────┴─────────────────┘
+                ▼
+        ┌───────────────┐     ┌──────────────┐
+        │  RWF API      │────▶│  Postgres    │
+        │  (Hono/TS)    │     │  + Redis     │
+        └───────┬───────┘     └──────────────┘
+                │
+        ┌───────▼────────┐
+        │  game-core     │  ← pure TS library: match engine,
+        │  (this repo)   │    handicap scoring, pot ledger
+        └────────────────┘</code></pre>
+<ul>
+<li>
+<strong>Monorepo</strong> (Bun workspaces): <code>packages/game-core</code>, <code>apps/api</code>,&lt;br&gt;&lt;code&gt;apps/bot-whatsapp&lt;/code&gt;, &lt;code&gt;apps/bot-slack&lt;/code&gt;, &lt;code&gt;apps/web&lt;/code&gt;.
+</li>
+<li>
+<strong>Chat adapters are thin</strong> — they translate platform events into the same&lt;br&gt;command bus, so adding Messenger later is one adapter, not a rewrite.
+</li>
+<li>
+<strong>Match state in Redis</strong> (live standings), <strong>history in Postgres</strong>.
+</li>
+<li>
+<strong>Pose counting runs client-side in the browser</strong> (MoveNet via TF.js) — no&lt;br&gt;video leaves the device, no GPU bill, privacy story for corporates.
+</li>
+</ul>
+<hr>
+<h2>3. KPIs</h2>
+<table><thead><tr><th>Phase</th><th>Metric</th><th>Target</th></tr></thead><tbody><tr><td>MVP</td><td>Groups activated</td><td>3–5 real chats</td></tr><tr><td>MVP</td><td>Matches/group/week</td><td>≥1</td></tr><tr><td>MVP</td><td>% reps camera-verified</td><td>≥40%</td></tr><tr><td>Growth</td><td>New users per match broadcast (viral k)</td><td>≥0.3</td></tr><tr><td>Growth</td><td>W4 retention of a group (still playing)</td><td>≥60%</td></tr><tr><td>Business</td><td>Corporate pilots</td><td>2 by Phase 4</td></tr></tbody></table>
+<hr>
+<h2>4. Coordination note</h2>
+<p>Another agent is researching this opportunity in parallel — reconcile findings before the call. This repo is the canonical home for all RWF work product.</p>
+    </article>
+  </main>
+</body>
+</html>
