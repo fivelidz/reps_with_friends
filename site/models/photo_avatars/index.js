@@ -25,3 +25,30 @@ export const PHOTO_AVATARS = [
   // glm-5.3 codegen → pixel gate 11/11 + glm review 0.95/pass.
   { ...BEACON_DESC, create: createBeaconModel, spin: 0.22 },
 ];
+
+// ── PHOTO BOOTH avatars (apps/booth, /api/booth) ─────────────────────────────
+// Generated on this machine from selfies/Photos (palette + silhouette only —
+// no likeness). The pipeline appends to booth_index.json; this loader pulls it
+// with no-cache so freshly generated busts appear in the strip on next visit.
+// Every module follows the same contract (createBoothModel + BOOTH_DESC), so
+// the strip needs no per-avatar wiring. Entries marked in the localStorage set
+// `rwf_my_booth_avatars` (the booth's ADD TO MY AVATARS) get the YOURS badge.
+export async function loadBoothAvatars() {
+  try {
+    const r = await fetch('/models/photo_avatars/booth_index.json', { cache: 'no-cache' });
+    if (!r.ok) return [];
+    const { avatars = [] } = await r.json();
+    const out = [];
+    for (const e of avatars) {
+      try {
+        const mod = await import(`/models/photo_avatars/${e.module}`);
+        if (typeof mod.createBoothModel !== 'function') continue;
+        out.push({
+          id: e.id, name: e.name, blurb: e.blurb, module: e.module,
+          create: mod.createBoothModel, spin: 0.22, booth: true, mode: e.mode,
+        });
+      } catch { /* module missing — skip, keep the strip alive */ }
+    }
+    return out;
+  } catch { return []; }
+}

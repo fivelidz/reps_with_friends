@@ -1193,15 +1193,21 @@ if (modelGrid) {
 {
   const grid = $('photoGrid');
   if (grid) {
-    const { PHOTO_AVATARS } = await import('/site/models/photo_avatars/index.js');
+    const { PHOTO_AVATARS, loadBoothAvatars } = await import('/site/models/photo_avatars/index.js');
+    // booth busts (selfie → palette+silhouette, apps/booth) ride the same strip
+    const BOOTH_AVATARS = await loadBoothAvatars();
+    let myBooth = [];
+    try { myBooth = JSON.parse(localStorage.getItem('rwf_my_booth_avatars') ?? '[]'); } catch {}
     const W = 240, H = 300;
     const cards = [];
 
-    for (const A of PHOTO_AVATARS) {
+    for (const A of [...PHOTO_AVATARS, ...BOOTH_AVATARS]) {
+      const mine = A.booth && myBooth.includes(A.module);
       const card = document.createElement('article');
       card.className = 'style-card style-card--model';
       card.innerHTML = `
-        <div class="style-stage"></div>
+        <div class="style-stage${mine ? ' style-stage--mine' : ''}"></div>
+        ${A.booth ? `<span class="booth-chip${mine ? ' booth-chip--mine' : ''}">${mine ? 'YOURS' : 'BOOTH'}</span>` : ''}
         <div class="style-meta">
           <h3>${A.name}</h3>
           <p class="style-blurb">${A.blurb}</p>

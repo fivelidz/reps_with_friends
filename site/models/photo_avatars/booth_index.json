@@ -1,0 +1,46 @@
+{
+ "avatars": [
+  {
+   "module": "booth_20260903_090513_quick.js",
+   "id": "booth_20260903_090513_quick",
+   "name": "Quick palette bust 090513",
+   "blurb": "quick palette avatar (fallback path \u2014 no vision API)",
+   "mode": "quick",
+   "ts": "2026-09-03T09:05:14"
+  },
+  {
+   "module": "booth_20260903_093311.js",
+   "id": "booth_20260903_093311",
+   "name": "Golden Hour Bookworm",
+   "blurb": "Round tan face with a brown bean-crop hair, gold round glasses and full beard over an orange tee with coral trim, cut from a warm illustrative palette.",
+   "mode": "full",
+   "ts": "2026-09-03T09:33:28",
+   "palette": [
+    "#ffa500",
+    "#8b4513",
+    "#d2b48c"
+   ]
+  },
+  {
+   "module": "booth_20260903_093644_quick.js",
+   "id": "booth_20260903_093644_quick",
+   "name": "Quick palette bust 093644",
+   "blurb": "quick palette avatar (fallback path \u2014 no vision API)",
+   "mode": "quick",
+   "ts": "2026-09-03T09:36:45"
+  },
+  {
+   "module": "booth_20260903_094444.js",
+   "id": "booth_20260903_094444",
+   "name": "Beanie Bard",
+   "blurb": "A tan-skinned stylised bust with a gold beanie and round glasses, short brown beard, and a yellow tee with red accents on a navy stage.",
+   "mode": "full",
+   "ts": "2026-09-03T09:45:04",
+   "palette": [
+    "#f9c74f",
+    "#8b572a",
+    "#d4a574"
+   ]
+  }
+ ]
+}

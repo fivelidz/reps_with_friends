@@ -111,8 +111,8 @@ async function setViewport(width, height, mobile = false) {
 
 /* the estate the hub must link (checked in DOM hrefs) */
 const ESTATE = [
-  "/figma-app", "/v2", "/demo", "/styles", "/sfx", "/system", "/figma",
-  "/atelier", "/avatars", "/v1", "/wiki",
+  "/v3", "/figma-app", "/v2", "/demo", "/styles", "/sfx", "/system", "/figma",
+  "/atelier", "/avatars", "/v1", "/v1/docs/26_TIMELINE_GOALS.html", "/wiki",
   "/deck/RWF_Followup_Deck.pdf", "/deck/RWF_Contract_Scope.pdf", "/deck/RWF_Followup_Appendix.pdf",
   "/apk/rwf-app-debug.apk", "/hub", "/debug", "/connect", "/slack", "/api/state",
 ];
@@ -139,8 +139,17 @@ const hub = await evalJs(`(() => {
   };
 })()`);
 ok(hub.missing.length === 0, `all ${ESTATE.length} estate routes linked in DOM (missing: ${hub.missing.join(",") || "none"})`);
-ok(hub.imgs.length === 7 && hub.imgs.every(i => i.ok), `7 version thumbnails load (${hub.imgs.filter(i => i.ok).length}/7 ok)`);
-ok(hub.verCards === 3, `3 version cards (v1 / v2 / demo) — got ${hub.verCards}`);
+ok(hub.imgs.length === 10 && hub.imgs.every(i => i.ok), `10 version thumbnails load — v3/v2/v1 + demo (${hub.imgs.filter(i => i.ok).length}/10 ok)`);
+ok(hub.verCards === 4, `4 version cards (v3 current / v2 / v1 / demo) — got ${hub.verCards}`);
+const verOrder = await evalJs(`(() => {
+  const cards = [...document.querySelectorAll('.ver-card')];
+  return {
+    hrefs: cards.map(a => a.getAttribute('href')),
+    currentIdx: cards.findIndex(a => a.classList.contains('ver-card--current')),
+  };
+})()`);
+ok(verOrder.hrefs.join(" ") === "/v3 /v2 /figma-app /demo" && verOrder.currentIdx === 0,
+  `versions ordered v3 (current, lime) · v2 · v1 · demo — got [${verOrder.hrefs.join(" ")}] current@${verOrder.currentIdx}`);
 ok(hub.clusters.length === 6, `6 explore clusters — got ${hub.clusters.length}: ${hub.clusters.join(" · ")}`);
 ok(hub.dirLinks >= 20, `footer directory links — got ${hub.dirLinks}`);
 
@@ -178,7 +187,7 @@ const mob = await evalJs(`(() => ({
   verCards: document.querySelectorAll('.ver-card').length,
 }))()`);
 ok(!mob.overflowX, "no horizontal overflow at 390px");
-ok(mob.verCards === 3, `version cards present at 390px (${mob.verCards})`);
+ok(mob.verCards === 4, `version cards present at 390px (${mob.verCards})`);
 await shot("hub-mobile-390-full");
 console.log(`  📸 hub-mobile-390-full.png`);
 

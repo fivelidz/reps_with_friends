@@ -14,7 +14,10 @@ magick apps/figma-app/shots/24-battle-live.png  -resize 240x site/hub-shots/v1-b
 magick apps/figma-app/shots/27-log-sheet.png    -resize 240x site/hub-shots/v1-log.png
 magick apps/board/shots/04-home_board.png       -resize 240x site/hub-shots/v2-home.png
 magick apps/board/shots/20-table_board.png      -resize 240x site/hub-shots/v2-table.png
-magick apps/board/shots/45-result_board.png     -resize 240x site/hub-shots/v2-result.png
+magick apps/board/shots/45-result_board.png       -resize 240x site/hub-shots/v2-result.png
+magick apps/v3/shots/03-home_v3.png               -resize 240x site/hub-shots/v3-home.png
+magick apps/v3/shots/24-battle-live_v3.png        -resize 240x site/hub-shots/v3-course.png
+magick apps/v3/shots/51-result-podium_v3.png      -resize 240x site/hub-shots/v3-podium.png
 magick apps/figma-app/shots/121-battle-final.png -resize 240x site/hub-shots/demo-final.png
 ```
 
@@ -26,6 +29,9 @@ magick apps/figma-app/shots/121-battle-final.png -resize 240x site/hub-shots/dem
 | `v2-home.png` | `apps/board/shots/04-home_board.png` | v2 home (board game) |
 | `v2-table.png` | `apps/board/shots/20-table_board.png` | v2 the table |
 | `v2-result.png` | `apps/board/shots/45-result_board.png` | v2 result + charity |
+| `v3-home.png` | `apps/v3/shots/03-home_v3.png` | v3 home (the battle course) |
+| `v3-course.png` | `apps/v3/shots/24-battle-live_v3.png` | v3 the 3D course mid-battle |
+| `v3-podium.png` | `apps/v3/shots/51-result-podium_v3.png` | v3 3D podium result |
 | `demo-final.png` | `apps/figma-app/shots/121-battle-final.png` | match replay finale |
 
 Deploy: `scripts/build-deploy.sh` copies `*.png` → `deploy/public/site/hub-shots/`

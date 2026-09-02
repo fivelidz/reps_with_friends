@@ -1,0 +1,118 @@
+<!doctype html>
+<!-- apps/booth/gate.html — PHOTO BOOTH stage-3 pixel-gate page (headless).
+     Loads a generated booth module EXACTLY like the /avatars photo strip card
+     (same lights + framing contract) and reports status into the DOM for the
+     CDP harness (scripts/booth/gate_render.ts). Status line:
+       OK meshes=<n> desc=<id> tick+sockets OK nan=0 errors=0
+       ERR:<message>
+     Human preview: /booth/gate.html?module=<name>&spin=1 -->
+<html>
+<head>
+<meta charset="utf-8">
+<title>RWF · Booth gate</title>
+<script type="importmap">
+{ "imports": { "three": "/site/lib/three.module.js" } }
+</script>
+<style>
+  html, body { margin: 0; width: 480px; height: 600px; background: #0e0f13; overflow: hidden; }
+  #stage { width: 480px; height: 600px; }
+  #status { position: fixed; left: 4px; top: 4px; color: #c6f32e; font: 12px monospace; z-index: 9;
+            max-width: 470px; white-space: pre-wrap; }
+</style>
+</head>
+<body>
+<div id="status">BOOT</div>
+<div id="stage"></div>
+<script type="module">
+const q = new URLSearchParams(location.search);
+const moduleName = (q.get('module') || '').replace(/[^a-zA-Z0-9._/-]/g, '');
+const statusEl = document.getElementById('status');
+const errors = [];
+window.addEventListener('error', (e) => { errors.push(String(e.message)); statusEl.textContent = 'ERR:' + errors.join('|'); });
+window.__gate = { status: 'BOOT', errors, stats: null };
+try {
+  if (!moduleName || moduleName.includes('..')) throw new Error('bad/missing module query param');
+  const THREE = await import('three');
+  const exportName = (q.get('export') || 'createBoothModel').replace(/[^a-zA-Z0-9_]/g, '');
+  const mod = await import(`/models/photo_avatars/${moduleName}`);
+  if (typeof mod[exportName] !== 'function') throw new Error(`no ${exportName} export`);
+  const DESC = mod.BOOTH_DESC ?? Object.values(mod).find((v) => v && typeof v === 'object' && v.id);
+  if (!DESC?.id) throw new Error('no BOOTH_DESC.id');
+
+  // ── same rig as the /avatars photo cards (docs/23 §5 gate contract) ─────
+  const W = 480, H = 600;
+  const scene = new THREE.Scene();
+  const cam = new THREE.PerspectiveCamera(38, W / H, 0.01, 60);
+  const key = new THREE.DirectionalLight(0xffffff, 3.2); key.position.set(1.5, 3, 2); scene.add(key);
+  const key2 = new THREE.DirectionalLight(0xfff2e0, 1.6); key2.position.set(-1.2, 2, 2.4); scene.add(key2);
+  const warm = new THREE.PointLight(0xffd9a0, 2.4, 8); warm.position.set(1.8, 0.9, 1.8); scene.add(warm);
+  const fill = new THREE.HemisphereLight(0x8fb6ff, 0x1a1d23, 1.8); scene.add(fill);
+  const rim = new THREE.PointLight(0xc6f32e, 3, 8); rim.position.set(-2, 1.4, -2); scene.add(rim);
+
+  const model = mod[exportName]();
+  if (typeof model.userData.tick !== 'function') throw new Error('no userData.tick');
+  if (!model.userData.sockets?.head) throw new Error('no sockets.head');
+
+  // NaN / Infinity sweep — every object's transform + every mesh position must be finite
+  let nan = 0, meshes = 0;
+  model.traverse((o) => {
+    for (const v of ['position', 'rotation', 'scale'])
+      if (![o[v].x, o[v].y, o[v].z].every(Number.isFinite)) nan++;
+    if (o.isMesh) {
+      meshes++;
+      const p = o.geometry?.attributes?.position;
+      if (p) for (let i = 0; i < p.array.length; i += 997) if (!Number.isFinite(p.array[i])) nan++;
+    }
+  });
+  if (nan) throw new Error(`NaN/Infinity in ${nan} transform/vertex slots`);
+  if (meshes === 0) throw new Error('no meshes');
+  if (meshes > 60) throw new Error(`mesh budget blown: ${meshes}`);
+
+  // ground-centre + normalise to 1.5 units tall (same framing as photo cards)
+  const box0 = new THREE.Box3().setFromObject(model);
+  if (!Number.isFinite(box0.min.x + box0.min.y + box0.min.z + box0.max.x + box0.max.y + box0.max.z))
+    throw new Error('bbox not finite (degenerate geometry)');
+  const c0 = box0.getCenter(new THREE.Vector3());
+  model.position.sub(new THREE.Vector3(c0.x, box0.min.y, c0.z));
+  const s0 = 1.5 / Math.max(0.01, box0.max.y - box0.min.y);
+  model.scale.setScalar(s0);
+  const turn = new THREE.Group(); turn.add(model); scene.add(turn);
+  turn.rotation.y = 0.15; // near-frontal — honest comparison view
+  const box = new THREE.Box3().setFromObject(model);
+  const sphere = box.getBoundingSphere(new THREE.Sphere());
+  const radius = Math.max(sphere.radius, 0.55);
+  const vFov = THREE.MathUtils.degToRad(cam.fov);
+  const hFov = 2 * Math.atan(Math.tan(vFov / 2) * (W / H));
+  const dist = (radius * 1.12) / Math.sin(Math.min(vFov, hFov) / 2);
+  cam.position.set(sphere.center.x + dist * 0.16, sphere.center.y + radius * 0.18, dist);
+  cam.lookAt(sphere.center);
+
+  const r = new THREE.WebGLRenderer({ antialias: true });
+  r.setPixelRatio(1);
+  r.setSize(W, H);
+  r.outputColorSpace = THREE.SRGBColorSpace;
+  document.getElementById('stage').appendChild(r.domElement);
+  model.userData.tick(0.6); // one idle frame (throws if tick is broken)
+  r.render(scene, cam);
+
+  const aspect = (box.max.x - box.min.x) / Math.max(0.001, box.max.y - box.min.y);
+  const stats = { meshes, aspect: +aspect.toFixed(3), desc: DESC.id,
+                  name: DESC.name ?? '', height: +(box.max.y - box.min.y).toFixed(3) };
+  window.__gate = { status: 'OK', errors, stats };
+  statusEl.textContent = `OK meshes=${meshes} desc=${stats.desc} tick+sockets OK nan=0 aspect=${stats.aspect} errors=${errors.length}`;
+
+  if (q.get('spin')) { // human preview mode
+    (function loop(now) {
+      requestAnimationFrame(loop);
+      turn.rotation.y = now / 2400;
+      model.userData.tick?.(now / 1000);
+      r.render(scene, cam);
+    })(0);
+  }
+} catch (e) {
+  window.__gate = { status: 'ERR:' + e.message, errors: [...errors, String(e.message)], stats: null };
+  statusEl.textContent = 'ERR:' + e.message;
+}
+</script>
+</body>
+</html>

@@ -14,10 +14,14 @@
    poker / board-game words in UI copy (kitty, table, lap, race night
    never appear).
 
-   Sound: the SFX module (window.rwfSfx) is loaded defensively — every
-   event calls it with ?. and the real catalogue names (tap · deal ·
-   flip · play · log · win · pot · dz · error); silence is fine when the
-   module isn't loaded.
+   Sound: apps/v3/sfx.js (a defensive copy of the sfx-demo module) IS loaded
+   by index.html and sets window.rwfSfx — every event still calls it with ?.
+   (silence is fine if the module ever fails). Full cue set: tap · primary ·
+   log (combo pitch climbs) · deal · flip · play · win · lose (you didn't
+   take the pot) · pot · tick (final minute) · dz (heartbeat on each
+   danger-zone step up) · swipe (screen changes) · error. Mute: the 🔊/🔇
+   button in the top bar, persisted at localStorage rwf.sfx.muted — the key
+   shared with v1, v2 and /sfx (mute anywhere, muted everywhere).
    ═══════════════════════════════════════════════════════════════════════ */
 
 import * as E from "./engine.js";
@@ -35,6 +39,32 @@ const esc = (s) => String(s ?? "").replace(/[&<>"']/g, (c) =>
 function sfx(name) {
   try { window.rwfSfx?.play?.(name); } catch { /* module absent — fine */ }
 }
+
+/* ── the top-bar mute toggle (drives window.rwfSfx; shared rwf.sfx.muted) */
+function muteBtnHtml() {
+  let muted = false;
+  try { muted = !!window.rwfSfx?.isMuted?.(); } catch {}
+  return `<button class="v3-mute" aria-pressed="${muted}" aria-label="${muted ? "Sound off — tap to unmute" : "Sound on — tap to mute"}" title="${muted ? "Unmute" : "Mute"}"><span>${muted ? "🔇" : "🔊"}</span></button>`;
+}
+function paintMute(root = document) {
+  root.querySelectorAll(".v3-mute").forEach((b) => {
+    let muted = false;
+    try { muted = !!window.rwfSfx?.isMuted?.(); } catch {}
+    b.setAttribute("aria-pressed", String(muted));
+    b.setAttribute("aria-label", muted ? "Sound off — tap to unmute" : "Sound on — tap to mute");
+    b.setAttribute("title", muted ? "Unmute" : "Mute");
+    b.querySelector("span").textContent = muted ? "🔇" : "🔊";
+  });
+}
+document.addEventListener("click", (e) => {
+  const b = e.target.closest(".v3-mute");
+  if (!b) return;
+  const api = window.rwfSfx;
+  if (!api?.toggle) return;
+  const muted = api.toggle();
+  paintMute();
+  if (!muted) sfx("tap"); // audible confirmation the sound is back
+});
 
 /* ── tier colours (lanes, tints, chips) + card faces ──────────────────── */
 const TIER_COL = { couch: "#ffb03a", casual: "#6ec1ff", fit: "#c6f32e", athlete: "#b78cff" };
@@ -94,6 +124,7 @@ const nameOf = (m, id) => (S.me()?.id === id ? S.me().name : m.players.find((p) 
 /* ═══════════════════════ router + 3D lifecycle ════════════════════════ */
 let ticker = null;
 let course = null; // the ONE live Course3D (lazy context — disposed on route change)
+let dzLevel = 0;   // last danger level seen — sfx("dz") fires only on a rise
 
 function stopCourse() {
   stopTicker();
@@ -111,6 +142,8 @@ function render() {
   stopCourse();
   closeSheet(true);
   const view = route();
+  dzLevel = 0;           // fresh screen — the DZ heartbeat only fires on a RISE
+  sfx("swipe");          // nav whoosh on every screen change (no-op pre-gesture)
   const state = S.load();
   const match = view === "battle" || view === "result"
     ? S.matchById(new URLSearchParams(location.hash.split("?")[1] ?? "").get("m") ?? "") ?? S.currentMatch(state)
@@ -142,6 +175,7 @@ function topBar({ back = "home", kicker = "", name = "", right = "" }) {
       <h2 class="v3-top__name">${esc(name)}</h2>
     </div>
     ${right}
+    ${muteBtnHtml()}
   </header>`;
 }
 
@@ -158,7 +192,7 @@ function renderHome(state) {
       <p class="v3-sub">A 3D battle — your avatar runs the course as reps land, your
         power-up cards float overhead, and the charity pot waits at the finish.
         Close on the reps target or the clock, whichever comes first.</p>
-      <button class="pop-btn pop-btn--big pop-btn--full" id="newBattle" data-sfx="tap">Start a fast battle</button>
+      <button class="pop-btn pop-btn--big pop-btn--full" id="newBattle" data-sfx="primary">Start a fast battle</button>
       ${me ? "" : `<button class="pop-btn pop-btn--ghost pop-btn--full" id="setupBtn" style="margin-top:8px" data-sfx="tap">Set up your runner</button>`}
 
       <p class="v3-kicker" style="margin-top:22px">Your battles</p>
@@ -169,7 +203,7 @@ function renderHome(state) {
     </div>
   </div>`;
 
-  $("#newBattle").onclick = () => { sfx("tap"); go("create"); };
+  $("#newBattle").onclick = () => { sfx("primary"); go("create"); }; // the hero CTA gets the primary thunk
   $("#setupBtn")?.addEventListener("click", () => { sfx("tap"); go("setup"); });
   $app.querySelectorAll("[data-go]").forEach((b) => (b.onclick = () => { sfx("tap"); go(b.dataset.go); }));
   $app.querySelectorAll("[data-open]").forEach((b) =>
@@ -630,14 +664,16 @@ function tickClock(matchId) {
     bar.hidden = dz === 0;
     if (dz > 0) { bar.dataset.dz = String(dz); bar.textContent = D.dzCopy(dz, rem); }
   }
+  if (dz > dzLevel) sfx("dz");  // heartbeat thump on each danger-zone step UP
+  dzLevel = dz;
+  if (rem <= 60e3 && rem > 0) sfx("tick"); // deadline seconds — final minute
 
   /* dual deadline, other half: the clock closes a live battle */
   if (match.status === "live" && (match.deadlineAt ?? Infinity) <= now) {
     const r = S.closeByDeadline(matchId);
     if (r.closed) {
       feedPush(matchId, `<b>BATTLE COMPLETE</b> — the clock closed it`);
-      sfx("win");
-      go(`result?m=${matchId}`);
+      go(`result?m=${matchId}`); // the result screen owns the win/lose chime
       return;
     }
   }
@@ -652,8 +688,7 @@ function afterAction(matchId, opts = {}) {
   if (!match) return;
   if (match.status === "complete") {
     feedPush(matchId, `<b>BATTLE COMPLETE</b> — ${esc(nameOf(match, E.winner(match)?.playerId))} takes the charity pot`);
-    sfx("win");
-    setTimeout(() => go(`result?m=${matchId}`), 700);
+    setTimeout(() => go(`result?m=${matchId}`), 700); // result screen chimes win/lose
     return;
   }
   updateBattle(match, opts);
@@ -841,7 +876,9 @@ function renderResult(state, match) {
   </div>`;
 
   $app.querySelectorAll("[data-go]").forEach((b) => (b.onclick = () => { sfx("tap"); go(b.dataset.go); }));
-  sfx("win");
+  /* the settle chime: fanfare if YOU take the pot, gentle descend if not
+     (never a buzz — cheeky never mean) */
+  sfx(win.player.id === you?.id ? "win" : "lose");
 
   /* the 3D podium — avatars on blocks by the charity pot */
   course = new Course3D($("#gl"), {

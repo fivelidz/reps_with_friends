@@ -1,0 +1,152 @@
+<!doctype html>
+<html lang="en">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <title>Timeline & Goals — RWF Documents</title>
+  <link rel="icon" href="data:image/svg+xml,<svg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 100 100'><text y='.9em' font-size='90'>🏋️</text></svg>">
+  <!-- v1.1.0 · rendered from repo docs/ by apps/hub-public/docs/build.sh (pandoc) -->
+  <link rel="stylesheet" href="/design/tokens.css">
+  <link rel="stylesheet" href="/design/fonts/fonts.css">
+  <link rel="stylesheet" href="/v1/docs/docs.css">
+</head>
+<body>
+  <header class="doc-topbar">
+    <a class="doc-back" href="/v1#business">← Coverage hub</a>
+    <span class="doc-brand">REPS WITH FRIENDS · DOCUMENTS</span>
+    <span class="doc-ver mono">v1.1.0</span>
+  </header>
+  <main class="doc-page">
+    <article class="doc-body">
+<h1>RWF — Timeline &amp; Achievable Goals</h1>
+<p><em>2 Sep 2026 · v1.1 baseline. The plan pairs with the contract milestones (docs/RWF_Contract_Scope.pdf) — dates assume Ben engages this week.</em></p>
+<h2>Where we are (v1.1, today)</h2>
+<p>Done: engine + parity tests · v1 app (65 screens, power-ups, DZ, daily winner, seasons) · <strong>v2 board-game app</strong> (poker-table × track, cards, kitty, 13 themes) · points currency + draft-from-3 + reroll-to-kitty + catch-up curve · multi-squad dashboard + wagers · SFX layer · WhatsApp/Slack bots · Beeper transport (needs token) · Android app on the phone · avatar systems (Geno mocap, wardrobe, frogs, anyCreature, img2threejs foundry verdict) · public coverage hub (rwf.qalarc.com/v1).</p>
+<h2>Weeks 1–2 — M1: One system (contract Milestone 1)</h2>
+<ul>
+<li>
+[ ] App↔API↔bot state unification (T5) — apps/api is the single store
+</li>
+<li>
+[ ] Magic-link auth (Resend) — identity across phone/bots
+</li>
+<li>
+[ ] v2 board app as the primary client (v1 archived, kept for progression)
+</li>
+<li>
+[ ] Re-sync the v2 engine fork with the draft/points API (banner'd TODO)
+</li>
+<li>
+<strong>Goal: a crew created on a phone plays a match visible from a WhatsApp&lt;br&gt;group — no orchestrator.</strong>
+</li>
+</ul>
+<h2>Weeks 3–4 — M2: Always-on + real verification (Milestone 2)</h2>
+<ul>
+<li>
+[ ] Bots on GMKtec 24/7 (Slack tokens → <code>~/.config/rwf/</code>; WhatsApp via Hub tunnel or Cloud API decision)
+</li>
+<li>
+[ ] Beeper live (founder mints token — 3 min) → Telegram/Discord reach free
+</li>
+<li>
+[ ] Camera verification hardened with 3 real users (MoveNet accuracy log)
+</li>
+<li>
+[ ] Cross-squad log dedupe rule (server-side fairness)
+</li>
+<li>
+[ ] Sound pass on v2 (the SFX module is wired; tune the catalogue)
+</li>
+<li>
+<strong>Goal: 72h uninterrupted, 2 groups playing without intervention.</strong>
+</li>
+</ul>
+<h2>Weeks 5–8 — Pilot (contract Pilot milestone)</h2>
+<ul>
+<li>
+[ ] First 3 real crews (mates + one corporate-friendly group)
+</li>
+<li>
+[ ] The 5 product decisions implemented per Ben's calls (fairness, platform,&lt;br&gt;rhythm, power-ups-in-MVP, brand — docs/24 §9 has both directions ready)
+</li>
+<li>
+[ ] Weekly digest shipping to real chats
+</li>
+<li>
+[ ] Points economy tuning: reroll costs, catch-up curve steepness, kitty&lt;br&gt;flow — from real play data
+</li>
+<li>
+[ ] Avatar identity pass: squad tokens → generated avatars (img2threejs&lt;br&gt;foundry lane) or species-as-tier (frogs)
+</li>
+<li>
+<strong>Goal: 3 groups, ≥2 matches/week each, W2 retention ≥60%.</strong>
+</li>
+</ul>
+<h2>Weeks 9–12 — Post-pilot: the money + the store</h2>
+<ul>
+<li>
+[ ] Points→money decision from pilot data (buy points after the trial&lt;br&gt;verdict — the founder's stated sequence)
+</li>
+<li>
+[ ] Charity pot legal opinion → employer-funded pots first
+</li>
+<li>
+[ ] WhatsApp Cloud API migration (groups verdict) or per-player DMs
+</li>
+<li>
+[ ] Corporate pilot (Slack org install — the revenue engine)
+</li>
+<li>
+[ ] Public launch ready: store listing, the Silverchair publicity wave&lt;br&gt;landing on /v1 + a public ladder (element C17)
+</li>
+</ul>
+<h2>Standing goals (every phase)</h2>
+<ul>
+<li>
+All suites green on every push (currently: 49 engine + 122 + 74 + 90 + 56&lt;br&gt;board + 98 app + bots + styles — ~600 checks)
+</li>
+<li>
+One new real-user insight captured per week (the wiki's ops page is the log)
+</li>
+<li>
+The blockers register (docs/15) reviewed weekly; nothing red for &gt;2 weeks
+</li>
+</ul>
+<h2>What would make each phase FAIL (be honest early)</h2>
+<ul>
+<li>
+M1: state unification sprawls → cut v1 parity, ship v2-only
+</li>
+<li>
+M2: Hub uptime → WhatsApp Cloud API decision early
+</li>
+<li>
+Pilot: nobody plays → the handicap/comeback numbers need tuning from&lt;br&gt;figma-app telemetry; power-up economy rebalance
+</li>
+<li>
+Post-pilot: legal stalls charity pots → employer-funded pots are the bridge
+</li>
+</ul>
+<hr>
+<h2>UPDATE 2 Sep (evening) — new points recorded from founder directives</h2>
+<ul>
+<li>
+v2 IS the direction: track-and-field board game, REPS language only (&quot;the&lt;br&gt;pot&amp;quot;, never kitty; poker words swept — style references only)
+</li>
+<li>
+Themes overhauled to true design languages (8 rebuilt + app-screen demos&lt;br&gt;at /styles §03 &amp;quot;On the app&amp;quot;)
+</li>
+<li>
+Main page = the FULL HUB (version links, SFX demo at /sfx, everything)
+</li>
+<li>
+v1 preserved forever at /figma-app (design progression)
+</li>
+<li>
+New standing directives live in agents/ORCHESTRATION.md — that file is the&lt;br&gt;contract for every future agent
+</li>
+</ul>
+    </article>
+  </main>
+</body>
+</html>

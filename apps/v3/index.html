@@ -46,6 +46,11 @@
 </head>
 <body>
   <div id="app" class="v3-app" aria-live="polite"></div>
+  <!-- SFX first (module order): sets window.rwfSfx — app.js's defensive
+       window.rwfSfx?.play?.(name) calls light up every cue; a defensive
+       copy of apps/sfx-demo/sfx.js (see its header). Mute persists at
+       localStorage rwf.sfx.muted — the shared key with v1/v2 and /sfx. -->
+  <script type="module" src="sfx.js"></script>
   <script type="module" src="app.js"></script>
 </body>
 </html>

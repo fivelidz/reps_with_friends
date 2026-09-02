@@ -84,6 +84,17 @@ html, body { margin: 0; padding: 0; }
   transition: transform 0.12s, box-shadow 0.12s;
 }
 .v3-top__back:active { transform: translateY(3px); box-shadow: 0 0 0 var(--rail); }
+/* sound toggle (sfx.js mute — persisted at rwf.sfx.muted, shared w/ v1+v2) */
+.v3-mute {
+  border: 1px solid var(--line-bright); background: var(--surface);
+  width: 38px; height: 38px; border-radius: 12px; cursor: pointer;
+  display: inline-flex; align-items: center; justify-content: center;
+  font-size: 15px; line-height: 1; padding: 0;
+  box-shadow: 0 3px 0 var(--rail);
+  transition: transform 0.12s, box-shadow 0.12s, opacity 0.12s;
+}
+.v3-mute:active { transform: translateY(3px); box-shadow: 0 0 0 var(--rail); }
+.v3-mute[aria-pressed="true"] { opacity: 0.55; }
 .v3-top__title { flex: 1; min-width: 0; }
 .v3-top__kicker {
   margin: 0; font: 700 9.5px/1.2 var(--font-mono);

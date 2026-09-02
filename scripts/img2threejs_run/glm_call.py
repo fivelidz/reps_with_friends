@@ -41,9 +41,16 @@ def load_keys():
             pass
     seen, out = set(), []
     for n, k in keys:
-        if k not in seen:
-            seen.add(k)
-            out.append((n, k))
+        if k in seen:
+            # key aliasing (found 2026-09-03 via the booth: .env ZAI_API_KEY ==
+            # auth.json zhipuai key) — let the vision-capable "...zhipuai"
+            # label win the dedupe so v4_keys() name filtering still works
+            for i, (en, ek) in enumerate(out):
+                if ek == k and n.endswith("zhipuai"):
+                    out[i] = (n, k)
+            continue
+        seen.add(k)
+        out.append((n, k))
     return out
 
 

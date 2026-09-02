@@ -23,6 +23,7 @@ SPECS="
 22_BACKEND_CHAT_ARCHITECTURE|22_BACKEND_CHAT_ARCHITECTURE.md|Backend Chat Architecture
 24_GAME_DESIGN|24_GAME_DESIGN.md|Game Design
 25_DESIGN_BRIEF|25_DESIGN_BRIEF.md|Design Brief
+26_TIMELINE_GOALS|26_TIMELINE_GOALS.md|Timeline & Goals
 figma_design_analysis|$ROOT/figma/notes/analysis.md|Figma Design Analysis
 "
 
@@ -43,7 +44,8 @@ rendered = {
     "01_BUSINESS_ANALYSIS.md", "02_MASTER_PLAN.md", "15_BLOCKERS.md",
     "17_FEATURES_AND_PROGRESS.md", "19_PRICING_EQUITY_GUIDE.md",
     "21_BEEPER_MATRIX_INVESTIGATION.md", "22_BACKEND_CHAT_ARCHITECTURE.md",
-    "24_GAME_DESIGN.md", "25_DESIGN_BRIEF.md", "analysis.md",
+    "24_GAME_DESIGN.md", "25_DESIGN_BRIEF.md", "26_TIMELINE_GOALS.md",
+    "analysis.md",
 }
 
 anchor = re.compile(r'<a href="([^"]+)"[^>]*>(.*?)</a>', re.S)

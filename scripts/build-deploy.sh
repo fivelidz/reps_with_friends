@@ -144,3 +144,14 @@ cp site/models/geno_npz_*.json deploy/public/models/
 cp site/models/meshy/manifest.json deploy/public/models/meshy/
 cp site/models/*.js deploy/public/site/models/
 cp site/avatar-styles/*.js deploy/public/site/avatar-styles/
+
+# ── photo booth (selfie → stylised bust; the /booth link) ──────────────
+# Generation runs on the LOCAL machine only (python harness + chromium gate +
+# server-side keys — /api/booth exists just on the dev server). The deployed
+# page detects the missing API and shows the honest local-only notice; busts
+# generated locally still display via the photo_avatars copy below.
+mkdir -p deploy/public/booth
+cp apps/booth/index.html apps/booth/booth.css apps/booth/booth.js apps/booth/gate.html deploy/public/booth/
+# photo avatars + booth busts (code-only, KBs each): the /avatars photo strip
+# loads them from /site/models/photo_avatars/, incl. the booth registry JSON.
+cp -r site/models/photo_avatars deploy/public/site/models/photo_avatars

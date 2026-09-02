@@ -6,7 +6,7 @@
 //   /api/state → live system state for the hub console
 // Run: bun serve.ts   → http://localhost:4173
 
-import { readFileSync, existsSync } from "node:fs";
+import { existsSync, mkdirSync, readFileSync, writeFileSync } from "node:fs";
 import { CommandBus, MatchStore } from "./packages/bot-core/src/index.ts";
 
 // In-memory bot console for the debug page (separate scratch store).
@@ -103,10 +103,13 @@ const MIME: Record<string, string> = {
   ".apk": "application/vnd.android.package-archive",
 };
 
-function file(path: string, urlPath: string): Response | null {
+async function file(path: string, urlPath: string): Promise<Response | null> {
   try {
     const f = Bun.file(path);
-    if (!f.exists?.()) return null;
+    // exists() is async in current bun — a truthy Promise used to sneak past
+    // `!f.exists?.()`, so missing files surfaced as stream-time ENOENT 500s
+    // instead of clean nulls (seen live 2026-09-03 on /booth/gate.html).
+    if (!(await f.exists())) return null;
     const ext = path.slice(path.lastIndexOf("."));
     // no-cache on text assets: browsers heuristically cache ES modules, and a
     // stale avatars.js/index.js after a server-side fix = "still blank" for the
@@ -124,13 +127,13 @@ function file(path: string, urlPath: string): Response | null {
   }
 }
 
-function dirRoute(root: string, url: URL): Response | null {
+async function dirRoute(root: string, url: URL): Promise<Response | null> {
   const rel = decodeURIComponent(url.pathname.replace(/^\/[^/]+/, "").replace(/^\//, ""));
   const tries = rel
     ? [`${root}/${rel}`, `${root}/${rel}/index.html`]
     : [`${root}/index.html`];
   for (const t of tries) {
-    const r = file(t, url.pathname);
+    const r = await file(t, url.pathname);
     if (r) return r;
   }
   return null;
@@ -196,6 +199,106 @@ async function apiState(): Promise<Response> {
   });
 }
 
+// ── PHOTO BOOTH (selfie → stylised RWF bust; apps/booth, docs/23 §5) ─────────
+// Generation is 100% SERVER-SIDE (api keys never reach the client — same rule
+// as /api/ai): python harness scripts/booth/generate.py runs the proven
+// glm-4.6v intake → glm-5.3 codegen → headless pixel-gate loop and saves the
+// module to site/models/photo_avatars/. One generation at a time (single
+// python process, simple queue); the photo itself lives in /tmp for the run
+// and is deleted after (privacy: "your photo never leaves this machine").
+const BOOTH_TIMEOUT_MS = 10 * 60_000;
+type BoothJob = {
+  id: string;
+  phase: string;
+  startedAt: number;
+  done: boolean;
+  result?: any;
+  error?: string;
+  proc?: any;
+};
+let boothJob: BoothJob | null = null;
+
+function boothPhase(p: string) {
+  if (boothJob && !boothJob.done) boothJob.phase = p;
+}
+
+async function boothStart(body: any): Promise<Response> {
+  if (boothJob && !boothJob.done) {
+    return Response.json({ error: "busy — one bust at a time", job: boothJob.id, phase: boothJob.phase }, { status: 409 });
+  }
+  const mode = body?.mode === "quick" ? "quick" : "full";
+  const img = String(body?.image ?? "");
+  const m = img.match(/^data:image\/(png|jpe?g|webp);base64,([A-Za-z0-9+/=]{100,})$/);
+  if (!m) return Response.json({ error: "image data URL required (png/jpeg/webp)" }, { status: 400 });
+  if (img.length > 8_000_000) return Response.json({ error: "photo too large (max ~6MB)" }, { status: 413 });
+
+  const id = `booth_${Date.now().toString(36)}`;
+  const ext = m[1] === "png" ? "png" : m[1] === "webp" ? "webp" : "jpg";
+  const inPath = `/tmp/${id}.${ext}`;
+  try {
+    writeFileSync(inPath, Buffer.from(m[2], "base64"));
+  } catch {
+    return Response.json({ error: "could not stage photo" }, { status: 500 });
+  }
+
+  boothJob = { id, phase: "starting", startedAt: Date.now(), done: false };
+  const args = ["scripts/booth/generate.py", "--image", inPath, "--id", id, "--base", `http://localhost:${PORT}`];
+  if (mode === "quick") args.push("--fallback");
+  const proc = Bun.spawn(["python3", ...args], {
+    cwd: import.meta.dir,
+    stdout: "pipe",
+    stderr: "pipe",
+  });
+  boothJob.proc = proc;
+
+  // drain stderr → live phase (PHASE:name lines); stdout → final JSON verdict
+  (async () => {
+    let out = "";
+    const killer = setTimeout(() => { try { proc.kill(); } catch {} boothPhase("timeout"); }, BOOTH_TIMEOUT_MS);
+    try {
+      const dec = new TextDecoder();
+      for await (const chunk of proc.stderr) {
+        for (const line of dec.decode(chunk).split("\n")) {
+          const ph = line.match(/^PHASE:(\S+)/);
+          if (ph) boothPhase(ph[1]);
+          else if (line.trim()) console.log(`[booth ${id}] ${line}`);
+        }
+      }
+      out = dec.decode(await new Response(proc.stdout).arrayBuffer()).trim();
+    } catch (e: any) {
+      console.log(`[booth ${id}] stream error ${e}`);
+    }
+    clearTimeout(killer);
+    const exit = await proc.exited;
+    let verdict: any = null;
+    for (const line of out.split("\n").reverse()) {
+      const t = line.trim();
+      if (t.startsWith("{")) { try { verdict = JSON.parse(t); break; } catch {} }
+    }
+    try { await Bun.spawn(["rm", "-f", inPath]).exited; } catch {} // photo never persists
+    if (boothJob) {
+      boothJob.done = true;
+      if (verdict?.ok) { boothJob.phase = "done"; boothJob.result = verdict; }
+      else { boothJob.phase = "error"; boothJob.error = verdict?.error || `generation failed (python exit ${exit})`; }
+    }
+    console.log(`[booth ${id}] finished ok=${!!verdict?.ok} phase=${boothJob?.phase}`);
+  })();
+
+  return Response.json({ ok: true, job: id, mode });
+}
+
+function boothStatus(id: string | null): Response {
+  if (!boothJob) return Response.json({ idle: true, hint: "POST /api/booth {image: dataURL} to start" });
+  if (id && boothJob.id !== id) return Response.json({ error: "unknown job (server restarted?)", idle: true }, { status: 404 });
+  return Response.json({
+    job: boothJob.id,
+    phase: boothJob.phase,
+    elapsedSec: Math.floor((Date.now() - boothJob.startedAt) / 1000),
+    ...(boothJob.result ? { result: boothJob.result } : {}),
+    ...(boothJob.error ? { error: boothJob.error } : {}),
+  });
+}
+
 const server = Bun.serve({
   port: PORT,
   async fetch(req) {
@@ -232,91 +335,104 @@ const server = Bun.serve({
       }
     }
     if (p.startsWith("/cards/")) {
-      const r = file(`.data${p}`, p); // .data/cards/<name>.svg
+      const r = await file(`.data${p}`, p); // .data/cards/<name>.svg
       return r ?? new Response("card not found", { status: 404 });
+    }
+    if (p === "/api/booth" && req.method === "POST") {
+      let body: any;
+      try { body = await req.json(); } catch { body = {}; }
+      return boothStart(body);
+    }
+    if (p === "/api/booth/status" && req.method === "GET") {
+      return boothStatus(url.searchParams.get("job"));
     }
 
     let r: Response | null = null;
     if (p === "/" || p.startsWith("/design")) {
       const rel = p === "/" ? "" : p.replace(/^\/design/, "").replace(/^\//, "");
       r = rel
-        ? file(`design/${rel}`, p) ?? dirRoute("site", url)
-        : file("site/index.html", p);
-      if (!r && p !== "/") r = dirRoute("site", url);
+        ? (await file(`design/${rel}`, p)) ?? (await dirRoute("site", url))
+        : await file("site/index.html", p);
+      if (!r && p !== "/") r = await dirRoute("site", url);
     } else if (p.startsWith("/app")) {
-      r = dirRoute("apps/web/dist", url) ?? new Response("app not built yet — run lane 02", { status: 404 });
+      r = await dirRoute("apps/web/dist", url) ?? new Response("app not built yet — run lane 02", { status: 404 });
     } else if (p.startsWith("/hub")) {
-      r = dirRoute("apps/hub", url) ?? new Response("hub not built yet — run lane 05", { status: 404 });
+      r = await dirRoute("apps/hub", url) ?? new Response("hub not built yet — run lane 05", { status: 404 });
     } else if (p.startsWith("/debug")) {
-      r = dirRoute("apps/debug", url) ?? new Response("debug not found", { status: 404 });
+      r = await dirRoute("apps/debug", url) ?? new Response("debug not found", { status: 404 });
     } else if (p.startsWith("/slack")) {
-      r = dirRoute("apps/slack-setup", url) ?? new Response("slack setup not found", { status: 404 });
+      r = await dirRoute("apps/slack-setup", url) ?? new Response("slack setup not found", { status: 404 });
     } else if (p.startsWith("/connect")) {
-      r = dirRoute("apps/connect", url) ?? new Response("connect not found", { status: 404 });
+      r = await dirRoute("apps/connect", url) ?? new Response("connect not found", { status: 404 });
     } else if (p.startsWith("/demo")) {
-      r = dirRoute("apps/demo", url) ?? new Response("demo not found", { status: 404 });
+      r = await dirRoute("apps/demo", url) ?? new Response("demo not found", { status: 404 });
     } else if (p.startsWith("/models/")) {
       // GLB character models live in site/models/ — dirRoute would strip the
       // /models prefix and look for site/Soldier.glb (the bug that blanked
       // the model gallery). Map explicitly, and refuse path traversal.
       const rel = decodeURIComponent(p.replace(/^\/models\//, "")).replace(/\.\./g, "");
-      r = file(`site/models/${rel}`, p) ?? new Response("model not found", { status: 404 });
+      r = (await file(`site/models/${rel}`, p)) ?? new Response("model not found", { status: 404 });
     } else if (p.startsWith("/avatars")) {
       // Local-only avatar playground — tune the customisation system live.
-      r = dirRoute("apps/avatars", url) ?? new Response("avatars playground not found", { status: 404 });
+      r = await dirRoute("apps/avatars", url) ?? new Response("avatars playground not found", { status: 404 });
+    } else if (p === "/booth" || p.startsWith("/booth/")) {
+      // PHOTO BOOTH — selfie → stylised RWF bust (docs/23 §5 pipeline,
+      // productised). gate.html is the headless pixel-gate page the server-side
+      // generation loop loads in chromium.
+      r = await dirRoute("apps/booth", url) ?? new Response("booth not found", { status: 404 });
     } else if (p.startsWith("/atelier")) {
       // Outfit Atelier — one-avatar garment inspection tool (x-ray, seam
       // heatmap, build-up, attachment probe). The verification instrument
       // for geno-outfit.js; reusable for other avatars/games later.
-      r = dirRoute("apps/atelier", url) ?? new Response("atelier not found", { status: 404 });
+      r = await dirRoute("apps/atelier", url) ?? new Response("atelier not found", { status: 404 });
     } else if (p.startsWith("/system")) {
-      r = dirRoute("apps/systempage", url) ?? new Response("system page not found", { status: 404 });
+      r = await dirRoute("apps/systempage", url) ?? new Response("system page not found", { status: 404 });
     } else if (p.startsWith("/styles")) {
       // Five-theme design exploration — side-by-side gallery + full previews.
-      r = dirRoute("apps/styles", url) ?? new Response("styles gallery not found", { status: 404 });
+      r = await dirRoute("apps/styles", url) ?? new Response("styles gallery not found", { status: 404 });
     } else if (p === "/sfx" || p.startsWith("/sfx/")) {
       // SFX demo — the live app sound catalogue, tappable (apps/sfx-demo).
       // Defensive one-file copy of the figma-app synthesis module.
-      r = dirRoute("apps/sfx-demo", url) ?? new Response("sfx demo not found", { status: 404 });
+      r = await dirRoute("apps/sfx-demo", url) ?? new Response("sfx demo not found", { status: 404 });
     } else if (p.startsWith("/wiki")) {
       // This documentation wiki (self-contained; shots copied into apps/wiki/shots).
-      r = dirRoute("apps/wiki", url) ?? new Response("wiki not found", { status: 404 });
+      r = await dirRoute("apps/wiki", url) ?? new Response("wiki not found", { status: 404 });
     } else if (p === "/v2" || p.startsWith("/v2/")) {
       // V2 board app — the track-and-field board game battle (apps/board).
       // Independent engine fork; v1 at /figma-app is untouched.
-      r = dirRoute("apps/board", url) ?? new Response("board app not found", { status: 404 });
+      r = await dirRoute("apps/board", url) ?? new Response("board app not found", { status: 404 });
     } else if (p === "/v3" || p.startsWith("/v3/")) {
       // V3 BATTLE COURSE — the founder's real vision in 3D (apps/v3):
       // Geno mocap runners on a stylised course, power-up cards floating
       // over every player, the charity pot at the finish. Engine forked
       // from board (v2); v1 + v2 untouched. three.js + models ride the
       // existing /site/lib + /models routes.
-      r = dirRoute("apps/v3", url) ?? new Response("v3 not found", { status: 404 });
+      r = await dirRoute("apps/v3", url) ?? new Response("v3 not found", { status: 404 });
     } else if (p === "/v1" || p.startsWith("/v1/")) {
       // v1.1 coverage hub — the share page (rwf.qalarc.com/v1): every live
       // surface, dashboard and business document on one page (apps/hub-public).
-      r = dirRoute("apps/hub-public", url) ?? new Response("coverage hub not found", { status: 404 });
+      r = await dirRoute("apps/hub-public", url) ?? new Response("coverage hub not found", { status: 404 });
     } else if (p === "/deck" || p.startsWith("/deck/")) {
       // founder PDFs (deck, appendix, contract) — served from the deploy
       // bundle so localhost:4173 mirrors production paths exactly.
-      r = dirRoute("deploy/public/deck", url);
+      r = await dirRoute("deploy/public/deck", url);
     } else if (p === "/apk" || p.startsWith("/apk/")) {
       // android APK — manual-install build, mirrored from the deploy bundle.
-      r = dirRoute("deploy/public/apk", url);
+      r = await dirRoute("deploy/public/apk", url);
     } else if (p === "/pinboard" || p.startsWith("/pinboard/")) {
       // Ben's shared Pinterest ideation board — design reference wall
       // (site/pinboard: images + manifest + provenance README).
-      r = dirRoute("site/pinboard", url) ?? new Response("pinboard not found", { status: 404 });
+      r = await dirRoute("site/pinboard", url) ?? new Response("pinboard not found", { status: 404 });
     } else if (p.startsWith("/figma-app")) {
       // Offline Figma test app — Ben's full design, every screen (lane F4).
       // Must sit ABOVE /figma: startsWith("/figma") would swallow it.
-      r = dirRoute("apps/figma-app", url) ?? new Response("figma-app not found", { status: 404 });
+      r = await dirRoute("apps/figma-app", url) ?? new Response("figma-app not found", { status: 404 });
     } else if (p.startsWith("/figma")) {
       // Lane F3 — adopted Figma component library (local working reference;
       // not part of the public deploy bundle). /figma → figma/impl/components.
-      r = dirRoute("figma/impl/components", url) ?? new Response("figma library not found", { status: 404 });
+      r = await dirRoute("figma/impl/components", url) ?? new Response("figma library not found", { status: 404 });
     } else {
-      r = dirRoute("site", url);
+      r = await dirRoute("site", url);
     }
     return r ?? new Response("not found", { status: 404 });
   },
