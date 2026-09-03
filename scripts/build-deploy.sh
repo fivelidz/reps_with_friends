@@ -117,17 +117,13 @@ find apps/v3 -maxdepth 1 -type f \( -name "*.html" -o -name "*.js" -o -name "*.c
 # (battle continues, later finishers bank the day) · weekly seasons ·
 # stakes incl. charity pot · SOT power-up canon. App files + vendored
 # fonts only — shots/ + e2e stay local (same convention as v2/v3).
-# The shared daily-battle engine (apps/sot-engine.js) is copied when that
-# lane lands it; otherwise a stub ships and the app's local model runs.
+# The shared daily-battle engine (apps/sot-engine.js) ships beside the
+# app: index.html loads it first and apps/sot/engine.js hard-requires it.
 mkdir -p deploy/public/v4/fonts
 find apps/sot -maxdepth 1 -type f \( -name "*.html" -o -name "*.js" -o -name "*.css" \) \
   -exec cp {} deploy/public/v4/ \;
 cp apps/sot/fonts/*.woff2 deploy/public/v4/fonts/
-if [ -f apps/sot-engine.js ]; then
-  cp apps/sot-engine.js deploy/public/v4/sot-engine.js
-else
-  printf '/* shared engine not built yet — apps/sot/engine.js local model ships in the app bundle */\n' > deploy/public/v4/sot-engine.js
-fi
+cp apps/sot-engine.js deploy/public/v4/sot-engine.js
 
 # ── v1 coverage hub (v1.1.0) — the share page at rwf.qalarc.com/v1 ─────
 # One page linking every live surface, dashboard and business document.

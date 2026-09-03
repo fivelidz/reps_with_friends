@@ -90,7 +90,7 @@ const CARDS = {
   freeze: { id: "freeze", name: "Time Freeze", rarity: "rare", canon: true, blurb: "Freeze the battle clock for 30 minutes.", detail: "The deadline extends half an hour for the WHOLE group. One freeze per day." },
   surprise_bomb: { id: "surprise_bomb", name: "Surprise Bomb", rarity: "epic", canon: false, blurb: "+20 reps for a rival — 10 minutes to deliver.", detail: "Drop +20 reps on a rival. Deliver inside 10 minutes and the bomb pays THEM a +20 defusal bonus; let it fizzle and nothing sticks." },
   rescue_rope: { id: "rescue_rope", name: "Rescue Rope", rarity: "rare", canon: false, blurb: "Throw an inactive mate a 50-rep credit.", detail: "A mate with zero reps today? The rope hands them an instant 50-rep credit toward target. Once per day." },
-  combo_boost: { id: "combo_boost", name: "Combo Boost", rarity: "common", canon: false, blurb: "Nail a prescribed combo for a bonus.", detail: "Arm the group's prescribed exercise sequence and land it in order for the bonus RUF." },
+  combo_boost: { id: "combo_boost", name: "Combo Boost", rarity: "common", canon: false, blurb: "Nail a prescribed combo for a bonus.", detail: "Arm the group's prescribed exercise sequence and land it in order for the rep bonus." },
   double_down: { id: "double_down", name: "Double Down", rarity: "epic", canon: false, blurb: "Volunteer for 2× target today.", detail: "A personal quest: clear double your target today. Season-point doubling only under competitive flags." },
   assist_boost: { id: "assist_boost", name: "Assist Boost", rarity: "common", canon: false, blurb: "Help a mate finish — you both score.", detail: "Arm it on a teammate: when THEY finish inside the window, you both pocket +25 bonus reps." },
   shield_bash: { id: "shield_bash", name: "Shield Bash", rarity: "epic", canon: false, blurb: "Shatter an armed Group Shield.", detail: "Competitive mode: smash the crew's armed shield and its protection ends." },
@@ -502,7 +502,9 @@ function activateCard(gRaw, memberId, cardId, targetId) {
     pushEvent(g, { type: "card", memberId, battle: b.idx, text: `❄️ ${firstName(g, m)} FROZE the battle clock — 30 minutes added` });
   } else if (cardId === "surprise_bomb") {
     const tgt = memberById(g, r.targetId);
-    b.bombs.push({ id: uid("b"), fromId: memberId, targetId: r.targetId, reps: r.reps, atMs: Date.now(), fuseEndMs: r.deadline, status: "live", logged: 0 });
+    // atMs is derived from the core deadline (at + SURPRISE_BOMB_WINDOW_MS)
+    // so syncBombMirror's issuedAt === atMs match is EXACT, never a 1ms race.
+    b.bombs.push({ id: uid("b"), fromId: memberId, targetId: r.targetId, reps: r.reps, atMs: r.deadline - Core.SURPRISE_BOMB_WINDOW_MS, fuseEndMs: r.deadline, status: "live", logged: 0 });
     result.bomb = b.bombs[b.bombs.length - 1];
     pushEvent(g, { type: "bomb", memberId, battle: b.idx, text: `💣 ${firstName(g, m)} dropped a SURPRISE BOMB on ${tgt ? firstName(g, tgt) : "?"} — +${r.reps} reps in the next 10 minutes or it fizzles` });
   } else if (cardId === "rescue_rope") {
@@ -615,7 +617,7 @@ function resolveBattle(g, s, b) {
   }
   // fold the day into the engine season record (points + engine streaks)
   try {
-    const dateStr = dateLabel(b);
+    const dateStr = dateLabel(b, s);
     s.core = Core.recordBattleDay(s.core, Core.dayRecordFrom(b.core, dateStr));
     const standings = Core.battleStandings(s.core);
     for (const row of standings) {
@@ -637,9 +639,17 @@ function resolveBattle(g, s, b) {
   }
 }
 
-function dateLabel(b) {
+function dateLabel(b, s) {
   const d = new Date(b.startMs || b.startedAtMs || Date.now());
-  return `${d.getFullYear()}-${String(d.getMonth() + 1).padStart(2, "0")}-${String(d.getDate()).padStart(2, "0")}`;
+  let label = `${d.getFullYear()}-${String(d.getMonth() + 1).padStart(2, "0")}-${String(d.getDate()).padStart(2, "0")}`;
+  // Demo/sprint groups compress a whole season into minutes — two battles can
+  // land on ONE calendar date, and recordBattleDay keys strictly by date (a
+  // duplicate throws). Later same-day battles get a #idx suffix; the season
+  // calendar renders battle rows (dayName), never this internal key.
+  if (s && s.core && Array.isArray(s.core.days) && s.core.days.some((x) => x.date === label || String(x.date).startsWith(label + "#"))) {
+    label += "#" + (b.idx || 2);
+  }
+  return label;
 }
 
 function endSeason(g, s) {
@@ -821,7 +831,8 @@ function snapshot(groupId) {
     danger = !frozen && clock.urgency.level >= 3;
     const sorted = board.filter((r) => !r.completed).sort((a, b3) => b3.adjusted - a.adjusted);
     if (sorted.length >= 2 && sorted[0].adjusted >= g.target * 0.7) {
-      if (sorted[0].adjusted - sorted[1].adjusted <= g.target * 0.1) closeCall = true;
+      // SOT #98 close-call: leader gap < 5% of target with the lead real
+      if (sorted[0].adjusted - sorted[1].adjusted <= g.target * 0.05) closeCall = true;
     }
   }
   let streakAtRisk = false;
@@ -834,6 +845,45 @@ function snapshot(groupId) {
   if (meM) meM.inventory = b && b.core ? Core.inventoryOf(b.core, meM.id) : (meM.inventory || []);
   return { group: g, season: s, battle: b, me: meM, board, myRow, clock, danger, closeCall, streakAtRisk, teams, feed,
     stakeLabel: stakeLabel(g.stake), exerciseList: g.exerciseIds.map(exerciseById).filter(Boolean) };
+}
+
+/* ── demo seeder — a live mid-battle, instantly (v1's demo crew pattern).
+      Everything is REAL engine state: createGroup → startSeason → logReps,
+      plus one house-thrown Surprise Bomb so the founder lands in a live,
+      slightly spicy hour. */
+function seedDemo() {
+  if (!state.me || !state.me.name) setMe({ name: "Alex", initials: "AL" });
+  // jumping in from the welcome screen skips onboarding — mark it done or
+  // render()'s onboarded guard bounces the view straight back to welcome
+  state.onboarded = true;
+  const existing = Object.values(state.groups).find((g) => g.isDemo);
+  if (existing) {
+    if (!curSeason(existing)) startNextSeason(existing.id);
+    state.activeGroupId = existing.id;
+    save();
+    return existing;
+  }
+  const g = createGroup({
+    mode: "individual", name: "Gold Squad", icon: "⚡", color: "#f5c445",
+    activeDays: [1, 2, 3, 4, 5], target: 200,
+    clockMode: "duration", durationMin: 60,   // a live hour, not a 1-minute sprint
+    stake: { type: "charity", perPersonCents: 1000, feePct: 5 },
+    powerUps: { lightning: true, steal: true, shield: true, freeze: true, surprise_bomb: true, rescue_rope: true, combo_boost: false, double_down: false, assist_boost: false, shield_bash: false },
+    housePlayers: [
+      { name: "Marco", tier: "casual" }, { name: "Priya", tier: "fit" }, { name: "Jack", tier: "couch" },
+    ],
+  });
+  g.isDemo = true;
+  startSeason(g);                                   // battle 1 live, founder pack dealt
+  const byName = (n) => g.members.find((m) => m.name === n);
+  logReps(g.id, byName("Marco").id, "pushups", 48); // casual ×1.25 → 60 reps
+  logReps(g.id, byName("Priya").id, "burpees", 22); // fit ×1.0 → 44 reps
+  logReps(g.id, byName("Jack").id, "squats", 40);   // couch ×1.5 → 60 reps
+  // Marco throws his Surprise Bomb at me — 10-minute fuse, defusable
+  try { activateCard(g.id, byName("Marco").id, "surprise_bomb", state.me.id); } catch (e) { /* demo spice, best-effort */ }
+  pushEvent(g, { type: "group_created", memberId: state.me.id, text: "Demo battle seeded — the house crew is already moving. Your stack is on the Cards tab." });
+  save();
+  return g;
 }
 
 /* ── resets ────────────────────────────────────────────────────────── */
@@ -861,7 +911,7 @@ const SoT = {
   get engine() { return Core; },
   load, save, setMe, subscribe(fn) { listeners.add(fn); return () => listeners.delete(fn); },
   createGroup, startSeason, startNextSeason, joinByCode, agreeStake,
-  snapshot, logReps, undoLast, activateCard, tick,
+  snapshot, logReps, undoLast, activateCard, tick, seedDemo,
   resolveCharity, markObligationFulfilled, react,
   resetProfile, resetAll,
   curSeasonOf: curSeason, curBattleOf: curBattle,

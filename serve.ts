@@ -414,12 +414,11 @@ const server = Bun.serve({
       // later finishers bank the day), weekly seasons, stakes (dinner / dare /
       // deliverable / charity pot) and the SOT power-up canon. v1/v2/v3 are
       // untouched. /v4/sot-engine.js maps to the shared daily-battle engine
-      // (apps/sot-engine.js) when that lane lands it; until then a stub is
-      // served and the app runs its local model of the same rules
-      // (apps/sot/engine.js — zero console noise either way).
+      // (apps/sot-engine.js) — engine.js hard-requires it, so the 404-style
+      // fallback below only fires if the engine file is genuinely missing.
       if (p === "/v4/sot-engine.js") {
         r = (await file("apps/sot-engine.js", p)) ?? new Response(
-          "/* shared engine not present — apps/sot/engine.js local model active */\n",
+          "/* shared engine missing — the v4 app cannot run without apps/sot-engine.js */\nconsole.error('apps/sot-engine.js missing');\n",
           { headers: { "content-type": "text/javascript; charset=utf-8", "cache-control": "no-cache" } },
         );
       } else {
@@ -455,4 +454,4 @@ const server = Bun.serve({
   },
 });
 
-console.log(`RWF system → http://localhost:${PORT}  (/ site · /app app · /hub console · /api/state)`);
+console.log(`RWF system → http://localhost:${PORT}  (/ site · /app app · /v4 SoT app · /hub console · /api/state)`);

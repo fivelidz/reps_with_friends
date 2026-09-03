@@ -16,7 +16,7 @@
      deadline → SEASON ENDS → winner-chooses CHARITY flow (fee + receipt) →
      join flow as a second player (code → preview → stake agreement) →
      language sweep · desktop 1280 · reduced-motion · ZERO console errors.
-   Shots land in apps/sot/shots/ with the _v4 suffix (390×844 @2x + one
+   Shots land in apps/sot/shots/ with the _sot suffix (390×844 @2x + one
    desktop). Battle language: reps / battle / day / Daily Win / banked.
    ═══════════════════════════════════════════════════════════════════════ */
 import { spawn } from "node:child_process";
@@ -29,7 +29,8 @@ const PORT = 4194;
 const BASE = `http://127.0.0.1:${PORT}`;
 const SHOTS = join(HERE, "shots");
 const CHROMIUM = "/usr/bin/chromium";
-const CDP_PORT = 9231;
+const CDP_PORT = 9231 + Math.floor(Math.random() * 400); // unique per run — never
+// collide with a previous run's still-dying chromium devtools endpoint
 
 let step = 0, passed = 0;
 const failures = [];
@@ -80,6 +81,8 @@ const proc = spawn(CHROMIUM, [
 ], { stdio: ["ignore", "ignore", "pipe"] });
 proc.stderr.on("data", () => {});
 proc.on("exit", () => { try { rmSync(PROFILE, { recursive: true, force: true }); } catch {} });
+// never orphan the headless chromium — even on a thrown failure, kill it on exit
+process.on("exit", () => { try { proc.kill("SIGKILL"); } catch {} });
 
 async function waitFor(fn, { timeout = 15000, every = 150, label = "condition" } = {}) {
   const t0 = Date.now();
@@ -155,7 +158,7 @@ async function clickText(text, scope = "button, .pick, .ex-pill, .preset, .pu-ca
 }
 async function shot(name) {
   const r = await send("Page.captureScreenshot", { format: "png" });
-  writeFileSync(join(SHOTS, `${String(step).padStart(2, "0")}-${name}_v4.png`), Buffer.from(r.data, "base64"));
+  writeFileSync(join(SHOTS, `${String(step).padStart(2, "0")}-${name}_sot.png`), Buffer.from(r.data, "base64"));
 }
 const text = (sel) => evalJs(`document.querySelector('${sel}')?.textContent ?? null`);
 const exists = (sel) => evalJs(`!!document.querySelector('${sel}')`);
@@ -181,10 +184,20 @@ mkdirSync(SHOTS, { recursive: true });
 console.log(`\nRWF V4 SoT APP E2E — ${BASE} (headless chromium, 390×844)\n`);
 
 await send("Page.navigate", { url: `${BASE}/` });
-await waitFor(
-  () => evalJs(`document.readyState === 'complete' && window.RWFSoT && document.querySelector('.screen') !== null`).catch(() => false),
-  { label: "v4 app load", timeout: 20000 }
-);
+try {
+  await waitFor(
+    () => evalJs(`document.readyState === 'complete' && window.RWFSoT && document.querySelector('.screen') !== null`).catch(() => false),
+    { label: "v4 app load", timeout: 20000 }
+  );
+} catch (e) {
+  // flake forensics: what does the page actually look like, is the server up
+  const srv = await fetch(`${BASE}/`).then((r) => `html ${r.status}`).catch((err) => `fetch failed: ${err.message}`);
+  const dbg = await evalJs(`JSON.stringify({ rs: document.readyState, url: location.href, rwfSoT: !!window.RWFSoT, screen: !!document.querySelector('.screen'), scripts: [...document.scripts].map(s => s.src).join(','), body: (document.body.innerText || '').slice(0, 100) })`).catch((err) => `eval failed: ${err.message}`);
+  console.log(`load diagnostics — server: ${srv}`);
+  console.log(`load diagnostics — page: ${dbg}`);
+  console.log(`load diagnostics — console errors: ${JSON.stringify(consoleErrors)}`);
+  throw e;
+}
 await sleep(700);
 
 console.log("— ONBOARD");
@@ -265,7 +278,7 @@ const me = st.me.id;
 ok(!!priya && !!jack && !!marco, "house crew Marco/Priya/Jack on roster");
 await driveLog(priya.id, "pushups", 100);                     // Priya to 100
 await sleep(300);
-await clickText("Cards");                                     // → Power-Ups tab
+await clickText("Power-Ups");                                     // → Power-Ups tab
 ok(await exists(".pu-grid"), "power-up inventory grid");
 for (let i = 0; i < 10; i++) {                                 // reveal hidden cards one at a
   const more = await evalJs(`(() => { const c = document.querySelector('.pu-card:not(.revealed)'); if (c) { c.click(); return true; } return false; })()`);
@@ -305,6 +318,25 @@ okBody("150 reps between you and the target", "remaining reps after the set (150
 await clickText("↩ Undo set");                                // undo (#118)
 st = await snapState();
 ok(st.board.find((r) => r.id === me).adjusted === 10, "undo removed the set (back to 10)");
+
+console.log("— TIMED ENTRY (plank hold — every 10 secs = 1 rep)");
+await clickText("Plank Hold", ".ex-pill");                    // timed movement (not Plank Jacks)
+okBody("10 secs = 1 rep", "timed conversion shown on exercise detail");
+await clickText("Log a set");
+okBody("Every 10 seconds = 1 rep", "timed movement conversion explained");
+ok(await exists("#hold-timer"), "hold timer ready");
+await shot("log-timed");
+await clickText("START HOLD");
+await sleep(11_000);                                           // a real hold — ≥10s scores 1 rep
+const heldFor = await text("#hold-timer");
+ok(!!heldFor && heldFor.trim() !== "00:00", `hold timer ran (${heldFor})`);
+await clickText("STOP");                                       // stop drops onto confirm
+okBody("CONFIRM SET", "stopped hold lands on the confirm screen");
+ok(await evalJs("/\\bsecs\\b/i.test(document.body.innerText || '')"), "amount shown in seconds (timed unit)");
+await clickText("Log it");
+await sleep(250);
+ok(await bodyHas("REPS") || (await bodyHas("logged")), "timed set logged (secs → reps conversion)");
+await clickText("Log another");
 await clickText("Push-ups", ".ex-pill");                      // exercise detail path
 okBody("Conversion", "exercise detail shows conversion + variations");
 await clickText("Log a set");
@@ -319,6 +351,9 @@ ok(await exists(".oval"), "winner overlay appeared");
 ok((await text(".o-title")) === "YOU WON THE DAY", "YOU WON THE DAY — the dopamine moment");
 okBody("first to", "win framed as first-to-target");
 ok(await exists(".confetti"), "confetti fired");
+const png = await evalJs("(window.rwfLastSharePng || '').slice(0, 22)");
+ok(png.startsWith("data:image/png") && (await evalJs("(window.rwfLastSharePng || '').length")) > 5000, "canvas share card rendered (win card → PNG)");
+ok(await bodyHas("Save PNG"), "PNG share button offered");
 await shot("you-won");
 const w1 = await evalJs(`(() => { const g = RWFSoT.state.groups[RWFSoT.state.activeGroupId]; const b = g.seasons[0].battles[0]; return JSON.stringify({ winnerId: b.winnerId, points: g.seasons[0].core.points[b.winnerId], completions: Object.keys(b.completions).length, status: b.status }); })()`);
 const w1o = JSON.parse(w1);
@@ -365,7 +400,7 @@ await langClean("season hub");
 await click(".topbar .icon-btn");                             // back → battle
 
 console.log("— DAY 2 · SURPRISE BOMB HIT + MISS · LIGHTNING ×3 · SECOND DAILY WIN");
-await clickText("Cards");
+await clickText("Power-Ups");
 for (let i = 0; i < 10; i++) {
   const more = await evalJs(`(() => { const c = document.querySelector('.pu-card:not(.revealed)'); if (c) { c.click(); return true; } return false; })()`);
   if (!more) break;
@@ -385,22 +420,31 @@ ok(true, "bomb HIT — defused inside the fuse (victim banks the +20 bonus)");
 await driveLog(marco.id, "squats", 5);                        // Marco on the board (small)
 await sleep(150);
 // MISS run: Jack drops his Surprise Bomb on Marco through the same engine API
-// the UI drives (house cards came from the same founder pack)
-const bomb2 = await evalJs(`RWFSoT.activateCard(RWFSoT.state.activeGroupId, ${JSON.stringify(jack.id)}, 'bomb', ${JSON.stringify(marco.id)})`);
-ok(bomb2 && bomb2.ok, "second bomb thrown (Jack → Marco, via engine)");
-await waitFor(() => evalJs(`(() => { const g = RWFSoT.state.groups[RWFSoT.state.activeGroupId]; const b = g.seasons[0].battles[1]; return b.bombs.some(x => x.status === 'fizzled'); })()`).catch(() => false), { label: "bomb fizzled (fuse expired)", timeout: 80_000 });
+// the UI drives (house cards came from the same founder pack). The daily card
+// drop is RNG, so Jack is GRANTED the card first via the exposed core engine
+// (RWFSoT.engine === apps/sot-engine.js — the same API the app drives).
+await evalJs(`(() => { const g = RWFSoT.state.groups[RWFSoT.state.activeGroupId]; const b = g.seasons[0].battles[1]; b.core = RWFSoT.engine.grantPowerUp(b.core, ${JSON.stringify(jack.id)}, 'surprise_bomb'); return true; })()`);
+const bomb2 = await evalJs(`RWFSoT.activateCard(RWFSoT.state.activeGroupId, ${JSON.stringify(jack.id)}, 'surprise_bomb', ${JSON.stringify(marco.id)})`);
+ok(bomb2 && bomb2.ok, `second bomb thrown (Jack → Marco, via engine)${bomb2 && bomb2.error ? ` — engine said: ${bomb2.error}` : ""}`);
+// the fuse is a real 10-minute engine window; demo time-travel pulls THIS
+// bomb's deadline into the past so the per-second tick resolves the fizzle
+// through the genuine Core.resolveExpiredBombs path (nothing sticks).
+await evalJs(`(() => { const g = RWFSoT.state.groups[RWFSoT.state.activeGroupId]; const b = g.seasons[0].battles[1]; const core = b.core.bombs[b.core.bombs.length - 1]; core.deadline = Date.now() - 1000; return core.id; })()`);
+await waitFor(() => evalJs(`(() => { const g = RWFSoT.state.groups[RWFSoT.state.activeGroupId]; const b = g.seasons[0].battles[1]; return b.bombs.some(x => x.status === 'fizzled'); })()`).catch(() => false), { label: "bomb fizzled (fuse expired)", timeout: 20_000 });
 st = await snapState();
 const marcoRow = st.board.find((r) => r.id === marco.id);
 ok(marcoRow.dayTarget === 200, `bomb MISS — it fizzled, Marco's target stays ${marcoRow.dayTarget} (shared-engine semantics)`);
 // LIGHTNING ×3 on a real log
-await clickText("Cards");
+await clickText("Power-Ups");
 await sleep(200);
 ok(await evalJs(`(() => { for (const c of document.querySelectorAll('.pu-card.revealed')) { if (c.textContent.toUpperCase().includes('LIGHTNING')) { c.click(); return true; } } return false; })()`), "Lightning Round card");
 await sleep(300);
 await clickText("Activate Lightning");
 await clickText("Confirm");
-okBody("×3 STORM LIVE", "lightning activation moment");
-await clickText("Done");
+// lightning gets the FULL-SCREEN 10-minute storm moment (#142), not a cardResult
+ok((await exists(".oval.storm")) && (await bodyHas("counts TRIPLE")), "lightning full-screen storm moment");
+ok(await exists("#storm-t"), "storm fuse clock live (10-minute window)");
+await clickText("Back");
 ok(await exists(".fx-pill.lightning") || await bodyHas("×3"), "lightning active state visible");
 await clickText("LOG");
 await clickText("Push-ups", ".ex-pill");
@@ -515,9 +559,22 @@ await send("Emulation.setDeviceMetricsOverride", { width: 390, height: 844, devi
 
 /* ── gates ───────────────────────────────────────────────────────────── */
 console.log("— LANGUAGE GATE (source files)");
-const srcGrep = Bun.spawnSync(["bash", "-c",
-  `rg -il 'match|kitty|poker|\\bRUF\\b|\\b300\\b' ${HERE}/app.js ${HERE}/engine.js ${HERE}/index.html ${HERE}/sot.css ${HERE}/sfx.js 2>/dev/null | wc -l`]);
-ok(srcGrep.stdout.toString().trim() === "0", "no banned words in app sources (match/kitty/poker/RUF/300)");
+// The product rule is about UI COPY ("reps", never the internal unit): scan
+// quoted string literals (what the UI can print), with ${…} interpolations
+// stripped — engine identifiers (e.ruf) and code comments are not UI strings.
+{
+  const { readFileSync } = await import("node:fs");
+  const srcFiles = ["app.js", "engine.js", "index.html", "sot.css", "sfx.js"].map((f) => join(HERE, f));
+  const uiStrings = [];
+  for (const f of srcFiles) {
+    const src = readFileSync(f, "utf8");
+    for (const m of src.matchAll(/(["'`])((?:\\.|(?!\1)[^\n\\])*)\1/g)) {
+      uiStrings.push(m[2].replace(/\$\{[^}]*\}/g, " "));
+    }
+  }
+  const bad = uiStrings.filter((s) => /\bmatch(?:es|ed|ing)?\b|\bkitty\b|\bpoker\b|\bRUF\b|\b300\b/i.test(s));
+  ok(bad.length === 0, `no banned words in app UI strings (match/kitty/poker/RUF/300)${bad.length ? ` — offenders: ${JSON.stringify(bad.slice(0, 4))}` : ""}`);
+}
 const needGrep = Bun.spawnSync(["bash", "-c",
   `for w in "Daily Win" "banked" "reps"; do rg -q "$w" ${HERE}/app.js && echo "$w:yes" || echo "$w:NO"; done`]);
 const langRows = needGrep.stdout.toString().trim().split("\n");

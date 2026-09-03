@@ -14,9 +14,18 @@
    apps/sot-engine.js when installed — same facade). SFX: window.rwfSfx,
    defensive. No framework, no build step.
    ═══════════════════════════════════════════════════════════════════════ */
-(function () {
+(async function () {
   "use strict";
-  const SoT = window.RWFSoT;
+  // Wait (defensively) for engine.js to set window.RWFSoT. Module execution
+  // order SHOULD guarantee it, but a slow module fetch once raced app.js
+  // ahead in headless chromium — dynamic import re-joins the in-flight load.
+  let SoT = window.RWFSoT;
+  for (let i = 0; !SoT && i < 100; i++) {
+    try { await import("./engine.js"); } catch (e) { /* surfaced by the fallback below */ }
+    if (window.RWFSoT) break;
+    await new Promise((r) => setTimeout(r, 100));
+  }
+  SoT = window.RWFSoT;
   if (!SoT) { document.body.innerHTML = "<div style='padding:40px;color:#f5c445;font-family:sans-serif'>engine failed to load</div>"; return; }
 
   /* ── tiny DOM helper ─────────────────────────────────────────────── */
@@ -48,6 +57,45 @@
   };
   const REDUCED = null; // reduced-motion is handled purely in CSS (animations
   // and confetti are gated by the prefers-reduced-motion media block)
+
+  /* ── canvas share card (win card → PNG, Gold Arcade skin) ────────── */
+  function winCardPng(snap, b) {
+    try {
+      const W = 780, H = 936;
+      const c = document.createElement("canvas"); c.width = W; c.height = H;
+      const x = c.getContext("2d"); if (!x) return null;
+      const cardPath = (px) => { x.beginPath(); x.roundRect ? x.roundRect(px, px, W - px * 2, H - px * 2, 44) : x.rect(px, px, W - px * 2, H - px * 2); };
+      x.fillStyle = "#07070c"; cardPath(0); x.fill();
+      x.strokeStyle = "rgba(245,196,69,.5)"; x.lineWidth = 3; cardPath(16); x.stroke();
+      x.strokeStyle = "rgba(245,196,69,.16)"; x.lineWidth = 2; cardPath(30); x.stroke();
+      x.textAlign = "center";
+      x.fillStyle = "#f5c445";
+      x.font = "600 26px system-ui, sans-serif";
+      x.fillText("R E P S   W I T H   F R I E N D S", W / 2, 128);
+      x.font = "112px Anton, 'Arial Black', system-ui, sans-serif";
+      x.fillText("YOU WON", W / 2, 300);
+      x.fillStyle = "#b79bff";
+      x.fillText("THE DAY", W / 2, 416);
+      const target = (snap.myRow && snap.myRow.dayTarget) || snap.group.target;
+      x.fillStyle = "#f5c445";
+      x.font = "84px Anton, 'Arial Black', system-ui, sans-serif";
+      x.fillText(String(target), W / 2, 560);
+      x.font = "600 24px system-ui, sans-serif";
+      x.fillText("REPS · FIRST TO TARGET", W / 2, 604);
+      x.fillStyle = "rgba(255,255,255,.85)";
+      x.font = "600 28px system-ui, sans-serif";
+      x.fillText((snap.me ? snap.me.name : "You").toUpperCase(), W / 2, 700);
+      x.fillStyle = "rgba(255,255,255,.55)";
+      x.font = "24px system-ui, sans-serif";
+      x.fillText(`${snap.group.name} · battle ${b ? b.idx : ""}`, W / 2, 740);
+      x.fillStyle = "#f5c445";
+      x.font = "24px system-ui, sans-serif";
+      x.fillText("Join the battle. Win the day.", W / 2, 828);
+      x.fillStyle = "rgba(255,255,255,.4)";
+      x.fillText("rwf.qalarc.com/v4", W / 2, 866);
+      return c.toDataURL("image/png");
+    } catch (e) { return null; }
+  }
 
   /* ── tone-aware copy (cheeky / neutral / corporate-safe) ──────────── */
   const TONE = {
@@ -122,8 +170,17 @@
       ),
       el("div", { style: "position:absolute;bottom:34px;left:16px;right:16px" },
         el("button", { class: "btn", onclick: () => { sfx("primary"); App.explainIdx = 0; go("explain"); } }, "Let's go"),
-        el("p", { class: "tiny", style: "text-align:center;margin-top:12px" }, "V4 · Source of Truth build · local demo"),
-      ));
+        el("button", { class: "btn ghost", style: "margin-top:10px", onclick: () => { sfx("deal"); jumpToDemo(); } }, "⚡ Jump into a live demo battle"),
+        el("p", { class: "tiny", style: "text-align:center;margin-top:12px" }, "V4 · Source of Truth build · local demo")));
+  }
+
+  /* demo seeder entry — the founder sees a live mid-battle instantly */
+  function jumpToDemo() {
+    const g = SoT.seedDemo();
+    if (!g || g.error) { toast("Demo seed failed"); return; }
+    App.view = "app"; App.tab = "battle"; App.overlay = null; App.wiz = null; App.join = null;
+    toast("Demo battle live — the crew is already moving");
+    render();
   }
 
   const EXPLAINS = [
@@ -225,6 +282,7 @@
       el("p", { class: "sub" }, "Start a crew or jump into one with a code."),
       el("button", { class: "btn", style: "margin-bottom:12px", onclick: () => { sfx("primary"); startWizard(); } }, "⚔️ Create a group"),
       el("button", { class: "btn purple", onclick: () => { sfx("primary"); App.join = { code: "", step: "enter" }; go("join"); } }, "🎟️ Join with a code"),
+      el("button", { class: "btn ghost", style: "margin-top:10px", onclick: () => { sfx("deal"); jumpToDemo(); } }, "⚡ Watch a live demo battle", el("span", { class: "demo-chip" }, "demo")),
       list);
   }
 
@@ -550,7 +608,7 @@
       navTab("battle", "⚔️", "Battle"),
       navTab("feed", "📻", "Feed"),
       el("button", { class: "log-btn", onclick: () => tab("log"), "aria-label": "Log reps" }, "LOG"),
-      navTab("powerups", "🃏", "Cards"),
+      navTab("powerups", "🃏", "Power-Ups"),
       navTab("profile", "👤", "Profile")));
     return wrap;
     function navTab(id, ico, label) {
@@ -589,10 +647,13 @@
 
     if (b && b.status === "scheduled") {
       const wait = Math.max(0, (b.startMs || 0) - Date.now());
-      scr.append(el("div", { class: "card purple", style: "text-align:center" },
-        el("div", { class: "ex-ill", style: "margin:10px 0" }, "⏳"),
-        el("h2", { class: "display" }, "BATTLE " + b.idx + " STARTS SOON"),
-        el("p", { class: "sub" }, `Target ${g.target} adjusted reps · opens in ${fmtMs(wait)}`)));
+      const rest = wait > 3 * 3600_000; // a real gap → today is a rest day (#101)
+      scr.append(el("div", { class: rest ? "card tight rest" : "card purple", style: "text-align:center" },
+        el("div", { class: "ex-ill", style: "margin:10px 0" }, rest ? "🛌" : "⏳"),
+        el("h2", { class: "display" }, rest ? "REST DAY" : "BATTLE " + b.idx + " STARTS SOON"),
+        el("p", { class: "sub" }, rest
+          ? `No battle today — streaks are safe on rest days. Next battle is ${b.dayName}, in ${fmtMs(wait)}.`
+          : `Target ${g.target} adjusted reps · opens in ${fmtMs(wait)}`)));
       scr.append(leaderboardCard(snap));
       return scr;
     }
@@ -621,19 +682,32 @@
             el("span", { class: "chip" }, SoT.tierOf(me ? me.tier : "fit").label + " ×" + SoT.tierOf(me ? me.tier : "fit").mult),
             bombAdd > 0 ? el("span", { class: "chip bad" }, "💣 +" + bombAdd + " bombed") : null)))));
 
-    // clock
+    // clock — Danger Zone ramp: final 3h (warn) → final hour (banner) →
+    // final 30m + 10m (dz). Freeze overlays everything while it runs.
     if (clock) {
-      const cb = el("div", { class: "clockbar" + (clock.frozen ? " frozen" : clock.urgency.level >= 3 ? " dz" : ""), id: "clockbar" },
+      const lvl = clock.urgency.level;
+      const cb = el("div", { class: "clockbar" + (clock.frozen ? " frozen" : lvl >= 3 ? " dz" : lvl >= 1 ? " warn" : ""), id: "clockbar" },
         el("div", null, el("div", { class: "c-label" }, clock.frozen ? "❄️ CLOCK FROZEN" : "BATTLE CLOCK"),
           el("div", { class: "tiny", id: "clock-urg" }, clock.urgency.label)),
         el("div", { class: "c-time", id: "clock-time" }, clock.frozen ? fmtMs(clock.frozenRemainingMs) : fmtMs(clock.remainingMs)));
       scr.append(cb);
-      if (clock.urgency.level >= 3 && !clock.frozen && !my.completed) {
+      if (lvl >= 3 && !clock.frozen && !my.completed) {
         scr.append(el("div", { class: "banner dz" }, "🚨", el("span", null, "DANGER ZONE — " + clock.urgency.label.toUpperCase() + ". " + tone("nudge"))));
+      } else if (lvl === 2 && !clock.frozen && !my.completed) {
+        scr.append(el("div", { class: "banner finalhour" }, "⏳", el("span", null, "FINAL HOUR — " + fmtMs(clock.remainingMs) + " to the target. " + tone("nudge"))));
       } else if (snap.closeCall && !b.winnerId) {
-        scr.append(el("div", { class: "banner close-call" }, "⚡", el("span", null, "CLOSE CALL — the lead is under 10%. Anything can happen.")));
+        scr.append(el("div", { class: "banner close-call" }, "⚡", el("span", null, "CLOSE CALL — the lead is under 5%. Anything can happen.")));
       }
       if (snap.streakAtRisk) scr.append(el("div", { class: "banner risk" }, "🔥", el("span", null, `Streak at risk — ${me.streak} on the line today.`)));
+      // Surprise Bombs addressed to ME — live fuse (#152)
+      const E = SoT.engine;
+      for (const bb of (b.core ? b.core.bombs : [])) {
+        if (bb.targetId !== me.id || bb.resolved || Date.now() > bb.deadline) continue;
+        scr.append(el("div", { class: "banner bomb" }, "💣",
+          el("span", null, "BOMB INBOUND — log " + E.SURPRISE_BOMB_RUF + " reps in ",
+            el("b", { id: "bomb-t", "data-until": String(bb.deadline) }, fmtMs(bb.deadline - Date.now())),
+            " to defuse. Defuse it and the bomb pays YOU +" + E.SURPRISE_BOMB_BONUS_RUF + ".")));
+      }
       if (b.winnerId) {
         const w = g.members.find((m) => m.id === b.winnerId);
         const isMe = w && me && w.id === me.id;
@@ -823,14 +897,14 @@
       const ex = SoT.exerciseById(F.exerciseId);
       if (ex.secsPerRep) {
         // timed movement
-        const tEl = el("div", { class: "timer-big", id: "hold-timer" }, F.timerStart ? fmtMs(0) : "00:00");
+        const tEl = el("div", { class: "timer-big", id: "hold-timer" }, F.timerStart ? fmtMs(Date.now() - F.timerStart) : "00:00");
         const running = !!F.timerStart;
         scr.append(el("h1", { class: "display", style: "text-align:center" }, ex.name.toUpperCase()),
           el("p", { class: "sub", style: "text-align:center" }, `Hold it. Every ${ex.secsPerRep} seconds = 1 rep.`),
           el("div", { class: "card gold", style: "text-align:center" }, tEl,
             el("div", { class: "btn-row", style: "margin-top:14px" },
               el("button", { class: "btn " + (running ? "danger" : ""), onclick: () => {
-                if (!F.timerStart) { sfx("primary"); F.timerStart = Date.now(); startHoldTicker(); }
+                if (!F.timerStart) { sfx("primary"); F.timerStart = Date.now(); startHoldTicker(); render(); }
                 else { sfx("tap"); F.secs = Math.max(1, Math.round((Date.now() - F.timerStart) / 1000)); F.amount = F.secs; F.timerStart = null; F.step = "confirm"; render(); }
               } }, running ? "STOP" : "START HOLD"),
               !running && F.secs ? el("button", { class: "btn ghost", onclick: () => { sfx("tap"); F.step = "confirm"; render(); } }, "Use " + F.secs + "s") : null)));
@@ -1208,6 +1282,8 @@
     if (ov.kind === "youWon") {
       const snap = SoT.snapshot(); const b = snap.battle;
       sfx("win");
+      const winPng = winCardPng(snap, b);            // canvas → PNG share card
+      window.rwfLastSharePng = winPng || "";         // demo/e2e affordance
       layer.append(el("div", { class: "oval" },
         confetti(60),
         el("div", { class: "o-kicker" }, "FIRST TO " + ((snap.myRow && snap.myRow.dayTarget) || snap.group.target)),
@@ -1216,7 +1292,18 @@
         el("div", { class: "share-card" },
           el("div", { class: "sc-k" }, "🏆 " + (snap.me ? snap.me.name : "You") + " · Daily Win"),
           el("div", { class: "sc-s" }, `${snap.group.name} · battle ${b ? b.idx : ""} · first to target · ${fmtMs(Date.now() - (b ? b.startedAtMs || b.startMs : Date.now()))} flat`),
-          el("button", { class: "btn ghost sm", style: "margin-top:10px", onclick: () => { sfx("tap"); try { navigator.clipboard && navigator.clipboard.writeText(`I took the Daily Win on Reps With Friends — first to ${snap.group.target} reps. Join the battle: rwf.qalarc.com/v4#join=${snap.group.code}`); } catch (e) {} toast("Win card copied — paste it in the chat"); } }, "Share the win")),
+          el("div", { class: "btn-row", style: "margin-top:10px" },
+            el("button", { class: "btn ghost sm", onclick: () => { sfx("tap"); try { navigator.clipboard && navigator.clipboard.writeText(`I took the Daily Win on Reps With Friends — first to ${snap.group.target} reps. Join the battle: rwf.qalarc.com/v4#join=${snap.group.code}`); } catch (e) {} toast("Win card copied — paste it in the chat"); } }, "Share the win"),
+            el("button", { class: "btn ghost sm", onclick: () => {
+              sfx("tap");
+              if (!winPng) { toast("Couldn't render the card here"); return; }
+              try {
+                const a = document.createElement("a");
+                a.href = winPng; a.download = "rwf-daily-win.png";
+                document.body.append(a); a.click(); a.remove();
+                toast("Win card saved — PNG ready to post");
+              } catch (e) { toast("Couldn't save the card here"); }
+            } }, "Save PNG"))),
         el("p", { class: "tiny" }, "The battle rolls on — your crew can still bank their days."),
         btnRow(() => { App.overlay = null; render(); }, "Back to battle", () => { App.overlay = { kind: "recap" }; render(); }, "Battle recap")));
       return layer;
@@ -1339,9 +1426,25 @@
           const r = SoT.activateCard(snap.group.id, snap.me.id, ov.cardId, ov.targetId);
           if (r.error) { sfx("error"); toast(r.error); return; }
           sfx("play");
-          App.overlay = { kind: "cardResult", result: r, cardId: ov.cardId };
+          // Lightning earns the full-screen 10-minute moment (#142)
+          App.overlay = ov.cardId === "lightning"
+            ? { kind: "lightning", untilMs: r.untilMs || (Date.now() + (SoT.engine ? SoT.engine.LIGHTNING_MS : 600_000)) }
+            : { kind: "cardResult", result: r, cardId: ov.cardId };
           render();
         }, "Confirm")));
+      return layer;
+    }
+    if (ov.kind === "lightning") {
+      // FULL-SCREEN 10-MINUTE MOMENT (#142) — storm front, ×3, live fuse
+      sfx("win");
+      layer.append(el("div", { class: "oval storm" },
+        el("div", { class: "bolt", style: "left:14%" }, "⚡"), el("div", { class: "bolt b2", style: "left:78%" }, "⚡"),
+        el("div", { class: "o-kicker", style: "color:var(--purple-hi)" }, "LIGHTNING ROUND"),
+        el("div", { class: "o-title storm-x" }, "×3"),
+        el("p", { class: "o-sub" }, "Every rep you log in the next 10 minutes counts TRIPLE. The whole crew sees the storm."),
+        el("div", { class: "storm-clock", id: "storm-t", "data-until": String(ov.untilMs) }, fmtMs(ov.untilMs - Date.now())),
+        el("p", { class: "tiny" }, "Once per day · logs inside the window score ×3 automatically"),
+        btnRow(() => { App.overlay = null; render(); }, "Back", () => { App.overlay = null; tab("log"); }, "⚡ LOG NOW")));
       return layer;
     }
     if (ov.kind === "cardResult") {
