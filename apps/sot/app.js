@@ -130,6 +130,75 @@
     clearTimeout(toastTimer); toastTimer = setTimeout(() => t.classList.remove("on"), 2600);
   }
 
+  /* ── connection shim (SOT #103 · #104 · #120 — simulated realtime) ──
+     The app is local-first; this shim models the hero-app ↔ server link
+     the SOT describes: an offline banner, a queued-log badge on the LOG
+     button, and replay-on-reconnect with duplicate/sync-conflict
+     resolution (#105 + #119 sheets). Demo-toggleable from Settings — the
+     app never touches a real socket, so the whole surface is testable. */
+  const CONN_KEY = "rwf.sot.conn.v1";
+  const Conn = {
+    mode: "online",            // online | offline | reconnecting
+    queue: [],                 // [{id, exerciseId, amount, queuedAt}]
+    load() {
+      try { const j = JSON.parse(localStorage.getItem(CONN_KEY) || "null"); if (j && Array.isArray(j.queue)) this.queue = j.queue; } catch (e) { /* fresh device */ }
+      this.save();
+    },
+    save() { try { localStorage.setItem(CONN_KEY, JSON.stringify({ v: 1, queue: this.queue })); } catch (e) { /* private mode */ } },
+    enqueue(exerciseId, amount) {
+      const entry = { id: "q_" + Math.random().toString(36).slice(2, 9), exerciseId, amount, queuedAt: Date.now() };
+      this.queue.push(entry); this.save(); return entry;
+    },
+    remove(id) { this.queue = this.queue.filter((e) => e.id !== id); this.save(); },
+    byId(id) { return this.queue.find((e) => e.id === id) || null; },
+  };
+  function setSimulateOffline(v) {
+    if (v) { Conn.mode = "offline"; render(); return; }
+    // back online → visible reconnect beat, then replay the queue (#103)
+    Conn.mode = "reconnecting"; render();
+    setTimeout(() => replayQueuedLogs(), 1100);
+  }
+  function replayQueuedLogs() {
+    let synced = 0, dropped = 0, conflicts = [];
+    const snap = SoT.snapshot();
+    if (snap && Conn.queue.length) {
+      for (const q of Conn.queue.slice()) {
+        const dup = duplicateLogOf(q.exerciseId, q.amount);
+        if (dup) { conflicts.push({ q, dup }); continue; }   // #105 — resolve by hand
+        const r = SoT.logReps(snap.group.id, snap.me.id, q.exerciseId, q.amount);
+        if (r.error) { Conn.remove(q.id); dropped++; continue; }
+        Conn.remove(q.id); synced++;
+      }
+    }
+    Conn.mode = "online";
+    render();
+    if (conflicts.length) {
+      App.overlay = { kind: "syncConflict", conflicts, synced, dropped }; render();
+    } else if (synced || dropped) {
+      toast(`Back online — ${synced} queued set${synced === 1 ? "" : "s"} synced${dropped ? `, ${dropped} dropped` : ""}`);
+    } else {
+      toast("Back online");
+    }
+  }
+  /* duplicate detection (#119): same exercise + same reps (post-conversion)
+     by me within 60s → warn before it lands. Reads FRESH state so replay
+     sequences see their own earlier entries. Returns the engine entry. */
+  function duplicateLogOf(exerciseId, physical) {
+    const snap = SoT.snapshot();
+    const b = snap && snap.battle;
+    if (!b || !b.core || !snap.me) return null;
+    const ex = SoT.exerciseById(exerciseId);
+    if (!ex) return null;
+    const ruf = ex.secsPerRep ? Math.round((physical / ex.secsPerRep) * ex.value) : Math.round(physical * ex.value);
+    const meId = snap.me.id;
+    const now = Date.now();
+    for (const e of b.core.entries) {
+      if (e.playerId !== meId || e.exerciseId !== exerciseId || e.powerUps) continue;
+      if (e.reps === ruf && now - e.at <= 60_000) return e;
+    }
+    return null;
+  }
+
   /* ── routing / render ─────────────────────────────────────────────── */
   function go(view) { App.view = view; render(); }
   function tab(name) { sfx(name === "log" ? "primary" : "tap"); App.tab = name; if (name === "log") openLog(); else { App.logFlow = null; App.seasonView = false; } render(); }
@@ -602,12 +671,24 @@
   /* ══ NAV SHELL ════════════════════════════════════════════════════ */
   function navShellWrap(content) {
     const snap = SoT.snapshot();
-    const wrap = el("div", null, content);
-    const unread = snap && snap.feed ? snap.feed.filter((e) => e.atMs > Date.now() - 3600_000).length : 0;
+    const wrap = el("div", null);
+    // connection shim surface (#103/#104): banner leads the page, queued
+    // count rides the central LOG button
+    if (Conn.mode !== "online") {
+      wrap.append(el("div", { class: "banner " + (Conn.mode === "offline" ? "offline" : "info reconn"), id: "conn-banner", role: "status" },
+        el("span", { style: "font-size:18px;flex:none" }, Conn.mode === "offline" ? "📴" : "🛰️"),
+        el("span", null, Conn.mode === "offline"
+          ? [el("b", null, "OFFLINE — you can keep logging."), " Sets queue on this device and sync the moment you're back.",
+            Conn.queue.length ? el("span", { class: "conn-n" }, ` ${Conn.queue.length} queued`) : null]
+          : [el("b", null, "RECONNECTING…"), " picking up where you left off."])));
+    }
+    wrap.append(content);
+    const logBtn = el("button", { class: "log-btn", onclick: () => tab("log"), "aria-label": "Log reps" }, "LOG");
+    if (Conn.queue.length) logBtn.append(el("span", { class: "queue-badge", id: "queue-badge", title: "queued sets waiting to sync" }, String(Conn.queue.length)));
     wrap.append(el("nav", { class: "nav" },
       navTab("battle", "⚔️", "Battle"),
       navTab("feed", "📻", "Feed"),
-      el("button", { class: "log-btn", onclick: () => tab("log"), "aria-label": "Log reps" }, "LOG"),
+      logBtn,
       navTab("powerups", "🃏", "Power-Ups"),
       navTab("profile", "👤", "Profile")));
     return wrap;
@@ -648,12 +729,43 @@
     if (b && b.status === "scheduled") {
       const wait = Math.max(0, (b.startMs || 0) - Date.now());
       const rest = wait > 3 * 3600_000; // a real gap → today is a rest day (#101)
-      scr.append(el("div", { class: rest ? "card tight rest" : "card purple", style: "text-align:center" },
-        el("div", { class: "ex-ill", style: "margin:10px 0" }, rest ? "🛌" : "⏳"),
-        el("h2", { class: "display" }, rest ? "REST DAY" : "BATTLE " + b.idx + " STARTS SOON"),
-        el("p", { class: "sub" }, rest
-          ? `No battle today — streaks are safe on rest days. Next battle is ${b.dayName}, in ${fmtMs(wait)}.`
-          : `Target ${g.target} adjusted reps · opens in ${fmtMs(wait)}`)));
+      if (rest) {
+        // REST-DAY HOME (#29) — no battle today: streak-safe messaging,
+        // the next battle day, and the season still one tap away
+        const streak = me ? me.streak : 0;
+        const doneSoFar = s.battles.filter((x) => x.status === "ended").length;
+        scr.append(el("div", { class: "card gold rest-home", id: "rest-day" },
+          el("div", { class: "ex-ill", style: "margin:14px 0 6px" }, "🛌"),
+          el("h2", { class: "display", style: "text-align:center" }, "REST DAY"),
+          el("p", { class: "sub", style: "text-align:center" },
+            `No battle today — ${streak > 0 ? `your 🔥 ${streak}-day streak is SAFE on rest days.` : "rest days never touch your streak."}`),
+          el("div", { class: "card tight", style: "background:var(--card2);margin:14px 0" },
+            el("div", { class: "toggle-row" },
+              el("span", { class: "t-sub" }, "Next battle"),
+              el("span", { class: "t-name gold-t" }, `${b.dayName} · battle ${b.idx}`)),
+            el("div", { class: "toggle-row" },
+              el("span", { class: "t-sub" }, "Opens in"),
+              el("span", { class: "t-name" }, fmtMs(wait))),
+            el("div", { class: "toggle-row" },
+              el("span", { class: "t-sub" }, "Season"),
+              el("span", { class: "t-name" }, `${s.label} · ${doneSoFar}/${s.battles.length} battles done`))),
+          el("div", { style: "display:flex;gap:8px;justify-content:center;flex-wrap:wrap" },
+            el("span", { class: "chip gold" }, "🔥 streak " + streak),
+            el("span", { class: "chip" }, SoT.tierOf(me ? me.tier : "fit").label + " ×" + SoT.tierOf(me ? me.tier : "fit").mult)),
+          el("button", { class: "btn ghost sm", style: "margin-top:12px", onclick: () => { sfx("tap"); App.seasonView = true; render(); } }, "Season hub →"),
+          el("p", { class: "tiny", style: "text-align:center;margin:10px 0 0" }, "Recovery is part of the game. See you " + b.dayName + ".")));
+        // a just-finished battle stays framed against the season (#102)
+        const lastEnded0 = s.battles.filter((x) => x.status === "ended").slice(-1)[0];
+        if (lastEnded0) scr.append(battleCompleteCard(snap, lastEnded0, b));
+        scr.append(recapList(snap));
+        return scr;
+      }
+      scr.append(el("div", { class: "card purple", style: "text-align:center" },
+        el("div", { class: "ex-ill", style: "margin:10px 0" }, "⏳"),
+        el("h2", { class: "display" }, "BATTLE " + b.idx + " STARTS SOON"),
+        el("p", { class: "sub" }, `Target ${g.target} adjusted reps · opens in ${fmtMs(wait)}`)));
+      const lastEnded1 = s.battles.filter((x) => x.status === "ended").slice(-1)[0];
+      if (lastEnded1) scr.append(battleCompleteCard(snap, lastEnded1, b));
       scr.append(leaderboardCard(snap));
       return scr;
     }
@@ -682,6 +794,24 @@
             el("span", { class: "chip" }, SoT.tierOf(me ? me.tier : "fit").label + " ×" + SoT.tierOf(me ? me.tier : "fit").mult),
             bombAdd > 0 ? el("span", { class: "chip bad" }, "💣 +" + bombAdd + " bombed") : null)))));
 
+    // WINNER-KNOWN TRANSITION (#102, live half): the Daily Win is decided,
+    // the battle rolls on — tomorrow framing + bank-your-day push
+    if (b.winnerId && b.status === "live") {
+      const w = g.members.find((m) => m.id === b.winnerId);
+      const isMe = w && me && w.id === me.id;
+      const nxt = s.battles.find((x) => x.status === "scheduled");
+      scr.append(el("div", { class: "card purple tight", id: "win-known" },
+        el("div", { style: "display:flex;align-items:center;gap:10px" },
+          el("span", { style: "font-size:22px" }, isMe ? "🏆" : "🎖️"),
+          el("div", { style: "flex:1" },
+            el("div", { style: "font-weight:700" }, isMe ? "You took the Daily Win" : (w ? w.name.split(" ")[0] : "Someone") + " took the Daily Win"),
+            el("div", { class: "tiny" }, my.completed ? "Your day is banked — streak safe." : "The battle rolls on — bank your own day."),
+            el("div", { class: "tiny", style: "color:var(--purple-hi)" }, nxt
+              ? `Tomorrow's angle: battle ${nxt.idx} (${nxt.dayName}) is next — season points still live.`
+              : "That was the final battle — the season resolves at the close."))),
+        !my.completed ? el("button", { class: "btn sm", style: "margin-top:10px", onclick: () => tab("log") }, "Bank my day") : null));
+    }
+
     // clock — Danger Zone ramp: final 3h (warn) → final hour (banner) →
     // final 30m + 10m (dz). Freeze overlays everything while it runs.
     if (clock) {
@@ -708,12 +838,7 @@
             el("b", { id: "bomb-t", "data-until": String(bb.deadline) }, fmtMs(bb.deadline - Date.now())),
             " to defuse. Defuse it and the bomb pays YOU +" + E.SURPRISE_BOMB_BONUS_RUF + ".")));
       }
-      if (b.winnerId) {
-        const w = g.members.find((m) => m.id === b.winnerId);
-        const isMe = w && me && w.id === me.id;
-        scr.append(el("div", { class: "banner info" }, isMe ? "🏆" : "🎖️",
-          el("span", null, isMe ? "You took the Daily Win — the battle rolls on for everyone else." : `${w ? w.name.split(" ")[0] : "Someone"} took the Daily Win. ${tone("otherWon")}.`)));
-      }
+      // (winner-known banner lives in the #102 card above the clock)
       // active effects
       const fx = activeEffects(snap);
       if (fx.length) scr.append(el("div", { class: "active-fx", style: "margin:10px 0" }, fx));
@@ -731,27 +856,18 @@
 
     scr.append(leaderboardCard(snap));
 
-    // last finished battle's recap stays reachable while the next battle runs
+    // BATTLE COMPLETE, SEASON LIVE (#102): the last finished battle stays
+    // framed against the living season while the next one runs — winner +
+    // tomorrow transition + the recap. (Replaces the old recap-only strip;
+    // the card itself opens the recap.)
     const lastEnded = s.battles.filter((x) => x.status === "ended").slice(-1)[0];
     if (lastEnded && b.idx !== lastEnded.idx) {
-      scr.append(el("div", { class: "card tight", style: "cursor:pointer;display:flex;align-items:center;gap:10px", onclick: () => { sfx("flip"); App.overlay = { kind: "recap", battleIdx: lastEnded.idx }; render(); } },
-        el("span", { style: "font-size:20px" }, "📊"),
-        el("div", { style: "flex:1" },
-          el("div", { style: "font-weight:700" }, "Battle " + lastEnded.idx + " recap"),
-          el("div", { class: "tiny" }, lastEnded.winnerId ? "🏆 " + ((g.members.find((m) => m.id === lastEnded.winnerId) || { name: "?" }).name.split(" ")[0]) + " took the Daily Win" : "no winner — nobody reached target")),
-        el("span", { class: "chip gold" }, "view")));
+      scr.append(battleCompleteCard(snap, lastEnded, b));
     }
 
     // battle ended → recap + next
     if (b.status === "ended") {
-      const nxt = s.battles.find((x) => x.status !== "ended");
-      scr.append(el("div", { class: "card purple tight" },
-        el("div", { style: "display:flex;align-items:center;gap:10px" },
-          el("span", { style: "font-size:22px" }, "📊"),
-          el("div", { style: "flex:1" },
-            el("div", { style: "font-weight:700" }, "Battle " + b.idx + " complete — season live"),
-            el("div", { class: "tiny" }, nxt ? "Battle " + nxt.idx + " (" + nxt.dayName + ") " + (nxt.status === "live" ? "is LIVE now" : "opens soon") : "That was the final day")),
-          el("button", { class: "btn sm", onclick: () => { sfx("flip"); App.overlay = { kind: "recap" }; render(); } }, "Recap"))));
+      scr.append(battleCompleteCard(snap, b, null));
     } else {
       scr.append(el("button", { class: "btn", style: "margin-top:4px", onclick: () => tab("log") }, "＋ Log reps"));
     }
@@ -763,6 +879,25 @@
       scr.append(el("div", { class: "strip" }, recent.map((e) => el("div", { class: "s-item" }, e.text))));
     }
     return scr;
+
+    /* #102 card: ended battle vs living season. `ended` = the finished
+       battle; `next` = what's on now/next (null on the season finale). */
+    function battleCompleteCard(snap2, ended, next) {
+      const w = ended.winnerId ? g.members.find((m) => m.id === ended.winnerId) : null;
+      const nextLine = next
+        ? (next.status === "live"
+          ? `Battle ${next.idx} (${next.dayName}) is LIVE now — season points still on the line.`
+          : `Tomorrow's angle: battle ${next.idx} (${next.dayName}) opens next — season points still on the line.`)
+        : "That was the final day — the season resolves now.";
+      return el("div", { class: "card purple tight", id: "battle-complete", style: "cursor:pointer", onclick: () => { sfx("flip"); App.overlay = { kind: "recap", battleIdx: ended.idx }; render(); } },
+        el("div", { style: "display:flex;align-items:center;gap:10px" },
+          el("span", { style: "font-size:22px" }, w ? "🏆" : "📊"),
+          el("div", { style: "flex:1" },
+            el("div", { style: "font-weight:700" }, `Battle ${ended.idx} complete — season live`),
+            w ? el("div", { class: "tiny", style: "color:var(--gold-hi)" }, `${w.name.split(" ")[0]} won the day · ${Object.keys(ended.completions).length} banked · ${ended.failures.length} missed`) : null,
+            el("div", { class: "tiny" }, nextLine)),
+          el("span", { class: "chip gold" }, `Battle ${ended.idx} recap`)));
+    }
   }
 
   function activeEffects(snap) {
@@ -964,6 +1099,24 @@
         undoBtn,
         el("div", { style: "margin-top:16px" }, againBtn),
       );
+    } else if (F.step === "queued") {
+      // OFFLINE QUEUE (#104/#120): the set is safe on-device, syncs later
+      const S = F.result || {};
+      scr.append(
+        el("div", { class: "ex-ill" }, "📴"),
+        el("h1", { class: "display", style: "text-align:center" }, "QUEUED — SAVED OFFLINE"),
+        el("p", { class: "sub", style: "text-align:center" },
+          `${S.qn || 1} set${(S.qn || 1) === 1 ? "" : "s"} waiting to sync. They land the moment the connection returns — nothing is lost.`),
+        el("div", { style: "display:flex;gap:8px;justify-content:center;margin-top:6px" },
+          el("span", { class: "chip bad" }, "📶 offline"),
+          el("span", { class: "chip gold" }, `${Conn.queue.length} in queue`)),
+        el("div", { style: "margin-top:16px" },
+          el("button", { class: "btn", onclick: () => { sfx("tap"); F.step = "sheet"; render(); } }, "Log another"),
+          el("button", { class: "btn ghost sm", style: "margin-left:8px", onclick: () => {
+            const last = Conn.queue[Conn.queue.length - 1];
+            if (last) { Conn.remove(last.id); toast("Removed from the sync queue"); }
+            F.step = "sheet"; render();
+          } }, "↩ Remove from queue")));
     }
     return scr;
     function pickExercise(id) { sfx("tap"); F.exerciseId = id; F.step = "exercise"; render(); }
@@ -991,6 +1144,23 @@
       return Math.round(amount * ex.value * tierMult * mult);
     }
     function submitSet() {
+      // OFFLINE (#104/#120): sets queue locally and replay on reconnect
+      if (Conn.mode !== "online") {
+        Conn.enqueue(F.exerciseId, F.amount);
+        sfx("tap");
+        F.result = { queued: true, qn: Conn.queue.length };
+        F.step = "queued"; render(); return;
+      }
+      // DUPLICATE WARNING (#119): same exercise + same reps inside 60s
+      const dup = duplicateLogOf(F.exerciseId, F.amount);
+      if (dup) {
+        sfx("error");
+        App.overlay = { kind: "dupWarn", exerciseId: F.exerciseId, amount: F.amount, dupAt: dup.at, fromQueue: false };
+        render(); return;
+      }
+      applySet();
+    }
+    function applySet() {
       const r = SoT.logReps(snap.group.id, snap.me.id, F.exerciseId, F.amount);
       if (r.error) { sfx("error"); toast(r.error); return; }
       F.result = r;
@@ -1111,6 +1281,9 @@
           switchEl(!(window.rwfSfx && window.rwfSfx.isMuted && window.rwfSfx.isMuted()), (v) => {
             try { window.rwfSfx.setMuted(!v); } catch (e) {}
           }, "sfx-toggle")),
+        el("div", { class: "toggle-row" },
+          el("div", null, el("div", { class: "t-name" }, "Simulate offline"), el("div", { class: "t-sub" }, "demo the offline banner, queued logs + sync states")),
+          switchEl(Conn.mode !== "online" && Conn.mode !== "reconnecting", (v) => setSimulateOffline(v), "offline-toggle")),
         el("div", { class: "toggle-row" },
           el("div", null, el("div", { class: "t-name" }, "Handicap tier"), el("div", { class: "t-sub" }, "changes what your reps are worth")),
           el("select", { style: "width:130px", onchange: (e) => { SoT.setMe({ tier: e.target.value }); render(); } },
@@ -1501,6 +1674,87 @@
         btnRow(() => { App.overlay = null; render(); }, "Done", () => { App.overlay = null; App.seasonView = true; render(); }, "Season hub")));
       return layer;
     }
+    if (ov.kind === "dupWarn") {
+      // DUPLICATE LOG WARNING (#119): same exercise + reps inside 60s —
+      // confirm it's real or undo before it lands
+      const ex = SoT.exerciseById(ov.exerciseId);
+      const mins = Math.max(1, Math.round((Date.now() - (ov.dupAt || Date.now())) / 60_000));
+      layer.append(el("div", { class: "oval", id: "dup-warn" },
+        el("div", { class: "o-kicker" }, "POSSIBLE DUPLICATE"),
+        el("div", { style: "font-size:52px;margin:8px 0" }, "🤔"),
+        el("div", { class: "o-title", style: "font-size:28px" }, "DID THAT SET COUNT?"),
+        el("p", { class: "o-sub" },
+          `You logged ${ov.amount} ${(ex && (ex.unit === "secs" ? "sec " : "")) || ""}${(ex && ex.name.toLowerCase()) || "reps"} ${mins === 1 ? "less than a minute" : mins + " minutes"} ago.`),
+        el("div", { class: "share-card" },
+          el("div", { class: "sc-k" }, `${(ex && ex.icon) || "📝"} ${ov.amount} × ${(ex && ex.name) || ""}`),
+          el("div", { class: "sc-s" }, "Double-tapped buttons and offline retries often log sets twice. Duplicates still count — only you know the truth.")),
+        btnRow(() => {
+          // Undo — back to the confirm step, nothing logged (#119 → #118)
+          App.overlay = null; FBackToConfirm(); render();
+        }, "↩ Undo — not a double", () => {
+          // Confirm — it was a real second set; let it land
+          App.overlay = null; applyQueuedOrCurrent(); render();
+        }, "Yes — log it anyway")));
+      return layer;
+    }
+    if (ov.kind === "syncConflict") {
+      // SYNC CONFLICT (#105): a queued offline set raced a log that already
+      // landed — resolve each conflict by hand, keep or drop
+      const c = ov.conflicts[0];
+      const ex = c ? SoT.exerciseById(c.q.exerciseId) : null;
+      const remaining = ov.conflicts.length;
+      const snap = SoT.snapshot();
+      layer.append(el("div", { class: "oval", id: "sync-conflict" },
+        el("div", { class: "o-kicker" }, "SYNC CONFLICT"),
+        el("div", { style: "font-size:52px;margin:8px 0" }, "⚡"),
+        el("div", { class: "o-title", style: "font-size:28px" }, "A SET LANDED TWICE?"),
+        el("p", { class: "o-sub" },
+          `While you were offline you queued ${c.q.amount} ${(ex && ex.unit === "secs" ? "sec " : "")}${(ex && ex.name.toLowerCase()) || "reps"} — and the same set is already on the board (synced from another device or an earlier retry).`),
+        el("div", { class: "share-card" },
+          el("div", { class: "sc-k" }, `${(ex && ex.icon) || "📝"} ${c.q.amount} × ${(ex && ex.name) || ""} · queued ${timeAgo(c.q.queuedAt)}`),
+          el("div", { class: "sc-s" }, `${remaining} conflict${remaining === 1 ? "" : "s"} to resolve${ov.synced ? ` · ${ov.synced} other set${ov.synced === 1 ? "" : "s"} already synced` : ""}`)),
+        btnRow(() => {
+          // Undo — drop my queued copy, keep the landed one
+          Conn.remove(c.q.id);
+          finishOrNextConflict(ov, 0, 1);
+        }, "↩ Drop mine — it's a double", () => {
+          // Confirm — keep both: apply the queued set too
+          const r = SoT.logReps(snap.group.id, snap.me.id, c.q.exerciseId, c.q.amount);
+          Conn.remove(c.q.id);
+          if (r.error) toast(r.error);
+          finishOrNextConflict(ov, 1, 0);
+        }, "Keep both sets")));
+      return layer;
+    }
+    function FBackToConfirm() {
+      // return the log flow to its confirm step (nothing was logged)
+      if (App.logFlow) App.logFlow.step = "confirm";
+    }
+    function applyQueuedOrCurrent() {
+      // the confirmed duplicate: apply the set sitting in the log flow
+      if (App.logFlow) {
+        const F = App.logFlow;
+        const r = SoT.logReps(SoT.state.activeGroupId, SoT.state.me.id, F.exerciseId, F.amount);
+        if (r.error) { toast(r.error); return; }
+        F.result = r;
+        if (r.completion && (r.completion.kind === "win" || r.completion.kind === "bank")) {
+          App.overlay = r.completion.kind === "win" ? { kind: "youWon" } : { kind: "banked" };
+          App.tab = "battle"; App.logFlow = null; return;
+        }
+        F.step = "success";
+      }
+    }
+    function finishOrNextConflict(ov2, kept, dropped2) {
+      const rest = ov2.conflicts.slice(1);
+      if (rest.length) {
+        App.overlay = { kind: "syncConflict", conflicts: rest, synced: (ov2.synced || 0) + kept, dropped: (ov2.dropped || 0) + dropped2 };
+      } else {
+        App.overlay = null;
+        const k = (ov2.synced || 0) + kept, d = (ov2.dropped || 0) + dropped2;
+        toast(`Sync complete — ${k} kept${d ? `, ${d} dropped as duplicates` : ""}`);
+      }
+      render();
+    }
     if (ov.kind === "seasonWinner") {
       const snap = SoT.snapshot();
       const s = snap.group.seasons[snap.group.seasons.length - 1];
@@ -1598,7 +1852,15 @@
     App.join = { code: location.hash.slice(6).toUpperCase(), step: "enter" };
     App.view = "join";
   }
+  // connection shim boot: restore any queued offline sets; if we came back
+  // online since last visit, replay them now (#120 → #103 replay-on-reconnect)
+  Conn.load();
+  window.__rwfConn = Conn; // test/drive handle (read-only by convention)
   window.__rwfV4 = App; // test/drive handle (e2e + page-driving; read-only by convention)
   detectMoments();
   render();
+  if (Conn.queue.length && Conn.mode === "online") {
+    Conn.mode = "reconnecting"; render();
+    setTimeout(() => replayQueuedLogs(), 1100);
+  }
 })();

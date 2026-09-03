@@ -249,7 +249,11 @@ function startSeason(gRaw) {
   // founder pack for season 1 (our answer to the power-up economy question —
   // deterministic starter, then daily drops)
   beginBattle(g, s, s.battles[0]);
-  if (idx === 1) {
+  if (idx === 1 && s.battles[0].core) {
+    // founder pack for season 1 (our answer to the power-up economy question —
+    // deterministic starter, then daily drops). Window-clock groups whose
+    // first battle is still in the future have no engine day yet — the daily
+    // drop at beginBattle deals their cards when the day actually opens.
     for (const m of g.members) {
       for (const kind of Object.keys(CARDS)) if (g.powerUps[kind]) s.battles[0].core = Core.grantPowerUp(s.battles[0].core, m.id, kind);
     }

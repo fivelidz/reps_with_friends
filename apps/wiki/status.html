@@ -13,6 +13,7 @@
   <a class="wnav__brand" href="index.html"><b>RWF&nbsp;WIKI</b><span>internal docs</span></a>
   <a class="wnav__link" href="game.html">Game Rules</a>
   <a class="wnav__link" href="app.html">App Screens</a>
+  <a class="wnav__link" href="versions.html">Versions</a>
   <a class="wnav__link" href="bots.html">Bots</a>
   <a class="wnav__link" href="verification.html">Verification</a>
   <a class="wnav__link" href="avatars.html">Avatars</a>
@@ -73,6 +74,42 @@
   </table></div>
 </section>
 
+<!-- SOT RECONCILIATION -->
+<section>
+  <h2 class="sect">The SOT reconciliation — where the build stands vs the master spec</h2>
+  <p class="sectsub">3 Sep 2026: Ben's 36-page master Source of Truth (v2026-09-02) became the product spec. Full table in <span class="mono">docs/27_SOURCE_OF_TRUTH_RECONCILIATION.md</span>; this is the condensed, current truth.</p>
+  <div class="tblwrap"><table class="tbl">
+    <tr><th>Area</th><th>SOT (canonical)</th><th>Where we are</th><th>Status</th></tr>
+    <tr><td><b>Battle model</b></td><td>Daily battle, adjusted target 200, first eligible to target = Daily Win, battle continues — later completers bank the day</td><td>Engine V4 (game-core + apps/sot-engine.js) + the v4 app play it end to end; e2e asserts win/bank/fail</td><td><span class="badge badge--live">shipped</span></td></tr>
+    <tr><td><b>Seasons</b></td><td>Weekly default · 1 Daily Win = 1 season point</td><td>Shipped as default (monthly optional, Major future)</td><td><span class="badge badge--live">shipped</span></td></tr>
+    <tr><td><b>Stakes</b></td><td>Dinner / Dare / Deliverable / Charity Pot — agreed before season, resolve after; charity = contributions + winner directs + disclosed fee</td><td>All four lifecycles in Engine V4 + the v4 app (agreement gating, obligation fulfilment, charity chooser + receipt)</td><td><span class="badge badge--live">shipped</span></td></tr>
+    <tr><td><b>Rep Steal</b></td><td>Activator gains 10% equivalent — target keeps their score (pure gain)</td><td>Corrected in Engine V4; e2e asserts the target unchanged</td><td><span class="badge badge--live">shipped</span></td></tr>
+    <tr><td><b>Group Shield</b></td><td>Protects the group from an agreed daily failure consequence (streak reading)</td><td>Streak-protection semantics shipped (consumed at the close it saves); exact consequence scope stays open with Ben</td><td><span class="badge badge--live">shipped (scope open)</span></td></tr>
+    <tr><td><b>Power-up canon</b></td><td>4 launch + post-launch set (Surprise Bomb, Rescue Rope, Combo Boost, Double Down, Assist Boost, Shield Bash)</td><td>All in the engine with SOT semantics; extras from our 14 preserved as experimental</td><td><span class="badge badge--live">shipped</span></td></tr>
+    <tr><td><b>Team mode</b></td><td>2+ per side, 3v2 allowed, scoring normalisation open (Q229–231)</td><td>Team scaffolding in Engine V4, scoring pluggable per the SOT's UNCLEAR</td><td><span class="badge badge--partial">scaffolded</span></td></tr>
+    <tr><td><b>Bots on the daily model</b></td><td>Chat layer per §1.3 — announcements + fast commands</td><td>SotCommandBus built parallel to the legacy bus (steal=pure-gain, day close + auto-close, full stake lifecycle, --sot sims); uncommitted at time of writing — see Bots</td><td><span class="badge badge--next">in flight · tested</span></td></tr>
+    <tr><td><b>Brand</b></td><td>Near-black + gold primary + purple secondary; loot presentation; 5-tab nav; "Join the Battle. Win the Day."</td><td>The v4 app's default skin — validated by the spec's own direction</td><td><span class="badge badge--live">shipped</span></td></tr>
+    <tr><td><b>Company / contract</b></td><td>Narwhal Ent Pty Ltd is the engaging entity</td><td>Contract parties updated</td><td><span class="badge badge--live">done</span></td></tr>
+    <tr><td><b>Critical states</b></td><td>The screen inventory's MISSING/edge states — reconnect, sync conflict, duplicate warning, rest day, winner-known</td><td>v4 app ships offline/reconnecting, sync conflict + duplicate warning, rest-day home, battle-complete-season-live; own e2e walk</td><td><span class="badge badge--live">shipped</span></td></tr>
+    <tr><td><b>Platform / tech</b></td><td>Flutter? NestJS? Cognito? — unlocked questions (Q263–269, 292–299)</td><td>Bun/PWA/Hono stays the fastest prototype path — founder+Ben decision</td><td><span class="badge badge--partial">open (deliberately)</span></td></tr>
+  </table></div>
+</section>
+
+<!-- ANSWERED IN CODE -->
+<section>
+  <h2 class="sect">SOT open questions we answered with working software</h2>
+  <p class="sectsub">The spec's §6 list, answered by things you can click today — the proposals to bring to Ben.</p>
+  <div class="grid grid--3">
+    <div class="card"><h3>Q240–242 · power-up economy</h3><p>How are cards acquired, kept fair, do they expire? <b>Our live answer:</b> founder pack + daily drop, hold cap 4, leftovers carry (no expiry), draft-from-3 with the catch-up curve from v2 for competitive fairness.</p><div class="card-meta">Engine V4 + v4 app</div></div>
+    <div class="card"><h3>Q216 · RUF vs reps</h3><p>Internal unit naming. <b>Implemented as ruled:</b> RUF internal, "reps" everywhere in the UI — enforced by the e2e language gate.</p><div class="card-meta">v4 app + tests</div></div>
+    <div class="card"><h3>Q222 · the 200 target</h3><p>Working baseline confirmed? <b>Configurable, default 200</b> — the wizard presets it, the engine honours per-group targets.</p><div class="card-meta">Engine V4</div></div>
+    <div class="card"><h3>Q223 · 1:1 season points</h3><p>Daily Win → season point conversion. <b>Shipped as default</b> — standings read straight from the engine record.</p><div class="card-meta">Engine V4</div></div>
+    <div class="card"><h3>Q237 · can a steal win the day?</h3><p>Stolen reps counting toward target. <b>Our answer:</b> a per-day <span class="mono">stealCanTriggerWin</span> flag — the demo sets it on; the group decides.</p><div class="card-meta">Engine V4 flag</div></div>
+    <div class="card"><h3>#103/#105/#119/#29/#102 · critical states</h3><p>The spec's missing/edge screens. <b>Built as real states</b> with their own 59-check e2e — offline queue, sync conflict sheets, rest-day home, winner-known transitions.</p><div class="card-meta">v4 app + e2e-states</div></div>
+  </div>
+  <p class="dim" style="margin-top:14px">Still founder/Ben decisions, not ours to guess (SOT §6): handicap formula details (Q217–221) · team scoring (Q229–231) · brand lock (Q270–275) · monetisation (Q276–282) · platform (Q263–269, 292–299).</p>
+</section>
+
 <!-- BLOCKERS -->
 <section>
   <h2 class="sect">Blockers register</h2>
@@ -118,7 +155,7 @@
   <div class="feat__grid" style="margin-top:18px">
     <figure class="shot shot--full"><img src="shots/design-system.png" alt="The /system dissemination page showing element families and progress"><figcaption>design-system.png · the live /system page — the same status data, publicly rendered with live components</figcaption></figure>
     <div>
-      <p><b>Phase 0 (due diligence) complete. Prototype feature-complete and live.</b> What began as an email evaluation is a running system: a tested game engine, two chat bots, a phone-first app, an ops console, an AI layer, and push-to-deploy hosting — <b>122 tests green in CI</b> (measured), 11 public surfaces, GitHub → Cloudflare Pages in ~20s. Remaining for MVP proper: state unification (T5), auth (T4), first real crews, and the pilot gates (WhatsApp verification, Stripe pots, legal opinion).</p>
+      <p><b>Phase 0 (due diligence) complete. Prototype feature-complete and live — and since 2 Sep 2026, re-spec'd.</b> Ben's master Source of Truth arrived and was reconciled (docs/27): Engine V4 shipped (daily-200 first-to-target battles, weekly 1:1 seasons, all four stakes, corrected power-up canon — 110 tests), the v4 app walks the whole product (120 + 59 e2e checks, zero console errors), and the critical states exist as real states. The stack underneath is unchanged: a tested game engine, two chat bots, a phone-first app, an ops console, an AI layer, push-to-deploy hosting. Remaining for MVP proper: the SOT bot port (in flight), state unification (T5), auth (T4), first real crews, and the pilot gates (WhatsApp verification, Stripe pots, legal opinion).</p>
       <p class="dim">Live version of the status tables with rendered components: <span class="mono">rwf.qalarc.com/system</span>. Full writeups: <span class="mono">docs/17_FEATURES_AND_PROGRESS.md</span> · <span class="mono">docs/15_BLOCKERS.md</span>.</p>
     </div>
   </div>

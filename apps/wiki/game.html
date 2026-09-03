@@ -13,6 +13,7 @@
   <a class="wnav__brand" href="index.html"><b>RWF&nbsp;WIKI</b><span>internal docs</span></a>
   <a class="wnav__link" href="game.html">Game Rules</a>
   <a class="wnav__link" href="app.html">App Screens</a>
+  <a class="wnav__link" href="versions.html">Versions</a>
   <a class="wnav__link" href="bots.html">Bots</a>
   <a class="wnav__link" href="verification.html">Verification</a>
   <a class="wnav__link" href="avatars.html">Avatars</a>
@@ -24,178 +25,166 @@
 
 <header class="hero">
   <p class="eyebrow">Chapter 1 · the game</p>
-  <h1>Game Rules — the actual mechanics</h1>
-  <p class="lede">One rule set drives every surface: the engine is a pure TypeScript module (<span class="mono">packages/game-core</span>, spec) ported 1:1 into the app (<span class="mono">apps/figma-app/engine.js</span>) so the phone plays the same game the bots referee. Numbers below are read straight from the code.</p>
+  <h1>Game Rules — the daily model</h1>
+  <p class="lede">Since 2 Sep 2026 the product spec is Ben's master Source of Truth (36pp, v2026-09-02) and the rules live in <b>Engine V4</b> — <span class="mono">packages/game-core</span> (spec, 110 tests) ported to the app as <span class="mono">apps/sot-engine.js</span>, driven by <span class="mono">apps/sot/engine.js</span>. One line: <b>a group plays on agreed battle days; everyone races to their adjusted target — first eligible player there takes the Daily Win; everyone who finishes after still banks the day; Daily Wins stack into a weekly season; stakes settle when the season ends.</b> Numbers below are read straight from the code.</p>
+  <p class="lede">The 300-rep match era this supersedes is preserved at the bottom of this page and on <a href="versions.html">The four versions</a>.</p>
 </header>
 
-<!-- ══════════════ 300 FORMAT ══════════════ -->
+<!-- ══════════════ DAILY BATTLE ══════════════ -->
 <section class="feat">
-  <div class="feat__head"><h3>The 300 format</h3><span class="badge badge--live">live</span></div>
-  <p class="feat__what">A group agrees on exercises; any reps, any order, any mix. First player to the <b>raw</b> target <i>closes</i> the match — but the winner is the highest <b>effort-adjusted</b> score at closure.</p>
+  <div class="feat__head"><h3>The daily battle — 200 adjusted reps</h3><span class="badge badge--live">live (v4)</span></div>
+  <p class="feat__what">On an active day every eligible player gets a personally adjusted target — <b>200 by default</b> — and races. The <b>first eligible player to reach their target earns the Daily Win</b>. The battle does not end there: it rolls on until the day's clock closes, and everyone who reaches their own target afterwards still <b>banks the day</b>.</p>
   <div class="feat__grid">
-    <figure class="shot shot--phone"><img src="shots/app-battle-live.png" alt="Battle live screen — progress ring and leaderboard"><figcaption>app-battle-live.png · progress ring + live leaderboard</figcaption></figure>
+    <figure class="shot shot--phone"><img src="shots/v4-battle-home.png" alt="V4 battle home — hero numeral, progress ring, leaderboard"><figcaption>v4-battle-home.png · Battle Home: hero numeral, adjusted target, live board</figcaption></figure>
     <div class="feat__body">
-      <p><b>How it works.</b> Every logged entry is scored, then two different totals are tracked per player: <b>raw reps</b> (the plain sum, which drives closure — default target 300, a "Light" match is 150) and the <b>adjusted score</b>:</p>
-      <div class="formula">entry value <span class="op">=</span> reps <span class="op">×</span> tierMultiplier <span class="op">×</span> (comeback<span class="op">?</span> 1.2) <span class="op">×</span> (lightning<span class="op">?</span> 3)<br>match winner <span class="op">=</span> max(Σ entry values) <span class="op">+</span> closure bonus 15 <span class="hl">if closer</span></div>
-      <p>So an athlete can close on raw reps and still lose to a couch player who moved less but earned more per rep. This is the whole product thesis in one formula: <i>effort wins the day</i>.</p>
-      <p><b>Worked example</b> (from a real bot match): Ben (couch) logs 40 then 110 push-ups; Nico (athlete) logs 80 squats. Ben's second entry fires the comeback boost. Ben: 40×1.5 = 60, 110×1.5×1.2 = 198, closure bonus +15 → <b>273</b>. Nico: 80×0.85 = <b>68</b>. Ben closed <i>and</i> won; against a fitter closer the upset is live.</p>
-      <div class="where"><b>engine:</b> packages/game-core/src/match.ts · apps/figma-app/engine.js <code>scoreEntry / playerScore / playerRawReps / winner</code><br><b>proven by:</b> packages/game-core/test/core.test.ts (29) · apps/figma-app/engine.test.js (23) · a full bot match in <a href="bots.html#transcript">Bots → transcript</a></div>
+      <p><b>How it works.</b> Each logged set is converted to effort-adjusted reps <i>before</i> it hits the engine:</p>
+      <div class="formula">entry value <span class="op">=</span> physical reps <span class="op">×</span> exercise conversion <span class="op">×</span> tierMultiplier <span class="op">×</span> (lightning<span class="op">?</span> 3)<br>progress <span class="op">=</span> Σ entries <span class="op">+</span> credits (rescue rope) <span class="op">+</span> bonuses (steal · bomb defusal)<br>Daily Win <span class="op">=</span> first player with progress <span class="op">≥</span> their adjusted target</div>
+      <p><b>Bank-day continuation</b> is the core SOT correction over the old model: a finished battle is not a dead battle. Later completers preserve their streak, earn participation credit, feed team totals and keep the feed alive — the SOT's words: "the battle does not become meaningless after somebody wins."</p>
+      <p><b>Worked example</b> (from the v4 e2e): target 200. Marco (casual ×1.25) logs 48 push-ups → 60 reps. I steal 10% of Priya's completed 100 → +10 to me, Priya keeps 100 (pure gain). My plank hold of 11s → 1 rep. Then 195 push-ups → 206 ≥ 200: <b>Daily Win</b>, battle stays open, Priya finishes her 200 and banks the day (streak 1), Jack misses at the deadline — failed day, streak resets.</p>
+      <p><b>Failed days:</b> at the clock's close, any eligible player under target fails the day — streak resets to zero, failed-day counter increments, the recap says so plainly. An armed Group Shield converts a failed day into a streak-preserved one (consumed at the close it saves).</p>
+      <div class="where"><b>engine:</b> apps/sot-engine.js <code>createDay / logSet / targetProgressOf / effectiveTargetOf / closeDay</code> · game-core ENGINE V4<br><b>proven by:</b> game-core 110 tests · apps/sot e2e 120 checks — win/bank/fail all asserted in state</div>
     </div>
   </div>
 </section>
 
 <!-- ══════════════ HANDICAP ══════════════ -->
 <section class="feat">
-  <div class="feat__head"><h3>Tier handicap</h3><span class="badge badge--live">v1 live</span><span class="badge badge--next">v2 engine-ready</span></div>
-  <p class="feat__what">Fitness tiers multiply every rep, so the couch player's push-up is worth more than the athlete's.</p>
+  <div class="feat__head"><h3>Handicap tiers — what a rep is worth</h3><span class="badge badge--live">live</span></div>
+  <p class="feat__what">Fitness tiers multiply every rep toward your target: the couch player's push-up counts more than the athlete's. The objective is similar competitive effort, not equal physical output. The exact formula beyond the tier multiplier is an open SOT question (Q217–221).</p>
   <div class="feat__grid">
-    <figure class="shot shot--phone"><img src="shots/app-onboard-tier.png" alt="Onboarding tier picker with four cards"><figcaption>app-onboard-tier.png · the tier pick at onboarding — 4 options</figcaption></figure>
+    <figure class="shot shot--phone"><img src="shots/app-onboard-tier.png" alt="Tier picker with four cards"><figcaption>app-onboard-tier.png · the tier pick — 4 options, set per player</figcaption></figure>
     <div class="feat__body">
       <div class="tblwrap"><table class="tbl">
-        <tr><th>Tier</th><th class="num">Multiplier</th><th>100 raw reps score</th></tr>
-        <tr><td>Couch</td><td class="num">×1.5</td><td class="num">150</td></tr>
-        <tr><td>Casual</td><td class="num">×1.25</td><td class="num">125</td></tr>
-        <tr><td>Fit</td><td class="num">×1.0</td><td class="num">100</td></tr>
-        <tr><td>Athlete</td><td class="num">×0.85</td><td class="num">85</td></tr>
+        <tr><th>Tier</th><th class="num">Multiplier</th><th>100 physical push-ups score</th><th>Target 200 needs</th></tr>
+        <tr><td>Couch</td><td class="num">×1.5</td><td class="num">150</td><td class="num">134 push-ups</td></tr>
+        <tr><td>Casual</td><td class="num">×1.25</td><td class="num">125</td><td class="num">160 push-ups</td></tr>
+        <tr><td>Fit</td><td class="num">×1.0</td><td class="num">100</td><td class="num">200 push-ups</td></tr>
+        <tr><td>Athlete</td><td class="num">×0.85</td><td class="num">85</td><td class="num">236 push-ups</td></tr>
       </table></div>
-      <p><b>v2 (engine-ready, waiting on straps):</b> when an entry carries a measured <span class="mono">avgHrrPct</span> and the player has a learned baseline, the multiplier blends live heart-rate evidence with the declared tier — 70% measured, 30% declared. The camera/HR lane (<a href="verification.html">Verification</a>) already logs those fields.</p>
-      <div class="formula">effortMultiplier <span class="op">=</span> 0.7 <span class="op">×</span> (avgHrrPct <span class="op">/</span> baselineHrrPct) <span class="op">+</span> 0.3 <span class="op">×</span> tierMultiplier</div>
-      <p>Anti-sandbagging: baselines drift-correct (≤10% per update) and volume-based tier correction catches a "couch" player doing 5× everyone's reps.</p>
-      <div class="where"><b>engine:</b> packages/game-core/src/handicap.ts · baseline.ts · engine.js <code>TIER_MULTIPLIERS / effortMultiplier</code><br><b>proven by:</b> core.test.ts handicap cases · interactive demo on the public site (/)</div>
+      <p>Exercises convert too (a working proposal — the official table is an open SOT gap): burpee ×2.0, push-up/squat/lunge/dip ×1.0, mountain climbers/jump rope ×0.5, and timed holds at 10 seconds = 1 rep (plank, wall sit).</p>
+      <p>The measured-heart-rate blend from the earlier engine (70% %HRR / 30% declared tier) remains in game-core, waiting on straps — see <a href="verification.html">Verification</a>.</p>
+      <div class="where"><b>engine:</b> apps/sot-engine.js <code>TIER_MULTIPLIERS / tierMultiplier</code> · conversion table in apps/sot/engine.js <code>EXERCISES</code><br><b>proven by:</b> tier cases in the game-core suite · the v4 e2e asserts handicap-adjusted gains (48 → 60)</div>
     </div>
   </div>
 </section>
 
-<!-- ══════════════ COMEBACK ══════════════ -->
+<!-- ══════════════ STREAKS + REST ══════════════ -->
 <section class="feat">
-  <div class="feat__head"><h3>Comeback ×1.2</h3><span class="badge badge--live">live</span></div>
-  <p class="feat__what">More than 30% behind the leader in raw reps → your <i>next</i> entry is tagged ×1.2. Once per player per match.</p>
+  <div class="feat__head"><h3>Streaks, rest days &amp; the shield save</h3><span class="badge badge--live">live (v4)</span></div>
+  <p class="feat__what">Streaks count consecutive <i>banked</i> battle days. Rest days never break them. A failed day resets the streak — unless the Group Shield is armed.</p>
   <div class="feat__grid">
-    <figure class="shot shot--phone"><img src="shots/app-comeback.png" alt="Comeback armed banner on the battle screen"><figcaption>app-comeback.png · comeback banner armed (⚡) on the battle screen</figcaption></figure>
+    <figure class="shot shot--phone"><img src="shots/v4-states-rest-day.png" alt="Rest day home state in the v4 app"><figcaption>v4-states-rest-day.png · rest-day home: streak safe, next battle named</figcaption></figure>
     <div class="feat__body">
-      <p><b>How it works.</b> Eligibility is recomputed on every log: <span class="mono">(leader − you) / leader &gt; 0.30</span> while the match is live and you haven't used it. The boost is <i>tagged onto the entry at log time</i> (not a global multiplier) so it composes — a comeback entry inside a lightning window scores ×1.2 ×3. The bot standings mark eligible players with ⚡ so the group can see it coming.</p>
-      <p>Mechanically this enforces the design promise: <i>everyone has a genuine shot until the last set</i>.</p>
-      <div class="where"><b>engine:</b> packages/game-core/src/comeback.ts · engine.js <code>COMEBACK_THRESHOLD=0.3 / comebackEligible / applyComeback</code><br><b>proven by:</b> comeback tests in core.test.ts + gfamily.test.ts · fired live in the bot transcript</div>
+      <ul>
+        <li><b>Banked day</b> — reached your target after the winner: streak +1, participation credit, history dot ✓.</li>
+        <li><b>Failed day</b> — under target at the close: streak → 0, ✗ in the history, comeback framing never shame (founder directive).</li>
+        <li><b>Rest day</b> — no battle scheduled today: the home screen says the streak is safe and names the next battle day (SOT #29/#101).</li>
+        <li><b>Shield save</b> — an armed Group Shield converts every failure at that day's close into <span class="mono">streakPreserved</span>, then the shield is consumed.</li>
+      </ul>
+      <p>Streak truth lives in the engine's season record (<span class="mono">recordBattleDay → battleStandings</span>) — the live UI's optimistic counts reconcile there at every close, so a mid-day crash can't corrupt a streak.</p>
+      <div class="where"><b>engine:</b> apps/sot-engine.js <code>closeDay outcomes / recordBattleDay / battleStandings</code><br><b>proven by:</b> v4 e2e — Priya banks day 2 (streak 2), Jack/Marco fail day 1 (streak 0), shield-save unit tests in game-core</div>
     </div>
   </div>
 </section>
 
-<!-- ══════════════ CLOSURE BONUS ══════════════ -->
+<!-- ══════════════ SEASONS + STAKES ══════════════ -->
 <section class="feat">
-  <div class="feat__head"><h3>Closure bonus +15</h3><span class="badge badge--live">live</span></div>
-  <p class="feat__what">The player whose raw total hits the target first gets +15 adjusted points — urgency for the closer, but never enough to beat real effort.</p>
+  <div class="feat__head"><h3>Weekly seasons · 1:1 points · stakes at season level</h3><span class="badge badge--live">live (v4)</span></div>
+  <p class="feat__what">Seasons default to <b>weekly</b> (one pass of the group's battle days; monthly optional, Major seasons future). <b>1 Daily Win = 1 season point.</b> Nothing financial or material settles on an individual day — the season ends, then the agreed stake resolves.</p>
   <div class="feat__grid">
-    <figure class="shot shot--phone"><img src="shots/app-result.png" alt="Final result screen with medals"><figcaption>app-result.png · final standings, medals, closer highlighted</figcaption></figure>
+    <div class="shots">
+      <figure class="shot shot--phone"><img src="shots/v4-season-hub.png" alt="Season hub with weekly standings and calendar"><figcaption>v4-season-hub.png · Season Hub — standings, calendar, stake</figcaption></figure>
+      <figure class="shot shot--phone"><img src="shots/v4-stake-donated.png" alt="Charity donation confirmed with receipt"><figcaption>v4-stake-donated.png · charity resolved — receipt + disclosed fee</figcaption></figure>
+    </div>
     <div class="feat__body">
-      <p><b>How it works.</b> The first log that takes a player's raw total to <span class="mono">≥ targetReps</span> flips the match to <span class="mono">complete</span>, stamps <span class="mono">closedBy</span>, and logging stops. Final standings = live standings + 15 to the closer, re-ranked. Winner and closer can be different players — the app and bot cards both show who closed.</p>
-      <div class="where"><b>engine:</b> engine.js <code>CLOSURE_BONUS=15 / finalStandings / winner</code> · game-core match.ts<br><b>proven by:</b> engine.test.js closure cases · e2e.mjs asserts the bonus lands</div>
+      <div class="tblwrap"><table class="tbl">
+        <tr><th>Stake</th><th>Resolves as</th><th>In the build</th></tr>
+        <tr><td>🍽 <b>Dinner</b></td><td>Loser buys the agreed meal (spend cap)</td><td>agreement-gated at join, obligation + mark-fulfilled at season end</td></tr>
+        <tr><td>😈 <b>Dare</b></td><td>Forfeit locked <i>before</i> the season</td><td>declaration frozen at creation — can't be edited mid-season</td></tr>
+        <tr><td>🧹 <b>Deliverable</b></td><td>Practical favour owed by the loser</td><td>same obligation lifecycle</td></tr>
+        <tr><td>❤️ <b>Charity pot</b></td><td>Everyone contributes; winner <i>directs</i> the pot; disclosed platform fee</td><td>full lifecycle: contribute → pot maths → winner chooses charity → donation + receipt</td></tr>
+      </table></div>
+      <p><b>Charity mechanics exactly:</b> each player's contribution agrees up-front (points are the trial currency — the demo displays 1 point as $1); at season end the pot totals, the platform fee (5% default, always disclosed) is deducted on screen, the winner picks from the eligible list, and the donation lands with a receipt code. The winner never receives cash — stakes without gambling. Cash wagering is explicitly deferred by the SOT (licensing/KYC/geo — not V1).</p>
+      <div class="where"><b>engine:</b> apps/sot-engine.js <code>createBattleSeason / recordBattleDay / endBattleSeason / proposeStake / agreeToStake / contributeToCharityStake / resolveSeasonStake / designateCharity / processCharityDonation</code><br><b>proven by:</b> season + stake suites in game-core · the v4 e2e walks a full 2-battle week to charity resolution ($38.00 of $40.00 after the $2.00 fee)</div>
     </div>
   </div>
 </section>
 
 <!-- ══════════════ POWER-UPS ══════════════ -->
 <section class="feat">
-  <div class="feat__head"><h3>Power-ups</h3><span class="badge badge--live">live (app)</span></div>
-  <p class="feat__what">Four cards — Lightning, Rep Steal, Shield, Time Freeze. Drop odds by rarity: common 50 / rare 30 / epic 15 / legendary 5 (rarity is cosmetic in v1; it sets chip colour and drop odds only).</p>
+  <div class="feat__head"><h3>Power-ups — the SOT canon (corrected steal &amp; shield)</h3><span class="badge badge--live">live (v4)</span></div>
+  <p class="feat__what">Four launch cards per the SOT — Lightning, Rep Steal, Group Shield, Time Freeze — plus the post-launch set. Two semantics were <b>corrected</b> from our earlier build: Rep Steal is a <b>pure gain</b> (the target keeps every rep), and Group Shield protects <b>streaks</b> (it does not block steals).</p>
   <div class="feat__grid">
-    <figure class="shot shot--phone"><img src="shots/app-pwr-lightning-live.png" alt="Lightning round active on battle screen"><figcaption>app-pwr-lightning-live.png · a live lightning window counting down on the battle screen</figcaption></figure>
+    <figure class="shot shot--phone"><img src="shots/v4-powerups.png" alt="Power-up stack as hidden loot cards"><figcaption>v4-powerups.png · the stack — hidden loot cards, tap to flip</figcaption></figure>
     <div class="feat__body">
       <div class="tblwrap"><table class="tbl">
-        <tr><th>Card</th><th>Rarity</th><th>Effect (exact)</th></tr>
-        <tr><td>⚡ <b>Lightning Round</b></td><td>legendary · 5%</td><td>Reps count <b>×3 for 10 minutes</b>. One activation per player per match — the window can expire, the once-per-match flag never resets.</td></tr>
-        <tr><td>🗡 <b>Rep Steal</b></td><td>epic · 15%</td><td>Take <b>10% of the leading rival's raw reps</b> (floor, min 1 while they're above zero) — instantly, both ledgers move. The stolen reps are logged as an entry, so your tier multiplier applies to them too.</td></tr>
-        <tr><td>🛡 <b>Shield</b></td><td>common · 50%</td><td><b>Blocks one rep steal</b> against you, then breaks. A blocked steal never fires: the shield is consumed, the thief keeps their card.</td></tr>
-        <tr><td>⏱ <b>Time Freeze</b></td><td>rare · 30%</td><td><b>+30 minutes</b> on the play-day deadline.</td></tr>
+        <tr><th>Card</th><th>Effect (exact, from the engine)</th><th>Guard rails</th></tr>
+        <tr><td>⚡ <b>Lightning Round</b></td><td>Your reps count <b>×3 for 10 minutes</b></td><td>once per player per day; window expires, the once-flag never resets</td></tr>
+        <tr><td>🥷 <b>Rep Steal</b></td><td>You <b>gain 10%</b> of a rival's completed score — <b>they keep every rep</b></td><td>once per day; counts toward your target only under the day's <span class="mono">stealCanTriggerWin</span> flag (our answer to SOT Q237 — the demo sets it)</td></tr>
+        <tr><td>🛡 <b>Group Shield</b></td><td>Protects the group's <b>streaks</b> from one day's failures</td><td>armed any time, consumed at the close it saves; Shield Bash (competitive mode) shatters it</td></tr>
+        <tr><td>❄️ <b>Time Freeze</b></td><td>Battle clock +<b>30 minutes</b>, whole group</td><td>stack limit 1 per day</td></tr>
+        <tr><td>💣 <b>Surprise Bomb</b> <span class="badge badge--demo">post-launch</span></td><td>+20 reps lands on a rival — deliver inside <b>10 minutes</b> or it fizzles</td><td>a HIT banks the victim a +20 defusal bonus; a MISS sticks nothing (target never grows)</td></tr>
+        <tr><td>🪢 <b>Rescue Rope</b> <span class="badge badge--demo">post-launch</span></td><td><b>50-rep credit</b> to a mate with zero reps today</td><td>once per day, inactive players only, counts toward target</td></tr>
+        <tr><td>🔥 <b>Combo Boost</b> · 🎲 <b>Double Down</b> · 🤝 <b>Assist Boost</b> · 🔨 <b>Shield Bash</b></td><td>prescribed-sequence bonus · personal 2× target quest · +25 both-ways on a teammate's finish · shatter an armed shield</td><td>in the engine, off in the default group config</td></tr>
       </table></div>
-      <p><b>House rules (enforced in code):</b> activating spends the card, except a blocked steal; lightning stacks with a comeback entry (×1.2 ×3 = ×3.6); steal amount is previewed against the <i>current</i> leading rival before you commit. All power-up functions are pure — they return a new match state + a result card, never mutate.</p>
-      <p>Screens of every power-up surface (arsenal sheet, detail, steal toast, blocked toast, lightning toast) are in <a href="app.html#powerups">App Screens → power-ups</a>.</p>
-      <div class="where"><b>engine:</b> engine.js <code>POWER_UPS / DROP_ODDS / activatePowerUp / stealPreview / lightningActive</code> (figma-app only — deliberately not in game-core yet)<br><b>proven by:</b> engine.test.js power-up suite · e2e.mjs steal-blocked + lightning walk</div>
+      <p><b>The economy question, answered in code:</b> SOT Q240–242 are open — how are cards acquired, how is power kept fair, do they expire? Our live answer: a season-1 founder pack, then a <b>daily drop</b> each battle day, a hold cap of 4 with leftovers carrying across battles (no expiry — cards are kept, not burned by time), and the draft-from-3 + catch-up curve from the v2 engine remains the proposal for competitive fairness. The v4 app plays all of it; this wiki keeps the receipts.</p>
+      <div class="where"><b>engine:</b> apps/sot-engine.js <code>activatePowerUp / grantPowerUp / inventoryOf / resolveExpiredBombs</code> + constants <code>LIGHTNING_MS · STEAL_SHARE=0.1 · FREEZE_MS · SURPRISE_BOMB_RUF/BONUS/WINDOW · RESCUE_ROPE_RUF=50 · ASSIST_BONUS_RUF=25</code><br><b>proven by:</b> power-up suite in game-core · v4 e2e asserts steal pure-gain in state (gain 10, target kept 100), bomb HIT + MISS, lightning ×3 on a real log</div>
     </div>
   </div>
 </section>
 
-<!-- ══════════════ DANGER ZONE ══════════════ -->
+<!-- ══════════════ CLOCK + DZ ══════════════ -->
 <section class="feat">
-  <div class="feat__head"><h3>Danger zone + the daily close</h3><span class="badge badge--live">live</span></div>
-  <p class="feat__what">Matches run on <b>play days</b> with a nightly deadline. The final 3 hours escalate through three danger levels; at the deadline the day closes itself and a daily winner is crowned.</p>
+  <div class="feat__head"><h3>The battle clock &amp; the danger-zone ramp</h3><span class="badge badge--live">live (v4)</span></div>
+  <p class="feat__what">Two clock modes: a <b>window</b> (battle opens at 06:00, closes 22:00, group timezone) or a <b>sprint</b> (N minutes from open — demo compression). The final stretch escalates: final 3 hours warn, the final hour banners, the final 30 → 10 minutes are the Danger Zone.</p>
   <div class="feat__grid">
     <div class="shots">
-      <figure class="shot shot--phone"><img src="shots/game-d13-calm.png" alt="Day one calm state"><figcaption>game-d13-calm.png · day 1 — calm, no chrome</figcaption></figure>
-      <figure class="shot shot--phone"><img src="shots/game-dz1.png" alt="Danger zone level 1 chip"><figcaption>game-dz1.png · DZ1 — gold chip, ≤3h</figcaption></figure>
-      <figure class="shot shot--phone"><img src="shots/game-dz2.png" alt="Danger zone level 2 banner"><figcaption>game-dz2.png · DZ2 — orange banner, ≤1h</figcaption></figure>
-      <figure class="shot shot--phone"><img src="shots/game-dz3.png" alt="Danger zone level 3 red banner and screen wash"><figcaption>game-dz3.png · DZ3 — red banner + screen wash, ≤30min</figcaption></figure>
+      <figure class="shot shot--phone"><img src="shots/game-dz1.png" alt="Danger zone level 1 chip"><figcaption>game-dz1.png · final 3h — urgency label</figcaption></figure>
+      <figure class="shot shot--phone"><img src="shots/game-dz2.png" alt="Danger zone level 2 banner"><figcaption>game-dz2.png · final hour banner</figcaption></figure>
+      <figure class="shot shot--phone"><img src="shots/game-dz3.png" alt="Danger zone level 3 red wash"><figcaption>game-dz3.png · DZ — red wash, DO OR DIE</figcaption></figure>
     </div>
     <div class="feat__body">
-      <div class="tblwrap"><table class="tbl">
-        <tr><th>Level</th><th>Trigger</th><th>UI escalation</th></tr>
-        <tr><td><b>DZ1</b></td><td class="num">≤ 3h left</td><td>Gold countdown chip switches to urgency colour</td></tr>
-        <tr><td><b>DZ2</b></td><td class="num">≤ 1h left</td><td>Orange banner pulses: "DANGER ZONE — UNDER AN HOUR LEFT"</td></tr>
-        <tr><td><b>DZ3</b></td><td class="num">≤ 30min left</td><td>Red banner with live minute count ("…24 MINUTES LEFT"), heartbeat pulse on the timer, full screen wash — "LOG NOW"</td></tr>
-      </table></div>
-      <p><b>How it works.</b> The deadline is the next 21:00 <span class="mono">Australia/Sydney</span> by default (Time Freeze extends it). A 1s app ticker recomputes the remaining time, the level, and the <b>dual clock</b> — group timezone (AEST) + your local — every second. At the deadline the day auto-closes exactly once: logging locks, the day's winner (highest adjusted among that day's entries only) is recorded to <span class="mono">dailyHistory</span>, a recap renders, and the next play day begins. Multi-day matches accumulate one winner per day.</p>
-      <div class="where"><b>engine:</b> apps/figma-app/daily.js <code>dangerLevel / dzCopy / deadlineClock / closeDay / dailyStandings</code><br><b>proven by:</b> e2e-daily.mjs — the whole ramp exercised with injected time (time travel) in seconds, zero console errors</div>
+      <p><b>How it works.</b> A 1-second ticker recomputes the remaining time and the urgency level (<span class="mono">Battle live → Final 3 hours → Final hour → Final 30 → DO OR DIE</span>); at the level-3 threshold the whole screen washes red and the copy pushes the log. A Time Freeze overlays everything with ice while it runs. At the deadline the day auto-closes exactly once: logging locks, completions/failures/shield-saves are stamped, the day folds into the season record, and the next scheduled battle opens.</p>
+      <p>Close-call detection (SOT #98) fires when the lead gap is under 5% of target with the leader past 70% — the "anything can happen" banner.</p>
+      <div class="where"><b>engine:</b> apps/sot/engine.js <code>urgency() / snapshot() clock · tick()</code> · deadline authority in sot-engine.js <code>effectiveDeadline</code><br><b>proven by:</b> v4 e2e asserts the DZ state and the deadline auto-close</div>
     </div>
   </div>
 </section>
 
-<!-- ══════════════ RECAP ══════════════ -->
+<!-- ══════════════ WINNERS FAMILY ══════════════ -->
 <section class="feat">
-  <div class="feat__head"><h3>Daily recap</h3><span class="badge badge--live">live</span></div>
-  <p class="feat__what">The morning-after card: who won the day, by how much, whether you held the lead, and when the next day opens.</p>
+  <div class="feat__head"><h3>The winners family &amp; what the day says</h3><span class="badge badge--live">live (v4)</span></div>
+  <p class="feat__what">Every way a day can land has its own moment: <b>You Won The Day</b> (first to target — the dopamine hit, confetti, canvas share card), <b>Other Player Won</b> (bank-your-day push), <b>Target Completed / Day Banked</b> (streak intact), <b>Failed Day</b> (comeback framing, shield note if saved), and the <b>Battle recap</b> (order of finish, key moments).</p>
   <div class="feat__grid">
     <div class="shots">
-      <figure class="shot shot--phone"><img src="shots/game-recap-won.png" alt="Recap screen - you won the day"><figcaption>game-recap-won.png · you took the day</figcaption></figure>
-      <figure class="shot shot--phone"><img src="shots/game-recap-sam.png" alt="Recap screen - Sam took the day"><figcaption>game-recap-sam.png · Sam took it — rivalry framing</figcaption></figure>
-      <figure class="shot shot--phone"><img src="shots/game-day-close.png" alt="Day close toast and day 2 begins"><figcaption>game-day-close.png · day closes → DAY 2 starts</figcaption></figure>
+      <figure class="shot shot--phone"><img src="shots/v4-you-won.png" alt="You won the day celebration in v4"><figcaption>v4-you-won.png · YOU WON THE DAY — confetti + share card</figcaption></figure>
+      <figure class="shot shot--phone"><img src="shots/v4-states-win-known.png" alt="Winner-known transition card with tomorrow framing"><figcaption>v4-states-win-known.png · winner known, battle rolls on, tomorrow framed</figcaption></figure>
+      <figure class="shot shot--phone"><img src="shots/v4-states-battle-complete.png" alt="Battle complete but season live card"><figcaption>v4-states-battle-complete.png · battle complete — season live</figcaption></figure>
     </div>
     <div class="feat__body">
-      <p><b>How it works.</b> <span class="mono">recapFor(match, dayKey)</span> builds the summary from that day's entry slice: winner + margin, "you led until…" tracking (if you led at any point and lost, the recap says so — the sting is the hook), pot growth since the previous close, and the next play day's opening time in your local timezone. The home screen shows a temporal state chip (day in progress / next day opens at…) via the same machinery.</p>
-      <div class="where"><b>engine:</b> daily.js <code>recapFor / ledUntil / dueDays</code> · rendered by app.js recap screen<br><b>proven by:</b> e2e-daily.mjs day-1 and day-2 closes assert both recap variants</div>
+      <p><b>How it works.</b> Win detection happens inside <span class="mono">logSet</span> — the engine decides, the app renders. The win moment generates a 780×936 canvas share card (PNG download / clipboard copy). Tone awareness (cheeky / neutral / corporate-safe) swaps every line of winner and failure copy — the same state speaks three dialects. See <a href="app.html#v4">App Screens → v4</a> for the full screen-by-screen walk including the critical states (offline, sync conflict, rest day).</p>
+      <div class="where"><b>engine:</b> apps/sot/engine.js <code>recordCompletion</code> + app.js overlay family (#171–183)<br><b>proven by:</b> v4 e2e — both Daily Wins, the bank, the fail, the recap, zero console errors</div>
     </div>
   </div>
 </section>
 
-<!-- ══════════════ SEASONS ══════════════ -->
+<!-- ══════════════ LANGUAGE RULING ══════════════ -->
 <section class="feat">
-  <div class="feat__head"><h3>Seasons</h3><span class="badge badge--live">live</span></div>
-  <p class="feat__what">4-week series: 3/2/1 points per match + MVP bonus, champion crowning, A/B division relegation-promotion, streaks with charity forgiveness.</p>
-  <div class="feat__grid">
-    <figure class="shot shot--phone"><img src="shots/app-season-ladder.png" alt="Season ladder screen with points table"><figcaption>app-season-ladder.png · the season ladder — points, played, MVPs</figcaption></figure>
-    <div class="feat__body">
-      <p><b>How it works.</b> Each finished match feeds <span class="mono">recordMatch</span>: 1st place +3, 2nd +2, 3rd +1, MVP vote +1 (a second podium so effort gets recognised even without a win). Ladder sorts by points → wins → MVPs. At season end the top points total is crowned champion and divisions swap: bottom of A ↔ top of B.</p>
-      <p><b>Streak forgiveness:</b> a streak about to break can be saved once per season by topping the charity pot up by ≥ $2 — preserved, not extended. No free rides, money never goes to a player.</p>
-      <div class="where"><b>engine:</b> packages/game-core/src/season.ts <code>createSeason / recordMatch / seasonLadder / forgiveStreak / endSeason</code><br><b>proven by:</b> packages/game-core/test/season.test.ts (15)</div>
-    </div>
+  <div class="feat__head"><h3>The "reps" ruling (RUF internal)</h3><span class="badge badge--live">live</span></div>
+  <p class="feat__what">SOT Q216: the internal unit is <b>RUF</b>; the UI says <b>reps</b>, always. Handicap math happens under the hood; the player only ever sees "reps".</p>
+  <div class="feat__body">
+    <p><b>How it's enforced.</b> The v4 e2e carries two gates: a page-text regex and a source-string scan that fail the run on banned vocabulary (<span class="mono">match / kitty / poker / RUF / 300</span> in UI copy) and require <span class="mono">Daily Win / banked / reps</span> to be present. Engine identifiers (the <span class="mono">ruf</span> fields) are code, not copy — they never render.</p>
+    <div class="where"><b>lives:</b> apps/sot/e2e.mjs language gates · the founder's standing directive (reps language, never poker)<br><b>proven by:</b> every e2e run since the v2 wave</div>
   </div>
 </section>
 
-<!-- ══════════════ CHARITY POT ══════════════ -->
+<!-- ══════════════ LEGACY: 300 ══════════════ -->
 <section class="feat">
-  <div class="feat__head"><h3>Charity pot</h3><span class="badge badge--live">live (pledge ledger)</span></div>
-  <p class="feat__what">Players chip in; the winner <i>directs</i> the pot to a charity — never receives it. Stakes without gambling.</p>
-  <div class="feat__grid">
-    <div class="shots">
-      <figure class="shot shot--phone"><img src="shots/app-pot.png" alt="Charity pot on the result screen"><figcaption>app-pot.png · pot total on the result screen</figcaption></figure>
-      <figure class="shot shot--phone"><img src="shots/app-pot-designated.png" alt="Winner designates a charity"><figcaption>app-pot-designated.png · winner designates where it goes</figcaption></figure>
-    </div>
-    <div class="feat__body">
-      <p><b>How it works.</b> The pot is a pure ledger per match: <span class="mono">contribute(pot, playerId, cents)</span> appends, <span class="mono">potTotalCents</span> sums, <span class="mono">designate(pot, charity)</span> records the winner's choice at result time. In the bots, <span class="mono">pot 500</span> chucks $5.00 in and the card reads "Winner picks where it goes". The money story stays a pledge ledger until the legal opinion lands (see <a href="status.html">Status</a> — L1); employer-funded pots are the clean interim.</p>
-      <div class="where"><b>engine:</b> game-core/src/pot.ts · engine.js <code>createPot / contribute / designate</code><br><b>proven by:</b> pot cases in core.test.ts · live in the bot transcript ($10.00 banked)</div>
-    </div>
-  </div>
-</section>
-
-<!-- ══════════════ VERIFIED ══════════════ -->
-<section class="feat">
-  <div class="feat__head"><h3>Verified reps</h3><span class="badge badge--live">live</span></div>
-  <p class="feat__what">Entries can be machine-verified: camera-counted reps or heart-rate-strap effort. Standings show each player's verified %.</p>
-  <div class="feat__grid">
-    <figure class="shot shot--phone"><img src="shots/app-camera-note.png" alt="Camera verification note on the log sheet"><figcaption>app-camera-note.png · the camera-verify affordance on logging</figcaption></figure>
-    <div class="feat__body">
-      <p><b>How it works.</b> An entry logged through the camera verifier carries <span class="mono">verified:true</span>; a strap session attaches <span class="mono">avgHrrPct</span>, which the v2 handicap blend consumes. Standings compute <span class="mono">verifiedPct</span> = verified raw / total raw per player, surfaced on every leaderboard (app + bots). In the bot grammar, <span class="mono">log pushups 25!</span> marks the entry verified.</p>
-      <p>Full mechanics in <a href="verification.html">Verification</a>.</p>
-      <div class="where"><b>engine:</b> engine.js <code>standings</code> verifiedPct · apps/web/src/verify/<br><b>proven by:</b> verified-entry tests + the <code>!</code> grammar in bus.test.ts</div>
-    </div>
+  <div class="feat__head"><h3>Legacy — the 300 format (superseded 2 Sep 2026)</h3><span class="badge badge--parked">preserved</span></div>
+  <p class="feat__what">The model that built v1–v3: any reps, any order, any mix; first to the <b>raw</b> target closed the match; winner = highest <b>effort-adjusted</b> score at closure (+15 closure bonus); 4-week seasons with 3/2/1+MVP points; comeback ×1.2 for players &gt;30% behind; Shield blocked steals; steal transferred reps away.</p>
+  <div class="feat__body">
+    <p><b>What the SOT kept:</b> effort-adjusted scoring, tier multipliers (unchanged numbers), power-up cards, the charity pot, catch-up as a design principle. <b>What it replaced:</b> first-to-close-ends-match → first-to-target Daily Win with bank-day continuation; 300 → 200 adjusted; 4-week/3-2-1 seasons → weekly 1:1; stakes per match → stakes per season; steal/shield semantics corrected. The old rules still run the preserved v1 app (<span class="mono">/figma-app</span>) and the 300-era bots — the living history is on <a href="versions.html">The four versions</a>. The full legacy page is archived at <span class="mono">apps/wiki/archive/game_300era_20260904.html</span>.</p>
+    <div class="where"><b>engine (frozen):</b> apps/figma-app/engine.js · packages/game-core v3-era suites<br><b>why kept:</b> design progression is a deliverable — old versions stay runnable, forever</div>
   </div>
 </section>
 
@@ -204,7 +193,7 @@
   <a class="next" href="app.html"><span class="dir">next →</span>App Screens</a>
 </div>
 <footer class="wfoot">
-  <span>RWF wiki · game rules · constants read from engine.js / game-core</span>
+  <span>RWF wiki · game rules · constants read from apps/sot-engine.js (Engine V4)</span>
   <span>any change to a multiplier should update this page</span>
 </footer>
 </div>

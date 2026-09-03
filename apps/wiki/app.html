@@ -13,6 +13,7 @@
   <a class="wnav__brand" href="index.html"><b>RWF&nbsp;WIKI</b><span>internal docs</span></a>
   <a class="wnav__link" href="game.html">Game Rules</a>
   <a class="wnav__link" href="app.html">App Screens</a>
+  <a class="wnav__link" href="versions.html">Versions</a>
   <a class="wnav__link" href="bots.html">Bots</a>
   <a class="wnav__link" href="verification.html">Verification</a>
   <a class="wnav__link" href="avatars.html">Avatars</a>
@@ -23,11 +24,59 @@
 <div class="wrap">
 
 <header class="hero">
-  <p class="eyebrow">Chapter 2 · the app</p>
-  <h1>App Screens — Ben's design, working</h1>
-  <p class="lede">The app at <span class="mono">/figma-app</span> is the founder's Figma file rebuilt as a navigable offline PWA — every screen from his design exists as a real page, and the battle screens run the <i>real</i> engine (state in <span class="mono">localStorage["rwf.figma.v1"]</span>). Gold theme by default, lime toggle in the status bar, hash router, installable, fully offline via service worker.</p>
-  <p class="lede">The screenshots below come from the two headless E2E walks that play the entire product (<span class="mono">e2e.mjs</span>: onboard → create → battle → power-ups → result → rematch → seasons → profile; <span class="mono">e2e-daily.mjs</span>: the multi-day danger-zone arc with time travel). If a screen below exists, a test walked through it.</p>
+  <p class="eyebrow">Chapter 2 · the apps</p>
+  <h1>App Screens — from Ben's design to the SOT app</h1>
+  <p class="lede"><b>The current app is v4</b> (<span class="mono">/v4</span>, apps/sot/) — the Source-of-Truth app on Engine V4, documented first below with its critical states. Beneath it, the preserved <b>v1 reference build</b> at <span class="mono">/figma-app</span>: the founder's Figma file rebuilt as a navigable offline PWA, battle screens running the real 300-era engine (state in <span class="mono">localStorage["rwf.figma.v1"]</span>), gold theme, hash router, installable, fully offline via service worker. v2 (board) and v3 (3D course) have their own chapter on <a href="versions.html">The four versions</a>.</p>
+  <p class="lede">Every screenshot below comes from a headless E2E walk that plays the real product (v4: <span class="mono">e2e.mjs</span> 120 checks + <span class="mono">e2e-states.mjs</span> 59 checks; v1: <span class="mono">e2e.mjs</span> + <span class="mono">e2e-daily.mjs</span>). If a screen below exists, a test walked through it.</p>
 </header>
+
+<!-- ══════════════ V4 · THE SOT APP ══════════════ -->
+<section class="feat" id="v4">
+  <div class="feat__head"><h3>v4 — the Source-of-Truth app</h3><span class="badge badge--live">live · current</span></div>
+  <p class="feat__what">Ben's master spec as a working product: 5-tab nav per the SOT (Battle / Feed / central <b>LOG</b> / Power-Ups / Profile), near-black + gold loot presentation, hero numerals, and the full daily-battle → season → stake loop on the shared Engine V4. Onboarding through create-wizard (11 condensed steps), join-by-code with stake agreement, and the demo jump that seeds a live crew in one tap.</p>
+  <div class="feat__grid">
+    <div class="shots">
+      <figure class="shot shot--phone"><img src="shots/v4-battle-home.png" alt="v4 battle home with hero numeral and leaderboard"><figcaption>v4-battle-home.png · Battle Home — target hero, ring, live board</figcaption></figure>
+      <figure class="shot shot--phone"><img src="shots/v4-quick-log.png" alt="v4 quick log sheet"><figcaption>v4-quick-log.png · Quick Log — recents, presets, keypad, timed holds</figcaption></figure>
+      <figure class="shot shot--phone"><img src="shots/v4-powerups.png" alt="v4 power-up stack"><figcaption>v4-powerups.png · the stack — hidden loot cards</figcaption></figure>
+      <figure class="shot shot--phone"><img src="shots/v4-season-hub.png" alt="v4 season hub"><figcaption>v4-season-hub.png · Season Hub — standings, calendar, stake</figcaption></figure>
+      <figure class="shot shot--phone"><img src="shots/v4-you-won.png" alt="v4 you won the day"><figcaption>v4-you-won.png · YOU WON THE DAY + canvas share card</figcaption></figure>
+      <figure class="shot shot--phone"><img src="shots/v4-stake-donated.png" alt="v4 charity donation receipt"><figcaption>v4-stake-donated.png · charity resolved — receipt + fee</figcaption></figure>
+    </div>
+    <div class="feat__body">
+      <p><b>The journey a test walks:</b> welcome + 3 explainers → profile (name / badge / tone) → create wizard (mode, identity, invite, battle days, 200 target, handicap review, exercises, season length, stake, power-up toggles, review) → group created with invite code + QR-style share → season live → Battle Home (adjusted hero, DZ ramp, close-call, live bombs) → Rep Steal (pure gain, asserted in state) → quick log with undo → keypad to 200 → <b>first Daily Win</b> (confetti, canvas PNG share card) → rival banks the day (streak) → deadline → failed days recorded → recap → season hub (1:1 standings, pot maths) → Surprise Bomb HIT and MISS → Lightning ×3 on a real log → second Daily Win → season ends → charity chooser ($38.00 after the disclosed $2.00 fee) → receipt → join flow as a second player → language + console gates.</p>
+      <p><b>Where the copy rules live:</b> tone-aware lines (cheeky / neutral / corporate-safe) on every winner and failure moment; "reps" always, RUF never (enforced by the e2e's language gate).</p>
+      <div class="where"><b>lives:</b> apps/sot/ (app.js · engine.js bridge · sot.css) + the shared rules engine apps/sot-engine.js · <span class="mono">rwf.qalarc.com/v4</span><br><b>proven by:</b> apps/sot/e2e.mjs — 120/120, zero console errors, 27+ shots per run</div>
+    </div>
+  </div>
+</section>
+
+<!-- V4 CRITICAL STATES -->
+<section class="feat" id="v4-states">
+  <div class="feat__head"><h3>v4 critical states — offline · sync · rest · winner-known</h3><span class="badge badge--live">live</span></div>
+  <p class="feat__what">The SOT's screen inventory flags the states a product needs when things aren't sunny: the realtime link drops (#103), logs race each other (#105, #119), today isn't a battle day (#29, #101), and the day's winner is known while the season runs on (#102). All four exist in v4 as real states with their own e2e walk (<span class="mono">e2e-states.mjs</span>, 59 checks).</p>
+  <div class="feat__grid">
+    <div class="shots">
+      <figure class="shot shot--phone"><img src="shots/v4-states-offline-banner.png" alt="Offline banner on the v4 app"><figcaption>v4-states-offline-banner.png · #104 offline — keep logging, queue locally</figcaption></figure>
+      <figure class="shot shot--phone"><img src="shots/v4-states-offline-queued.png" alt="Queued offline log screen"><figcaption>v4-states-offline-queued.png · #120 queued — saved on-device, badge on LOG</figcaption></figure>
+      <figure class="shot shot--phone"><img src="shots/v4-states-reconnecting.png" alt="Reconnecting banner"><figcaption>v4-states-reconnecting.png · #103 reconnecting — the retry beat</figcaption></figure>
+      <figure class="shot shot--phone"><img src="shots/v4-states-sync-conflict.png" alt="Sync conflict sheet with keep or drop"><figcaption>v4-states-sync-conflict.png · #105 sync conflict — keep both or drop mine</figcaption></figure>
+      <figure class="shot shot--phone"><img src="shots/v4-states-dup-warn.png" alt="Duplicate log warning sheet"><figcaption>v4-states-dup-warn.png · #119 duplicate warning — confirm or undo</figcaption></figure>
+      <figure class="shot shot--phone"><img src="shots/v4-states-rest-day.png" alt="Rest day home state"><figcaption>v4-states-rest-day.png · #29 rest-day home — streak safe, next battle</figcaption></figure>
+      <figure class="shot shot--phone"><img src="shots/v4-states-win-known.png" alt="Winner known transition card"><figcaption>v4-states-win-known.png · #102 live half — bank your day, tomorrow framed</figcaption></figure>
+      <figure class="shot shot--phone"><img src="shots/v4-states-battle-complete.png" alt="Battle complete season live card"><figcaption>v4-states-battle-complete.png · #102 ended half — season live, recap one tap</figcaption></figure>
+    </div>
+    <div class="feat__body">
+      <p><b>Offline / reconnecting (#103 + #104 + #120).</b> The app is local-first, so the realtime link is a <i>simulated</i> connection shim — demo-toggleable from Settings ("Simulate offline"), which makes the whole surface testable. Offline: an amber banner leads every screen ("you can keep logging"), submitted sets land in a queue (a badge counts them on the central LOG button), and the queue survives reloads. Back online: a visible reconnecting beat, then the queue replays through the real engine and a toast reports the outcome.</p>
+      <p><b>Sync conflict (#105) + duplicate warning (#119).</b> Duplicate detection runs on every submit — same exercise + same reps (post-conversion) inside 60 seconds by the same player. Live, that's the "did that set count?" sheet: log it anyway (confirm) or undo back to the confirm step. On replay, a queued set that raced an already-landed log becomes a sync conflict: keep both sets or drop mine — resolved one by one, with the outcome toast tallying kept vs dropped.</p>
+      <p><b>Rest-day home (#29 + #101).</b> When the next battle is more than three hours out, Battle Home becomes the rest-day state: "REST DAY", streak-safe messaging (the returning player's 🔥 streak named and kept safe), the next battle day + live countdown, the season's progress, and a season-hub jump. Rest days never touch streaks — stated, and true in the engine.</p>
+      <p><b>Battle complete but season live (#102).</b> Two halves of one transition. Winner-known while the battle rolls on: a purple card names the Daily Win taker, pushes bank-your-own-day, and frames tomorrow (next battle, season points on the line). Battle ended while the season runs: the completed battle stays framed on the next battle's home — winner, banked/missed counts, tomorrow's angle, and the recap one tap away.</p>
+      <div class="where"><b>lives:</b> apps/sot/app.js (Conn shim · rest-day home · #102 cards · dupWarn/syncConflict overlays) · sot.css<br><b>proven by:</b> apps/sot/e2e-states.mjs — 59/59, zero console errors; the main 120-check walk stays green alongside it</div>
+    </div>
+  </div>
+</section>
+
+<!-- ══════════════ V1 REFERENCE BUILD ══════════════ -->
 
 <!-- INDEX -->
 <section class="feat">

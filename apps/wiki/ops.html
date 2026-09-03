@@ -13,6 +13,7 @@
   <a class="wnav__brand" href="index.html"><b>RWF&nbsp;WIKI</b><span>internal docs</span></a>
   <a class="wnav__link" href="game.html">Game Rules</a>
   <a class="wnav__link" href="app.html">App Screens</a>
+  <a class="wnav__link" href="versions.html">Versions</a>
   <a class="wnav__link" href="bots.html">Bots</a>
   <a class="wnav__link" href="verification.html">Verification</a>
   <a class="wnav__link" href="avatars.html">Avatars</a>
@@ -98,24 +99,24 @@ git push (main)
 
 <!-- TESTS -->
 <section class="feat">
-  <div class="feat__head"><h3>The test suites</h3><span class="badge badge--live">122 green</span></div>
-  <p class="feat__what">Unit → integration → headless-browser. Every push runs the suites; the E2E walks run on demand and produce the screenshots this wiki is built from.</p>
+  <div class="feat__head"><h3>The test suites</h3><span class="badge badge--live">~700 checks green</span></div>
+  <p class="feat__what">Unit → integration → headless-browser. Every push runs the packaged suites; the E2E walks run on demand and produce the screenshots this wiki is built from.</p>
   <div class="tblwrap"><table class="tbl">
     <tr><th>Suite</th><th class="num">Tests</th><th>What it proves</th><th>Run</th></tr>
-    <tr><td><b>game-core</b> — core.test.ts</td><td class="num">29</td><td>300-format math: scoring, handicaps, closure, comeback, pot, standings</td><td class="mono" rowspan="3">bun test packages/game-core</td></tr>
-    <tr><td><b>game-core</b> — season.test.ts</td><td class="num">15</td><td>3/2/1 + MVP, ladder ordering, forgiveness, relegation</td></tr>
-    <tr><td><b>game-core</b> — gfamily.test.ts</td><td class="num">15</td><td>second wave: rematch, photo finish, nemesis, digest inputs</td></tr>
-    <tr><td><b>bot-core</b> — bus.test.ts</td><td class="num">27</td><td>command grammar, aliases, cards, store behaviour, error cards</td><td class="mono" rowspan="2">bun test packages/bot-core</td></tr>
-    <tr><td><b>bot-core</b> — gfamily.test.ts</td><td class="num">12</td><td>rematch/nemesis/digest commands over the bus</td></tr>
+    <tr><td><b>game-core</b> — ENGINE V4</td><td class="num">110</td><td>the daily model: createDay/logSet/closeDay, first-to-target wins, bank/fail outcomes, streaks, seasons 1:1, stakes lifecycle, SOT power-up canon (pure-gain steal, shield saves, bomb fuse)</td><td class="mono">bun test packages/game-core</td></tr>
+    <tr><td><b>bot-core</b> — bus + gfamily + SOT additions</td><td class="num">89</td><td>command grammar, aliases, cards, store behaviour, error cards, rematch/nemesis/digest, the daily-model additions</td><td class="mono">bun test packages/bot-core</td></tr>
     <tr><td><b>api</b> — api.test.ts</td><td class="num">24</td><td>REST routes, crew codes, atomic persistence</td><td class="mono">bun test apps/api</td></tr>
-    <tr><td><b>figma-app</b> — engine.test.js</td><td class="num">23</td><td>the engine <i>port</i> matches the spec (incl. power-ups)</td><td class="mono">bun test apps/figma-app/engine.test.js</td></tr>
-    <tr><td><b>figma-app</b> — e2e.mjs</td><td class="num">~60 steps</td><td>full product walk in headless Chromium; asserts DOM + state at every step, fails on any console error; writes the walk screenshots</td><td class="mono">bun apps/figma-app/e2e.mjs</td></tr>
-    <tr><td><b>figma-app</b> — e2e-daily.mjs</td><td class="num">~40 steps</td><td>the temporal loop with time travel: DZ1→2→3, day close, recap, day 2</td><td class="mono">bun apps/figma-app/e2e-daily.mjs</td></tr>
-    <tr><td><b>figma-app</b> — bots-sim.mjs</td><td class="num">—</td><td>plays a real match through the CommandBus then asserts /api/state + the hub render it</td><td class="mono">bun apps/figma-app/bots-sim.mjs</td></tr>
-    <tr><td><b>wiki</b> — walk.mjs</td><td class="num">—</td><td>this wiki: every page loads with zero console errors, every referenced asset resolves</td><td class="mono">bun apps/wiki/test/walk.mjs</td></tr>
+    <tr><td><b>sot (v4)</b> — e2e.mjs</td><td class="num">120 checks</td><td>the full SOT product walk on the real app: onboard → wizard → season → steal → logs → Daily Wins → bombs → charity resolution → join flow; language + console gates; zero console errors</td><td class="mono">bun apps/sot/e2e.mjs</td></tr>
+    <tr><td><b>sot (v4)</b> — e2e-states.mjs</td><td class="num">59 checks</td><td>the critical states: offline banner + queued logs + badge, reconnect replay, sync conflict + duplicate warning sheets (confirm/undo), rest-day home, winner-known + battle-complete transitions; zero console errors</td><td class="mono">bun apps/sot/e2e-states.mjs</td></tr>
+    <tr><td><b>figma-app (v1)</b> — engine.test.js</td><td class="num">23</td><td>the 300-era engine <i>port</i> matches the spec (incl. power-ups)</td><td class="mono">bun test apps/figma-app/engine.test.js</td></tr>
+    <tr><td><b>figma-app (v1)</b> — e2e / e2e-daily / e2e-squads</td><td class="num">122 + 74 + 90</td><td>the v1 product walks: full journey, the temporal DZ loop with time travel, squads + wagers</td><td class="mono">bun apps/figma-app/e2e.mjs …</td></tr>
+    <tr><td><b>board (v2)</b> — e2e / geom</td><td class="num">56 + 27</td><td>the board presentation + lane geometry (centred, 1.2–1.4ms frames)</td><td class="mono">bun apps/board/{e2e,geom}.mjs</td></tr>
+    <tr><td><b>v3</b> — e2e / geom</td><td class="num">69 + 35</td><td>the 3D course + SFX wiring</td><td class="mono">bun apps/v3/{e2e,geom}.mjs</td></tr>
+    <tr><td><b>figma-app (v1)</b> — bots-sim.mjs</td><td class="num">—</td><td>plays a real match through the CommandBus then asserts /api/state + the hub render it</td><td class="mono">bun apps/figma-app/bots-sim.mjs</td></tr>
+    <tr><td><b>wiki</b> — walk.mjs</td><td class="num">25 checks</td><td>this wiki: 10 pages load with zero console errors, every referenced asset resolves, every PNG decodes</td><td class="mono">bun apps/wiki/test/walk.mjs</td></tr>
   </table></div>
-  <p class="dim">CI runs the three packaged suites (122 tests) on every deploy push — a red suite blocks nothing at Cloudflare but fails the workflow loudly. The E2E walks are the design contract: if a screen breaks, its screenshot can't be taken.</p>
-  <div class="where"><b>lives:</b> the test dirs above · CI gate in .github/workflows/deploy.yml · measured live 29 Aug 2026: <span class="mono">122 pass · 0 fail · 395 expect() calls</span></div>
+  <p class="dim">CI runs the packaged suites on every deploy push — a red suite blocks nothing at Cloudflare but fails the workflow loudly. The E2E walks are the design contract: if a screen breaks, its screenshot can't be taken. v4's two walks were the wiki's own source material — 120 + 59 checks re-run for this page's screenshots.</p>
+  <div class="where"><b>lives:</b> the test dirs above · CI gate in .github/workflows/deploy.yml · v4 walks measured 4 Sep 2026: <span class="mono">120 + 59 pass · zero console errors</span></div>
 </section>
 
 <div class="pager">

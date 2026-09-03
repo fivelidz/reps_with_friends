@@ -1,7 +1,8 @@
 // apps/bot-whatsapp/main.ts — RWF WhatsApp bot (Qalarc Hub transport).
 //
-//   bun apps/bot-whatsapp/main.ts --sim   # demo match: prints cards, sends NOTHING (default)
-//   bun apps/bot-whatsapp/main.ts --live  # opt-in: tail hub log, reply via hub API
+//   bun apps/bot-whatsapp/main.ts --sim          # legacy 300-match demo (default)
+//   bun apps/bot-whatsapp/main.ts --sim --sot    # SOT daily-model demo (v4 grammar)
+//   bun apps/bot-whatsapp/main.ts --live         # opt-in: tail hub log, reply via hub API
 //
 // Live mode NEVER runs its own WhatsApp receiver — the Qalarc Hub owns the
 // single session (contract: qalarc_hub/AGENTS.md, base http://127.0.0.1:8769).
@@ -20,7 +21,7 @@ import {
 } from "node:fs";
 import { homedir } from "node:os";
 import { basename, join, resolve } from "node:path";
-import { CommandBus, looksLikeCommand, MatchStore } from "@rwf/bot-core";
+import { CommandBus, SotCommandBus, SotStore, looksLikeCommand, MatchStore } from "@rwf/bot-core";
 import { QalarcHubClient } from "./hub-client.ts";
 
 const ROOT = resolve(import.meta.dir, "../..");
@@ -173,6 +174,145 @@ async function sim(): Promise<void> {
   console.log(`\n=== sim done — store: ${join(DATA, "sim-whatsapp.json")} ===`);
 }
 
+// ── SOT sim harness (Engine v4 — the Source-of-Truth daily model) ───────────
+//
+// Runs the SotCommandBus through the full arc the founder demos:
+// create → join → log → DAILY WIN card → second player banks → deadline
+// recap → season ladder → charity resolution, plus a day-2 power-up pass
+// (pure-gain steal, shield, freeze, bomb defusal, rescue rope, lightning).
+//
+// A fake clock travels through the days in seconds (4h battle window); day 1
+// is placed on a weekday that has a weekday after it, whatever today is.
+
+async function sotSim(): Promise<void> {
+  const simFile = join(DATA, "sim-whatsapp-sot.json");
+  mkdirSync(DATA, { recursive: true });
+  writeFileSync(simFile, "{}"); // scratch store — fresh demo every run
+  const store = new SotStore(simFile);
+
+  const base = new Date();
+  base.setHours(9, 0, 0, 0);
+  const dow = base.getDay();
+  if (dow === 5 || dow === 6 || dow === 0) {
+    // Fri/Sat/Sun → rewind to Thursday so day 2 (Friday) is a play day too.
+    base.setDate(base.getDate() - ((dow + 7 - 4) % 7));
+  }
+  let t = base.getTime();
+  const bus = new SotCommandBus(store, { now: () => t, dayWindowMs: 4 * 3600_000 });
+
+  const inGroup = (name: string, num: string, text: string) => ({
+    chatId: "wa:group-sot",
+    playerId: `wa:+614${num}`,
+    playerName: name,
+    text,
+  });
+  const ben = (s: string) => inGroup("Ben", "111111111", s);   // athlete ×0.85 → 236 physical
+  const dave = (s: string) => inGroup("Dave", "222222222", s); // couch ×1.5 → 134 physical
+  const nico = (s: string) => inGroup("Nico", "333333333", s); // fit ×1.0 → 200 physical
+
+  const MIN = 60_000;
+  const HOUR = 60 * MIN;
+  const sections: { label: string; steps: { m: ReturnType<typeof ben>; advMs?: number; note?: string }[] }[] = [
+    {
+      label: "the SOT grammar",
+      steps: [{ m: ben("help") }],
+    },
+    {
+      label: "create the group — daily battle, 200 adjusted, weekly season",
+      steps: [
+        { m: ben("new") },
+        { m: ben("join athlete") },
+        { m: dave("join couch") },
+        { m: nico("join fit") },
+      ],
+    },
+    {
+      label: "the season stake, agreed up front (charity pot)",
+      steps: [
+        { m: ben("stake charity Everyone stumps 100 points — the season winner directs the pot") },
+        { m: ben("agree") },
+        { m: dave("agree") },
+        { m: nico("agree") }, // third agreement locks it
+      ],
+    },
+    {
+      label: "the day opens",
+      steps: [{ m: ben("start") }],
+    },
+    {
+      label: "the race — log, WIN THE DAY, bank your day",
+      steps: [
+        { m: dave("log pushups 50") },   // +75 (couch ×1.5) — 125 to go
+        { m: ben("log burpees 100") },   // +85 (athlete ×0.85) — 115 to go
+        { m: dave("log squats 50") },    // +75 → 150/200
+        { m: ben("log pushups 100") },   // +85 → 170/200
+        { m: nico("log squats 60") },    // 60/200 — Nico's racing the clock now
+        { m: ben("log burpees 36") },    // 200.6 → 🏆 the DAILY WIN moment
+        { m: dave("log lunges 34") },    // 201 → 🏦 banks the day, streak starts
+        { m: nico("s") },                // WON / BANKED / chasing states
+      ],
+    },
+    {
+      label: "the deadline — day closes itself, recap rides the next command",
+      steps: [
+        { m: nico("day close"), advMs: 10 * MIN, note: "10 min in — too early, the bot holds the line" },
+        { m: dave("season ladder"), advMs: 4 * HOUR }, // clock past 13:00 → auto-close recap + ladder
+      ],
+    },
+    {
+      label: "the charity pot fills (points — the trial currency)",
+      steps: [
+        { m: dave("pot 100") },
+        { m: ben("pot 100") },
+        { m: nico("pot 100") },
+        { m: ben("pot") },
+      ],
+    },
+    {
+      label: "day 2 — the power-up canon",
+      steps: [
+        { m: ben("start"), advMs: 20 * HOUR - 10 * MIN, note: "next morning 09:00 — a fresh battle" },
+        { m: ben("cards") },
+        { m: ben("lightning") },
+        { m: ben("log pushups 40!") },  // inside the window → ×3 → +102, camera-verified
+        { m: dave("steal @ben"), advMs: 2 * MIN }, // PURE GAIN — Ben keeps every rep
+        { m: dave("shield") },          // group streak protection
+        { m: ben("freeze"), advMs: 10 * MIN, note: "past 09:10 — the lightning window closes" },
+        { m: ben("bomb @dave") },       // +20 reps, 10 minutes to deliver
+        { m: dave("log situps 20") },   // 30 reps → bomb DEFUSED, +20 bonus
+        { m: dave("rope @nico") },      // 50-credit to the inactive mate
+        { m: ben("log squats 100") },   // +85 → 187/200
+        { m: ben("log lunges 20") },    // +17 → 204 → 🏆 wins day 2 as well
+        { m: ben("s"), advMs: 4 * HOUR + 31 * MIN, note: "past the frozen deadline — auto-close saves Dave & Nico via the shield" },
+      ],
+    },
+    {
+      label: "season finale — champion, charity directed, donation processed",
+      steps: [
+        { m: ben("season ladder") },
+        { m: ben("season end") },
+        { m: ben("charity Coast Rescue") },
+        { m: ben("donate") },
+        { m: ben("stake") },
+      ],
+    },
+  ];
+
+  console.log("=== RWF WhatsApp bot — SOT SIM MODE (Engine v4 daily model, no live sends) ===\n");
+  for (const section of sections) {
+    console.log(`── ${section.label} ──`);
+    for (const step of section.steps) {
+      if (step.advMs) t += step.advMs;
+      if (step.note) console.log(`⏩ clock → ${step.note}`);
+      console.log(`▸ ${step.m.playerName}: ${step.m.text}`);
+      console.log(bus.handle(step.m));
+      console.log("");
+    }
+    console.log("");
+  }
+  console.log(`=== SOT sim done — store: ${simFile} ===`);
+}
+
 // ── live mode ───────────────────────────────────────────────────────────────
 
 interface HubMessage {
@@ -301,12 +441,18 @@ async function live(): Promise<void> {
 
 // ── entry ───────────────────────────────────────────────────────────────────
 
-const mode = process.argv[2] ?? "--sim";
+const args = process.argv.slice(2);
+const sotMode = args.includes("--sot");
+const mode = args.find((a) => a === "--sim" || a === "--live") ?? "--sim";
 if (mode === "--live") {
+  if (sotMode) {
+    console.error("--sot is sim-only for now — live SOT transport wiring is the next step (agents/_handovers/)");
+    process.exit(1);
+  }
   await live();
 } else if (mode === "--sim") {
-  await sim();
+  await sotMode ? sotSim() : sim();
 } else {
-  console.error("usage: bun apps/bot-whatsapp/main.ts [--sim|--live]");
+  console.error("usage: bun apps/bot-whatsapp/main.ts [--sim|--live] [--sot]");
   process.exit(1);
 }

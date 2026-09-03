@@ -1,0 +1,132 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>The Four Versions — RWF Wiki</title>
+<link rel="stylesheet" href="/design/tokens.css">
+<link rel="stylesheet" href="tokens.css">
+<link rel="stylesheet" href="wiki.css">
+</head>
+<body>
+<nav class="wnav">
+  <a class="wnav__brand" href="index.html"><b>RWF&nbsp;WIKI</b><span>internal docs</span></a>
+  <a class="wnav__link" href="game.html">Game Rules</a>
+  <a class="wnav__link" href="app.html">App Screens</a>
+  <a class="wnav__link" href="versions.html">Versions</a>
+  <a class="wnav__link" href="bots.html">Bots</a>
+  <a class="wnav__link" href="verification.html">Verification</a>
+  <a class="wnav__link" href="avatars.html">Avatars</a>
+  <a class="wnav__link" href="ops.html">Ops &amp; Testing</a>
+  <a class="wnav__link" href="design.html">Design System</a>
+  <a class="wnav__link" href="status.html">Status</a>
+</nav>
+<div class="wrap">
+
+<header class="hero">
+  <p class="eyebrow">Chapter 2½ · design progression</p>
+  <h1>The four versions</h1>
+  <p class="lede">Four working apps, each answering a different question, all preserved and runnable. Old versions are a deliverable — the progression <i>is</i> the design story. The engine forked at v4: v1–v3 run the 300-era engine (frozen), v4 runs <b>Engine V4</b>, the daily model from the master Source of Truth. Every screenshot below comes from that version's own e2e walk.</p>
+</header>
+
+<!-- TIMELINE TABLE -->
+<section>
+  <h2 class="sect">At a glance</h2>
+  <div class="tblwrap"><table class="tbl">
+    <tr><th>Version</th><th>Surface</th><th>The question it answered</th><th>Rules engine</th><th>Proven by</th></tr>
+    <tr><td><b>v1</b> · Figma-faithful</td><td class="mono">/figma-app</td><td>Can Ben's design be a real, offline, phone-first app?</td><td>300-era (frozen)</td><td>65 screens, e2e 122 + daily 74 + squads 90</td></tr>
+    <tr><td><b>v2</b> · Board</td><td class="mono">/v2</td><td>What does the track-and-field board-game direction feel like?</td><td>300-era + power-ups v2</td><td>e2e 56 · geom 27 · 13 theme languages</td></tr>
+    <tr><td><b>v3</b> · 3D course</td><td class="mono">/v3</td><td>Does a 3D battle course present the same game better?</td><td>300-era</td><td>e2e 69 · geom 35 · 13 SFX wired</td></tr>
+    <tr><td><b>v4</b> · The SOT app</td><td class="mono">/v4</td><td>Does the master Source of Truth work as a product?</td><td><b>Engine V4</b> — daily model</td><td>e2e 120 + states 59, zero console errors</td></tr>
+  </table></div>
+</section>
+
+<!-- V1 -->
+<section class="feat">
+  <div class="feat__head"><h3>v1 — the Figma-faithful app</h3><span class="badge badge--live">preserved forever</span></div>
+  <p class="feat__what">Ben's complete Figma file rebuilt as a navigable offline PWA — every screen from the design exists as a real page, and the battle screens run the real 300-era engine (state in localStorage, hash routes named after Figma frames, installable, service-worker offline).</p>
+  <div class="feat__grid">
+    <figure class="shot shot--phone"><img src="shots/app-battle-live.png" alt="v1 battle live screen"><figcaption>app-battle-live.png · v1 battle live — progress ring + board</figcaption></figure>
+    <div class="feat__body">
+      <p><b>What it proved.</b> The design was implementable screen-for-screen; the engine (a 1:1 JS port of game-core) worked on a phone with no build step; the daily danger-zone arc (calm → DZ1 → DZ2 → DZ3 → close → recap) landed as an e2e with time travel; squads, wagers and the waiting-room → battle → result loop all held. It became the reference build: every later version diffed against it.</p>
+      <p><b>Where the 300-era rules still live:</b> first-to-raw-target closes the match, highest adjusted wins, +15 closure bonus, comeback ×1.2, 4-week 3/2/1 seasons, shield-blocks-steal — the legacy section of <a href="game.html">Game Rules</a> keeps the full spec.</p>
+      <div class="where"><b>lives:</b> apps/figma-app/ · <span class="mono">rwf.qalarc.com/figma-app</span> · coverage hub at <span class="mono">/v1</span><br><b>proven by:</b> e2e.mjs (122) · e2e-daily.mjs (74) · e2e-squads.mjs (90) — all still green</div>
+    </div>
+  </div>
+</section>
+
+<!-- V2 -->
+<section class="feat">
+  <div class="feat__head"><h3>v2 — the board app</h3><span class="badge badge--live">preserved</span></div>
+  <p class="feat__what">The track-and-field board-game direction: a felt table with lane tracks and runner tokens, chip stacks for the pot, and power-ups as physical <b>CSS-3D cards</b> — dealt, flipped, played and burned on expiry — with race commentary and a lap counter.</p>
+  <div class="feat__grid">
+    <div class="shots">
+      <figure class="shot shot--phone"><img src="shots/v2-board-table.png" alt="v2 board table with lanes and chips"><figcaption>v2-board-table.png · the felt table — lanes, runners, the pot</figcaption></figure>
+      <figure class="shot shot--phone"><img src="shots/v2-board-cards.png" alt="v2 dealt power-up cards on the table"><figcaption>v2-board-cards.png · cards dealt to the table</figcaption></figure>
+    </div>
+    <div class="feat__body">
+      <p><b>What it proved.</b> The board metaphor carries (founder directive: style only, no poker language — the chips are "the pot"). The card presentation invented here — deal/flip/play/burn — survived into v4's loot-style stack. And this wave produced the power-up economy answer: <b>draft-from-3 with a catch-up curve</b> (100% behind → 13% legendary vs 5%), reroll-to-pot, expiry, and the points trial currency. Eight full theme languages shipped with it (13 total in /styles).</p>
+      <div class="where"><b>lives:</b> apps/board/ · <span class="mono">rwf.qalarc.com/v2</span><br><b>proven by:</b> e2e.mjs 56 · geom.mjs 27 (lanes centred, 1.2–1.4ms frames)</div>
+    </div>
+  </div>
+</section>
+
+<!-- V3 -->
+<section class="feat">
+  <div class="feat__head"><h3>v3 — the 3D battle course</h3><span class="badge badge--live">preserved</span></div>
+  <p class="feat__what">The same game as a three.js battle course: Soldier-mocap runners on tier lanes positioned at their real progress %, floating power-up card billboards, a 3D charity-pot trophy pedestal and a podium finish.</p>
+  <div class="feat__grid">
+    <div class="shots">
+      <figure class="shot shot--phone"><img src="shots/v3-battle-course.png" alt="v3 3D battle course with runners on lanes"><figcaption>v3-battle-course.png · the course — runners at their real progress</figcaption></figure>
+      <figure class="shot shot--phone"><img src="shots/v3-powerup-billboards.png" alt="v3 floating power-up billboards"><figcaption>v3-powerup-billboards.png · power-ups as floating billboards</figcaption></figure>
+    </div>
+    <div class="feat__body">
+      <p><b>What it proved.</b> 3D presentation is affordable (1.2–1.4ms frames, geometry-verified lanes) and the spectacle direction works — but the reduced-motion snap bug fixed here taught the constraint that governs everything since: motion must be an enhancement, never a dependency. This wave also wired the 13-sound WebAudio SFX layer (log-combo pitch climb verified) that v4 inherits.</p>
+      <div class="where"><b>lives:</b> apps/v3/ · <span class="mono">rwf.qalarc.com/v3</span><br><b>proven by:</b> e2e.mjs 69 · geom.mjs 35 · SFX verified in the e2e</div>
+    </div>
+  </div>
+</section>
+
+<!-- V4 -->
+<section class="feat">
+  <div class="feat__head"><h3>v4 — the Source-of-Truth app</h3><span class="badge badge--live">current</span></div>
+  <p class="feat__what">Ben's 36-page master spec (v2026-09-02) as a working product on <b>Engine V4</b>: daily-200 first-to-target battles with bank-day continuation, the 5-tab nav (Battle / Feed / central Log / Power-Ups / Profile), gold-on-black loot presentation, and the full season + stakes lifecycle.</p>
+  <div class="feat__grid">
+    <div class="shots">
+      <figure class="shot shot--phone"><img src="shots/v4-battle-home.png" alt="v4 battle home"><figcaption>v4-battle-home.png · Battle Home on Engine V4</figcaption></figure>
+      <figure class="shot shot--phone"><img src="shots/v4-you-won.png" alt="v4 you won the day"><figcaption>v4-you-won.png · the Daily Win moment + share card</figcaption></figure>
+      <figure class="shot shot--phone"><img src="shots/v4-states-rest-day.png" alt="v4 rest-day state"><figcaption>v4-states-rest-day.png · the critical-states wave: rest day</figcaption></figure>
+    </div>
+    <div class="feat__body">
+      <p><b>What it proves.</b> That the SOT works as software: the create-group wizard (24 spec steps condensed to 11 honest ones), the join flow with stake agreement, handicap-adjusted quick/keypad/timed logging, the corrected power-up canon live (steal = pure gain, shield = streak save, bombs that fizzle), the winners family with canvas share cards, weekly seasons with all four stakes resolving (charity chooser with the disclosed fee), feed reactions, tone-aware copy, and the RUF-internal/reps-UI ruling enforced by test.</p>
+      <p><b>The critical states</b> (the SOT's "designed states" inventory — offline/reconnecting, sync conflict, duplicate warning, rest-day home, battle-complete-season-live) are built as real states with their own e2e walk: see <a href="app.html#v4-states">App Screens → v4 critical states</a>.</p>
+      <div class="where"><b>lives:</b> apps/sot/ + apps/sot-engine.js · <span class="mono">rwf.qalarc.com/v4</span><br><b>proven by:</b> e2e.mjs 120 checks · e2e-states.mjs 59 checks — zero console errors; 7 real bugs found and fixed by the e2e itself along the way</div>
+    </div>
+  </div>
+</section>
+
+<!-- WHAT CARRIED -->
+<section>
+  <h2 class="sect">What carried forward</h2>
+  <div class="grid grid--2">
+    <div class="card"><h3>Card presentation</h3><p>v2's CSS-3D deal/flip/play/burn → v4's hidden loot stack (face-down until tapped). The metaphor survived three engines.</p></div>
+    <div class="card"><h3>Danger-zone ramp</h3><p>v1's daily arc (verified with time travel) → v4's urgency ladder on the shared engine's deadline authority.</p></div>
+    <div class="card"><h3>SFX layer</h3><p>v3's 13 WebAudio sounds (mute persisted, reduced-motion safe) → v4 unchanged.</p></div>
+    <div class="card"><h3>Handicap tiers</h3><p>×1.5 / ×1.25 / ×1.0 / ×0.85 — unchanged since v1; only what they <i>multiply into</i> changed (score → target progress).</p></div>
+    <div class="card"><h3>House demo crew</h3><p>Marco / Priya / Jack seeded every version's e2e since v1 — the same crew, four engines.</p></div>
+    <div class="card"><h3>The pot never pays a player</h3><p>Charity direction from v1's pledge ledger → v4's full contribute/resolve/donate/receipt lifecycle.</p></div>
+  </div>
+</section>
+
+<div class="pager">
+  <a href="app.html"><span class="dir">← back</span>App Screens</a>
+  <a class="next" href="bots.html"><span class="dir">next →</span>Bots</a>
+</div>
+<footer class="wfoot">
+  <span>RWF wiki · versions · all four apps runnable from one Bun server (serve.ts)</span>
+  <span>old versions preserved forever — founder directive</span>
+</footer>
+</div>
+<script src="wiki.js"></script>
+</body>
+</html>

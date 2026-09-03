@@ -16,7 +16,7 @@ import { fileURLToPath } from "node:url";
 const HERE = dirname(fileURLToPath(import.meta.url));
 const WIKI = join(HERE, "..");
 const BASE = "http://127.0.0.1:4173";
-const PAGES = ["index", "game", "app", "bots", "verification", "avatars", "ops", "design", "status"];
+const PAGES = ["index", "game", "app", "versions", "bots", "verification", "avatars", "ops", "design", "status"];
 
 let step = 0, passed = 0;
 const failures = [];

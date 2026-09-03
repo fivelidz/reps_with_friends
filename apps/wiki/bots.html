@@ -13,6 +13,7 @@
   <a class="wnav__brand" href="index.html"><b>RWF&nbsp;WIKI</b><span>internal docs</span></a>
   <a class="wnav__link" href="game.html">Game Rules</a>
   <a class="wnav__link" href="app.html">App Screens</a>
+  <a class="wnav__link" href="versions.html">Versions</a>
   <a class="wnav__link" href="bots.html">Bots</a>
   <a class="wnav__link" href="verification.html">Verification</a>
   <a class="wnav__link" href="avatars.html">Avatars</a>
@@ -25,7 +26,8 @@
 <header class="hero">
   <p class="eyebrow">Chapter 3 · the bots</p>
   <h1>Bots — one grammar, two platforms</h1>
-  <p class="lede">The whole game is playable inside a group chat. A platform-agnostic <b>CommandBus</b> (<span class="mono">packages/bot-core/src/bus.ts</span>) takes plain text in and returns WhatsApp/Slack-compatible text cards out — all game logic lives in game-core, so the bots are a thin parse → mutate store → format layer. The identical command surface runs on WhatsApp (via the local Qalarc Hub) and Slack (Bolt Socket Mode).</p>
+  <p class="lede">The whole game is playable inside a group chat. A platform-agnostic <b>CommandBus</b> (<span class="mono">packages/bot-core/src/bus.ts</span>) takes plain text in and returns WhatsApp/Slack-compatible text cards out — all game logic lives in the engine, so the bots are a thin parse → mutate store → format layer. The identical command surface runs on WhatsApp (via the local Qalarc Hub) and Slack (Bolt Socket Mode).</p>
+  <p class="lede"><b>SOT bots are in flight</b> — a dedicated agent is porting the grammar to the Engine V4 daily model; the spec'd surface is documented below the running one. The commands currently live in CI are the 300-era grammar the v1–v3 products speak.</p>
 </header>
 
 <!-- ARCHITECTURE -->
@@ -74,6 +76,29 @@
     <tr><td class="mono">season new / ladder</td><td>Run a season, climb the ladder</td><td>3/2/1 points + MVP, A/B divisions (see Game Rules)</td></tr>
   </table></div>
   <div class="where"><b>lives:</b> the exact help card verbatim in packages/bot-core/src/cards.ts <code>helpCard()</code> · grammar in bus.ts <code>COMMANDS / ALIASES / parse()</code></div>
+</section>
+
+<!-- SOT GRAMMAR (IN FLIGHT, CODE READ FROM THE AGENT'S UNCOMMITTED WORK) -->
+<section class="feat" id="sot-grammar">
+  <div class="feat__head"><h3>The SOT grammar — daily model</h3><span class="badge badge--next">in flight · tested</span></div>
+  <p class="feat__what">The Engine V4 port of the command surface, built as <span class="mono">SotCommandBus</span> — <b>parallel to the legacy bus, zero shared state</b>, so the 300-era bots above stay untouched and green while this lands (work was uncommitted when this page was written; the grammar below is read from the code + its test suite).</p>
+  <div class="tblwrap"><table class="tbl">
+    <tr><th>Command</th><th>What it does (daily model)</th><th>Engine call underneath</th></tr>
+    <tr><td class="mono">new [target]</td><td>Create the group + weekly season — defaults: 200 adjusted, Mon–Fri battle days, tier handicap; the card prints the tier→physical-target table (couch 134 / casual 160 / fit 200 / athlete 236)</td><td>season scaffold on the shared engine</td></tr>
+    <tr><td class="mono">join [tier]</td><td>Join / re-tier between days — physical-target card per joiner; mid-day joins held for the next day (engine days snapshot their roster)</td><td>roster + tier multiplier</td></tr>
+    <tr><td class="mono">start</td><td>Open today's battle — ≥2 players, play-day check, deadline next 21:00; deals the prototype power-up kit (one canon card each per day)</td><td><code>createDay</code></td></tr>
+    <tr><td class="mono">log &lt;ex&gt; &lt;reps&gt;[!]</td><td>Log a set — reply = banked reps + remaining + position; <b>first-to-target fires the DAILY WIN card</b> ("the battle continues — bank your day"), later completions get the banked-day card with streak projection</td><td><code>logSet</code></td></tr>
+    <tr><td class="mono">s</td><td>Per-player target status (🏆 WON / 🏦 BANKED / % / failing-if-it-holds) + season points + streaks</td><td>day standings + season record</td></tr>
+    <tr><td class="mono">day close</td><td>The recap — winner, banked, failed, shielded, streaks (refuses before the deadline; <span class="mono">force</span> is ops-only). Days also <b>auto-close at the deadline</b>, recap prepended to the next reply</td><td><code>closeDay → dayRecordFrom → recordBattleDay</code></td></tr>
+    <tr><td class="mono">season [ladder|end]</td><td>Weekly standings 1:1 (1 Daily Win = 1 point); end locks the season + resolves the stake</td><td><code>battleStandings / endBattleSeason</code></td></tr>
+    <tr><td class="mono">stake &lt;type&gt; &lt;terms&gt; · agree · decline · stake done</td><td>Full stake lifecycle — dinner/dare/deliverable/charity, agreement-gated (active only when ALL accept, decline voids), resolves at season end; fulfilment noted</td><td>stake lifecycle on the engine</td></tr>
+    <tr><td class="mono">pot &lt;points&gt; · charity &lt;name&gt; · donate</td><td>Charity contributions in POINTS (trial currency), sealed until the stake is active; the winner directs the pot, donation minus the disclosed fee</td><td>charity stake calls</td></tr>
+    <tr><td class="mono">lightning · steal @name · shield · freeze · bomb @name · rope @name · cards</td><td>SOT canon: ×3/10min · <b>pure gain</b> ("you GAIN X, they keep theirs", does not count toward target) · group streak protection consumed at the close it saves · +30min group-wide · +20/10min with defusal bonus · 50-credit to an inactive mate · the hand</td><td><code>activatePowerUp</code> per canon semantics</td></tr>
+    <tr><td class="mono">help</td><td>The grammar in SOT language: reps, Daily Win, bank your day</td><td>—</td></tr>
+  </table></div>
+  <p><b>Push (not pull) — the SOT §1.3 list the chat layer must deliver unprompted:</b> rep and milestone updates · lead changes · power-up activations · final-hour warnings · winner and season announcements · invitations and deep links · status requests · challenges and reactions · direct rep logging where the platform API permits.</p>
+  <p><b>Simulate it now:</b> both bots carry a <span class="mono">--sot</span> sim flag (<span class="mono">bun apps/bot-whatsapp/main.ts --sim --sot</span>, same for Slack) — a fake clock walks the founder's demo in seconds: create → joins → stake agreements → the race → Daily Win → bank → auto-close recap → ladder → pots → a full day-2 power-up pass.</p>
+  <div class="where"><b>lives:</b> packages/bot-core/src/{sot-bus,sot-cards}.ts · test/sot-bus.test.ts · sims in apps/bot-whatsapp + apps/bot-slack<br><b>engine:</b> apps/sot-engine.js — the same shared daily engine the v4 app drives<br><b>status:</b> in flight (uncommitted at time of writing) — bot-core at 89 tests green with the SOT suite in</div>
 </section>
 
 <!-- TRANSCRIPT -->
@@ -166,7 +191,7 @@
 </section>
 
 <div class="pager">
-  <a href="app.html"><span class="dir">← back</span>App Screens</a>
+  <a href="versions.html"><span class="dir">← back</span>Versions</a>
   <a class="next" href="verification.html"><span class="dir">next →</span>Verification</a>
 </div>
 <footer class="wfoot">
