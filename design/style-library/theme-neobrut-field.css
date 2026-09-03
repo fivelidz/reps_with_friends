@@ -1,0 +1,260 @@
+/* style-library/theme-neobrut-field.css — the "neobrut-field" material kit.
+   Tokens + .mat- primitives only. RWF app bindings (fg / bd classes)
+   live in design/themes.css. Name/label/provenance: README.md. */
+
+/* ═══════════════════════════════════════════════════════════════════════
+    VARIANT 1 of the founder's "Neo-Brutalist Sports Poster with a Soft
+    Underbelly" — THE SPORTS SIDE DOMINANT.  Field Day.
+    A stadium day-poster wheat-pasted at the gates: GIANT condensed
+    scoreboard type shouting on cream, team-badge stickers, ticket-stub
+    cards with punched perforations, halftone crowd haze in the margins,
+    mown-stripe center rules — then the underbelly: cream paper, every
+    corner ROUNDED UNDER the 2.5px ink, ONE warm clay plate shadow
+    (never the duotone slip — that belongs to the original), buttery
+    0.4s eases, a friendly badge cheer on hover.
+    Describe it as: match-day at the gates — scoreboard capitals,
+    ticket-stub cards, team stickers over halftone crowds — printed on
+    soft cream, rounded underneath, every press landing like a high-five.
+    ═══════════════════════════════════════════════════════════════════════ */
+
+[data-theme="neobrut-field"] {
+  --bg: #e8ecd6;                 /* stadium cream, a cast of pitch green */
+  --surface: #f6f8ec;            /* scorecard white */
+  --surface-2: #dde2c6;          /* pressed grass-cream */
+  --line: #141b0d;               /* ink green-black */
+  --line-bright: #2a351c;
+  --text: #161d10;
+  --muted: #3c4630;
+  --faint: #4d5840;              /* 5.0:1 on bg */
+  --faint-deco: #7d876e;
+
+  --lime: #1e6b33;               /* PITCH GREEN — the primary plate */
+  --lime-dim: #175627;
+  --lime-glow: rgba(30, 107, 51, 0.16);
+  --coral: #9c3d18;              /* scorched clay — effort */
+  --coral-glow: rgba(156, 61, 24, 0.14);
+  --amber: #8a5a00;              /* scoreboard bronze, 5.2:1 as text */
+  --sky: #175a8a;                /* away-strip blue */
+
+  --success: #1c5e2e;
+  --danger: #a11c1c;
+  --urgency: #8a4a00;            /* added-time bronze */
+
+  --energy: #6b2fa0;
+  --energy-light: #5b2690;
+  --energy-tint: #eee6f8;
+
+  --dz-bg: #e9e2c2;
+  --dz3-surface: #f0d9a8;
+  --dz-hero: #f7e3b0;
+
+  --font-display: 'Anton', 'Archivo', system-ui, sans-serif;
+  --font-body: 'Inter', 'Archivo', system-ui, sans-serif;
+  --font-mono: 'JetBrains Mono', ui-monospace, 'Cascadia Code', Menlo, monospace;
+
+  --radius: 8px;                 /* the badge cut … */
+  --radius-sm: 5px;
+  --radius-lg: 14px;
+  --radius-xl: 20px;
+  --pill: 999px;
+
+  --on-accent: #f8faee;          /* 6.9:1 on pitch green */
+  --primary-hover: #175627;
+  --on-warn: #f8faee;            /* 6.2:1 on added-time bronze */
+
+  --on-gold: var(--on-accent);
+
+  /* BOARD EXTRAS — the pitch */
+  --felt: #2b7a40;               /* match turf */
+  --felt-deep: #236a37;
+  --felt-line: rgba(248, 250, 238, 0.85);
+  --lane: #9c3d18;               /* clay running lane */
+  --lane-paint: rgba(248, 250, 238, 0.6);
+  --rail: #141b0d;
+  --rail-edge: rgba(248, 250, 238, 0.4);
+
+  --chip-white: #f8faee;
+  --chip-red: #a11c1c;
+  --chip-blue: #175a8a;
+  --chip-gold: #d9a521;
+
+  --card-back-1: #1e6b33;
+  --card-back-2: #175627;
+  --card-face: #f6f8ec;
+
+  --pop-shadow: #141b0d;
+  --speed: 0.7s;
+}
+/* ── neobrut-field · MATERIAL — stadium day-poster, soft underneath ──── */
+[data-theme="neobrut-field"] {
+  /* paper grain + HALFTONE CROWD (two offset dot screens) + cream wash */
+  --mat-page:
+    url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='150' height='150'%3E%3Cfilter id='p'%3E%3CfeTurbulence type='fractalNoise' baseFrequency='0.7' numOctaves='2' stitchTiles='stitch'/%3E%3CfeColorMatrix values='0 0 0 0 0.08 0 0 0 0 0.10 0 0 0 0 0.05 0 0 0 0.06 0'/%3E%3C/filter%3E%3Crect width='150' height='150' filter='url(%23p)'/%3E%3C/svg%3E"),
+    radial-gradient(circle at 1.4px 1.4px, rgba(20, 27, 13, 0.11) 1.4px, transparent 2px),
+    radial-gradient(circle at 1.4px 1.4px, rgba(20, 27, 13, 0.07) 1.4px, transparent 2px),
+    linear-gradient(#e8ecd6, #e0e4c9);
+  background-size: 150px 150px, 11px 11px, 11px 11px, auto;
+}
+[data-theme="neobrut-field"] body,
+[data-theme="neobrut-field"] .mat-page {
+  background-size: 150px 150px, 11px 11px, 11px 11px, auto;
+}
+[data-theme="neobrut-field"] body { background-position: 0 0, 0 0, 5.5px 5.5px, 0 0; }
+[data-theme="neobrut-field"] .mat-surface {        /* the scorecard — warm single plate */
+  background:
+    radial-gradient(circle at 1.4px 1.4px, rgba(20, 27, 13, 0.08) 1.4px, transparent 2px) 0 0 / 11px 11px,
+    var(--surface);
+  border: 2.5px solid var(--line);
+  border-radius: 18px;
+  box-shadow: 6px 6px 0 rgba(156, 61, 24, 0.24);   /* ONE warm clay plate — the soft shadow */
+  padding: 4px;
+  transition: transform 0.4s cubic-bezier(0.34, 1.4, 0.5, 1), box-shadow 0.4s cubic-bezier(0.34, 1.4, 0.5, 1);
+}
+[data-theme="neobrut-field"] .mat-surface:hover {
+  transform: translateY(-2px);
+  box-shadow: 8px 8px 0 rgba(156, 61, 24, 0.24), 0 14px 30px rgba(20, 27, 13, 0.08);
+}
+[data-theme="neobrut-field"] .mat-btn {            /* the team badge — rounded, not pill */
+  font-family: var(--font-display);
+  font-size: 16px;
+  text-transform: uppercase;
+  letter-spacing: 0.04em;
+  color: var(--on-accent);
+  background: var(--lime);
+  border: 2.5px solid var(--line);
+  border-radius: 14px;
+  padding: 12px 24px;
+  box-shadow: 4px 4px 0 var(--line);
+  transition: transform 0.4s cubic-bezier(0.34, 1.4, 0.5, 1), box-shadow 0.4s cubic-bezier(0.34, 1.4, 0.5, 1);
+}
+[data-theme="neobrut-field"] .mat-btn:hover { transform: translateY(-3px) rotate(-0.5deg); box-shadow: 6px 7px 0 var(--line); }
+[data-theme="neobrut-field"] .mat-btn:active { transform: translateY(2px); box-shadow: 2px 2px 0 var(--line); }
+[data-theme="neobrut-field"] .mat-btn--ghost {
+  background: var(--surface);
+  color: var(--text);
+  box-shadow: 4px 4px 0 rgba(20, 27, 13, 0.35);
+}
+[data-theme="neobrut-field"] .mat-num {            /* the SCOREBOARD module */
+  display: inline-block;
+  font-family: 'Anton', sans-serif;
+  font-size: 52px;
+  color: #f7c948;
+  background: var(--line);
+  padding: 4px 16px 6px;
+  border-radius: 10px;
+  text-transform: uppercase;
+  box-shadow: inset 0 -5px 0 rgba(0, 0, 0, 0.45), 4px 4px 0 rgba(156, 61, 24, 0.3);
+}
+[data-theme="neobrut-field"] .mat-divider {        /* MOWN center stripe */
+  height: 6px;
+  border-radius: 3px;
+  background: repeating-linear-gradient(90deg, #2b7a40 0 16px, #236a37 16px 32px);
+  border: 2px solid var(--line);
+}
+[data-theme="neobrut-field"] .mat-progress {       /* yard-line track */
+  height: 12px;
+  border: 2.5px solid var(--line);
+  border-radius: 999px;
+  background:
+    repeating-linear-gradient(90deg, transparent 0 10px, rgba(20, 27, 13, 0.18) 10px 12px),
+    var(--surface-2);
+}
+[data-theme="neobrut-field"] .mat-progress i {     /* turf fill, mown */
+  border-radius: 999px;
+  background: repeating-linear-gradient(-45deg, #2b7a40 0 10px, #236a37 10px 20px);
+  transition: width 0.55s cubic-bezier(0.34, 1.4, 0.5, 1);
+}
+[data-theme="neobrut-field"] .mat-chip {           /* the TICKET STUB — punched notch + perforation */
+  position: relative;
+  font-family: var(--font-body);
+  font-weight: 700;
+  font-size: 13px;
+  border: 2px solid var(--line);
+  border-left: 2px dashed var(--line);
+  border-radius: 9px;
+  background: var(--surface);
+  color: var(--text);
+  padding: 8px 14px 8px 16px;
+  transition: transform 0.35s cubic-bezier(0.34, 1.4, 0.5, 1);
+}
+[data-theme="neobrut-field"] .mat-chip.is-on { background: var(--lime); color: var(--on-accent); border-color: var(--line); border-left-style: solid; }
+[data-theme="neobrut-field"] .mat-chip:hover { transform: translateY(-2px) rotate(-1deg); }
+[data-theme="neobrut-field"] .mat-input {          /* scorecard field */
+  border-radius: 12px;
+  border: 2px solid var(--line);
+  background: #fdfcf4;
+  padding: 11px 14px;
+  transition: box-shadow 0.35s cubic-bezier(0.34, 1.4, 0.5, 1);
+}
+[data-theme="neobrut-field"] .mat-input:focus { outline: none; box-shadow: 0 0 0 3px rgba(30, 107, 51, 0.35); }
+[data-theme="neobrut-field"] .mat-avatar {         /* the medal — double ring */
+  border-radius: 999px;
+  border: 2.5px solid var(--line);
+  background: var(--surface);
+  box-shadow: 0 0 0 3px var(--surface), 0 0 0 5.5px var(--line), 4px 5px 0 rgba(156, 61, 24, 0.28);
+  font-family: 'Anton', sans-serif;
+}
+[data-theme="neobrut-field"] .mat-dialog {         /* the big scoreboard panel */
+  border: 2.5px solid var(--line);
+  border-radius: 20px;
+  background:
+    radial-gradient(circle at 1.4px 1.4px, rgba(20, 27, 13, 0.07) 1.4px, transparent 2px) 0 0 / 11px 11px,
+    var(--surface);
+  box-shadow: 7px 7px 0 rgba(156, 61, 24, 0.24);
+  padding: 6px;
+  animation: matFieldBounce 0.5s cubic-bezier(0.34, 1.4, 0.5, 1) both;
+}
+[data-theme="neobrut-field"] .mat-dialog__title {
+  font-family: var(--font-display);
+  text-transform: uppercase;
+  letter-spacing: 0.03em;
+  background: var(--line);
+  color: #f7c948;
+  padding: 6px 14px;
+  border-radius: 8px;
+  display: inline-block;
+}
+[data-theme="neobrut-field"] .mat-badge {          /* the TEAM STICKER — roundel, cheered */
+  font-family: 'Anton', sans-serif;
+  font-size: 12px;
+  text-transform: uppercase;
+  letter-spacing: 0.08em;
+  color: var(--text);
+  background: var(--chip-gold, #d9a521);
+  border: 2.5px solid var(--line);
+  border-radius: 999px;
+  padding: 7px 13px;
+  box-shadow: 0 0 0 3px var(--surface), 3px 4px 0 rgba(20, 27, 13, 0.8);
+  transform: rotate(-3deg);
+  transition: transform 0.35s cubic-bezier(0.34, 1.56, 0.64, 1);
+}
+[data-theme="neobrut-field"] .mat-badge:hover { animation: matFieldCheer 0.55s cubic-bezier(0.34, 1.56, 0.64, 1); transform: rotate(2deg) scale(1.05); }
+[data-theme="neobrut-field"] .mat-dz {             /* added-time board */
+  font-family: var(--font-mono);
+  font-weight: 700;
+  font-size: 11px;
+  letter-spacing: 0.14em;
+  text-transform: uppercase;
+  color: #5c3a00;
+  border: 2.5px solid var(--line);
+  border-radius: 12px;
+  background:
+    repeating-linear-gradient(-45deg, rgba(156, 61, 24, 0.14) 0 12px, transparent 12px 24px),
+    var(--dz-hero);
+  padding: 11px 14px;
+}
+@keyframes matFieldBounce {
+  0%   { opacity: 0; transform: translateY(18px) scale(0.96); }
+  60%  { opacity: 1; transform: translateY(-4px) scale(1.015); }
+  100% { opacity: 1; transform: translateY(0) scale(1); }
+}
+@keyframes matFieldCheer {
+  0%   { transform: rotate(-3deg) scale(1); }
+  35%  { transform: rotate(-8deg) scale(1.12); }
+  65%  { transform: rotate(4deg) scale(1.05); }
+  100% { transform: rotate(2deg) scale(1.05); }
+}
+@media (prefers-reduced-motion: reduce) {
+  [data-theme="neobrut-field"] .mat-dialog,
+  [data-theme="neobrut-field"] .mat-badge { animation: none; }
+}

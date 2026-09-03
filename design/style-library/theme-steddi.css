@@ -1,0 +1,301 @@
+/* style-library/theme-steddi.css — the "steddi" material kit.
+   Tokens + .mat- primitives only. RWF app bindings (fg / bd classes)
+   live in design/themes.css. Name/label/provenance: README.md. */
+
+/* ═══════════════════════════════════════════════════════════════════════
+    MINED ◈ · STEDDI — the founder's page
+    Source: qalarc.com/projects/steddi-overlap (Design system v3
+    "rail measurement blueprint", styles.css?v=32, mined 2026-09-03).
+    Palette: red / maroon signal on warm near-black — no green, no gold.
+    Art direction: ENGINEERING DRAWING — fine 8px blueprint grid under a
+    red 96px major grid that drifts, datum ticks, dimension-line dividers
+    with arrowheads, mono annotations, KPI numerals in gradient-clipped
+    JetBrains Mono, callout panels with the 2px red datum edge, and the
+    655 nm Class-2 LASER that sweeps the page every 11 s.
+    Type: Sora (display — the qalarc wordmark face) · Inter · JBMono.
+    Describe it as: a rail-welding measurement blueprint at night — warm
+    black paper on a fine red grid, mono annotations in the margins, a
+    laser sweeping down the page, and every number inked in signal red.
+    AA note: the site's #d94a3d stays (coral/gradient ends); the primary
+    slot uses its AA-tuned twin #c23b2f so on-accent text clears 4.5:1.
+    ═══════════════════════════════════════════════════════════════════════ */
+
+[data-theme="steddi"] {
+  /* ── surface ramp — verbatim from the page ─────────────────────────── */
+  --bg: #0f0b0d;                 /* the blueprint paper */
+  --surface: #191217;            /* panel plum */
+  --surface-2: #20161c;          /* pressed */
+  --line: #2c1f26;               /* hairline plum */
+  --line-bright: #3d2a33;        /* line-2 on the page */
+  --text: #f1e8e6;               /* ink */
+  --muted: #d9cbc8;              /* ink-2 — 11.7:1 on surface */
+  --faint: #a59195;              /* the page's muted — 6.6:1 on bg */
+  --faint-deco: #79656b;
+
+  /* ── the signal (primary + effort/heat family) ─────────────────────── */
+  --lime: #c23b2f;               /* signal red, AA-tuned (3.7:1 display on bg) */
+  --lime-dim: #a93546;           /* accent-grad dark end, verbatim */
+  --lime-glow: rgba(217, 74, 61, 0.14);
+  --coral: #df5040;              /* steddi red, AA-lifted from #d94a3d (4.7:1 on surface); #d94a3d itself survives in the gradients */
+  --coral-glow: rgba(217, 74, 61, 0.14);
+  --amber: #ff8f7d;              /* red-bright family, warning */
+  --sky: #dba7a0;                /* pale rose — info (no cool hues on this page) */
+
+  --success: #e8a396;            /* "measured & verified" pale rose — 9.4:1 */
+  --danger: #ff6a55;             /* red-bright, verbatim — 6.9:1 */
+  --urgency: #ff3b2f;            /* THE 655 nm laser — verbatim, 5.5:1 */
+
+  --energy: #a93546;             /* maroon plate (accent-grad start) */
+  --energy-light: #f1c9c2;       /* initials on the tint */
+  --energy-tint: #2a161b;
+
+  --dz-bg: #170d10;              /* the vignette edge of the blueprint */
+  --dz3-surface: #2b1216;
+  --dz-hero: #3a1418;
+
+  /* ── type — the page's exact stack ─────────────────────────────────── */
+  --font-display: 'Sora', 'Inter', system-ui, sans-serif;
+  --font-body: 'Inter', system-ui, -apple-system, 'Segoe UI', sans-serif;
+  --font-mono: 'JetBrains Mono', ui-monospace, 'SF Mono', Menlo, monospace;
+
+  /* ── geometry — --r:10px, one ease, everything hairline ────────────── */
+  --radius: 10px;
+  --radius-sm: 6px;
+  --radius-lg: 12px;
+  --radius-xl: 16px;
+  --pill: 999px;
+
+  --on-accent: #ffffff;          /* 5.3:1 on signal red */
+  --primary-hover: #d94a3d;
+  --on-warn: #0f0b0d;            /* 5.4:1 on the laser red */
+  --on-gold: var(--on-accent);
+
+  /* the page's two gradients, as reusable ink */
+  --grad-accent: linear-gradient(135deg, #a93546, #c23b2f);
+  --grad-text: linear-gradient(100deg, #d94a3d, #ff6a55);
+
+  /* BOARD EXTRAS — the measured track */
+  --felt: #171017;               /* the blueprint floor */
+  --felt-deep: #120c11;
+  --felt-line: rgba(217, 74, 61, 0.32);
+  --lane: #a93546;
+  --lane-paint: rgba(241, 232, 230, 0.5);
+  --rail: #2c1f26;
+  --rail-edge: rgba(241, 232, 230, 0.35);
+
+  --chip-white: #f1e8e6;
+  --chip-red: #d94a3d;
+  --chip-blue: #a93546;
+  --chip-gold: #ff6a55;
+
+  --card-back-1: #7c2736;        /* maroon */
+  --card-back-2: #5a1c28;        /* maroon-deep */
+  --card-face: #20161c;
+
+  --pop-shadow: rgba(0, 0, 0, 0.5);
+  --speed: 0.6s;
+}
+/* ── steddi · MATERIAL — engineering drawing + the laser ─────────────── */
+[data-theme="steddi"] {
+  /* the blueprint page: grain + 8px minor grid + red 96px major grid +
+     the vignette that lets text win at the edges (all verbatim ratios) */
+  --mat-page:
+    url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='180' height='180'%3E%3Cfilter id='n'%3E%3CfeTurbulence type='fractalNoise' baseFrequency='.85' numOctaves='3'/%3E%3C/filter%3E%3Crect width='180' height='180' filter='url(%23n)'/%3E%3C/svg%3E"),
+    linear-gradient(rgba(241, 232, 230, 0.03) 1px, transparent 1px),
+    linear-gradient(90deg, rgba(241, 232, 230, 0.03) 1px, transparent 1px),
+    linear-gradient(rgba(217, 74, 61, 0.06) 1px, transparent 1px),
+    linear-gradient(90deg, rgba(217, 74, 61, 0.06) 1px, transparent 1px),
+    radial-gradient(900px 520px at 74% 6%, rgba(255, 59, 47, 0.1), transparent 68%),
+    radial-gradient(120% 90% at 50% 40%, transparent 40%, rgba(15, 11, 13, 0.72) 100%),
+    linear-gradient(#0f0b0d, #140e11);
+}
+[data-theme="steddi"] body,
+[data-theme="steddi"] .mat-page {
+  background-size: 180px 180px, 8px 8px, 8px 8px, 96px 96px, 96px 96px, auto, auto, auto;
+  background-blend-mode: overlay, normal, normal, normal, normal, normal, normal, normal;
+}
+[data-theme="steddi"] body {
+  animation: matSteddiDrift 30s linear infinite;      /* the grid drifts */
+}
+/* THE 655 nm TELL — the Class-2 laser sweeps the whole page every 11 s */
+[data-theme="steddi"] body::after {
+  content: "";
+  position: fixed; left: 0; right: 0; top: 0; height: 2px;
+  z-index: 45; pointer-events: none; opacity: 0;
+  background: linear-gradient(90deg, transparent, rgba(255, 59, 47, 0) 6%, #ff3b2f 48%, rgba(255, 59, 47, 0.9) 52%, transparent 94%, transparent);
+  box-shadow: 0 0 14px rgba(255, 59, 47, 0.5), 0 0 34px rgba(255, 59, 47, 0.2);
+  animation: matSteddiLaser 11s linear infinite;
+}
+@keyframes matSteddiDrift {
+  to { background-position: 0 0, 8px 8px, 8px 8px, 96px 96px, 96px 96px, 0 0, 0 0, 0 0; }
+}
+@keyframes matSteddiLaser {
+  0%   { transform: translateY(-4vh); opacity: 0; }
+  5%   { opacity: 0.55; }
+  90%  { opacity: 0.55; }
+  100% { transform: translateY(104vh); opacity: 0; }
+}
+[data-theme="steddi"] .mat-surface {          /* the diag/tbl panel — hairline plum */
+  background: linear-gradient(180deg, rgba(217, 74, 61, 0.04), transparent 26%), var(--surface);
+  border: 1px solid var(--line);
+  border-radius: 10px;
+  padding: 16px;
+  transition: border-color 0.2s cubic-bezier(0.22, 0.61, 0.36, 1);
+}
+[data-theme="steddi"] .mat-surface:hover { border-color: var(--line-bright); }
+[data-theme="steddi"] .mat-btn {              /* the red gradient plate + its glow */
+  font-family: var(--font-body);
+  font-weight: 600;
+  font-size: 14px;
+  color: var(--on-accent);
+  background: linear-gradient(135deg, #a93546, #c23b2f);
+  border: 0;
+  border-radius: 8px;
+  padding: 11px 20px;
+  box-shadow: 0 6px 22px rgba(169, 53, 70, 0.3);
+  transition: transform 0.18s cubic-bezier(0.22, 0.61, 0.36, 1), box-shadow 0.18s cubic-bezier(0.22, 0.61, 0.36, 1);
+}
+[data-theme="steddi"] .mat-btn:hover { transform: translateY(-2px); box-shadow: 0 10px 30px rgba(217, 74, 61, 0.4); }
+[data-theme="steddi"] .mat-btn:active { transform: translateY(0); box-shadow: 0 3px 12px rgba(169, 53, 70, 0.3); }
+[data-theme="steddi"] .mat-btn--ghost {       /* btn-s — the quiet instrument */
+  background: rgba(25, 18, 23, 0.6);
+  color: var(--muted);
+  border: 1px solid var(--line-bright);
+}
+[data-theme="steddi"] .mat-btn--ghost:hover { border-color: var(--coral); color: var(--text); }
+[data-theme="steddi"] .mat-num {              /* the KPI — gradient-inked mono */
+  font-family: var(--font-mono);
+  font-weight: 600;
+  font-size: 44px;
+  letter-spacing: -0.02em;
+  font-variant-numeric: tabular-nums;
+  background: linear-gradient(100deg, #d94a3d, #ff6a55);
+  -webkit-background-clip: text;
+  background-clip: text;
+  color: transparent;
+}
+[data-theme="steddi"] .mat-divider {          /* DIMENSION LINE — ticks + arrowheads */
+  position: relative;
+  height: 14px;
+  border: 0;
+  margin: 14px 0;
+  background:
+    linear-gradient(#d94a3d, #d94a3d) left center / 1px 12px no-repeat,
+    linear-gradient(#d94a3d, #d94a3d) right center / 1px 12px no-repeat,
+    linear-gradient(#d94a3d, #d94a3d) center / 100% 1px no-repeat;
+  opacity: 0.5;
+}
+[data-theme="steddi"] .mat-divider::before,
+[data-theme="steddi"] .mat-divider::after {
+  content: "";
+  position: absolute; top: 50%; margin-top: -4px;
+  border-top: 4px solid transparent; border-bottom: 4px solid transparent;
+}
+[data-theme="steddi"] .mat-divider::before { left: 1px; border-right: 7px solid #d94a3d; }
+[data-theme="steddi"] .mat-divider::after { right: 1px; border-left: 7px solid #d94a3d; }
+[data-theme="steddi"] .mat-progress {         /* the scroll-progress beam */
+  height: 4px;
+  border-radius: 2px;
+  background: var(--surface-2);
+  overflow: hidden;
+}
+[data-theme="steddi"] .mat-progress i {
+  display: block; height: 100%;
+  background: linear-gradient(90deg, #a93546, #ff3b2f);
+  box-shadow: 0 0 10px rgba(255, 59, 47, 0.4);
+  transition: width 0.6s cubic-bezier(0.22, 0.61, 0.36, 1);
+}
+[data-theme="steddi"] .mat-chip {             /* the .tag — mono, letterspaced */
+  font-family: var(--font-mono);
+  font-size: 10.5px;
+  font-weight: 400;
+  letter-spacing: 0.2em;
+  text-transform: uppercase;
+  color: #ff6a55;
+  background: rgba(217, 74, 61, 0.14);
+  border: 1px solid var(--line-bright);
+  border-radius: 999px;
+  padding: 6px 11px;
+  transition: border-color 0.18s cubic-bezier(0.22, 0.61, 0.36, 1), color 0.18s cubic-bezier(0.22, 0.61, 0.36, 1);
+}
+[data-theme="steddi"] .mat-chip:hover { border-color: var(--coral); color: #ff8f7d; }
+[data-theme="steddi"] .mat-chip.is-on { background: var(--lime); color: var(--on-accent); border-color: var(--lime); }
+[data-theme="steddi"] .mat-input {            /* the quiet field, red focus ring */
+  font-family: var(--font-body);
+  font-size: 15px;
+  color: var(--text);
+  background: rgba(25, 18, 23, 0.6);
+  border: 1px solid var(--line);
+  border-radius: 8px;
+  padding: 10px 12px;
+  transition: border-color 0.18s cubic-bezier(0.22, 0.61, 0.36, 1), box-shadow 0.18s cubic-bezier(0.22, 0.61, 0.36, 1);
+}
+[data-theme="steddi"] .mat-input:focus {
+  outline: none;
+  border-color: #d94a3d;
+  box-shadow: 0 0 0 3px rgba(217, 74, 61, 0.14);
+}
+[data-theme="steddi"] .mat-avatar {           /* the timeline node — halo ring */
+  font-family: var(--font-display);
+  font-weight: 700;
+  color: var(--text);
+  background: var(--surface-2);
+  border: 2px solid var(--coral);
+  box-shadow: 0 0 0 4px rgba(217, 74, 61, 0.12);
+}
+[data-theme="steddi"] .mat-dialog {           /* the CALLOUT — datum edge + fade */
+  background: linear-gradient(90deg, rgba(217, 74, 61, 0.07), transparent 70%), var(--surface);
+  border: 1px solid var(--line);
+  border-left: 2px solid var(--coral);
+  border-radius: 0 10px 10px 0;
+  padding: 18px 20px;
+  animation: matSteddiMist 1.25s cubic-bezier(0.22, 0.61, 0.36, 1) both;
+}
+[data-theme="steddi"] .mat-dialog__title { font-family: var(--font-display); font-weight: 600; letter-spacing: -0.015em; }
+@keyframes matSteddiMist {
+  from { filter: blur(18px); opacity: 0; }
+  to   { filter: blur(0); opacity: 1; }
+}
+[data-theme="steddi"] .mat-badge {            /* the mono annotation — bp-note */
+  font-family: var(--font-mono);
+  font-weight: 400;
+  font-size: 10px;
+  letter-spacing: 0.22em;
+  text-transform: uppercase;
+  color: #ff6a55;
+  background: rgba(15, 11, 13, 0.78);
+  border: 1px solid rgba(217, 74, 61, 0.45);
+  border-radius: 4px;
+  padding: 5px 9px;
+}
+[data-theme="steddi"] .mat-dz {               /* the laser warning strip */
+  position: relative;
+  font-family: var(--font-mono);
+  font-size: 11px;
+  font-weight: 400;
+  letter-spacing: 0.16em;
+  text-transform: uppercase;
+  color: #ff6a55;
+  background: rgba(255, 59, 47, 0.12);
+  border: 1px solid rgba(255, 59, 47, 0.4);
+  border-radius: 6px;
+  padding: 10px 12px 10px 26px;
+}
+[data-theme="steddi"] .mat-dz::before {       /* the blinking LED — scLed */
+  content: "";
+  position: absolute; left: 10px; top: 50%;
+  width: 6px; height: 6px; margin-top: -3px;
+  border-radius: 50%;
+  background: #ff3b2f;
+  box-shadow: 0 0 8px rgba(255, 59, 47, 0.7);
+  animation: matSteddiLed 1.2s steps(2, end) infinite;
+}
+@keyframes matSteddiLed { from { opacity: 0.9; } to { opacity: 0.15; } }
+/* ── steddi · reduced motion — the drawing is still; the laser parks ─── */
+@media (prefers-reduced-motion: reduce) {
+  [data-theme="steddi"] body,
+  [data-theme="steddi"] body::after,
+  [data-theme="steddi"] .mat-dz::before,
+  [data-theme="steddi"] .mat-dialog { animation: none; }
+  [data-theme="steddi"] body::after { opacity: 0; }
+}

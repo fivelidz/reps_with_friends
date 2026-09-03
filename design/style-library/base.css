@@ -174,13 +174,13 @@
    ═══════════════════════════════════════════════════════════════════════ */
 
 @media (prefers-reduced-motion: reduce) {
-  {
+  *, *::before, *::after {
     animation: none !important;
   }
 }
 
 @media (prefers-reduced-motion: reduce) {
-  {
+  *, *::before, *::after {
     transition-duration: 0.01s !important;
   }
 }

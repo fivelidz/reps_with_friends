@@ -295,6 +295,11 @@ b { color: var(--text); }
   background: color-mix(in srgb, #d9a521 82%, #fff);
   border: 1px solid #1c1712;
 }
+.st-card__flag--variant {
+  color: var(--coral);
+  border: 1px solid color-mix(in srgb, var(--coral) 55%, transparent);
+  background: color-mix(in srgb, var(--coral) 8%, transparent);
+}
 
 /* ◈ marker on strip captions (mined kits) */
 .st-cell__site { color: var(--lime); font-size: 1.05em; }

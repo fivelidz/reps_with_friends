@@ -56,9 +56,43 @@
 .wall-btn:hover { transform: translateY(-1px); filter: brightness(1.06); }
 .wall-note { color: var(--faint); font-size: 12px; }
 
-/* tag legend */
+/* tag legend — clickable filters (v2) */
 .wall-tags { display: flex; gap: 8px; flex-wrap: wrap; margin-top: 14px; }
 .wall-tags .chip { cursor: default; }
+.wall-tags .chip[data-tag] {
+  cursor: pointer;
+  font: inherit;
+  font-family: var(--font-mono);
+  transition: transform var(--ease), background var(--ease), color var(--ease);
+}
+.wall-tags .chip[data-tag]:hover { transform: translateY(-1px); }
+.wall-tags .chip--active {
+  background: var(--lime);
+  color: var(--on-gold);
+  border-color: var(--lime);
+}
+
+/* section group heads (v2: ideation board vs earlier scrape) */
+.group-head {
+  column-span: all;
+  margin: 30px 0 6px;
+  padding-bottom: 10px;
+  border-bottom: 1px dashed var(--line-bright);
+}
+.group-head:first-child { margin-top: 14px; }
+.group-label {
+  font-family: var(--font-mono);
+  font-size: 11.5px;
+  letter-spacing: 0.2em;
+  color: var(--lime);
+  margin: 0 0 4px;
+}
+.group-sub {
+  font-size: 12px;
+  color: var(--faint);
+  margin: 0;
+  line-height: 1.5;
+}
 
 .chip {
   font-family: var(--font-mono);

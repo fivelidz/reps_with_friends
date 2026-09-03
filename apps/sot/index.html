@@ -1,0 +1,24 @@
+<!doctype html>
+<html lang="en">
+<head>
+  <meta charset="utf-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover" />
+  <meta name="theme-color" content="#07070c" />
+  <title>Reps With Friends — V4</title>
+  <link rel="stylesheet" href="sot.css" />
+  <link rel="icon" href="data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 32 32'%3E%3Crect width='32' height='32' rx='8' fill='%2307070c'/%3E%3Ctext x='16' y='23' font-size='18' text-anchor='middle' fill='%23f5c445' font-family='Arial Black'%3ER%3C/text%3E%3C/svg%3E" />
+</head>
+<body>
+  <div id="app" aria-live="polite"></div>
+  <div class="toast" id="toast"></div>
+
+  <!-- shared daily-battle engine (apps/sot-engine.js via serve.ts /v4 route) —
+       the RULES layer: daily-200 battles, first-to-target Daily Wins, seasons,
+       stakes, SOT power-ups. engine.js (module) consumes its API and keeps the
+       app's state store + persistence on top of it. -->
+  <script type="module" src="sot-engine.js"></script>
+  <script type="module" src="engine.js"></script>
+  <script type="module" src="sfx.js"></script>
+  <script type="module" src="app.js"></script>
+</body>
+</html>

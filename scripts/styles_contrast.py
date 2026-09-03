@@ -118,16 +118,45 @@ theme_blocks = {}
 for src in THEMES_SOURCES:
     for sel, props in parse_blocks(src.read_text()).items():
         theme_blocks.setdefault(sel, {}).update(props)
-order = [":root"] + [f'[data-theme="{tid}"]' for tid in [
-    "lime", "gold", "sunset", "neon", "forest",
-    "board", "mycelial", "techy", "track", "cardtable",
-    "caveman", "n64", "goldeneye", "neobrut",
-    "x10", "doof", "qalarc", "tradez", "gmux", "volkus", "endispute",
-]]
+order = [":root"] + [
+    f'[data-theme="{tid}"]'
+    for tid in [
+        "lime",
+        "gold",
+        "sunset",
+        "neon",
+        "forest",
+        "board",
+        "mycelial",
+        "techy",
+        "track",
+        "cardtable",
+        "caveman",
+        "n64",
+        "goldeneye",
+        "neobrut",
+        "neobrut-field",
+        "neobrut-zine",
+        "neobrut-ticket",
+        "neobrut-locker",
+        "x10",
+        "doof",
+        "qalarc",
+        "tradez",
+        "gmux",
+        "volkus",
+        "endispute",
+        "steddi",
+    ]
+]
 theme_blocks.setdefault(":root", {})  # lime row uses :root defaults
 # :root row should also see themes.css :root additions (--on-accent etc.)
 # the default (unthemed) page IS the lime skin — evaluate it as such
-theme_blocks[":root"] = {**root, **theme_blocks.get(":root", {}), **theme_blocks.get('[data-theme="lime"]', {})}
+theme_blocks[":root"] = {
+    **root,
+    **theme_blocks.get(":root", {}),
+    **theme_blocks.get('[data-theme="lime"]', {}),
+}
 
 fails = 0
 for sel in order:

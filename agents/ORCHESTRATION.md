@@ -17,7 +17,7 @@ PRODUCT SURFACES (all on rwf.qalarc.com + localhost:4173)
   /figma-app     v1 APP — Ben's design, real engine (65 screens)
   /v2            v2 APP — the board-game/track direction (CURRENT)
   /demo          90s match replay
-  /styles        theme gallery (13 skins)
+  /styles        theme gallery (26 kits incl. 4 Sports Poster variants)
   /sfx           sound-effect demo page
   /avatars       avatar gallery (Geno mocap, frogs, photo avatars)
   /atelier       garment workshop (the frog's outfit)

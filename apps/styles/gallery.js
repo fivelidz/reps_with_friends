@@ -28,7 +28,11 @@
     { id: "caveman",   name: "Caveman",           desc: "…carved stone and fire — ROCK buttons with chiselled facets, ochre cave-paint walls, bone-white type, fire-glow danger." },
     { id: "n64",       name: "N64",               desc: "…a low-poly fog console — vertex-gradient washes, stepped bevels, cartridge-slot buttons, square avatars, fog reveals." },
     { id: "goldeneye", name: "GoldenEye",         desc: "…a spy dossier HUD — gunmetal notched panels, watch gauges, typewriter objectives under redaction, reticle focus." },
-    { id: "neobrut",   name: "Sports Poster",     desc: "…a neo-brutalist sports poster with a soft underbelly — huge duotone type shouting on warm cream, halftone dots, thick ink rules, sticker badges, an exposed grid — then every corner underneath is rounded, every press soft, every hover gentle. THE founder-named favourite.", fav: true },
+    { id: "neobrut",   name: "Sports Poster · original", desc: "…a neo-brutalist sports poster with a soft underbelly — huge duotone type shouting on warm cream, halftone dots, thick ink rules, sticker badges, an exposed grid — then every corner underneath is rounded, every press soft, every hover gentle. THE founder-named favourite; the baseline the four variants below riff on.", fav: true },
+    { id: "neobrut-field",  name: "Sports Poster · Field Day",  desc: "…the SPORTS side dominant — a stadium day-poster: giant condensed scoreboard capitals on ink modules, team-badge roundels, ticket-stub cards with punched perforations, halftone crowd haze, mown-stripe rules — and the underbelly is cream paper, corners rounded under, ONE warm clay plate shadow, buttery 0.4s eases.", variant: true },
+    { id: "neobrut-zine",   name: "Sports Poster · Fan Zine",   desc: "…the POSTER side dominant — the club fanzine photocopied at 3am: heavy copier grain, plates misregistered 2–3px into cyan + riso-pink, hand-torn panels, typewriter headlines with marker swipes, rubber-stamp toggles — and the underbelly is pastel risograph inks and a gentle wobble.", variant: true },
+    { id: "neobrut-ticket", name: "Sports Poster · Wayfinding", desc: "…the STRUCTURAL side — the venue as a signage system: departure-board numerals flipping amber on ink modules, numbered-section badges, pictogram rings, dashed platform rules with floor arrows — and the underbelly is soft paper, 16px corners on every hard module, ink eased off pure black.", variant: true },
+    { id: "neobrut-locker", name: "Sports Poster · Clubhouse",  desc: "…the CLUBHOUSE side — the equipment room after training: vent-slot lockers, screwed-on nameplates, jersey numbers on mesh bibs, sports-tape rules, wristband toggles — everything towel-soft, rounded, comfortably worn in.", variant: true },
     { id: "x10",       name: "Gum Professional",  desc: "…the professional's directory after dark — deep green-black paper, gum-green actions, gold hairline rewards, mono index labels, listings on quiet zebra stripes.", origin: "x10.au" },
     { id: "doof",      name: "Void Rave",         desc: "…a bush-doof shrine at 3am — black void, one rotating trinity of purple/orange/cyan light, gradient-inked headings, panels that glow like lit stained glass, and nothing is quite square.", origin: "doof.ing" },
     { id: "qalarc",    name: "Pastel Studio",     desc: "…a light-flooded studio in spring — cream paper, glass cards floating on pastel light, serif italic headlines, mono caption labels, everything pill-shaped and weightless.", origin: "qalarc.com" },
@@ -36,8 +40,9 @@
     { id: "gmux",      name: "Forest Terminal",   desc: "…a field terminal in a green clearing — sage paper, a mono grid, forest-green GO buttons, clay alerts, honey waits, every agent a status dot first and a name second.", origin: "gmux.ai" },
     { id: "volkus",    name: "Humanist",          desc: "…a portrait gallery at dusk — quiet black walls, warm brown spotlights, serif names, typewriter captions, and a gradient of eight skin tones running through every chart.", origin: "volkus.net" },
     { id: "endispute", name: "Legal Brief",       desc: "…a signed legal brief — cream paper, ink hairlines and gold double rules, elegant serif headings, typewriter marginalia, and not a single rounded corner anywhere.", origin: "endispute.com.au" },
+    { id: "steddi",    name: "Steddi",            desc: "…a rail-welding measurement blueprint at night — warm black paper over a fine drifting grid, mono annotations in the margins, dimension-line rules, KPI numbers inked in gradient red, and a 655 nm Class-2 laser sweeping the page every 11 seconds.", origin: "your page" },
   ];
-  const KIT_THEMES = ["board", "mycelial", "techy", "track", "cardtable", "caveman", "n64", "goldeneye", "neobrut", "x10", "doof", "qalarc", "tradez", "gmux", "volkus", "endispute"];
+  const KIT_THEMES = ["board", "mycelial", "techy", "track", "cardtable", "caveman", "n64", "goldeneye", "neobrut", "neobrut-field", "neobrut-zine", "neobrut-ticket", "neobrut-locker", "x10", "doof", "qalarc", "tradez", "gmux", "volkus", "endispute", "steddi"];
   const V2_THEMES = ["board", "mycelial", "techy", "track", "cardtable", "caveman", "n64", "goldeneye"];
   const SWATCH_SLOTS = [
     ["--bg", "bg"], ["--surface-2", "surface"], ["--lime", "primary"],
@@ -65,6 +70,7 @@
     const badges = [
       t.origin ? `<span class="st-card__flag st-card__flag--site" title="mined from the founder's live site">◈ from ${t.origin}</span>` : "",
       t.fav ? `<span class="st-card__flag st-card__flag--fav" title="the founder's named style">★ founder favourite</span>` : "",
+      t.variant ? `<span class="st-card__flag st-card__flag--variant" title="a reading of the founder's Sports Poster brief">◐ poster variant</span>` : "",
     ].filter(Boolean).join(" ");
     return `
       <article class="st-card" role="button" tabindex="0" data-theme-card="${t.id}" aria-pressed="false">

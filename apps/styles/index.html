@@ -3,8 +3,8 @@
 <head>
   <meta charset="utf-8">
   <meta name="viewport" content="width=device-width, initial-scale=1">
-  <title>Twenty-one material libraries</title>
-  <meta name="description" content="Twenty-one material libraries for RWF — fourteen built here plus seven mined from the founder's live sites — side-by-side phone mocks, arrow-key previews, and the component library in every skin.">
+  <title>Twenty-six material libraries</title>
+  <meta name="description" content="Twenty-six material libraries for RWF — eighteen built here (including four Sports Poster variants for founder review) plus eight mined from the founder's own pages — side-by-side phone mocks, arrow-key previews, and the component library in every skin.">
   <link rel="stylesheet" href="/design/fonts/fonts.css">
   <link rel="stylesheet" href="/design/tokens.css">
   <link rel="stylesheet" href="/design/themes.css">
@@ -18,10 +18,12 @@
     <div class="st-header__row">
       <div>
         <p class="st-overline">RWF · theme exploration</p>
-        <h1 class="st-title">Twenty-one material libraries</h1>
-        <p class="st-sub">One design system, twenty-one material kits — the original five,
-          the board-game nine, and <b>seven mined from your own sites</b> (x10.au, doof.ing,
-          qalarc.com, tradez.au, gmux.ai, volkus.net, endispute.com.au). Each is a
+        <h1 class="st-title">Twenty-six material libraries</h1>
+        <p class="st-sub">One design system, twenty-six material kits — the original five,
+          the board-game nine, <b>four readings of your Sports Poster brief</b> (Field Day,
+          Fan Zine, Wayfinding, Clubhouse — the original stays as baseline), and
+          <b>eight mined from your own pages</b> (x10.au, doof.ing, qalarc.com, tradez.au,
+          gmux.ai, volkus.net, endispute.com.au, and your steddi × qalarc page). Each is a
           <b>full design language</b> — components, type, motion and a contract-level
           <b>describe it as</b> label — and every pair is structurally distinct, not hue-adjacent.</p>
       </div>
@@ -41,8 +43,8 @@
   </header>
 
   <!-- ═══════════════ 1 · PICKER — names, descriptions, swatches ════════ -->
-  <section class="st-sec" id="picker" aria-label="The twenty-one themes">
-    <p class="st-kicker">01 · The catalogue — 5 originals + 9 game kits + 7 from your sites (◈)</p>
+  <section class="st-sec" id="picker" aria-label="The twenty-six themes">
+    <p class="st-kicker">01 · The catalogue — 5 originals + 9 game kits + 4 poster variants (◐) + 8 from your pages (◈)</p>
     <span class="st-kbd" id="kbdHint">← → swap · hold to scrub · 1–9 jump · esc exit · arrows work from here</span>
     <div class="st-cards" id="cards"><!-- rendered by gallery.js --></div>
   </section>
@@ -64,7 +66,7 @@
   <!-- ═══════════════ 3 · ON THE APP — the V2 board game, every skin ════ -->
   <section class="st-sec" id="ontheapp" aria-label="The V2 app in every material kit">
     <p class="st-kicker">03 · On the app — the V2 board game (/v2) in every material kit</p>
-    <p class="st-note">Sixteen kits are full design languages now, not palette swaps —
+    <p class="st-note">Twenty-one kits are full design languages now, not palette swaps —
       each rebuilds the app's real components (the table, lanes, the pot, runner tokens,
       the fanned card hand, buttons, boards) with its own type, structure and motion.
       These are the app's actual screens wearing each skin: home + battle, per theme.</p>
@@ -332,11 +334,13 @@
   <footer class="st-footer">
     <p><b>How it works</b> — the portable library <code>design/style-library/</code>
       (one file per kit + <code>base.css</code> + <code>index.css</code> + README) holds
-      twenty-one <code>[data-theme]</code> kits over the slot contract in
+      twenty-six <code>[data-theme]</code> kits over the slot contract in
       <code>design/tokens.css</code>; <code>design/themes.css</code> imports it and adds
-      the RWF app bindings. The ◈ kits are mined from the founder's live sites —
-      palette + type + structure, verbatim from their CSS: five originals (tokens + component feel)
-      and nine material kits including the new <b>Sports Poster</b> as full languages (tokens + component CSS + type +
+      the RWF app bindings. The ◈ kits are mined from the founder's own pages —
+      palette + type + structure, verbatim from their CSS (steddi from
+      qalarc.com/projects/steddi-overlap) — and the ◐ kits are four structurally-distinct
+      readings of the founder's <b>Sports Poster · soft underbelly</b> brief: five originals (tokens + component feel)
+      and the material kits (tokens + component CSS + type +
       motion for the <code>fg-*</code> library <i>and</i> the <code>bd-*</code>
       board app). Load both stylesheets, set
       <code>&lt;html data-theme="…"&gt;</code>, and every token consumer flips.

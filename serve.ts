@@ -408,6 +408,23 @@ const server = Bun.serve({
       // from board (v2); v1 + v2 untouched. three.js + models ride the
       // existing /site/lib + /models routes.
       r = await dirRoute("apps/v3", url) ?? new Response("v3 not found", { status: 404 });
+    } else if (p === "/v4" || p.startsWith("/v4/")) {
+      // V4 SoT APP — the Source of Truth app (apps/sot): daily battle to a
+      // 200-adjusted-rep target, first-to-target Daily Win (battle continues,
+      // later finishers bank the day), weekly seasons, stakes (dinner / dare /
+      // deliverable / charity pot) and the SOT power-up canon. v1/v2/v3 are
+      // untouched. /v4/sot-engine.js maps to the shared daily-battle engine
+      // (apps/sot-engine.js) when that lane lands it; until then a stub is
+      // served and the app runs its local model of the same rules
+      // (apps/sot/engine.js — zero console noise either way).
+      if (p === "/v4/sot-engine.js") {
+        r = (await file("apps/sot-engine.js", p)) ?? new Response(
+          "/* shared engine not present — apps/sot/engine.js local model active */\n",
+          { headers: { "content-type": "text/javascript; charset=utf-8", "cache-control": "no-cache" } },
+        );
+      } else {
+        r = await dirRoute("apps/sot", url) ?? new Response("v4 not found", { status: 404 });
+      }
     } else if (p === "/v1" || p.startsWith("/v1/")) {
       // v1.1 coverage hub — the share page (rwf.qalarc.com/v1): every live
       // surface, dashboard and business document on one page (apps/hub-public).

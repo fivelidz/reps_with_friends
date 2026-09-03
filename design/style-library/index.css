@@ -16,6 +16,10 @@
 @import url("theme-n64.css");
 @import url("theme-goldeneye.css");
 @import url("theme-neobrut.css");
+@import url("theme-neobrut-field.css");
+@import url("theme-neobrut-zine.css");
+@import url("theme-neobrut-ticket.css");
+@import url("theme-neobrut-locker.css");
 @import url("theme-x10.css");
 @import url("theme-doof.css");
 @import url("theme-qalarc.css");
@@ -23,3 +27,4 @@
 @import url("theme-gmux.css");
 @import url("theme-volkus.css");
 @import url("theme-endispute.css");
+@import url("theme-steddi.css");

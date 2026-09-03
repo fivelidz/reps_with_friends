@@ -30,14 +30,20 @@
     { id: "n64",       font: { spec: "600 16px 'Fredoka'",        label: "Fredoka" } },
     { id: "goldeneye", font: { spec: "700 16px 'JetBrains Mono'", label: "JetBrains Mono" } },
     { id: "neobrut",   font: { spec: "400 16px 'Anton'",          label: "Anton" } },
+    /* Sports Poster variants (2026-09-03 — same AA bar, structural riffs) */
+    { id: "neobrut-field",  font: { spec: "400 16px 'Anton'",          label: "Anton" } },
+    { id: "neobrut-zine",   font: { spec: "700 16px 'Space Mono'",     label: "Space Mono" } },
+    { id: "neobrut-ticket", font: { spec: "700 16px 'Space Grotesk'",  label: "Space Grotesk" } },
+    { id: "neobrut-locker", font: { spec: "800 16px 'Archivo'",        label: "Archivo" } },
     /* founder-site kits (mined 2026-09-03 — same AA bar as the rest) */
     { id: "x10",       font: { spec: "700 16px 'Space Grotesk'",  label: "Space Grotesk" } },
     { id: "doof",      font: { spec: "700 16px 'Space Grotesk'",  label: "Space Grotesk" } },
     { id: "qalarc",    font: { spec: "400 16px 'DM Serif Display'", label: "DM Serif Display" } },
     { id: "tradez",    font: { spec: "800 16px 'Fraunces'",       label: "Fraunces" } },
     { id: "gmux",      font: { spec: "700 16px 'JetBrains Mono'", label: "JetBrains Mono" } },
-    { id: "volkus",    font: { spec: "400 16px Georgia",          label: "Georgia (system serif)" } },
+    { id: "volkus",    font: { spec: "400 16px Georgia",        label: "Georgia (system serif)" } },
     { id: "endispute", font: { spec: "600 16px 'Cormorant Garamond'", label: "Cormorant Garamond" } },
+    { id: "steddi",    font: { spec: "700 16px 'Sora'",          label: "Sora" } },
   ];
 
   /* WCAG 2.1 relative luminance + contrast — same math as the python script */

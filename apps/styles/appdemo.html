@@ -19,7 +19,7 @@
   <title>RWF · app theme demo</title>
   <script>
     (() => {
-      const OK = /^(lime|gold|sunset|neon|forest|board|mycelial|techy|track|cardtable|caveman|n64|goldeneye|neobrut|x10|doof|qalarc|tradez|gmux|volkus|endispute)$/;
+      const OK = /^(lime|gold|sunset|neon|forest|board|mycelial|techy|track|cardtable|caveman|n64|goldeneye|neobrut|neobrut-field|neobrut-zine|neobrut-ticket|neobrut-locker|x10|doof|qalarc|tradez|gmux|volkus|endispute|steddi)$/;
       const t = new URLSearchParams(location.search).get("t") || "board";
       if (OK.test(t)) document.documentElement.dataset.theme = t;
       const assert = () => {
@@ -505,7 +505,7 @@
     </div></div></div></div>
   </main>
 
-  <p class="demo-fontload" aria-hidden="true"><i style="font-family:'Space Grotesk';font-weight:700">A1</i><i style="font-family:'Anton';font-weight:400">A2</i><i style="font-family:'Inter';font-weight:600">A3</i><i style="font-family:'Archivo';font-weight:900">A4</i><i style="font-family:'JetBrains Mono';font-weight:700">A5</i><i style="font-family:'Fredoka';font-weight:600">A6</i></p>
+  <p class="demo-fontload" aria-hidden="true"><i style="font-family:'Space Grotesk';font-weight:700">A1</i><i style="font-family:'Anton';font-weight:400">A2</i><i style="font-family:'Inter';font-weight:600">A3</i><i style="font-family:'Archivo';font-weight:900">A4</i><i style="font-family:'JetBrains Mono';font-weight:700">A5</i><i style="font-family:'Fredoka';font-weight:600">A6</i><i style="font-family:'Sora';font-weight:700">A7</i><i style="font-family:'Space Mono';font-weight:700">A8</i></p>
 
   <script>
     (() => {

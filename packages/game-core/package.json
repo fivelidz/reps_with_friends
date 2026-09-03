@@ -1,7 +1,7 @@
 {
   "name": "@rwf/game-core",
-  "version": "0.1.0",
-  "description": "Reps With Friends — pure game engine: 300-format matches, handicap scoring, charity pot ledger",
+  "version": "4.0.0",
+  "description": "Reps With Friends — pure game engine. V4 (SOT): daily-200 battles (first-to-target Daily Win + bank-day continuation), weekly seasons w/ 1:1 points + stakes (dinner/dare/deliverable/charity), SOT-canon power-ups, team scaffold. Legacy 300-format kept archived + exported.",
   "type": "module",
   "main": "src/index.ts",
   "scripts": {

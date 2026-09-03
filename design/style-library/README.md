@@ -1,7 +1,7 @@
 # The Personal Styles Repository
 
 **One design-system asset, mined and built across every qalarc project.**
-Twenty-one complete, app-agnostic "material kits" — portable to ANY project in
+Twenty-six complete, app-agnostic "material kits" — portable to ANY project in
 three lines.
 
 Born 2026-09-03 from the founder's brief: *"building a full and varied style
@@ -68,7 +68,7 @@ never overwritten by the splitter.
 
 ---
 
-## The catalogue — 21 kits, every pair structurally distinct
+## The catalogue — 26 kits, every pair structurally distinct
 
 Each kit is a **full design language**: page texture, button material, divider
 language, numeral language, shadow language, motion signature. The rule that
@@ -77,7 +77,7 @@ they must still be recognisably different** (enforced headlessly — grayscale
 pairwise diff + a 10-dimension structural signature, see
 `apps/styles/e2e.mjs`).
 
-### Built for RWF (14)
+### Built for RWF (18)
 
 | id | name | describe it as… |
 |---|---|---|
@@ -94,9 +94,13 @@ pairwise diff + a 10-dimension structural signature, see
 | `caveman` | Caveman | …carved stone and fire — ROCK buttons with chiselled facets, ochre cave-paint walls, bone-white type, fire-glow danger. |
 | `n64` | N64 | …a low-poly fog console — vertex-gradient washes, stepped bevels, cartridge-slot buttons, square avatars, fog reveals. |
 | `goldeneye` | GoldenEye | …a spy dossier HUD — gunmetal notched panels, watch gauges, typewriter objectives under redaction, reticle focus. |
-| `neobrut` ★ | **Sports Poster** | …a neo-brutalist sports poster with a soft underbelly — huge duotone type shouting on warm cream, halftone dots, thick ink rules, sticker badges, an exposed grid — then every corner underneath is rounded, every press soft, every hover gentle. **The founder-named favourite.** |
+| `neobrut` ★ | **Sports Poster · original** | …a neo-brutalist sports poster with a soft underbelly — huge duotone type shouting on warm cream, halftone dots, thick ink rules, sticker badges, an exposed grid — then every corner underneath is rounded, every press soft, every hover gentle. **The founder-named favourite; the baseline the four variants below riff on.** |
+| `neobrut-field` | Sports Poster · Field Day | …the SPORTS side dominant — a stadium day-poster: giant condensed scoreboard type on ink modules, team-badge roundels, ticket-stub chips with punched perforations, halftone crowd haze, mown-stripe rules — and the underbelly is cream paper, corners rounded under, one warm clay plate shadow, buttery 0.4s eases. |
+| `neobrut-zine` | Sports Poster · Fan Zine | …the POSTER side dominant — the club fanzine photocopied at 3am: heavy copier grain, plates misregistered 2–3px into cyan + riso-pink, hand-torn panels, typewriter headlines with marker swipes, rubber-stamp toggles — and the underbelly is pastel risograph inks and a gentle wobble. |
+| `neobrut-ticket` | Sports Poster · Wayfinding | …the STRUCTURAL side — the venue as a signage system: departure-board numerals flipping amber on ink modules, numbered-section badges, pictogram rings, dashed platform rules with floor arrows — and the underbelly is soft paper, 16px corners on every hard module, ink softened off pure black. |
+| `neobrut-locker` | Sports Poster · Clubhouse | …the CLUBHOUSE side (the agent's own fourth reading) — the equipment room after training: vent-slot lockers, screwed-on nameplates, jersey numbers on mesh bibs, sports-tape rules, wristband toggles — everything towel-soft, rounded, comfortably worn in. |
 
-### Mined from the founder's live sites (7) — ◈
+### Mined from the founder's live sites (8) — ◈
 
 Each kit was mined from the real CSS of a live property (2026-09-03): palette
 hexes verbatim, the site's type stack (vendored to `design/fonts/`), its
@@ -112,22 +116,25 @@ test.**
 | `gmux` | Forest Terminal | **gmux.ai** | sage-ivory `#edefe6`, paper `#fafbf3`, forest `#2e6b40` / clay `#9c4a2b` / honey `#8a6414`, JetBrains-Mono-everything, 22px dot grid, dashed rules, segmented progress, the ok/wait/alert/idle status-dot grammar |
 | `volkus` | Humanist | **volkus.net** | quiet black `#0d0d0d`, warm brown `#c27840` ("the mixed skin tone"), pale warm `#f0c49a`, **Georgia + Courier New (system)**, and the eight-step skin-tone ramp `#F5D5B8→#2C1506` as dividers/progress/rank plates |
 | `endispute` | Legal Brief | **endispute.com.au** | cream `#f4eedf`, ink `#0a0a0a`, gold `#d4a14a` rules (deep gold `#7d5a0e` wherever text needs AA), **Cormorant Garamond** + IBM Plex Mono, radius ZERO (the only sharp light kit), certificate double-rule frames, `[ bracketed ]` chips, ledger rows |
+| `steddi` | **Steddi — from your page** | **qalarc.com/projects/steddi-overlap** (styles.css?v=32 "rail measurement blueprint", mined 2026-09-03) | warm near-black `#0f0b0d`/`#191217`, plum hairlines `#2c1f26`, ink `#f1e8e6`, the red/maroon signal — red `#d94a3d`, red-bright `#ff6a55`, maroon `#7c2736`, **655nm laser `#ff3b2f`** — the fine 8px blueprint grid under a drifting red 96px major grid, KPI numerals gradient-clipped in JetBrains Mono, dimension-line dividers with ticks + arrowheads, callout panels with the 2px red datum edge, and the Class-2 laser sweeping the whole page every 11s. Type: **Sora** (the qalarc wordmark face) · Inter · JBMono. AA note: primary `#c23b2f` and effort `#df5040` are the AA-tuned twins of the site's `#d94a3d` (which survives in the gradients). |
 
 **Skipped as too-close to another kit** (founder rule: skip near-duplicates):
 `chanalyse.org` shares endispute's exact gold/cream pair (Fraunces vs
 Cormorant aside); `museall.qalarc.com/suite` is doof's trinity on navy;
 `biodata.fit` currently serves the qalarc.com page (parked alias). Revisit if
-any of them diverge. **`steddi` was never found** — no Pages project, no
-qalarc.com path, no local folder: *founder to point us at it* and a kit can be
-mined in minutes.
+any of them diverge. `steddi` — "never found" in the first mining pass —
+was located 2026-09-03 at the founder's own project page
+(qalarc.com/projects/steddi-overlap) and mined as the 8th site kit above.
 
 ### Distinction guarantees (enforced in `apps/styles/e2e.mjs`)
 
-- every pair of the 16 app kits differs in **≥3 of 10 structural dimensions**
+- every pair of the 21 app kits differs in **≥3 of 10 structural dimensions**
   (patterns, radii, border widths, shadow geometry, type) — not hue;
-- **grayscale pairwise check**: all 21 rendered in grayscale, every pair's
+- **grayscale pairwise check**: all 26 rendered in grayscale, every pair's
   mean pixel-Δ above threshold — structure survives colour-stripping;
-- `--primary` and `--bg` distinct across all 21;
+- `--primary` and `--bg` distinct across all 26;
+- each `neobrut-*` variant is additionally grayscale-distinct from the
+  original `neobrut` and from every other variant (same check, same bar);
 - WCAG AA per kit: text ≥4.5, faint ≥4.5, primary ≥3.0 (display),
   on-accent-on-primary ≥4.5, on-warn-on-urgency ≥4.5
   (offline source of truth: `scripts/styles_contrast.py`; live: `/styles` →

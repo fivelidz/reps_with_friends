@@ -4,15 +4,17 @@
    Protocol (same pattern as apps/figma-app/e2e.mjs).
 
    Walk:
-      1. /styles gallery boots — 13 theme cards, 13 demo iframes,
-         8 app-demo iframes (the V2 board game showcase)
+      1. /styles gallery boots — 26 theme cards, 26 demo iframes,
+         21 app-demo iframes (the V2 board game showcase)
       2. window.__rwfStylesVerify() — every check passes (distinct
          --primary/--bg per theme, AA ratios, fonts loaded)
-      3. ON THE APP — appdemo.html?t=… × 8: renders clean, zero console
+      3. ON THE APP — appdemo.html?t=… × 21: renders clean, zero console
          errors, and computed STYLE SIGNATURES (radius/border/shadow/
          pattern/font) differ per theme pair in ≥3/10 dims — proof the
          overhaul is structural, not hue-only
-      4. screenshots: compare strip + app strip + appdemo ×8 + preview ×5
+      4. screenshots: compare strip + app strip + appdemo ×26
+         + Sports Poster family (original + 4 variants) × 8 screens each
+         + preview ×5
       5. /figma-app boots in EACH theme — home + battle screens, zero
          console errors, data-theme applied, primary-button text follows
          the theme (no unthemed patches)
@@ -34,8 +36,9 @@ const CHROMIUM = "/usr/bin/chromium";
 const CDP_PORT = 9227;
 const THEMES = ["lime", "gold", "sunset", "neon", "forest"];
 const V2_THEMES = ["board", "mycelial", "techy", "track", "cardtable", "caveman", "n64", "goldeneye"];
-const SITE_THEMES = ["x10", "doof", "qalarc", "tradez", "gmux", "volkus", "endispute"];
-const ALL_THEMES = ["lime", "gold", "sunset", "neon", "forest", ...V2_THEMES, "neobrut", ...SITE_THEMES];
+const NEOBRUT_VARIANTS = ["neobrut-field", "neobrut-zine", "neobrut-ticket", "neobrut-locker"];
+const SITE_THEMES = ["x10", "doof", "qalarc", "tradez", "gmux", "volkus", "endispute", "steddi"];
+const ALL_THEMES = ["lime", "gold", "sunset", "neon", "forest", ...V2_THEMES, "neobrut", ...NEOBRUT_VARIANTS, ...SITE_THEMES];
 /* mined DNA — the founder's own hexes, straight from his live CSS */
 const SITE_DNA = {
   x10:       { bg: "#0b0e0b", primary: "#6E9A6A", site: "x10.au" },
@@ -45,8 +48,11 @@ const SITE_DNA = {
   gmux:      { bg: "#edefe6", primary: "#2e6b40", site: "gmux.ai" },
   volkus:    { bg: "#0d0d0d", primary: "#c27840", site: "volkus.net" },
   endispute: { bg: "#f4eedf", primary: "#7d5a0e", site: "endispute.com.au" },
+  steddi:    { bg: "#0f0b0d", primary: "#c23b2f", site: "qalarc.com/projects/steddi-overlap" },
 };
 const NEOBRUT_SCREENS = ["home", "battle", "log", "cards", "profile", "dialogs", "dz", "matlab"];
+/* per-variant structural tells — computed-style probes proving each variant
+   carries its OWN material (not a re-tint of the original). See C2. */
 
 /* ── assertions bookkeeping ───────────────────────────────────────────── */
 let step = 0, passed = 0;
@@ -164,11 +170,11 @@ console.log(`\nRWF STYLES E2E — ${BASE} (headless chromium)\n`);
 /* ── A · gallery boots ───────────────────────────────────────────────── */
 console.log("— GALLERY");
 await send("Page.navigate", { url: `${BASE}/styles/` });
-await waitFor(() => evalJs(`window.__rwfStylesReady === true && document.querySelectorAll('.st-card').length === 21`).catch(() => false),
+await waitFor(() => evalJs(`window.__rwfStylesReady === true && document.querySelectorAll('.st-card').length === 26`).catch(() => false),
   { label: "gallery ready" });
-await sleep(5000); // 21 eager iframes + fonts (lazy but settle slowly)
-ok(await evalJs(`document.querySelectorAll('.st-card').length === 21`), "13 theme cards render (5 originals + board eight)");
-ok(await evalJs(`document.querySelectorAll('[data-theme-frame]').length === 21`), "13 live iframes in the strip");
+await sleep(5000); // 26 eager iframes + fonts (lazy but settle slowly)
+ok(await evalJs(`document.querySelectorAll('.st-card').length === 26`), "26 theme cards render (5 originals + board eight + 4 poster variants + 8 mined)");
+ok(await evalJs(`document.querySelectorAll('[data-theme-frame]').length === 26`), "26 live iframes in the strip");
 ok((await evalJs(`document.querySelector('.st-card__name').textContent`)) === "Lime Athletic", "card 1 is Lime Athletic");
 
 /* clobber guard: /system's persisted gold (localStorage rwf-theme, owned by
@@ -189,7 +195,7 @@ const distinct = await evalJs(`(() => {
     getComputedStyle(f.contentDocument.documentElement).getPropertyValue('--lime').trim());
   return JSON.stringify(vals);
 })()`).then(JSON.parse);
-ok(new Set(distinct).size === 21, `--primary distinct across 21 themes`);
+ok(new Set(distinct).size === 26, `--primary distinct across 26 themes`);
 
 /* mined themes: founder-recognisable DNA — the site's OWN bg + primary hexes
    must come out of the computed styles (proof the kit carries the source) */
@@ -268,12 +274,12 @@ await sleep(150);
 ok(await evalJs(`window.__rwfStyles.active() === null && document.documentElement.dataset.theme === "lime"`),
    "Escape exits preview and restores lime");
 
-/* ── C · ON THE APP — the V2 board game in the eight overhauled skins ── */
-console.log("— APP DEMOS (V2 board game × 8 + founder-site × 7)");
+/* ── C · ON THE APP — the V2 board game in every overhauled skin ────── */
+console.log("— APP DEMOS (V2 board game × 8 + poster variants × 4 + founder-site × 8)");
 consoleErrors = [];
 await send("Emulation.setDeviceMetricsOverride", { width: 1480, height: 1100, deviceScaleFactor: 1, mobile: false });
-ok(await evalJs(`document.querySelectorAll('[data-app-frame]').length === 16`),
-   "16 app-demo iframes in the On-the-app strip (9 game kits + 7 founder-site kits)");
+ok(await evalJs(`document.querySelectorAll('[data-app-frame]').length === 21`),
+   "21 app-demo iframes in the On-the-app strip (9 game kits + 4 poster variants + 8 founder-page kits)");
 await waitFor(() => evalJs(`[...document.querySelectorAll('[data-app-frame]')].every(f =>
   f.contentDocument?.querySelector('#battle .bd-pot') &&
   f.contentDocument?.querySelector('#battle .bd-card') &&
@@ -323,7 +329,7 @@ for (const t of V2_THEMES) {
 }
 ok(consoleErrors.length === 0, `app demos: zero console errors${consoleErrors.length ? " — " + consoleErrors[0] : ""}`);
 
-/* the seven founder-site kits render the same board app with their own DNA */
+/* the founder-page kits render the same board app with their own DNA */
 for (const id of SITE_THEMES) {
   ok(await evalJs(`(() => {
     const f = document.querySelector('[data-app-frame="${id}"]'); if (!f) return false;
@@ -363,7 +369,7 @@ const sigs = JSON.parse(await evalJs(`(() => {
   }
   return JSON.stringify(out);
 })()`));
-const APP_SIG = [...V2_THEMES, "neobrut", ...SITE_THEMES];
+const APP_SIG = [...V2_THEMES, "neobrut", ...NEOBRUT_VARIANTS, ...SITE_THEMES];
 let minDims = 99, worstPair = "";
 for (let i = 0; i < APP_SIG.length; i++) {
   for (let j = i + 1; j < APP_SIG.length; j++) {
@@ -372,7 +378,21 @@ for (let i = 0; i < APP_SIG.length; i++) {
     if (dims < minDims) { minDims = dims; worstPair = `${APP_SIG[i]}↔${APP_SIG[j]}`; }
   }
 }
-ok(minDims >= 3, `style signatures distinct: all 16 app-kit pairs differ in ≥3/10 structural dims (worst ${worstPair} = ${minDims})`);
+ok(minDims >= 3, `style signatures distinct: all 21 app-kit pairs differ in ≥3/10 structural dims (worst ${worstPair} = ${minDims})`);
+/* the founder's explicit bar: every variant must differ from the ORIGINAL
+   neobrut AND from each other in ≥3/10 dims — structural riffs, not re-tints */
+{
+  const fam = ["neobrut", ...NEOBRUT_VARIANTS];
+  let famMin = 99, famWorst = "";
+  for (let i = 0; i < fam.length; i++) {
+    for (let j = i + 1; j < fam.length; j++) {
+      const a = sigs[fam[i]], b = sigs[fam[j]];
+      const dims = Object.keys(a).filter((k) => a[k] !== b[k]).length;
+      if (dims < famMin) { famMin = dims; famWorst = `${fam[i]}↔${fam[j]}`; }
+    }
+  }
+  ok(famMin >= 3, `Sports Poster family: original + 4 variants all pairwise ≥3/10 structural dims (worst ${famWorst} = ${famMin})`);
+}
 for (const t of APP_SIG)
   console.log(`      ${t.padEnd(10)} card=${(sigs[t]?.cardRadius ?? "?").padEnd(24)} lane=${sigs[t]?.laneBorder ?? "?"}`);
 
@@ -390,22 +410,110 @@ for (const t of ALL_THEMES) {
   await shot(`appdemo-${t}`, 860, 940);
 }
 
-/* ── C2 · NEOBRUT — the founder's named favourite: EVERY app overlay ──── */
-console.log("— NEOBRUT (founder favourite) × every screen");
-for (const s of NEOBRUT_SCREENS) {
-  consoleErrors = [];
-  await send("Page.navigate", { url: `${BASE}/styles/appdemo.html?t=neobrut&screen=${s}` });
-  await waitFor(() => evalJs(`window.__appDemoReady === true && document.querySelectorAll('.demo-phone').length >= 1`).catch(() => false),
-    { label: `neobrut/${s} load` });
-  await sleep(400);
-  ok(consoleErrors.length === 0, `neobrut/${s}: overlay boots clean`);
-  await shot(`neobrut-${s}`, 860, 960);
+/* ── C2 · THE SPORTS POSTER FAMILY — original + every variant, EVERY ───
+   app overlay screen, plus one computed structural tell per variant. */
+console.log("— SPORTS POSTER FAMILY (original + 4 variants) × every screen");
+for (const t of ["neobrut", ...NEOBRUT_VARIANTS]) {
+  for (const s of NEOBRUT_SCREENS) {
+    consoleErrors = [];
+    await send("Page.navigate", { url: `${BASE}/styles/appdemo.html?t=${t}&screen=${s}` });
+    await waitFor(() => evalJs(`window.__appDemoReady === true && document.querySelectorAll('.demo-phone').length >= 1`).catch(() => false),
+      { label: `${t}/${s} load` });
+    await sleep(400);
+    ok(consoleErrors.length === 0, `${t}/${s}: overlay boots clean`);
+    await shot(`${t}-${s}`, 860, 960);
+  }
 }
-{
+/* structural tells — one computed probe per kit, each on ITS OWN page
+   (navigate to the battle screen first; hidden elements in other screens
+   would still resolve, but the pot's geometry/masks read truest live) */
+async function probeTheme(t, fn) {
+  consoleErrors = [];
+  await send("Page.navigate", { url: `${BASE}/styles/appdemo.html?t=${t}&screen=battle` });
+  await waitFor(() => evalJs(`window.__appDemoReady === true`).catch(() => false), { label: `${t} probe load` });
+  await sleep(500);
+  ok(consoleErrors.length === 0, `${t}: probe page boots clean`);
+  return fn();
+}
+await probeTheme("neobrut", async () => {
   const sticker = await evalJs(`getComputedStyle(document.querySelector('.bd-pot'), '::after').content`);
   ok(String(sticker).includes("★"), `neobrut: the pot wears its sticker badge (${String(sticker).slice(0, 12)})`);
   const radius = await evalJs(`getComputedStyle(document.querySelector('.bd-pot')).borderRadius`);
   ok(String(radius).startsWith("14"), `neobrut: chunky corners rounded UNDER the hard edge (${radius})`);
+});
+await probeTheme("neobrut-field", async () => {
+  const probe = JSON.parse(await evalJs(`(() => {
+    const card = getComputedStyle(document.querySelector('.bd-card__face--front'));
+    const pot = getComputedStyle(document.querySelector('.bd-pot'));
+    return JSON.stringify({
+      mask: (card.webkitMaskImage || card.maskImage || "").includes("radial-gradient"),
+      potShadow: pot.boxShadow.includes("156, 61, 24"),
+      potBadge: getComputedStyle(document.querySelector('.bd-pot'), '::after').content.includes('◈'),
+    });
+  })()`));
+  ok(probe.mask && probe.potShadow && probe.potBadge,
+     `neobrut-field: ticket-stub mask + warm clay plate + team roundel (mask=${probe.mask} clay=${probe.potShadow} roundel=${probe.potBadge})`);
+});
+await probeTheme("neobrut-zine", async () => {
+  const shadow = await evalJs(`getComputedStyle(document.querySelector('.bd-pot')).boxShadow`);
+  const misreg = String(shadow).includes("34, 68, 184") && String(shadow).includes("214, 31, 125");
+  const centred = JSON.parse(await evalJs(`(() => {
+    const r = (el) => { const b = el.getBoundingClientRect(); return { x: b.x + b.width / 2, y: b.y + b.height / 2 }; };
+    const pot = r(document.querySelector('.bd-pot')), tbl = r(document.querySelector('.bd-table'));
+    return JSON.stringify({ dx: Math.abs(pot.x - tbl.x), dy: Math.abs(pot.y - tbl.y) });
+  })()`));
+  ok(misreg && centred.dx <= 3 && centred.dy <= 3,
+     `neobrut-zine: plates misregistered cyan + pink AND pot stays centred through its torn rotation (Δ${centred.dx}/${centred.dy})`);
+});
+await probeTheme("neobrut-ticket", async () => {
+  const probe = JSON.parse(await evalJs(`(() => {
+    const pot = getComputedStyle(document.querySelector('.bd-pot'));
+    const total = getComputedStyle(document.querySelector('.bd-pot__total'));
+    return JSON.stringify({
+      ink: pot.backgroundColor === 'rgb(23, 25, 28)',
+      amber: total.color === 'rgb(255, 176, 32)',
+      mono: total.fontFamily.includes('JetBrains Mono'),
+    });
+  })()`));
+  ok(probe.ink && probe.amber && probe.mono,
+     `neobrut-ticket: departure-board pot (ink=${probe.ink} amber=${probe.amber} mono=${probe.mono})`);
+});
+await probeTheme("neobrut-locker", async () => {
+  const probe = JSON.parse(await evalJs(`(() => {
+    const btn = getComputedStyle(document.querySelector('.pop-btn--big'));
+    return JSON.stringify({
+      jersey: btn.borderRadius === '13px 13px 15px 15px',
+      plate: getComputedStyle(document.querySelector('.bd-pot'), '::after').content.includes('◈'),
+      tape: getComputedStyle(document.querySelector('.bd-pot__total')).textShadow.includes('31, 79, 143'),
+    });
+  })()`));
+  ok(probe.jersey && probe.plate && probe.tape,
+     `neobrut-locker: jersey-cut button + nameplate badge + tape-blue offset (jersey=${probe.jersey} plate=${probe.plate} tape=${probe.tape})`);
+});
+await probeTheme("steddi", async () => {
+  const probe = JSON.parse(await evalJs(`(() => {
+    const pot = document.querySelector('.bd-pot');
+    const before = getComputedStyle(pot, '::before');
+    const h1em = document.querySelector('.bd-h1 em');
+    return JSON.stringify({
+      datum: before.content.includes('+') && before.fontFamily.includes('JetBrains Mono'),
+      laser: !!getComputedStyle(document.body, '::after').animationName.includes('matSteddiLaser'),
+      gradInk: h1em ? getComputedStyle(h1em).color === 'rgba(0, 0, 0, 0)' : false,
+    });
+  })()`));
+  ok(probe.datum && probe.laser && probe.gradInk,
+     `steddi: datum crosshairs + 655nm laser sweep + KPI gradient ink (datum=${probe.datum} laser=${probe.laser} grad=${probe.gradInk})`);
+});
+/* steddi — the founder's page: every overlay screen, like the favourites */
+console.log("— STEDDI (the founder's page) × every screen");
+for (const s of NEOBRUT_SCREENS) {
+  consoleErrors = [];
+  await send("Page.navigate", { url: `${BASE}/styles/appdemo.html?t=steddi&screen=${s}` });
+  await waitFor(() => evalJs(`window.__appDemoReady === true && document.querySelectorAll('.demo-phone').length >= 1`).catch(() => false),
+    { label: `steddi/${s} load` });
+  await sleep(400);
+  ok(consoleErrors.length === 0, `steddi/${s}: overlay boots clean`);
+  await shot(`steddi-${s}`, 860, 960);
 }
 
 /* ── C3 · /v2 regression smoke — the board app is untouched ──────────── */

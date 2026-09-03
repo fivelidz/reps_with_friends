@@ -1,0 +1,252 @@
+/* style-library/theme-neobrut-ticket.css — the "neobrut-ticket" material kit.
+   Tokens + .mat- primitives only. RWF app bindings (fg / bd classes)
+   live in design/themes.css. Name/label/provenance: README.md. */
+
+/* ═══════════════════════════════════════════════════════════════════════
+    VARIANT 3 of the founder's "Neo-Brutalist Sports Poster with a Soft
+    Underbelly" — THE STRUCTURAL SIDE.  Wayfinding.
+    The venue treated as a signage system: big pictograms in rings,
+    platform departure boards (ink modules, amber mono numerals that
+    FLIP), numbered sections, high-vis amber doing functional work on
+    navy — then the underbelly: soft paper instead of glossy panels,
+    generous 16px corners on every hard module, non-aggressive ink
+    (#17191c, never pure black), gentle flip-settle motion.
+    Describe it as: the stadium's wayfinding system — departure-board
+    numerals flipping on ink panels, numbered sections, pictogram rings,
+    one high-vis amber — printed on soft paper with rounded corners.
+    ═══════════════════════════════════════════════════════════════════════ */
+
+[data-theme="neobrut-ticket"] {
+  --bg: #f4f3ee;                 /* soft signage paper */
+  --surface: #fafaf6;            /* the card */
+  --surface-2: #e9e8e1;          /* pressed */
+  --line: #d8d6cd;               /* paper hairline */
+  --line-bright: #b9b6aa;
+  --text: #1a1c1f;               /* softened ink — never pure black */
+  --muted: #3f4147;
+  --faint: #4c4f56;              /* 7.4:1 on bg */
+  --faint-deco: #8f9089;
+
+  --lime: #1c3a5e;               /* SIGNAGE NAVY — the primary plate */
+  --lime-dim: #142c49;
+  --lime-glow: rgba(28, 58, 94, 0.12);
+  --coral: #b3371e;              /* signal red — effort */
+  --coral-glow: rgba(179, 55, 30, 0.12);
+  --amber: #8a5a00;              /* deep amber as text … */
+  --amber-display: #ffb020;      /* … high-vis amber on ink modules */
+  --sky: #0e5c3f;                /* wayfinding green */
+
+  --success: #0e5c3f;
+  --danger: #a52a1f;
+  --urgency: #7d4a00;
+
+  --energy: #5b2d8f;
+  --energy-light: #4d2478;
+  --energy-tint: #ebe6f4;
+
+  --dz-bg: #ece4d0;
+  --dz3-surface: #ffe1a8;
+  --dz-hero: #ffedc9;
+
+  --font-display: 'Space Grotesk', system-ui, sans-serif;
+  --font-body: 'Inter', system-ui, sans-serif;
+  --font-mono: 'JetBrains Mono', ui-monospace, 'Cascadia Code', Menlo, monospace;
+
+  --radius: 12px;                /* signage rounds its hard modules */
+  --radius-sm: 8px;
+  --radius-lg: 16px;
+  --radius-xl: 20px;
+  --pill: 999px;
+
+  --on-accent: #f8f9f5;          /* 10.6:1 on signage navy */
+  --primary-hover: #142c49;
+  --on-warn: #f8f9f5;            /* 6.6:1 on deep amber */
+
+  --on-gold: var(--on-accent);
+
+  /* BOARD EXTRAS — the platform floor (LIGHT — the only pale track) */
+  --felt: #e9e8e1;
+  --felt-deep: #dfded5;
+  --felt-line: rgba(28, 58, 94, 0.65);
+  --lane: #b3371e;
+  --lane-paint: rgba(26, 28, 31, 0.55);
+  --rail: #1a1c1f;
+  --rail-edge: rgba(26, 28, 31, 0.35);
+
+  --chip-white: #fafaf6;
+  --chip-red: #b3371e;
+  --chip-blue: #1c3a5e;
+  --chip-gold: #ffb020;
+
+  --card-back-1: #1c3a5e;
+  --card-back-2: #142c49;
+  --card-face: #fafaf6;
+
+  --pop-shadow: rgba(26, 28, 31, 0.5);
+  --speed: 0.6s;
+}
+/* ── neobrut-ticket · MATERIAL — wayfinding, softened ────────────────── */
+[data-theme="neobrut-ticket"] {
+  /* paper fibre + TACTILE PAVING dot grid (the platform floor) */
+  --mat-page:
+    url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='170' height='170'%3E%3Cfilter id='p'%3E%3CfeTurbulence type='fractalNoise' baseFrequency='0.8' numOctaves='2' stitchTiles='stitch'/%3E%3CfeColorMatrix values='0 0 0 0 0.55 0 0 0 0 0.54 0 0 0 0 0.5 0 0 0 0.05 0'/%3E%3C/filter%3E%3Crect width='170' height='170' filter='url(%23p)'/%3E%3C/svg%3E"),
+    radial-gradient(circle at 2px 2px, rgba(26, 28, 31, 0.07) 1.6px, transparent 2.4px),
+    linear-gradient(#f4f3ee, #edece6);
+  background-size: 170px 170px, 26px 26px, auto;
+}
+[data-theme="neobrut-ticket"] body,
+[data-theme="neobrut-ticket"] .mat-page {
+  background-size: 170px 170px, 26px 26px, auto;
+}
+[data-theme="neobrut-ticket"] .mat-surface {       /* the signage card */
+  background: var(--surface);
+  border: 1.5px solid var(--rail);
+  border-top: 4px solid var(--amber-display);      /* the high-vis strip */
+  border-radius: 16px;
+  box-shadow: 0 10px 24px rgba(26, 28, 31, 0.09);
+  padding: 16px;
+  transition: transform 0.3s cubic-bezier(0.25, 0.9, 0.3, 1), box-shadow 0.3s cubic-bezier(0.25, 0.9, 0.3, 1);
+}
+[data-theme="neobrut-ticket"] .mat-surface:hover {
+  transform: translateY(-2px);
+  box-shadow: 0 14px 30px rgba(26, 28, 31, 0.13);
+}
+[data-theme="neobrut-ticket"] .mat-btn {           /* the signage button */
+  font-family: var(--font-display);
+  font-weight: 700;
+  font-size: 15px;
+  color: var(--on-accent);
+  background: var(--lime);
+  border: 0;
+  border-radius: 12px;
+  padding: 12px 22px;
+  box-shadow: 0 8px 20px rgba(28, 58, 94, 0.25);
+  transition: transform 0.25s cubic-bezier(0.25, 0.9, 0.3, 1), box-shadow 0.25s cubic-bezier(0.25, 0.9, 0.3, 1), background 0.25s;
+}
+[data-theme="neobrut-ticket"] .mat-btn:hover { background: var(--primary-hover); transform: translateY(-1px); box-shadow: 0 10px 24px rgba(28, 58, 94, 0.3); }
+[data-theme="neobrut-ticket"] .mat-btn:active { transform: translateY(1px); box-shadow: 0 4px 10px rgba(28, 58, 94, 0.25); }
+[data-theme="neobrut-ticket"] .mat-btn--ghost {
+  background: transparent;
+  color: var(--lime);
+  box-shadow: inset 0 0 0 1.5px var(--rail);
+}
+[data-theme="neobrut-ticket"] .mat-btn--ghost:hover { background: var(--surface-2); }
+[data-theme="neobrut-ticket"] .mat-num {           /* THE DEPARTURE BOARD */
+  display: inline-block;
+  font-family: var(--font-mono);
+  font-weight: 600;
+  font-size: 42px;
+  letter-spacing: 0.06em;
+  font-variant-numeric: tabular-nums;
+  color: var(--amber-display);
+  background: #17191c;
+  padding: 8px 18px;
+  border-radius: 10px;
+  box-shadow: inset 0 3px 0 rgba(255, 255, 255, 0.06), inset 0 -4px 0 rgba(0, 0, 0, 0.5), 0 6px 16px rgba(26, 28, 31, 0.22);
+  animation: matFlap 0.5s ease-out both;           /* the split-flap settle (base.css) */
+}
+[data-theme="neobrut-ticket"] .mat-num:hover { animation: matFlap 0.5s ease-out; }   /* re-flip on touch */
+[data-theme="neobrut-ticket"] .mat-divider {       /* the platform rule → floor arrow */
+  position: relative;
+  height: 2px;
+  border: 0;
+  margin: 16px 0;
+  background: repeating-linear-gradient(90deg, var(--rail) 0 14px, transparent 14px 20px);
+}
+[data-theme="neobrut-ticket"] .mat-divider::after {  /* the wayfinding arrowhead */
+  content: "";
+  position: absolute;
+  right: 0; top: 50%;
+  margin-top: -4px;
+  border-top: 4px solid transparent;
+  border-bottom: 4px solid transparent;
+  border-left: 8px solid var(--rail);
+}
+[data-theme="neobrut-ticket"] .mat-progress {      /* the line map */
+  height: 4px;
+  border-radius: 2px;
+  background: var(--surface-2);
+}
+[data-theme="neobrut-ticket"] .mat-progress i {    /* the train on the line */
+  display: block; height: 100%;
+  background: var(--lime);
+  border-radius: 2px;
+  box-shadow: 8px 0 0 -1px var(--amber-display);   /* the next-stop marker */
+  transition: width 0.6s cubic-bezier(0.25, 0.9, 0.3, 1);
+}
+[data-theme="neobrut-ticket"] .mat-chip {          /* the pictogram ring */
+  font-family: var(--font-display);
+  font-weight: 600;
+  font-size: 13px;
+  color: var(--lime);
+  background: var(--surface);
+  border: 2px solid var(--lime);
+  border-radius: 999px;
+  padding: 8px 15px;
+  transition: background 0.25s, color 0.25s, transform 0.25s cubic-bezier(0.25, 0.9, 0.3, 1);
+}
+[data-theme="neobrut-ticket"] .mat-chip:hover { transform: translateY(-1px); }
+[data-theme="neobrut-ticket"] .mat-chip.is-on { background: var(--lime); color: var(--on-accent); }
+[data-theme="neobrut-ticket"] .mat-input {        /* the ticket field */
+  font-family: var(--font-body);
+  color: var(--text);
+  background: var(--surface);
+  border: 1.5px solid var(--rail);
+  border-radius: 10px;
+  padding: 11px 14px;
+  transition: box-shadow 0.25s;
+}
+[data-theme="neobrut-ticket"] .mat-input:focus { outline: none; box-shadow: 0 0 0 3px rgba(28, 58, 94, 0.25); }
+[data-theme="neobrut-ticket"] .mat-avatar {        /* the pictogram */
+  border-radius: 999px;
+  border: 2.5px solid var(--lime);
+  background: var(--surface);
+  color: var(--lime);
+  font-family: var(--font-display);
+  font-weight: 700;
+  box-shadow: 0 4px 12px rgba(26, 28, 31, 0.12), 12px -10px 0 -17px var(--amber-display);  /* the status pip */
+}
+[data-theme="neobrut-ticket"] .mat-dialog {        /* the announcement module */
+  background: var(--surface);
+  border: 1.5px solid var(--rail);
+  border-top: 4px solid var(--amber-display);
+  border-radius: 18px;
+  box-shadow: 0 16px 36px rgba(26, 28, 31, 0.14);
+  padding: 18px;
+  animation: matBoardIn 0.45s cubic-bezier(0.25, 0.9, 0.3, 1) both;
+}
+[data-theme="neobrut-ticket"] .mat-dialog__title {
+  font-family: var(--font-display);
+  font-weight: 700;
+  letter-spacing: -0.01em;
+}
+[data-theme="neobrut-ticket"] .mat-badge {         /* the SECTION NUMBER */
+  font-family: var(--font-mono);
+  font-weight: 600;
+  font-size: 11px;
+  letter-spacing: 0.14em;
+  color: var(--amber-display);
+  background: #17191c;
+  border-radius: 8px;
+  padding: 6px 10px;
+}
+[data-theme="neobrut-ticket"] .mat-dz {            /* the platform alert */
+  font-family: var(--font-mono);
+  font-size: 11px;
+  font-weight: 600;
+  letter-spacing: 0.12em;
+  text-transform: uppercase;
+  color: var(--amber-display);
+  background: #17191c;
+  border-radius: 10px;
+  border-left: 4px solid var(--amber-display);
+  padding: 11px 14px;
+}
+@keyframes matBoardIn {
+  0%   { opacity: 0; transform: rotateX(-10deg) translateY(10px); }
+  100% { opacity: 1; transform: rotateX(0) translateY(0); }
+}
+@media (prefers-reduced-motion: reduce) {
+  [data-theme="neobrut-ticket"] .mat-num,
+  [data-theme="neobrut-ticket"] .mat-dialog { animation: none; }
+}

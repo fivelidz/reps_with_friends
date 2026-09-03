@@ -1,0 +1,272 @@
+/* style-library/theme-neobrut-zine.css — the "neobrut-zine" material kit.
+   Tokens + .mat- primitives only. RWF app bindings (fg / bd classes)
+   live in design/themes.css. Name/label/provenance: README.md. */
+
+/* ═══════════════════════════════════════════════════════════════════════
+    VARIANT 2 of the founder's "Neo-Brutalist Sports Poster with a Soft
+    Underbelly" — THE POSTER SIDE DOMINANT.  Fan Zine.
+    The club fanzine photocopied at 3am: heavy copier grain, plates
+    MISREGISTERED 2–3px into cyan + riso-pink ghosts, hand-torn panel
+    edges (wonky corners, never symmetric), typewriter headlines with
+    marker underline sweeps, rubber-stamp toggles — then the underbelly:
+    pastel risograph inks instead of shouty ones, a gentle wobble
+    instead of a slam, soft paper shadows instead of hard plates.
+    Describe it as: the fanzine photocopied after the match — grainy
+    gray paper, pink and blue plates slipping out of register, torn
+    panels and marker rules — with pastel riso inks and a soft wobble.
+    ═══════════════════════════════════════════════════════════════════════ */
+
+[data-theme="neobrut-zine"] {
+  --bg: #dcd8cf;                 /* photocopy gray */
+  --surface: #e9e6de;            /* copier paper */
+  --surface-2: #cfcabd;          /* pressed stock */
+  --line: #201d1a;               /* photocopier ink */
+  --line-bright: #45403a;
+  --text: #221f1c;
+  --muted: #4a463f;
+  --faint: #55504a;              /* 5.4:1 on bg */
+  --faint-deco: #8b857b;
+
+  --lime: #d61f7d;               /* RISO PINK — the loud plate */
+  --lime-dim: #b8166a;
+  --lime-glow: rgba(214, 31, 125, 0.14);
+  --coral: #2244b8;              /* riso blue — effort/heat */
+  --coral-glow: rgba(34, 68, 184, 0.14);
+  --amber: #8a4a00;              /* riso mustard */
+  --sky: #14564c;                /* riso teal */
+
+  --success: #14564c;
+  --danger: #a8181c;
+  --urgency: #7c3a00;
+
+  --energy: #5b2d8f;
+  --energy-light: #4d2478;
+  --energy-tint: #e9e2f4;
+
+  --dz-bg: #ddd2c6;
+  --dz3-surface: #f0d2c9;
+  --dz-hero: #f6ddcf;
+
+  --font-display: 'Space Mono', 'Courier New', monospace;
+  --font-body: 'Inter', system-ui, sans-serif;
+  --font-mono: 'Space Mono', 'Courier New', monospace;
+
+  --radius: 4px;                 /* torn — never a clean rectangle */
+  --radius-sm: 2px;
+  --radius-lg: 8px;
+  --radius-xl: 14px;
+  --pill: 999px;
+
+  --on-accent: #ffffff;          /* 4.8:1 on riso pink */
+  --primary-hover: #b8166a;
+  --on-warn: #ffffff;            /* 6.0:1 on riso mustard */
+
+  --on-gold: var(--on-accent);
+
+  /* the misregistration pair, reusable */
+  --misreg-c: rgba(34, 68, 184, 0.38);
+  --misreg-m: rgba(214, 31, 125, 0.36);
+
+  /* BOARD EXTRAS — the photocopied pitch */
+  --felt: #3b4a44;               /* riso teal-black pitch */
+  --felt-deep: #2f3c37;
+  --felt-line: rgba(233, 230, 222, 0.7);
+  --lane: #d61f7d;
+  --lane-paint: rgba(233, 230, 222, 0.55);
+  --rail: #201d1a;
+  --rail-edge: rgba(233, 230, 222, 0.4);
+
+  --chip-white: #e9e6de;
+  --chip-red: #a8181c;
+  --chip-blue: #2244b8;
+  --chip-gold: #d9a521;
+
+  --card-back-1: #d61f7d;
+  --card-back-2: #b8166a;
+  --card-face: #e9e6de;
+
+  --pop-shadow: #201d1a;
+  --speed: 0.75s;
+}
+/* ── neobrut-zine · MATERIAL — photocopy + pastel riso ───────────────── */
+[data-theme="neobrut-zine"] {
+  /* heavy copier grain + coarse halftone screen + toner streaks + gray wash */
+  --mat-page:
+    url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='160' height='160'%3E%3Cfilter id='p'%3E%3CfeTurbulence type='fractalNoise' baseFrequency='0.9' numOctaves='3' stitchTiles='stitch'/%3E%3CfeColorMatrix values='0 0 0 0 0.13 0 0 0 0 0.12 0 0 0 0 0.11 0 0 0 0.12 0'/%3E%3C/filter%3E%3Crect width='160' height='160' filter='url(%23p)'/%3E%3C/svg%3E"),
+    radial-gradient(circle at 1.1px 1.1px, rgba(32, 29, 26, 0.1) 1.1px, transparent 1.7px),
+    repeating-linear-gradient(90deg, rgba(32, 29, 26, 0.025) 0 1px, transparent 1px 97px),
+    linear-gradient(#dcd8cf, #d2cec4);
+  background-size: 160px 160px, 6px 6px, auto, auto;
+}
+[data-theme="neobrut-zine"] body,
+[data-theme="neobrut-zine"] .mat-page {
+  background-size: 160px 160px, 6px 6px, auto, auto;
+}
+[data-theme="neobrut-zine"] .mat-surface {         /* TORN SHEET, misregistered plates */
+  background:
+    radial-gradient(circle at 1.1px 1.1px, rgba(32, 29, 26, 0.07) 1.1px, transparent 1.7px) 0 0 / 6px 6px,
+    var(--surface);
+  border: 2px solid var(--line);
+  border-radius: 16px 6px 20px 8px / 7px 18px 6px 15px;
+  box-shadow: 3px 0 0 var(--misreg-c), -3px 0 0 var(--misreg-m), 7px 9px 14px rgba(32, 29, 26, 0.22);
+  padding: 4px;
+  transform: rotate(-0.25deg);
+  transition: transform 0.35s cubic-bezier(0.3, 1.4, 0.5, 1), box-shadow 0.35s cubic-bezier(0.3, 1.4, 0.5, 1);
+}
+[data-theme="neobrut-zine"] .mat-surface:hover {   /* the gentle wobble */
+  transform: rotate(0.3deg) translateY(-2px);
+  box-shadow: 4px -1px 0 var(--misreg-c), -4px 1px 0 var(--misreg-m), 9px 11px 16px rgba(32, 29, 26, 0.24);
+}
+[data-theme="neobrut-zine"] .mat-btn {             /* hand-circled plate */
+  font-family: var(--font-display);
+  font-size: 13px;
+  font-weight: 700;
+  text-transform: uppercase;
+  letter-spacing: 0.06em;
+  color: var(--on-accent);
+  background: var(--lime);
+  border: 2px solid var(--line);
+  border-radius: 10px 5px 12px 6px / 5px 11px 6px 10px;
+  padding: 12px 20px;
+  text-shadow: 1px 1px 0 rgba(32, 29, 26, 0.55);
+  box-shadow: 2px 0 0 var(--misreg-c), -2px 0 0 var(--misreg-m), 4px 5px 0 rgba(32, 29, 26, 0.85);
+  transition: transform 0.3s cubic-bezier(0.3, 1.4, 0.5, 1), box-shadow 0.3s cubic-bezier(0.3, 1.4, 0.5, 1);
+}
+[data-theme="neobrut-zine"] .mat-btn:hover { transform: rotate(-1deg) translateY(-2px); }
+[data-theme="neobrut-zine"] .mat-btn:active {
+  transform: translate(2px, 2px) rotate(0.4deg);
+  box-shadow: 1px 0 0 var(--misreg-c), -1px 0 0 var(--misreg-m), 1px 2px 0 rgba(32, 29, 26, 0.85);
+}
+[data-theme="neobrut-zine"] .mat-btn--ghost {
+  background: var(--surface);
+  color: var(--text);
+  text-shadow: none;
+  box-shadow: 2px 0 0 var(--misreg-c), -2px 0 0 var(--misreg-m), 3px 4px 0 rgba(32, 29, 26, 0.6);
+}
+[data-theme="neobrut-zine"] .mat-num {             /* chromatic double-exposure */
+  font-family: 'Space Mono', monospace;
+  font-weight: 700;
+  font-size: 46px;
+  color: var(--line);
+  letter-spacing: -0.02em;
+  text-shadow: 2.5px 0 0 var(--misreg-c), -2.5px 0 0 var(--misreg-m);
+}
+[data-theme="neobrut-zine"] .mat-divider {         /* the hand rule, slightly crooked */
+  height: 4px;
+  border: 0;
+  margin: 14px 0;
+  background: repeating-linear-gradient(90deg, var(--line) 0 16px, transparent 16px 22px);
+  transform: rotate(-0.35deg);
+  border-radius: 2px;
+}
+[data-theme="neobrut-zine"] .mat-progress {        /* torn tape track */
+  height: 12px;
+  border: 2px solid var(--line);
+  border-radius: 6px 3px 7px 4px;
+  background: var(--surface-2);
+}
+[data-theme="neobrut-zine"] .mat-progress i {      /* riso ink fill */
+  border-radius: inherit;
+  background: repeating-linear-gradient(-55deg, #d61f7d 0 9px, #b8166a 9px 18px);
+  transition: width 0.6s cubic-bezier(0.3, 1.4, 0.5, 1);
+}
+[data-theme="neobrut-zine"] .mat-chip {            /* the rubber stamp */
+  font-family: var(--font-display);
+  font-size: 11px;
+  font-weight: 700;
+  text-transform: uppercase;
+  letter-spacing: 0.12em;
+  color: var(--text);
+  background: var(--surface);
+  border: 2px dashed var(--line);
+  border-radius: 5px;
+  padding: 8px 12px;
+  transform: rotate(-1.2deg);
+  transition: transform 0.3s cubic-bezier(0.3, 1.4, 0.5, 1), background 0.3s, color 0.3s, border-style 0.3s;
+}
+[data-theme="neobrut-zine"] .mat-chip:hover { transform: rotate(0.8deg) scale(1.04); }
+[data-theme="neobrut-zine"] .mat-chip.is-on {
+  background: var(--lime);
+  color: var(--on-accent);
+  border-style: solid;
+  text-shadow: 1px 1px 0 rgba(32, 29, 26, 0.55);
+}
+[data-theme="neobrut-zine"] .mat-input {           /* the zine form */
+  font-family: var(--font-body);
+  border: 2px solid var(--line);
+  border-radius: 4px 10px 5px 12px;
+  background: #f2f0ea;
+  padding: 11px 13px;
+  transition: box-shadow 0.3s cubic-bezier(0.3, 1.4, 0.5, 1);
+}
+[data-theme="neobrut-zine"] .mat-input:focus {
+  outline: none;
+  box-shadow: 2px 0 0 var(--misreg-c), -2px 0 0 var(--misreg-m), 0 0 0 3px rgba(214, 31, 125, 0.25);
+}
+[data-theme="neobrut-zine"] .mat-avatar {          /* torn square portrait */
+  border-radius: 14px 5px 15px 6px / 6px 13px 5px 14px;
+  border: 2px solid var(--line);
+  background:
+    radial-gradient(circle at 1.1px 1.1px, rgba(32, 29, 26, 0.08) 1.1px, transparent 1.7px) 0 0 / 6px 6px,
+    var(--surface-2);
+  box-shadow: 2px 0 0 var(--misreg-c), -2px 0 0 var(--misreg-m);
+  font-family: 'Space Mono', monospace;
+  font-weight: 700;
+}
+[data-theme="neobrut-zine"] .mat-dialog {          /* the pasted-in page */
+  border: 2px solid var(--line);
+  border-radius: 18px 7px 22px 9px / 8px 20px 7px 16px;
+  background:
+    radial-gradient(circle at 1.1px 1.1px, rgba(32, 29, 26, 0.06) 1.1px, transparent 1.7px) 0 0 / 6px 6px,
+    var(--surface);
+  box-shadow: 3px 0 0 var(--misreg-c), -3px 0 0 var(--misreg-m), 8px 10px 16px rgba(32, 29, 26, 0.22);
+  transform: rotate(-0.4deg);
+  animation: matZinePaste 0.55s cubic-bezier(0.3, 1.4, 0.5, 1) both;
+}
+[data-theme="neobrut-zine"] .mat-dialog__title {
+  font-family: var(--font-display);
+  text-transform: uppercase;
+  letter-spacing: 0.04em;
+  background: linear-gradient(180deg, transparent 62%, rgba(214, 31, 125, 0.4) 62%);  /* marker swipe */
+  display: inline-block;
+  padding: 0 4px;
+}
+[data-theme="neobrut-zine"] .mat-badge {           /* franked stamp */
+  font-family: var(--font-display);
+  font-size: 10.5px;
+  font-weight: 700;
+  text-transform: uppercase;
+  letter-spacing: 0.16em;
+  color: var(--coral);
+  background: transparent;
+  border: 2px solid var(--coral);
+  outline: 1.5px dashed var(--coral);
+  outline-offset: 2.5px;
+  border-radius: 4px;
+  padding: 6px 10px;
+  transform: rotate(-5deg);
+  transition: transform 0.3s cubic-bezier(0.3, 1.4, 0.5, 1);
+}
+[data-theme="neobrut-zine"] .mat-badge:hover { transform: rotate(-2deg) scale(1.04); }
+[data-theme="neobrut-zine"] .mat-dz {              /* ransom note strip */
+  font-family: var(--font-display);
+  font-size: 11px;
+  font-weight: 700;
+  text-transform: uppercase;
+  letter-spacing: 0.14em;
+  color: var(--on-accent);
+  background: var(--danger);
+  border: 2px solid var(--line);
+  border-radius: 7px 3px 8px 4px;
+  text-shadow: 1px 1px 0 rgba(32, 29, 26, 0.6);
+  box-shadow: 2px 0 0 var(--misreg-c), -2px 0 0 var(--misreg-m);
+  padding: 11px 13px;
+}
+@keyframes matZinePaste {
+  0%   { opacity: 0; transform: rotate(-4deg) translateY(-14px) scale(1.04); }
+  55%  { opacity: 1; transform: rotate(-0.1deg) translateY(2px) scale(0.995); }
+  100% { opacity: 1; transform: rotate(-0.4deg) translateY(0) scale(1); }
+}
+@media (prefers-reduced-motion: reduce) {
+  [data-theme="neobrut-zine"] .mat-dialog { animation: none; }
+}

@@ -581,6 +581,710 @@ EXTRA["endispute"] = """
 [data-theme="endispute"] .pop-btn:active { background: #262626; }
 """
 
+# ── Sports Poster variants (2026-09-03) — four readings of the founder's
+# "harsh poster + soft underbelly" brief, structurally distinct from the
+# original neobrut AND each other (field/zine/ticket/locker). ─────────────
+EXTRA["neobrut-field"] = """
+/* ── neobrut-field · BINDINGS — the stadium take (sports side dominant) ─ */
+[data-theme="neobrut-field"] :is(.fg-battle__title, .fg-sheet__title, .fg-pwr__name,
+                                 .fg-event__title, .fg-state__title, .fg-dialog__title) {
+  font-family: 'Anton', 'Archivo', sans-serif;
+  text-transform: uppercase; letter-spacing: 0.02em; line-height: 0.96;
+}
+[data-theme="neobrut-field"] :is(.fg-count__time, .fg-lbrow__pct, .fg-lbrow__ruf) {
+  font-family: 'Anton', 'Archivo', sans-serif;
+  text-shadow: 3px 3px 0 rgba(156, 61, 24, 0.4);
+}
+[data-theme="neobrut-field"] :is(.fg-battle__meta, .fg-count__sub, .fg-battle__foot) {
+  font-weight: 700; text-transform: uppercase; letter-spacing: 0.1em; font-size: 0.8em;
+}
+[data-theme="neobrut-field"] :is(.fg-battle, .fg-sheet, .fg-dialog, .fg-state, .fg-pro) {
+  border: 2.5px solid var(--line);
+  border-radius: 18px;
+  background:
+    radial-gradient(circle at 1.4px 1.4px, rgba(20, 27, 13, 0.08) 1.4px, transparent 2px) 0 0/11px 11px,
+    var(--surface);
+  box-shadow: 6px 6px 0 rgba(156, 61, 24, 0.24);        /* ONE warm plate */
+}
+[data-theme="neobrut-field"] .fg-count {                /* the scoreboard module */
+  border: 2.5px solid var(--line); border-radius: 16px;
+  background: var(--line);
+  box-shadow: 6px 6px 0 rgba(156, 61, 24, 0.24);
+}
+[data-theme="neobrut-field"] .fg-count__time { color: #f7c948; text-shadow: none; }
+[data-theme="neobrut-field"] .fg-count__sub { color: rgba(248, 250, 238, 0.75); }
+[data-theme="neobrut-field"] :is(.fg-battle__bar, .fg-lbrow__bar) {
+  border: 2.5px solid var(--line); border-radius: 999px;
+  background: var(--surface-2); padding: 2px;
+}
+[data-theme="neobrut-field"] :is(.fg-battle__bar i, .fg-lbrow__bar i) {
+  border-radius: 999px;
+  background: repeating-linear-gradient(-45deg, #2b7a40 0 10px, #236a37 10px 20px);  /* mown turf */
+  transition: width 0.55s cubic-bezier(0.34, 1.4, 0.5, 1);
+}
+[data-theme="neobrut-field"] .fg-lbrow { border-bottom: 1.5px solid rgba(20, 27, 13, 0.35); border-radius: 0; }
+[data-theme="neobrut-field"] .fg-lbrow__rank {
+  font-family: 'Anton', sans-serif; color: var(--on-accent); background: var(--lime);
+  border-radius: 999px; padding: 2px 8px;
+}
+[data-theme="neobrut-field"] .fg-lbrow--leader {
+  border-left: 5px solid var(--coral);
+  background: linear-gradient(90deg, rgba(156, 61, 24, 0.08), transparent 55%), var(--surface);
+}
+[data-theme="neobrut-field"] .fg-event { border-left: 4px solid var(--coral); border-radius: 4px 12px 12px 4px; }
+[data-theme="neobrut-field"] .fg-status {
+  font-weight: 800; text-transform: uppercase; letter-spacing: 0.08em;
+  border: 2px solid var(--line); border-radius: 999px; background: var(--surface);
+}
+[data-theme="neobrut-field"] :is(.fg-nav__log, .fg-sheet__cta, .fg-dialog__cta,
+                                 .fg-pro__cta, .fg-state__cta) {
+  font-family: 'Anton', 'Archivo', sans-serif; text-transform: uppercase; letter-spacing: 0.04em;
+  border: 2.5px solid var(--line); border-radius: 14px;        /* badge, not pill */
+  box-shadow: 4px 4px 0 var(--line);
+  transition: transform 0.4s cubic-bezier(0.34, 1.4, 0.5, 1), box-shadow 0.4s cubic-bezier(0.34, 1.4, 0.5, 1);
+}
+[data-theme="neobrut-field"] :is(.fg-nav__log, .fg-sheet__cta, .fg-dialog__cta,
+                                 .fg-pro__cta, .fg-state__cta):hover {
+  transform: translateY(-3px) rotate(-0.5deg); box-shadow: 6px 7px 0 var(--line);
+}
+[data-theme="neobrut-field"] :is(.fg-nav__log, .fg-sheet__cta, .fg-dialog__cta,
+                                 .fg-pro__cta, .fg-state__cta):active {
+  transform: translateY(2px); box-shadow: 2px 2px 0 var(--line);
+}
+[data-theme="neobrut-field"] .pop-btn {
+  border: 2.5px solid var(--line); border-radius: 14px;
+  box-shadow: 4px 4px 0 var(--line);
+  font-family: 'Anton', 'Archivo', sans-serif; text-transform: uppercase; letter-spacing: 0.04em;
+  transition: transform 0.4s cubic-bezier(0.34, 1.4, 0.5, 1), box-shadow 0.4s cubic-bezier(0.34, 1.4, 0.5, 1);
+}
+[data-theme="neobrut-field"] .pop-btn:active { transform: translateY(2px); box-shadow: 2px 2px 0 var(--line); }
+[data-theme="neobrut-field"] .fg-dz {
+  font-weight: 700; letter-spacing: 0.1em; text-transform: uppercase;
+  color: #5c3a00; font-family: var(--font-mono); font-size: 0.85em;
+  background: repeating-linear-gradient(-45deg, rgba(156, 61, 24, 0.14) 0 12px, transparent 12px 24px), var(--dz-hero);
+  border: 2.5px solid var(--line); border-radius: 12px;
+}
+[data-theme="neobrut-field"] .bd-table {             /* THE PITCH — mown stripes */
+  background:
+    repeating-linear-gradient(90deg, rgba(248, 250, 238, 0.05) 0 26px, transparent 26px 52px),
+    radial-gradient(80% 70% at 50% 12%, rgba(248, 250, 238, 0.12), transparent 60%),
+    linear-gradient(#2e7c42, #226033);   /* hard turf — var(--felt) is remapped by board.css */
+  border: 4px solid var(--rail);
+  box-shadow: 7px 7px 0 rgba(156, 61, 24, 0.3);
+}
+[data-theme="neobrut-field"] .bd-lane { border: 1.5px solid var(--felt-line); }
+[data-theme="neobrut-field"] .bd-lane:nth-child(even) { border-color: rgba(248, 250, 238, 0.2); }
+[data-theme="neobrut-field"] .bd-finish { background: repeating-linear-gradient(45deg, var(--chip-white) 0 8px, var(--lane) 8px 16px); }
+[data-theme="neobrut-field"] .bd-pot {               /* the trophy plate + roundel */
+  position: relative;
+  background: #f8faee;
+  border: 2.5px solid var(--line); border-radius: 14px;
+  box-shadow: 5px 5px 0 rgba(156, 61, 24, 0.28);
+}
+[data-theme="neobrut-field"] .bd-pot::after {          /* the team roundel */
+  content: "◈";
+  position: absolute; top: -11px; right: -10px;
+  width: 28px; height: 28px; display: grid; place-items: center;
+  background: var(--chip-gold, #d9a521); color: #141b0d; font-size: 13px;
+  border: 2.5px solid var(--line); border-radius: 999px;
+  box-shadow: 0 0 0 3px var(--chip-white), 2px 3px 0 rgba(20, 27, 13, 0.8);
+  transform: rotate(-6deg);
+}
+[data-theme="neobrut-field"] .bd-pot__label { color: var(--line); font-family: 'Anton', sans-serif; letter-spacing: 0.14em; }
+[data-theme="neobrut-field"] .bd-pot__total { color: var(--coral); font-family: 'Anton', sans-serif; text-shadow: 3px 3px 0 rgba(30, 107, 51, 0.35); }
+[data-theme="neobrut-field"] .bd-pot__pts { color: var(--text); }
+[data-theme="neobrut-field"] .bd-card__face--front { /* the TICKET STUB — punched + perforated */
+  background:
+    linear-gradient(90deg, transparent calc(50% - 0.75px), rgba(20, 27, 13, 0.4) calc(50% - 0.75px) calc(50% + 0.75px), transparent calc(50% + 0.75px)) 0 12px / 100% calc(100% - 24px) no-repeat,
+    radial-gradient(circle at 1.4px 1.4px, rgba(20, 27, 13, 0.08) 1.4px, transparent 2px) 0 0/11px 11px,
+    var(--card-face);
+  border: 2.5px solid var(--line); border-radius: 12px;
+  box-shadow: 4px 4px 0 rgba(156, 61, 24, 0.28);
+  -webkit-mask: radial-gradient(circle 7px at 0 50%, transparent 6.5px, #000 7px),
+                radial-gradient(circle 7px at 100% 50%, transparent 6.5px, #000 7px);
+  -webkit-mask-composite: source-in;
+  mask: radial-gradient(circle 7px at 0 50%, transparent 6.5px, #000 7px),
+        radial-gradient(circle 7px at 100% 50%, transparent 6.5px, #000 7px);
+  mask-composite: intersect;
+}
+[data-theme="neobrut-field"] .bd-card__rar { font-family: var(--font-mono); font-size: 0.72em; letter-spacing: 0.14em; text-transform: uppercase; border-bottom: 1.5px dashed rgba(20, 27, 13, 0.4); padding-bottom: 3px; }
+[data-theme="neobrut-field"] .bd-card__name { color: var(--line); font-family: 'Anton', sans-serif; text-transform: uppercase; }
+[data-theme="neobrut-field"] .bd-card__fx { color: var(--muted); }
+[data-theme="neobrut-field"] .bd-card__cost { color: var(--coral); font-weight: 800; }
+[data-theme="neobrut-field"] .bd-card__face--back {
+  background: repeating-linear-gradient(90deg, rgba(248, 250, 238, 0.1) 0 13px, transparent 13px 26px), var(--card-back-1);
+  border: 2.5px solid var(--line); border-radius: 10px;
+}
+[data-theme="neobrut-field"] .bd-prow { border: 1.5px solid var(--line); border-left: 5px solid var(--line); border-radius: 12px; background: var(--surface); }
+[data-theme="neobrut-field"] .bd-prow--you { border-left-color: var(--lime); }
+[data-theme="neobrut-field"] .bd-prow__pos { font-family: 'Anton', sans-serif; color: var(--lime-dim); }
+[data-theme="neobrut-field"] .bd-top { border-bottom: 2.5px solid var(--line); }
+[data-theme="neobrut-field"] .bd-clock { background: var(--line); border-radius: 10px; border: 2px solid var(--line); }
+[data-theme="neobrut-field"] .bd-clock__time { color: #f7c948; font-family: var(--font-mono); }
+[data-theme="neobrut-field"] .bd-clock__lap { color: rgba(248, 250, 238, 0.7); font-family: var(--font-mono); }
+[data-theme="neobrut-field"] .bd-tcard { border: 2.5px solid var(--line); border-radius: 16px; box-shadow: 5px 5px 0 rgba(156, 61, 24, 0.26); }
+[data-theme="neobrut-field"] .bd-tcard__felt {
+  background:
+    repeating-linear-gradient(90deg, rgba(248, 250, 238, 0.08) 0 7px, transparent 7px 14px),
+    var(--felt);
+  border: 1.5px solid var(--line); border-radius: 8px;
+}
+[data-theme="neobrut-field"] .bd-tcard__status { border: 2px solid var(--line); border-radius: 999px; }
+[data-theme="neobrut-field"] .bd-card--deal { animation: matFieldBounce 0.55s cubic-bezier(0.34, 1.4, 0.5, 1) both; }
+"""
+
+EXTRA["neobrut-zine"] = """
+/* ── neobrut-zine · BINDINGS — the print-shop take (poster side dominant) */
+[data-theme="neobrut-zine"] :is(.fg-battle__title, .fg-sheet__title, .fg-pwr__name,
+                                .fg-event__title, .fg-state__title, .fg-dialog__title) {
+  font-family: 'Space Mono', 'Courier New', monospace;
+  font-weight: 700; text-transform: uppercase; letter-spacing: 0.01em; line-height: 1.05;
+}
+[data-theme="neobrut-zine"] :is(.fg-count__time, .fg-lbrow__pct, .fg-lbrow__ruf) {
+  font-family: 'Space Mono', monospace; font-weight: 700;
+  text-shadow: 2.5px 0 0 var(--misreg-c), -2.5px 0 0 var(--misreg-m);   /* misregistered plates */
+}
+[data-theme="neobrut-zine"] :is(.fg-battle__meta, .fg-count__sub, .fg-battle__foot) {
+  font-family: var(--font-mono); text-transform: uppercase; letter-spacing: 0.12em; font-size: 0.78em;
+}
+[data-theme="neobrut-zine"] :is(.fg-battle, .fg-sheet, .fg-dialog, .fg-state, .fg-pro) {
+  border: 2px solid var(--line);
+  border-radius: 16px 6px 20px 8px / 7px 18px 6px 15px;              /* torn */
+  background:
+    radial-gradient(circle at 1.1px 1.1px, rgba(32, 29, 26, 0.07) 1.1px, transparent 1.7px) 0 0/6px 6px,
+    var(--surface);
+  box-shadow: 3px 0 0 var(--misreg-c), -3px 0 0 var(--misreg-m), 7px 9px 14px rgba(32, 29, 26, 0.22);
+  transform: rotate(-0.25deg);
+}
+[data-theme="neobrut-zine"] .fg-count {
+  border: 2px solid var(--line);
+  border-radius: 14px 6px 16px 7px / 6px 14px 7px 12px;
+  background:
+    radial-gradient(circle at 1.1px 1.1px, rgba(32, 29, 26, 0.06) 1.1px, transparent 1.7px) 0 0/6px 6px,
+    var(--surface);
+  box-shadow: 2px 0 0 var(--misreg-c), -2px 0 0 var(--misreg-m);
+}
+[data-theme="neobrut-zine"] :is(.fg-battle__bar, .fg-lbrow__bar) {
+  border: 2px solid var(--line); border-radius: 6px 3px 7px 4px;
+  background: var(--surface-2); padding: 2px;
+}
+[data-theme="neobrut-zine"] :is(.fg-battle__bar i, .fg-lbrow__bar i) {
+  border-radius: inherit;
+  background: repeating-linear-gradient(-55deg, #d61f7d 0 9px, #b8166a 9px 18px);   /* riso ink */
+  transition: width 0.6s cubic-bezier(0.3, 1.4, 0.5, 1);
+}
+[data-theme="neobrut-zine"] .fg-lbrow { border-bottom: 1.5px dashed rgba(32, 29, 26, 0.4); border-radius: 0; }
+[data-theme="neobrut-zine"] .fg-lbrow__rank { font-family: 'Space Mono', monospace; color: var(--lime-dim); }
+[data-theme="neobrut-zine"] .fg-lbrow--leader {
+  background: linear-gradient(180deg, transparent 68%, rgba(214, 31, 125, 0.35) 68%);  /* marker swipe */
+}
+[data-theme="neobrut-zine"] .fg-event {
+  border-left: 4px solid var(--lime);
+  border-radius: 5px 12px 12px 5px;
+  transform: rotate(-0.3deg);
+}
+[data-theme="neobrut-zine"] .fg-status {
+  font-family: var(--font-mono); font-weight: 700; text-transform: uppercase; letter-spacing: 0.12em;
+  border: 2px dashed var(--line); border-radius: 5px; background: var(--surface);
+  transform: rotate(-1deg);
+}
+[data-theme="neobrut-zine"] :is(.fg-nav__log, .fg-sheet__cta, .fg-dialog__cta,
+                                .fg-pro__cta, .fg-state__cta) {
+  font-family: 'Space Mono', monospace; font-weight: 700; text-transform: uppercase; letter-spacing: 0.08em;
+  border: 2px solid var(--line); border-radius: 10px 5px 12px 6px / 5px 11px 6px 10px;
+  box-shadow: 2px 0 0 var(--misreg-c), -2px 0 0 var(--misreg-m), 4px 5px 0 rgba(32, 29, 26, 0.85);
+  text-shadow: 1px 1px 0 rgba(32, 29, 26, 0.55);
+  transition: transform 0.3s cubic-bezier(0.3, 1.4, 0.5, 1), box-shadow 0.3s cubic-bezier(0.3, 1.4, 0.5, 1);
+}
+[data-theme="neobrut-zine"] :is(.fg-nav__log, .fg-sheet__cta, .fg-dialog__cta,
+                                .fg-pro__cta, .fg-state__cta):hover {
+  transform: rotate(-1deg) translateY(-2px);
+}
+[data-theme="neobrut-zine"] :is(.fg-nav__log, .fg-sheet__cta, .fg-dialog__cta,
+                                .fg-pro__cta, .fg-state__cta):active {
+  transform: translate(2px, 2px) rotate(0.4deg);
+  box-shadow: 1px 0 0 var(--misreg-c), -1px 0 0 var(--misreg-m), 1px 2px 0 rgba(32, 29, 26, 0.85);
+}
+[data-theme="neobrut-zine"] .pop-btn {
+  border: 2px solid var(--line); border-radius: 10px 5px 12px 6px / 5px 11px 6px 10px;
+  box-shadow: 2px 0 0 var(--misreg-c), -2px 0 0 var(--misreg-m), 4px 5px 0 rgba(32, 29, 26, 0.85);
+  font-family: 'Space Mono', monospace; font-weight: 700; text-transform: uppercase; letter-spacing: 0.06em;
+  text-shadow: 1px 1px 0 rgba(32, 29, 26, 0.55);
+  transition: transform 0.3s cubic-bezier(0.3, 1.4, 0.5, 1), box-shadow 0.3s cubic-bezier(0.3, 1.4, 0.5, 1);
+}
+[data-theme="neobrut-zine"] .pop-btn:active {
+  transform: translate(2px, 2px) rotate(0.4deg);
+  box-shadow: 1px 0 0 var(--misreg-c), -1px 0 0 var(--misreg-m), 1px 2px 0 rgba(32, 29, 26, 0.85);
+}
+[data-theme="neobrut-zine"] .fg-dz {
+  font-family: var(--font-mono); font-weight: 700; letter-spacing: 0.1em; text-transform: uppercase;
+  color: var(--on-accent); background: var(--danger);
+  border: 2px solid var(--line); border-radius: 7px 3px 8px 4px;
+  box-shadow: 2px 0 0 var(--misreg-c), -2px 0 0 var(--misreg-m);
+  text-shadow: 1px 1px 0 rgba(32, 29, 26, 0.6);
+}
+[data-theme="neobrut-zine"] .bd-table {             /* the photocopied pitch */
+  background:
+    radial-gradient(circle at 1.3px 1.3px, rgba(233, 230, 222, 0.09) 1.3px, transparent 2px) 0 0/7px 7px,
+    repeating-linear-gradient(90deg, rgba(233, 230, 222, 0.05) 0 2px, transparent 2px 46px),
+    linear-gradient(#3c4a44, #2e3a35);   /* hard riso teal-black */
+  border: 3px solid var(--rail);
+  box-shadow: 3px 0 0 var(--misreg-c), -3px 0 0 var(--misreg-m), 8px 9px 0 rgba(32, 29, 26, 0.75);
+}
+[data-theme="neobrut-zine"] .bd-lane { border: 1.5px dashed var(--felt-line); box-shadow: 2px 0 0 rgba(214, 31, 125, 0.28); }
+[data-theme="neobrut-zine"] .bd-finish { background: repeating-linear-gradient(45deg, var(--chip-white) 0 7px, transparent 7px 14px); border-right: 1.5px dashed var(--rail); }
+[data-theme="neobrut-zine"] .bd-pot {               /* the pasted plate */
+  position: relative;
+  background:
+    radial-gradient(circle at 1.1px 1.1px, rgba(32, 29, 26, 0.07) 1.1px, transparent 1.7px) 0 0/6px 6px,
+    #e9e6de;   /* hard copier paper — var(--card-face) is remapped by board.css */
+  border: 2px solid var(--line); border-radius: 16px 6px 18px 8px / 7px 16px 6px 14px;
+  box-shadow: 3px 0 0 var(--misreg-c), -3px 0 0 var(--misreg-m), 6px 8px 12px rgba(32, 29, 26, 0.3);
+  transform: translate(-50%, -50%) rotate(-0.5deg);   /* keep the base centring */
+}
+[data-theme="neobrut-zine"] .bd-pot__label { color: var(--muted); font-family: 'Space Mono', monospace; letter-spacing: 0.18em; font-size: 0.78em; }
+[data-theme="neobrut-zine"] .bd-pot__total { color: var(--line); font-family: 'Space Mono', monospace; font-weight: 700; text-shadow: 2.5px 0 0 var(--misreg-c), -2.5px 0 0 var(--misreg-m); }
+[data-theme="neobrut-zine"] .bd-pot__pts { color: var(--text); font-family: 'Space Mono', monospace; }
+[data-theme="neobrut-zine"] .bd-card__face--front { /* cut-and-paste card */
+  background:
+    radial-gradient(circle at 1.1px 1.1px, rgba(32, 29, 26, 0.07) 1.1px, transparent 1.7px) 0 0/6px 6px,
+    var(--card-face);
+  border: 2px solid var(--line); border-radius: 14px 5px 16px 6px / 6px 13px 5px 12px;
+  box-shadow: 2px 0 0 var(--misreg-c), -2px 0 0 var(--misreg-m);
+}
+[data-theme="neobrut-zine"] .bd-card__rar { font-family: 'Space Mono', monospace; font-size: 0.7em; letter-spacing: 0.16em; text-transform: uppercase; color: var(--coral); border: 1.5px dashed var(--coral); border-radius: 4px; padding: 2px 6px; transform: rotate(-2deg); display: inline-block; }
+[data-theme="neobrut-zine"] .bd-card__name { color: var(--line); font-family: 'Space Mono', monospace; font-weight: 700; text-transform: uppercase; }
+[data-theme="neobrut-zine"] .bd-card__fx { color: var(--muted); }
+[data-theme="neobrut-zine"] .bd-card__cost { color: var(--lime-dim); font-weight: 700; font-family: 'Space Mono', monospace; }
+[data-theme="neobrut-zine"] .bd-card__face--back {
+  background: repeating-linear-gradient(45deg, rgba(233, 230, 222, 0.14) 0 7px, transparent 7px 14px), var(--card-back-1);
+  border: 2px solid var(--line); border-radius: 6px 12px 5px 11px;
+}
+[data-theme="neobrut-zine"] .bd-prow { border-bottom: 1.5px dashed rgba(32, 29, 26, 0.4); border-radius: 0; background: transparent; }
+[data-theme="neobrut-zine"] .bd-prow--you { background: linear-gradient(180deg, transparent 70%, rgba(214, 31, 125, 0.28) 70%); }
+[data-theme="neobrut-zine"] .bd-prow__pos { font-family: 'Space Mono', monospace; font-weight: 700; color: var(--lime-dim); }
+[data-theme="neobrut-zine"] .bd-top { border-bottom: 2px solid var(--line); }
+[data-theme="neobrut-zine"] .bd-h1 em, [data-theme="neobrut-zine"] .bd-h1 i {
+  background: linear-gradient(180deg, transparent 64%, rgba(214, 31, 125, 0.45) 64%);
+  font-style: normal;
+}
+[data-theme="neobrut-zine"] .bd-tcard { border: 2px solid var(--line); border-radius: 14px 6px 16px 7px / 6px 14px 7px 13px; box-shadow: 2px 0 0 var(--misreg-c), -2px 0 0 var(--misreg-m), 5px 6px 0 rgba(32, 29, 26, 0.6); }
+[data-theme="neobrut-zine"] .bd-tcard__felt { background: radial-gradient(circle at 1.1px 1.1px, rgba(32, 29, 26, 0.16) 1.1px, transparent 1.7px) 0 0/6px 6px, var(--felt); border: 1.5px solid var(--line); border-radius: 4px 8px 5px 7px; }
+[data-theme="neobrut-zine"] .bd-tcard__status { border: 1.5px dashed var(--line); border-radius: 4px; font-family: 'Space Mono', monospace; }
+[data-theme="neobrut-zine"] .bd-card--deal { animation: matZinePaste 0.55s cubic-bezier(0.3, 1.4, 0.5, 1) both; }
+"""
+
+EXTRA["neobrut-ticket"] = """
+/* ── neobrut-ticket · BINDINGS — the signage take (structural side) ──── */
+[data-theme="neobrut-ticket"] :is(.fg-battle__title, .fg-sheet__title, .fg-pwr__name,
+                                  .fg-event__title, .fg-state__title, .fg-dialog__title) {
+  font-family: 'Space Grotesk', system-ui, sans-serif;
+  font-weight: 700; letter-spacing: -0.01em;
+}
+[data-theme="neobrut-ticket"] :is(.fg-count__time, .fg-lbrow__pct, .fg-lbrow__ruf) {
+  font-family: var(--font-mono); font-weight: 600; letter-spacing: 0.05em;
+}
+[data-theme="neobrut-ticket"] .fg-count {              /* THE DEPARTURE BOARD */
+  background: #17191c; border-radius: 14px; border: 1.5px solid var(--rail);
+  box-shadow: inset 0 3px 0 rgba(255, 255, 255, 0.06), inset 0 -4px 0 rgba(0, 0, 0, 0.5), 0 6px 16px rgba(26, 28, 31, 0.22);
+}
+[data-theme="neobrut-ticket"] .fg-count__time { color: var(--amber-display); }
+[data-theme="neobrut-ticket"] .fg-count__sub { color: rgba(248, 249, 245, 0.72); font-family: var(--font-mono); letter-spacing: 0.14em; text-transform: uppercase; }
+[data-theme="neobrut-ticket"] :is(.fg-battle__meta, .fg-battle__foot) {
+  font-family: var(--font-mono); text-transform: uppercase; letter-spacing: 0.1em; font-size: 0.78em;
+}
+[data-theme="neobrut-ticket"] :is(.fg-battle, .fg-sheet, .fg-dialog, .fg-state, .fg-pro) {
+  border: 1.5px solid var(--rail);
+  border-top: 4px solid var(--amber-display);
+  border-radius: 16px;
+  background: var(--surface);
+  box-shadow: 0 10px 24px rgba(26, 28, 31, 0.09);
+}
+[data-theme="neobrut-ticket"] :is(.fg-battle__bar, .fg-lbrow__bar) {
+  height: 5px; border-radius: 3px; background: var(--surface-2); padding: 0;
+}
+[data-theme="neobrut-ticket"] :is(.fg-battle__bar i, .fg-lbrow__bar i) {
+  border-radius: 3px; background: var(--lime);
+  box-shadow: 7px 0 0 -1px var(--amber-display);       /* the next-stop marker */
+  transition: width 0.6s cubic-bezier(0.25, 0.9, 0.3, 1);
+}
+[data-theme="neobrut-ticket"] .fg-lbrow { border-bottom: 1px solid var(--line); border-radius: 0; }
+[data-theme="neobrut-ticket"] .fg-lbrow__rank {
+  font-family: var(--font-mono); font-size: 0.72em; letter-spacing: 0.1em;
+  color: var(--amber-display); background: #17191c; border-radius: 6px; padding: 3px 7px;
+}
+[data-theme="neobrut-ticket"] .fg-lbrow--leader { border-left: 4px solid var(--lime); background: rgba(28, 58, 94, 0.05); }
+[data-theme="neobrut-ticket"] .fg-event { border-left: 4px solid var(--amber-display); border-radius: 0 10px 10px 0; }
+[data-theme="neobrut-ticket"] .fg-status {
+  font-family: var(--font-display); font-weight: 600; text-transform: uppercase; letter-spacing: 0.08em;
+  color: var(--lime); border: 2px solid var(--lime); border-radius: 999px; background: var(--surface);
+}
+[data-theme="neobrut-ticket"] :is(.fg-nav__log, .fg-sheet__cta, .fg-dialog__cta,
+                                  .fg-pro__cta, .fg-state__cta) {
+  font-family: var(--font-display); font-weight: 700; letter-spacing: 0.01em;
+  border: 0; border-radius: 12px;
+  box-shadow: 0 8px 20px rgba(28, 58, 94, 0.25);
+  transition: transform 0.25s cubic-bezier(0.25, 0.9, 0.3, 1), box-shadow 0.25s cubic-bezier(0.25, 0.9, 0.3, 1), background 0.25s;
+}
+[data-theme="neobrut-ticket"] :is(.fg-nav__log, .fg-sheet__cta, .fg-dialog__cta,
+                                  .fg-pro__cta, .fg-state__cta):hover {
+  background: var(--primary-hover); transform: translateY(-1px);
+  box-shadow: 0 10px 24px rgba(28, 58, 94, 0.3);
+}
+[data-theme="neobrut-ticket"] :is(.fg-nav__log, .fg-sheet__cta, .fg-dialog__cta,
+                                  .fg-pro__cta, .fg-state__cta):active {
+  transform: translateY(1px); box-shadow: 0 4px 10px rgba(28, 58, 94, 0.25);
+}
+[data-theme="neobrut-ticket"] .pop-btn {
+  border: 0; border-radius: 12px;
+  box-shadow: 0 8px 20px rgba(28, 58, 94, 0.25);
+  font-family: var(--font-display); font-weight: 700;
+  transition: transform 0.25s cubic-bezier(0.25, 0.9, 0.3, 1), box-shadow 0.25s cubic-bezier(0.25, 0.9, 0.3, 1), background 0.25s;
+}
+[data-theme="neobrut-ticket"] .pop-btn:active { transform: translateY(1px); box-shadow: 0 4px 10px rgba(28, 58, 94, 0.25); }
+[data-theme="neobrut-ticket"] .fg-dz {
+  font-family: var(--font-mono); font-weight: 600; letter-spacing: 0.12em; text-transform: uppercase;
+  color: var(--amber-display); background: #17191c;
+  border-radius: 10px; border-left: 4px solid var(--amber-display);
+}
+[data-theme="neobrut-ticket"] .bd-table {             /* the LIGHT platform floor */
+  background:
+    radial-gradient(circle at 2px 2px, rgba(26, 28, 31, 0.06) 1.6px, transparent 2.4px) 0 0/26px 26px,
+    repeating-linear-gradient(90deg, rgba(28, 58, 94, 0.05) 0 2px, transparent 2px 64px),
+    var(--felt);
+  border: 1.5px solid var(--rail);
+  box-shadow: 0 12px 28px rgba(26, 28, 31, 0.12);
+}
+[data-theme="neobrut-ticket"] .bd-lane { border: 1.5px solid var(--felt-line); }
+[data-theme="neobrut-ticket"] .bd-lane:nth-child(even) { border-color: rgba(28, 58, 94, 0.28); }
+[data-theme="neobrut-ticket"] .bd-finish { background: repeating-linear-gradient(90deg, var(--amber-display) 0 10px, transparent 10px 17px); border-right: 2px solid var(--rail); }
+[data-theme="neobrut-ticket"] .bd-pot {               /* the departure module */
+  position: relative;
+  background: #17191c; border: 1.5px solid var(--rail); border-radius: 14px;
+  box-shadow: inset 0 3px 0 rgba(255, 255, 255, 0.06), inset 0 -4px 0 rgba(0, 0, 0, 0.5), 0 8px 20px rgba(26, 28, 31, 0.25);
+}
+[data-theme="neobrut-ticket"] .bd-pot__label { color: rgba(248, 249, 245, 0.72); font-family: var(--font-mono); letter-spacing: 0.22em; font-size: 0.72em; }
+[data-theme="neobrut-ticket"] .bd-pot__total { color: var(--amber-display); font-family: var(--font-mono); font-weight: 600; }
+[data-theme="neobrut-ticket"] .bd-pot__pts { color: rgba(248, 249, 245, 0.72); font-family: var(--font-mono); }
+[data-theme="neobrut-ticket"] .bd-card__face--front { /* the signage plate */
+  background: var(--card-face);
+  border: 1.5px solid var(--rail); border-top: 4px solid var(--amber-display); border-radius: 16px;
+  box-shadow: 0 8px 18px rgba(26, 28, 31, 0.1);
+}
+[data-theme="neobrut-ticket"] .bd-card__rar {
+  font-family: var(--font-mono); font-size: 0.68em; letter-spacing: 0.16em; text-transform: uppercase;
+  color: var(--amber-display); background: #17191c; border-radius: 6px; padding: 3px 8px;
+}
+[data-theme="neobrut-ticket"] .bd-card__name { color: var(--text); font-family: var(--font-display); font-weight: 700; }
+[data-theme="neobrut-ticket"] .bd-card__fx { color: var(--muted); }
+[data-theme="neobrut-ticket"] .bd-card__cost { color: var(--lime); font-weight: 600; font-family: var(--font-mono); }
+[data-theme="neobrut-ticket"] .bd-card__face--back {
+  background: radial-gradient(circle at 2px 2px, rgba(248, 249, 245, 0.08) 1.6px, transparent 2.4px) 0 0/26px 26px, var(--card-back-1);
+  border: 1.5px solid var(--rail); border-radius: 14px;
+}
+[data-theme="neobrut-ticket"] .bd-prow { border: 1px solid var(--line); border-left: 4px solid var(--lime); border-radius: 10px; background: var(--surface); }
+[data-theme="neobrut-ticket"] .bd-prow--you { border-left-color: var(--coral); }
+[data-theme="neobrut-ticket"] .bd-prow__pos { font-family: var(--font-mono); color: var(--lime); }
+[data-theme="neobrut-ticket"] .bd-top { border-bottom: 1.5px solid var(--rail); }
+[data-theme="neobrut-ticket"] .bd-clock {
+  background: #17191c; border: 1.5px solid var(--rail); border-radius: 10px;
+  box-shadow: inset 0 -4px 0 rgba(0, 0, 0, 0.5);
+}
+[data-theme="neobrut-ticket"] .bd-clock__time { color: var(--amber-display); font-family: var(--font-mono); letter-spacing: 0.04em; }
+[data-theme="neobrut-ticket"] .bd-clock__lap { color: rgba(248, 249, 245, 0.72); font-family: var(--font-mono); letter-spacing: 0.14em; }
+[data-theme="neobrut-ticket"] .bd-h1 em { background: linear-gradient(180deg, transparent 66%, rgba(255, 176, 32, 0.55) 66%); font-style: normal; }
+[data-theme="neobrut-ticket"] .bd-tcard { border: 1.5px solid var(--rail); border-top: 4px solid var(--amber-display); border-radius: 16px; background: var(--surface); box-shadow: 0 8px 18px rgba(26, 28, 31, 0.09); }
+[data-theme="neobrut-ticket"] .bd-tcard__felt { background: radial-gradient(circle at 2px 2px, rgba(26, 28, 31, 0.09) 1.6px, transparent 2.4px) 0 0/26px 26px, var(--felt); border: 1px solid var(--line); border-radius: 12px; }
+[data-theme="neobrut-ticket"] .bd-tcard__status { border: 2px solid var(--lime); border-radius: 999px; color: var(--lime); font-family: var(--font-mono); }
+[data-theme="neobrut-ticket"] .bd-card--deal { animation: matBoardIn 0.5s cubic-bezier(0.25, 0.9, 0.3, 1) both; }
+"""
+
+EXTRA["neobrut-locker"] = """
+/* ── neobrut-locker · BINDINGS — the clubhouse take (equipment room) ─── */
+[data-theme="neobrut-locker"] :is(.fg-battle__title, .fg-sheet__title, .fg-pwr__name,
+                                  .fg-event__title, .fg-state__title, .fg-dialog__title) {
+  font-family: 'Archivo', system-ui, sans-serif;
+  font-weight: 800; text-transform: uppercase; letter-spacing: 0.015em;
+}
+[data-theme="neobrut-locker"] :is(.fg-count__time, .fg-lbrow__pct, .fg-lbrow__ruf) {
+  font-family: 'Archivo', sans-serif; font-weight: 900;
+  text-shadow: 3px 3px 0 rgba(31, 79, 143, 0.3);
+}
+[data-theme="neobrut-locker"] :is(.fg-battle__meta, .fg-count__sub, .fg-battle__foot) {
+  font-weight: 700; text-transform: uppercase; letter-spacing: 0.09em; font-size: 0.8em;
+}
+[data-theme="neobrut-locker"] :is(.fg-battle, .fg-sheet, .fg-dialog, .fg-state, .fg-pro) {
+  border: 2.5px solid var(--line); border-radius: 14px;
+  background:
+    repeating-linear-gradient(180deg, transparent 0 6px, rgba(38, 34, 26, 0.12) 6px 8px) 14px 12px / calc(100% - 28px) 16px no-repeat,
+    var(--surface);
+  box-shadow: 5px 6px 0 rgba(38, 34, 26, 0.2), 0 12px 26px rgba(38, 34, 26, 0.1);   /* worn soft */
+}
+[data-theme="neobrut-locker"] .fg-count {              /* the jersey number */
+  border: 2.5px solid var(--line); border-radius: 12px;
+  background:
+    radial-gradient(circle at 1.6px 1.6px, rgba(38, 34, 26, 0.12) 1.4px, transparent 2.1px) 0 0/7px 7px,
+    var(--surface);
+  box-shadow: 4px 5px 0 rgba(38, 34, 26, 0.25);
+}
+[data-theme="neobrut-locker"] :is(.fg-battle__bar, .fg-lbrow__bar) {
+  border: 2.5px solid var(--line); border-radius: 8px;
+  background: var(--surface-2); padding: 2px;
+}
+[data-theme="neobrut-locker"] :is(.fg-battle__bar i, .fg-lbrow__bar i) {
+  border-radius: 6px;
+  background: repeating-linear-gradient(90deg, transparent 0 9px, rgba(253, 249, 239, 0.5) 9px 10.5px), var(--lime);  /* tape ticks */
+  transition: width 0.6s cubic-bezier(0.3, 1.35, 0.5, 1);
+}
+[data-theme="neobrut-locker"] .fg-lbrow { border-bottom: 1.5px solid rgba(38, 34, 26, 0.3); border-radius: 0; }
+[data-theme="neobrut-locker"] .fg-lbrow__rank { font-family: 'Archivo', sans-serif; font-weight: 800; color: var(--lime); }
+[data-theme="neobrut-locker"] .fg-lbrow--leader { border-left: 5px solid var(--lime); background: rgba(179, 36, 44, 0.05); }
+[data-theme="neobrut-locker"] .fg-event { border-left: 5px solid var(--coral); border-radius: 4px 12px 12px 4px; }
+[data-theme="neobrut-locker"] .fg-status {
+  font-family: var(--font-mono); font-weight: 700; text-transform: uppercase; letter-spacing: 0.12em;
+  border: 2px solid var(--line); border-radius: 999px; background: var(--surface);
+}
+[data-theme="neobrut-locker"] :is(.fg-nav__log, .fg-sheet__cta, .fg-dialog__cta,
+                                  .fg-pro__cta, .fg-state__cta) {
+  font-family: 'Archivo', sans-serif; font-weight: 800; text-transform: uppercase; letter-spacing: 0.03em;
+  border: 2.5px solid var(--line); border-radius: 13px 13px 15px 15px;
+  background:
+    linear-gradient(90deg, rgba(253, 249, 239, 0.85) 0 7px, transparent 7px 20px) 0 0 / 100% 34% no-repeat,
+    linear-gradient(-90deg, rgba(253, 249, 239, 0.85) 0 7px, transparent 7px 20px) 0 100% / 100% 34% no-repeat,
+    var(--lime);
+  box-shadow: 4px 5px 0 var(--line);
+  transition: transform 0.4s cubic-bezier(0.3, 1.35, 0.5, 1), box-shadow 0.4s cubic-bezier(0.3, 1.35, 0.5, 1);
+}
+[data-theme="neobrut-locker"] :is(.fg-nav__log, .fg-sheet__cta, .fg-dialog__cta,
+                                  .fg-pro__cta, .fg-state__cta):hover {
+  transform: translateY(-3px); box-shadow: 5px 7px 0 var(--line);
+}
+[data-theme="neobrut-locker"] :is(.fg-nav__log, .fg-sheet__cta, .fg-dialog__cta,
+                                  .fg-pro__cta, .fg-state__cta):active {
+  transform: translateY(2px); box-shadow: 2px 2px 0 var(--line);
+}
+[data-theme="neobrut-locker"] .pop-btn {
+  border: 2.5px solid var(--line); border-radius: 13px 13px 15px 15px;
+  background:
+    linear-gradient(90deg, rgba(253, 249, 239, 0.85) 0 7px, transparent 7px 20px) 0 0 / 100% 34% no-repeat,
+    linear-gradient(-90deg, rgba(253, 249, 239, 0.85) 0 7px, transparent 7px 20px) 0 100% / 100% 34% no-repeat,
+    var(--lime);
+  box-shadow: 4px 5px 0 var(--line);
+  font-family: 'Archivo', sans-serif; font-weight: 800; text-transform: uppercase; letter-spacing: 0.03em;
+  transition: transform 0.4s cubic-bezier(0.3, 1.35, 0.5, 1), box-shadow 0.4s cubic-bezier(0.3, 1.35, 0.5, 1);
+}
+[data-theme="neobrut-locker"] .pop-btn:active { transform: translateY(2px); box-shadow: 2px 2px 0 var(--line); }
+[data-theme="neobrut-locker"] .fg-dz {
+  font-family: 'Archivo', sans-serif; font-weight: 800; letter-spacing: 0.06em; text-transform: uppercase;
+  color: var(--on-accent);
+  background: repeating-linear-gradient(-45deg, rgba(253, 249, 239, 0.14) 0 10px, transparent 10px 20px), var(--danger);
+  border: 2.5px solid var(--line); border-radius: 10px;
+}
+[data-theme="neobrut-locker"] .bd-table {             /* the gym floor */
+  background:
+    repeating-linear-gradient(90deg, rgba(38, 34, 26, 0.22) 0 2px, transparent 2px 92px),
+    repeating-linear-gradient(90deg, rgba(253, 249, 239, 0.05) 0 46px, transparent 46px 92px),
+    linear-gradient(rgba(253, 249, 239, 0.06), rgba(38, 34, 26, 0.12)),
+    linear-gradient(#8a6f4d, #74603f);   /* hard varnished timber */
+  border: 3px solid var(--rail);
+  box-shadow: 5px 6px 0 rgba(38, 34, 26, 0.25);
+}
+[data-theme="neobrut-locker"] .bd-lane { border: 1.5px solid var(--felt-line); }
+[data-theme="neobrut-locker"] .bd-finish { background: repeating-linear-gradient(-45deg, rgba(253, 249, 239, 0.85) 0 9px, var(--lane) 9px 18px); }
+[data-theme="neobrut-locker"] .bd-pot {               /* the equipment crate */
+  position: relative;
+  background:
+    radial-gradient(circle at 1.6px 1.6px, rgba(38, 34, 26, 0.1) 1.4px, transparent 2.1px) 0 0/7px 7px,
+    #f4f1e6;
+  border: 2.5px solid var(--line); border-radius: 14px;
+  box-shadow: 4px 5px 0 rgba(38, 34, 26, 0.25);
+}
+[data-theme="neobrut-locker"] .bd-pot::after {          /* the nameplate badge */
+  content: "◈";
+  position: absolute; top: -11px; left: -10px;
+  width: 27px; height: 27px; display: grid; place-items: center;
+  background: var(--surface); color: var(--line); font-size: 12px;
+  border: 2px solid var(--line); border-radius: 6px;
+  box-shadow: 0 2px 0 rgba(38, 34, 26, 0.35);
+  transform: rotate(-4deg);
+}
+[data-theme="neobrut-locker"] .bd-pot__label { color: var(--muted); font-family: var(--font-mono); letter-spacing: 0.2em; font-size: 0.74em; }
+[data-theme="neobrut-locker"] .bd-pot__total { color: var(--line); font-family: 'Archivo', sans-serif; font-weight: 900; text-shadow: 3px 3px 0 rgba(31, 79, 143, 0.3); }
+[data-theme="neobrut-locker"] .bd-pot__pts { color: var(--text); }
+[data-theme="neobrut-locker"] .bd-card__face--front { /* the locker card */
+  background:
+    repeating-linear-gradient(180deg, transparent 0 6px, rgba(38, 34, 26, 0.14) 6px 8px) 12px 10px / calc(100% - 24px) 18px no-repeat,
+    radial-gradient(circle at 1.6px 1.6px, rgba(38, 34, 26, 0.08) 1.4px, transparent 2.1px) 0 0/7px 7px,
+    var(--card-face);
+  border: 2.5px solid var(--line); border-radius: 14px;
+  box-shadow: 4px 5px 0 rgba(38, 34, 26, 0.25);
+}
+[data-theme="neobrut-locker"] .bd-card__rar {
+  font-family: var(--font-mono); font-size: 0.7em; letter-spacing: 0.14em; text-transform: uppercase;
+  color: #f2c94c; background: var(--line); border-radius: 6px; padding: 3px 8px;
+  transform: rotate(-0.8deg); display: inline-block;
+}
+[data-theme="neobrut-locker"] .bd-card__name { color: var(--line); font-family: 'Archivo', sans-serif; font-weight: 800; text-transform: uppercase; }
+[data-theme="neobrut-locker"] .bd-card__fx { color: var(--muted); }
+[data-theme="neobrut-locker"] .bd-card__cost { color: var(--lime-dim); font-weight: 700; }
+[data-theme="neobrut-locker"] .bd-card__face--back {
+  background: repeating-linear-gradient(135deg, rgba(253, 249, 239, 0.16) 0 9px, transparent 9px 18px), var(--card-back-1);
+  border: 2.5px solid var(--line); border-radius: 12px;
+}
+[data-theme="neobrut-locker"] .bd-prow { border: 2px solid var(--line); border-radius: 10px; background: var(--surface); }
+[data-theme="neobrut-locker"] .bd-prow--you { border-color: var(--lime); box-shadow: 3px 4px 0 rgba(38, 34, 26, 0.25); }
+[data-theme="neobrut-locker"] .bd-prow__pos { font-family: 'Archivo', sans-serif; font-weight: 900; color: var(--lime-dim); }
+[data-theme="neobrut-locker"] .bd-top { border-bottom: 2.5px solid var(--line); }
+[data-theme="neobrut-locker"] .bd-tcard { border: 2.5px solid var(--line); border-radius: 14px; box-shadow: 4px 5px 0 rgba(38, 34, 26, 0.22); }
+[data-theme="neobrut-locker"] .bd-tcard__felt {
+  background:
+    repeating-linear-gradient(180deg, transparent 0 5px, rgba(38, 34, 26, 0.28) 5px 6.5px) 0 0 / 100% 14px no-repeat,
+    var(--felt);
+  border: 1.5px solid var(--line); border-radius: 8px;
+}
+[data-theme="neobrut-locker"] .bd-tcard__status { border: 2px solid var(--line); border-radius: 999px; }
+[data-theme="neobrut-locker"] .bd-card--deal { animation: matLockerClack 0.5s cubic-bezier(0.3, 1.35, 0.5, 1) both; }
+"""
+
+# ── steddi (2026-09-03) — mined from the founder's qalarc.com/projects/
+# steddi-overlap page (the "rail measurement blueprint" microsite). ───────
+EXTRA["steddi"] = """
+/* ── steddi · BINDINGS — the rail measurement blueprint (the founder's page) ── */
+[data-theme="steddi"] :is(.fg-battle__title, .fg-sheet__title, .fg-pwr__name,
+                          .fg-event__title, .fg-state__title, .fg-dialog__title) {
+  font-family: 'Sora', 'Inter', system-ui, sans-serif; font-weight: 600; letter-spacing: -0.015em;
+}
+[data-theme="steddi"] :is(.fg-count__time, .fg-lbrow__pct, .fg-lbrow__ruf) {
+  font-family: var(--font-mono); font-weight: 600; letter-spacing: -0.02em;
+  background: linear-gradient(100deg, #d94a3d, #ff6a55);        /* KPI gradient ink */
+  -webkit-background-clip: text; background-clip: text; color: transparent;
+}
+[data-theme="steddi"] :is(.fg-battle__meta, .fg-count__sub, .fg-battle__foot) {
+  font-family: var(--font-mono); text-transform: uppercase; letter-spacing: 0.18em; font-size: 0.74em;
+}
+[data-theme="steddi"] :is(.fg-battle, .fg-sheet, .fg-pro) {
+  border: 1px solid var(--line); border-radius: 10px;
+  background: linear-gradient(180deg, rgba(217, 74, 61, 0.04), transparent 26%), var(--surface);
+}
+[data-theme="steddi"] :is(.fg-dialog, .fg-state) {       /* the callout datum edge */
+  border: 1px solid var(--line); border-left: 2px solid var(--coral); border-radius: 0 10px 10px 0;
+  background: linear-gradient(90deg, rgba(217, 74, 61, 0.07), transparent 70%), var(--surface);
+}
+[data-theme="steddi"] .fg-count {
+  border: 1px solid var(--line); border-radius: 10px; background: var(--surface);
+}
+[data-theme="steddi"] :is(.fg-battle__bar, .fg-lbrow__bar) {
+  height: 4px; border-radius: 2px; background: var(--surface-2); padding: 0;
+}
+[data-theme="steddi"] :is(.fg-battle__bar i, .fg-lbrow__bar i) {
+  border-radius: 2px; background: linear-gradient(90deg, #a93546, #ff3b2f);
+  box-shadow: 0 0 10px rgba(255, 59, 47, 0.4);            /* the beam */
+  transition: width 0.6s cubic-bezier(0.22, 0.61, 0.36, 1);
+}
+[data-theme="steddi"] .fg-lbrow { border-bottom: 1px solid var(--line); border-radius: 0; transition: background 0.2s cubic-bezier(0.22, 0.61, 0.36, 1), padding-left 0.2s cubic-bezier(0.22, 0.61, 0.36, 1); }
+[data-theme="steddi"] .fg-lbrow:hover { background: rgba(217, 74, 61, 0.05); padding-left: 8px; }   /* linklist nudge */
+[data-theme="steddi"] .fg-lbrow__rank { font-family: var(--font-mono); font-size: 0.78em; color: var(--coral); letter-spacing: 0.2em; }
+[data-theme="steddi"] .fg-lbrow--leader { border-left: 2px solid var(--coral); background: linear-gradient(90deg, rgba(217, 74, 61, 0.06), transparent 60%); }
+[data-theme="steddi"] .fg-event { border-left: 2px solid var(--coral); border-radius: 0 8px 8px 0; background: linear-gradient(90deg, rgba(217, 74, 61, 0.05), transparent 65%); }
+[data-theme="steddi"] .fg-status {
+  font-family: var(--font-mono); font-weight: 400; font-size: 0.78em; text-transform: uppercase; letter-spacing: 0.2em;
+  color: #ff6a55; border: 1px solid var(--line-bright); border-radius: 999px; background: rgba(217, 74, 61, 0.14);
+}
+[data-theme="steddi"] :is(.fg-nav__log, .fg-sheet__cta, .fg-dialog__cta,
+                          .fg-pro__cta, .fg-state__cta) {
+  font-family: var(--font-body); font-weight: 600; font-size: 0.95em;
+  border: 0; border-radius: 8px;
+  background: linear-gradient(135deg, #a93546, #c23b2f);
+  box-shadow: 0 6px 22px rgba(169, 53, 70, 0.3);
+  transition: transform 0.18s cubic-bezier(0.22, 0.61, 0.36, 1), box-shadow 0.18s cubic-bezier(0.22, 0.61, 0.36, 1);
+}
+[data-theme="steddi"] :is(.fg-nav__log, .fg-sheet__cta, .fg-dialog__cta,
+                          .fg-pro__cta, .fg-state__cta):hover {
+  transform: translateY(-2px); box-shadow: 0 10px 30px rgba(217, 74, 61, 0.4);
+}
+[data-theme="steddi"] :is(.fg-nav__log, .fg-sheet__cta, .fg-dialog__cta,
+                          .fg-pro__cta, .fg-state__cta):active {
+  transform: translateY(0); box-shadow: 0 3px 12px rgba(169, 53, 70, 0.3);
+}
+[data-theme="steddi"] .pop-btn {
+  border: 0; border-radius: 8px;
+  background: linear-gradient(135deg, #a93546, #c23b2f);
+  box-shadow: 0 6px 22px rgba(169, 53, 70, 0.3);
+  font-weight: 600;
+  transition: transform 0.18s cubic-bezier(0.22, 0.61, 0.36, 1), box-shadow 0.18s cubic-bezier(0.22, 0.61, 0.36, 1);
+}
+[data-theme="steddi"] .pop-btn:active { transform: translateY(0); box-shadow: 0 3px 12px rgba(169, 53, 70, 0.3); }
+[data-theme="steddi"] .fg-dz {
+  font-family: var(--font-mono); font-weight: 400; font-size: 0.8em; letter-spacing: 0.16em; text-transform: uppercase;
+  color: #ff6a55; background: rgba(255, 59, 47, 0.12);
+  border: 1px solid rgba(255, 59, 47, 0.4); border-radius: 6px;
+}
+[data-theme="steddi"] .fg-dz::before {                   /* the blinking LED */
+  content: ""; display: inline-block; width: 6px; height: 6px; border-radius: 999px;
+  background: #ff3b2f; box-shadow: 0 0 8px rgba(255, 59, 47, 0.7);
+  margin-right: 9px; vertical-align: 1px;
+  animation: matSteddiLed 1.2s steps(2, end) infinite;
+}
+[data-theme="steddi"] .bd-table {                     /* the blueprint floor */
+  background:
+    linear-gradient(rgba(241, 232, 230, 0.035) 1px, transparent 1px) 0 0 / 8px 8px,
+    linear-gradient(90deg, rgba(241, 232, 230, 0.035) 1px, transparent 1px) 0 0 / 8px 8px,
+    linear-gradient(rgba(217, 74, 61, 0.09) 1px, transparent 1px) 0 0 / 96px 96px,
+    linear-gradient(90deg, rgba(217, 74, 61, 0.09) 1px, transparent 1px) 0 0 / 96px 96px,
+    radial-gradient(80% 70% at 50% 12%, rgba(217, 74, 61, 0.1), transparent 60%),
+    var(--felt);
+  border: 1px solid var(--rail);
+  box-shadow: inset 0 0 60px rgba(0, 0, 0, 0.5);
+}
+[data-theme="steddi"] .bd-lane { border: 1px dashed var(--felt-line); }        /* diagram dashes */
+[data-theme="steddi"] .bd-finish { background: repeating-linear-gradient(90deg, var(--coral) 0 10px, transparent 10px 18px); border-right: 1px solid var(--coral); }
+[data-theme="steddi"] .bd-pot {                       /* the survey plate + datum marks */
+  position: relative;
+  background: #20161c;   /* hard panel plum */
+  border: 1px solid var(--line); border-radius: 10px;
+  box-shadow: 0 12px 26px rgba(0, 0, 0, 0.5);   /* replaces board.css's amber insets */
+}
+[data-theme="steddi"] .bd-pot::before,
+[data-theme="steddi"] .bd-pot::after {                 /* datum crosshairs */
+  content: "+"; position: absolute;
+  font: 400 13px/1 var(--font-mono); color: var(--coral); opacity: 0.8;
+}
+[data-theme="steddi"] .bd-pot::before { top: -8px; left: -7px; }
+[data-theme="steddi"] .bd-pot::after { bottom: -8px; right: -7px; }
+[data-theme="steddi"] .bd-pot__label { color: var(--muted); font-family: var(--font-mono); letter-spacing: 0.24em; font-size: 0.7em; text-transform: uppercase; }
+[data-theme="steddi"] .bd-pot__total {
+  font-family: var(--font-mono); font-weight: 600;
+  background: linear-gradient(100deg, #d94a3d, #ff6a55);
+  -webkit-background-clip: text; background-clip: text; color: transparent;
+}
+[data-theme="steddi"] .bd-pot__pts { color: var(--muted); font-family: var(--font-mono); }
+[data-theme="steddi"] .bd-card__face--front {         /* the diag panel */
+  background: linear-gradient(180deg, rgba(217, 74, 61, 0.04), transparent 24%), var(--card-face);
+  border: 1px solid var(--line); border-radius: 10px;
+}
+[data-theme="steddi"] .bd-card__rar { font-family: var(--font-mono); font-size: 0.68em; letter-spacing: 0.2em; text-transform: uppercase; color: #ff6a55; }
+[data-theme="steddi"] .bd-card__name { color: var(--text); font-family: 'Sora', sans-serif; font-weight: 600; }
+[data-theme="steddi"] .bd-card__fx { color: var(--muted); }
+[data-theme="steddi"] .bd-card__cost { color: var(--coral); font-weight: 600; font-family: var(--font-mono); }
+[data-theme="steddi"] .bd-card__face--back {
+  background: linear-gradient(160deg, var(--card-back-1), var(--card-back-2));
+  border: 1px solid var(--line); border-radius: 10px;
+}
+[data-theme="steddi"] .bd-prow { border: 1px solid var(--line); border-left: 2px solid var(--coral); border-radius: 0 8px 8px 0; background: var(--surface); }
+[data-theme="steddi"] .bd-prow--you { border-left-color: #ff3b2f; }
+[data-theme="steddi"] .bd-prow__pos { font-family: var(--font-mono); color: var(--coral); letter-spacing: 0.1em; }
+[data-theme="steddi"] .bd-top { border-bottom: 1px solid var(--line); }
+[data-theme="steddi"] .bd-clock { border: 1px solid var(--line); border-radius: 8px; background: rgba(25, 18, 23, 0.6); }
+[data-theme="steddi"] .bd-clock__time { color: #ff6a55; font-family: var(--font-mono); }
+[data-theme="steddi"] .bd-clock__lap { color: var(--muted); font-family: var(--font-mono); letter-spacing: 0.18em; }
+[data-theme="steddi"] .bd-h1 em { background: linear-gradient(100deg, #d94a3d, #ff6a55); -webkit-background-clip: text; background-clip: text; color: transparent; font-style: normal; }
+[data-theme="steddi"] .bd-tcard { border: 1px solid var(--line); border-radius: 10px; background: var(--surface); transition: background 0.2s cubic-bezier(0.22, 0.61, 0.36, 1), padding-left 0.2s cubic-bezier(0.22, 0.61, 0.36, 1); }
+[data-theme="steddi"] .bd-tcard:hover { background: rgba(217, 74, 61, 0.05); }
+[data-theme="steddi"] .bd-tcard__felt { background: linear-gradient(160deg, var(--card-back-1), var(--card-back-2)); border: 1px solid var(--line); border-radius: 6px; }
+[data-theme="steddi"] .bd-tcard__status { font-family: var(--font-mono); font-size: 0.78em; letter-spacing: 0.16em; text-transform: uppercase; color: #ff6a55; border: 1px solid var(--line-bright); border-radius: 999px; }
+[data-theme="steddi"] .bd-card--deal { animation: matSteddiMist 1.1s cubic-bezier(0.22, 0.61, 0.36, 1) both; }
+"""
+
 # Radicalisation patches applied to the pkl buckets before writing
 # (sunset de-brutalised 2026-09-03 — the offset-shadow language now belongs
 # to neobrut alone; sunset is the flat Swiss sheet).
@@ -628,9 +1332,22 @@ PATCHES: list[tuple[str, str, str]] = [
 ]
 
 
-# Order the hand-authored founder-site kits appear in themes.css (after the
-# pkl buckets, mirroring style-library/index.css order).
-EXTRA_ORDER = ["x10", "doof", "qalarc", "tradez", "gmux", "volkus", "endispute"]
+# Order the hand-authored kits appear in themes.css (variants right after
+# the neobrut bucket conceptually; steddi last, mirroring index.css order).
+EXTRA_ORDER = [
+    "neobrut-field",
+    "neobrut-zine",
+    "neobrut-ticket",
+    "neobrut-locker",
+    "x10",
+    "doof",
+    "qalarc",
+    "tradez",
+    "gmux",
+    "volkus",
+    "endispute",
+    "steddi",
+]
 
 
 def main() -> int:

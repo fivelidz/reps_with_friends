@@ -1,0 +1,290 @@
+/* style-library/theme-neobrut-locker.css — the "neobrut-locker" material kit.
+   Tokens + .mat- primitives only. RWF app bindings (fg / bd classes)
+   live in design/themes.css. Name/label/provenance: README.md. */
+
+/* ═══════════════════════════════════════════════════════════════════════
+    VARIANT 4 of the founder's "Neo-Brutalist Sports Poster with a Soft
+    Underbelly" — THE CLUBHOUSE SIDE (the agent's call).  Clubhouse.
+    The equipment room after training: locker panels with VENT SLOTS,
+    nameplates fixed with visible screws, jersey numbers on mesh bibs,
+    sports-tape stripes for rules and progress, wristband toggles —
+    then the underbelly: everything towel-soft and a little worn-in,
+    cubby corners rounded, magnetic clack motion (snaps on, settles
+    gently), the warmest palette of the poster family.
+    Describe it as: the equipment room after training — vent-slot
+    lockers, screwed-on nameplates, jersey numbers on mesh, tape
+    stripes — everything soft, rounded, and comfortably worn in.
+    ═══════════════════════════════════════════════════════════════════════ */
+
+[data-theme="neobrut-locker"] {
+  --bg: #e6e2d4;                 /* painted cinderblock putty */
+  --surface: #f4f1e6;            /* cubby board */
+  --surface-2: #d9d4c2;          /* pressed board */
+  --line: #26221a;               /* ink-brown */
+  --line-bright: #4a4436;
+  --text: #26221a;
+  --muted: #4b463a;
+  --faint: #585243;              /* 5.3:1 on bg */
+  --faint-deco: #8b8574;
+
+  --lime: #b3242c;               /* JERSEY CARDINAL — the primary plate */
+  --lime-dim: #8e1c23;
+  --lime-glow: rgba(179, 36, 44, 0.14);
+  --coral: #1f4f8f;              /* TAPE BLUE — effort */
+  --coral-glow: rgba(31, 79, 143, 0.14);
+  --amber: #7c5a10;              /* bench-wood brass */
+  --sky: #2e5e50;                /* sage tape */
+
+  --success: #2e5e3a;
+  --danger: #99201d;
+  --urgency: #8a3a00;
+
+  --energy: #4a3a8f;
+  --energy-light: #3e2f7a;
+  --energy-tint: #e7e4f2;
+
+  --dz-bg: #ddd6c2;
+  --dz3-surface: #f0d2b4;
+  --dz-hero: #f7e2c5;
+
+  --font-display: 'Archivo', system-ui, sans-serif;   /* varsity block */
+  --font-body: 'Inter', system-ui, sans-serif;
+  --font-mono: 'JetBrains Mono', ui-monospace, 'Cascadia Code', Menlo, monospace;
+
+  --radius: 10px;                /* the cubby cut */
+  --radius-sm: 6px;
+  --radius-lg: 14px;
+  --radius-xl: 18px;
+  --pill: 999px;
+
+  --on-accent: #fdf9ef;          /* 6.4:1 on cardinal */
+  --primary-hover: #8e1c23;
+  --on-warn: #fdf9ef;            /* 6.9:1 on urgency */
+
+  --on-gold: var(--on-accent);
+
+  /* BOARD EXTRAS — the gym floor */
+  --felt: #8a6f4d;               /* varnished gym timber */
+  --felt-deep: #79603f;
+  --felt-line: rgba(253, 249, 239, 0.75);
+  --lane: #b3242c;               /* cardinal court tape */
+  --lane-paint: rgba(253, 249, 239, 0.6);
+  --rail: #26221a;
+  --rail-edge: rgba(253, 249, 239, 0.4);
+
+  --chip-white: #fdf9ef;
+  --chip-red: #99201d;
+  --chip-blue: #1f4f8f;
+  --chip-gold: #d9a521;
+
+  --card-back-1: #b3242c;
+  --card-back-2: #8e1c23;
+  --card-face: #f4f1e6;
+
+  --pop-shadow: #26221a;
+  --speed: 0.7s;
+}
+/* ── neobrut-locker · MATERIAL — the equipment room ──────────────────── */
+[data-theme="neobrut-locker"] {
+  /* cinderblock mortar grid + paper grain + putty wash */
+  --mat-page:
+    url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='160' height='160'%3E%3Cfilter id='p'%3E%3CfeTurbulence type='fractalNoise' baseFrequency='0.75' numOctaves='2' stitchTiles='stitch'/%3E%3CfeColorMatrix values='0 0 0 0 0.15 0 0 0 0 0.13 0 0 0 0 0.10 0 0 0 0.07 0'/%3E%3C/filter%3E%3Crect width='160' height='160' filter='url(%23p)'/%3E%3C/svg%3E"),
+    linear-gradient(rgba(38, 34, 26, 0.05) 1px, transparent 1px),
+    linear-gradient(90deg, rgba(38, 34, 26, 0.05) 1px, transparent 1px),
+    linear-gradient(#e6e2d4, #ded9c8);
+  background-size: 160px 160px, 26px 26px, 61px 61px, auto;
+}
+[data-theme="neobrut-locker"] body,
+[data-theme="neobrut-locker"] .mat-page {
+  background-size: 160px 160px, 26px 26px, 61px 61px, auto;
+}
+[data-theme="neobrut-locker"] .mat-surface {       /* THE LOCKER — vents + screws */
+  position: relative;
+  background:
+    repeating-linear-gradient(180deg, transparent 0 6px, rgba(38, 34, 26, 0.16) 6px 8px) 12px 10px / calc(100% - 24px) 18px no-repeat,
+    radial-gradient(circle 2px at 8px 8px, rgba(38, 34, 26, 0.65) 0 1.4px, transparent 2px) 0 0 / 100% 100%,
+    var(--surface);
+  border: 2.5px solid var(--line);
+  border-radius: 14px;
+  box-shadow: 5px 6px 0 rgba(38, 34, 26, 0.2), 0 12px 26px rgba(38, 34, 26, 0.1);   /* worn soft */
+  padding: 16px;
+  transition: transform 0.4s cubic-bezier(0.3, 1.35, 0.5, 1), box-shadow 0.4s cubic-bezier(0.3, 1.35, 0.5, 1);
+}
+[data-theme="neobrut-locker"] .mat-surface::before,   /* the four screws */
+[data-theme="neobrut-locker"] .mat-surface::after {
+  content: "";
+  position: absolute;
+  width: 6px; height: 6px;
+  border-radius: 999px;
+  background:
+    linear-gradient(45deg, transparent 42%, rgba(253, 249, 239, 0.85) 42% 58%, transparent 58%),
+    var(--line-bright);
+  box-shadow: 0 1px 0 rgba(253, 249, 239, 0.35);
+}
+[data-theme="neobrut-locker"] .mat-surface::before { left: 7px; top: 7px; }
+[data-theme="neobrut-locker"] .mat-surface::after { right: 7px; bottom: 7px; }
+[data-theme="neobrut-locker"] .mat-surface:hover {
+  transform: translateY(-2px);
+  box-shadow: 6px 8px 0 rgba(38, 34, 26, 0.2), 0 16px 32px rgba(38, 34, 26, 0.12);
+}
+[data-theme="neobrut-locker"] .mat-btn {           /* the JERSEY — shoulder stripes */
+  position: relative;
+  font-family: var(--font-display);
+  font-weight: 800;
+  font-size: 15px;
+  text-transform: uppercase;
+  letter-spacing: 0.03em;
+  color: var(--on-accent);
+  background:
+    linear-gradient(90deg, rgba(253, 249, 239, 0.85) 0 7px, transparent 7px 20px) 0 0 / 100% 34% no-repeat,
+    linear-gradient(-90deg, rgba(253, 249, 239, 0.85) 0 7px, transparent 7px 20px) 0 100% / 100% 34% no-repeat,
+    var(--lime);
+  border: 2.5px solid var(--line);
+  border-radius: 13px 13px 15px 15px;
+  padding: 12px 26px;
+  box-shadow: 4px 5px 0 var(--line);
+  transition: transform 0.4s cubic-bezier(0.3, 1.35, 0.5, 1), box-shadow 0.4s cubic-bezier(0.3, 1.35, 0.5, 1);
+}
+[data-theme="neobrut-locker"] .mat-btn:hover { transform: translateY(-3px); box-shadow: 5px 7px 0 var(--line); }
+[data-theme="neobrut-locker"] .mat-btn:active { transform: translateY(2px); box-shadow: 2px 2px 0 var(--line); }
+[data-theme="neobrut-locker"] .mat-btn--ghost {
+  background: var(--surface);
+  color: var(--text);
+}
+[data-theme="neobrut-locker"] .mat-num {           /* the JERSEY NUMBER on mesh */
+  display: inline-block;
+  font-family: 'Archivo', sans-serif;
+  font-weight: 900;
+  font-size: 50px;
+  color: var(--text);
+  background:
+    radial-gradient(circle at 1.6px 1.6px, rgba(38, 34, 26, 0.14) 1.4px, transparent 2.1px) 0 0 / 7px 7px,
+    var(--surface);
+  border: 2.5px solid var(--line);
+  border-radius: 12px;
+  padding: 6px 18px 10px;
+  text-shadow: 3px 3px 0 rgba(31, 79, 143, 0.3);   /* tape-blue offset */
+}
+[data-theme="neobrut-locker"] .mat-divider {       /* the SPORTS TAPE */
+  height: 9px;
+  border: 0;
+  margin: 13px 0;
+  background:
+    repeating-linear-gradient(-45deg, rgba(31, 79, 143, 0.75) 0 9px, rgba(253, 249, 239, 0.6) 9px 13px);
+  border-radius: 2px;
+  opacity: 0.85;
+}
+[data-theme="neobrut-locker"] .mat-progress {      /* the tape measure */
+  height: 12px;
+  border: 2.5px solid var(--line);
+  border-radius: 8px;
+  background: var(--surface-2);
+}
+[data-theme="neobrut-locker"] .mat-progress i {    /* cardinal tape with tick marks */
+  border-radius: 6px;
+  background:
+    repeating-linear-gradient(90deg, transparent 0 9px, rgba(253, 249, 239, 0.55) 9px 10.5px),
+    var(--lime);
+  transition: width 0.6s cubic-bezier(0.3, 1.35, 0.5, 1);
+}
+[data-theme="neobrut-locker"] .mat-chip {          /* the WRISTBAND */
+  font-family: var(--font-body);
+  font-weight: 700;
+  font-size: 13px;
+  color: var(--text);
+  background:
+    repeating-linear-gradient(90deg, rgba(179, 36, 44, 0.16) 0 6px, transparent 6px 12px),
+    var(--surface);
+  border: 2px solid var(--line);
+  border-radius: 999px;
+  padding: 8px 15px;
+  transition: transform 0.35s cubic-bezier(0.3, 1.35, 0.5, 1), background 0.35s, color 0.35s;
+}
+[data-theme="neobrut-locker"] .mat-chip:hover { transform: translateY(-1px); }
+[data-theme="neobrut-locker"] .mat-chip.is-on {
+  background:
+    repeating-linear-gradient(90deg, rgba(253, 249, 239, 0.25) 0 6px, transparent 6px 12px),
+    var(--lime);
+  color: var(--on-accent);
+}
+[data-theme="neobrut-locker"] .mat-input {         /* the label-maker strip */
+  font-family: var(--font-body);
+  color: var(--text);
+  background: #fdfbf2;
+  border: 2px solid var(--line);
+  border-radius: 9px;
+  padding: 11px 14px;
+  transition: box-shadow 0.35s cubic-bezier(0.3, 1.35, 0.5, 1);
+}
+[data-theme="neobrut-locker"] .mat-input:focus { outline: none; box-shadow: 0 0 0 3px rgba(179, 36, 44, 0.3); }
+[data-theme="neobrut-locker"] .mat-avatar {        /* the cubby tag */
+  border-radius: 11px;
+  border: 2.5px solid var(--line);
+  background:
+    radial-gradient(circle at 1.6px 1.6px, rgba(38, 34, 26, 0.12) 1.4px, transparent 2.1px) 0 0 / 7px 7px,
+    var(--surface);
+  box-shadow: 3px 4px 0 rgba(38, 34, 26, 0.25);
+  font-family: 'Archivo', sans-serif;
+  font-weight: 800;
+}
+[data-theme="neobrut-locker"] .mat-dialog {        /* the locker door */
+  position: relative;
+  background:
+    repeating-linear-gradient(180deg, transparent 0 6px, rgba(38, 34, 26, 0.14) 6px 8px) 14px 12px / calc(100% - 28px) 16px no-repeat,
+    var(--surface);
+  border: 2.5px solid var(--line);
+  border-radius: 16px;
+  box-shadow: 6px 7px 0 rgba(38, 34, 26, 0.2);
+  padding: 20px 18px 16px;
+  animation: matLockerClack 0.45s cubic-bezier(0.3, 1.35, 0.5, 1) both;
+}
+[data-theme="neobrut-locker"] .mat-dialog__title {
+  font-family: var(--font-display);
+  font-weight: 800;
+  text-transform: uppercase;
+  letter-spacing: 0.02em;
+  display: inline-block;
+  background: var(--line);
+  color: #f2c94c;                                   /* the nameplate strip */
+  padding: 5px 14px 6px;
+  border-radius: 7px;
+  transform: rotate(-0.6deg);
+}
+[data-theme="neobrut-locker"] .mat-badge {         /* the NAMEPLATE — screwed on */
+  font-family: var(--font-mono);
+  font-weight: 700;
+  font-size: 10.5px;
+  letter-spacing: 0.14em;
+  text-transform: uppercase;
+  color: var(--text);
+  background: var(--surface);
+  border: 2px solid var(--line);
+  border-radius: 6px;
+  padding: 6px 11px;
+  box-shadow: 0 2px 0 rgba(38, 34, 26, 0.35);
+  transform: rotate(-1.4deg);
+  transition: transform 0.35s cubic-bezier(0.3, 1.35, 0.5, 1);
+}
+[data-theme="neobrut-locker"] .mat-badge:hover { transform: rotate(0.8deg) translateY(-1px); }
+[data-theme="neobrut-locker"] .mat-dz {            /* the coach's board */
+  font-family: var(--font-display);
+  font-weight: 800;
+  font-size: 12px;
+  text-transform: uppercase;
+  letter-spacing: 0.08em;
+  color: var(--on-accent);
+  background:
+    repeating-linear-gradient(-45deg, rgba(253, 249, 239, 0.14) 0 10px, transparent 10px 20px),
+    var(--danger);
+  border: 2.5px solid var(--line);
+  border-radius: 10px;
+  padding: 11px 14px;
+}
+@keyframes matLockerClack {
+  0%   { opacity: 0; transform: translateX(10px) rotate(1.2deg); }
+  45%  { opacity: 1; transform: translateX(-2px) rotate(-0.4deg); }
+  100% { opacity: 1; transform: translateX(0) rotate(0); }
+}
+@media (prefers-reduced-motion: reduce) {
+  [data-theme="neobrut-locker"] .mat-dialog { animation: none; }
+}
