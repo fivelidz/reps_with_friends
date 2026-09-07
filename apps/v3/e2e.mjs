@@ -160,10 +160,12 @@ const text = (sel) => evalJs(`document.querySelector('${sel}')?.textContent ?? n
 const exists = (sel) => evalJs(`!!document.querySelector('${sel}')`);
 const call = (expr) => evalJs(`(window.__rwfV3 ? window.__rwfV3.${expr} : null)`);
 
-/* battle language sweep — the founder's rule, enforced */
+/* battle language sweep — the founder's rule, enforced on page COPY.
+   (The quick bar's camera label "CAM · TABLE" is the founder's own term
+   for the POV — chrome, not copy — so the sweep reads #app, not body.) */
 const BANNED = /kitty|poker|\blaps?\b|race.?night|\btable\b|\bfelt\b/i;
 const langClean = (where) =>
-  evalJs(`(() => { const t = document.body.innerText || ''; return !${BANNED.toString()}.test(t); })()`)
+  evalJs(`(() => { const t = document.querySelector('#app')?.innerText || ''; return !${BANNED.toString()}.test(t); })()`)
     .then((clean) => ok(clean === true, `battle language clean on ${where} (no kitty/poker/lap/race-night/table/felt)`));
 
 /* ═══════════════════════ THE WALK ═════════════════════════════════════ */
@@ -181,6 +183,21 @@ console.log("— HOME");
 ok(await exists(".v3-h1"), "home hero renders");
 ok(await exists("#newBattle"), "fast battle CTA shown");
 ok((await text(".v3-h1")).includes("course"), "hero speaks the course language");
+
+console.log("— QUICK BAR (persistent top nav: dashboard · cam · theme · sound)");
+ok(await exists("#v3quick"), "quick bar mounted (persistent, every screen)");
+ok(await exists("#qHome"), "dashboard button in the quick bar");
+ok((await evalJs(`document.querySelector('#qCam')?.hidden`)) === true, "camera cycle hidden off the battle course");
+ok(await exists(".v3-quick .v3-mute"), "sound toggle lives in the quick bar");
+await evalJs(`document.querySelector('#qTheme').click(); true`);
+await sleep(150);
+ok((await evalJs(`document.body.dataset.rwfTheme`)) === "court", "theme button cycles the skin (night → court)");
+ok((await evalJs(`localStorage.getItem('rwf.v3.theme')`)) === "court", "theme persists to rwf.v3.theme");
+await evalJs(`document.querySelector('#qTheme').click(); true`);
+ok((await evalJs(`document.body.dataset.rwfTheme`)) === "ice", "theme cycles again (court → ice)");
+await evalJs(`document.querySelector('#qTheme').click(); true`);
+ok((await evalJs(`document.body.dataset.rwfTheme`)) === "night", "theme wraps home (ice → night, shots stay on the default)");
+
 await shot("home");
 await langClean("home");
 
@@ -220,9 +237,10 @@ ok(Math.abs(p0.z - START_Z) < 0.05, `your runner starts at the line (z=${p0.z})`
 ok(p0.t < 0.01, "progress t = 0 before any reps");
 ok(laneXs.length === 4 && new Set(laneXs).size === 4, "4 distinct lanes (one per runner)");
 const spread = Math.max(...laneXs) - Math.min(...laneXs);
-ok(spread > 4 && spread < 6.5, `lanes spread across the course (Δ=${spread.toFixed(2)} ≈ 3×1.7)`);
+ok(spread > 5.5 && spread < 7, `lanes spread across the course (Δ=${spread.toFixed(2)} ≈ 3×2.1)`);
 ok(Math.abs(laneXs.reduce((a, b) => a + b, 0)) < 0.01, "lanes centred on x=0");
 ok((await evalJs(`document.querySelectorAll('.v3-srow').length`)) === 4, "4 standings rows in the HUD");
+ok((await evalJs(`document.querySelector('#qCam')?.hidden`)) === false, "camera cycle is live in the quick bar on the course");
 ok(await exists("#battleClock"), "battle clock present");
 ok((await text("#clockTag")) === "BATTLE CLOCK", "clock label reads BATTLE CLOCK (battle language)");
 
@@ -257,7 +275,7 @@ const prog = await call("progressOf('you')");
 const expectedZ = START_Z - prog * COURSE;
 ok(Math.abs(posAfter.z - expectedZ) < COURSE * 0.03,
    `world z matches progress % (z=${posAfter.z.toFixed(2)} vs expected ${expectedZ.toFixed(2)} · ${(prog * 100).toFixed(1)}%)`);
-ok(Math.abs(posAfter.z - posBefore.z) > 3, `runner visibly advanced down the course (Δz=${(posAfter.z - posBefore.z).toFixed(2)})`);
+ok(Math.abs(posAfter.z - posBefore.z) > 2, `runner visibly advanced down the course (Δz=${(posAfter.z - posBefore.z).toFixed(2)} on the 28-unit course)`);
 ok(Math.abs(posAfter.x - laneOfYou) < 0.15, "runner stays in its lane");
 ok(await call("potTotal()") === 85, "charity pot grew +5 (log tip)");
 ok((await evalJs(`document.querySelectorAll('.v3-feed > div, .v3-feed div').length`)) >= 1, "commentary feed live");
@@ -315,6 +333,62 @@ await evalJs(`window.__rwfV3.driveLog(10); true`);
 await sleep(2200);
 const fms = await call("frameMs()");
 ok(fms > 0 && fms < 8, `frame render cost under the 8ms budget while walking (median ${fms.toFixed(2)}ms)`);
+
+console.log("— THE POV (founder's oblique board-game view — three modes, same battle moment)");
+const cam0 = await call("camState()");
+ok(cam0?.mode === "table", "TABLE is the DEFAULT camera (the oblique board-game view)");
+ok(cam0?.downDeg >= 50 && cam0?.downDeg <= 65,
+   `TABLE looks down in the 50–65° oblique band (${cam0?.downDeg}° below horizon — perspective third person, not flat top-down)`);
+let allVisible = true;
+const screenPos = {};
+for (const pid of ["you", "sam", "alex", "jordan"]) {
+  const sp = await call(`runnerScreen('${pid}')`);
+  screenPos[pid] = sp;
+  if (!sp || Math.abs(sp.x) > 1 || Math.abs(sp.y) > 1) allVisible = false;
+}
+ok(allVisible === true, `every runner on-frame AT ONCE in TABLE (${Object.values(screenPos).map((p) => p ? `${p.x},${p.y}` : "?").join(" · ")})`);
+await shot("battle-table_pov");
+
+await click("#qCam");
+await sleep(1400); // eased transition settles
+let cam1 = await call("camState()");
+ok(cam1?.mode === "stadium", "cycle → STADIUM (higher, wider — the spectacle view)");
+ok(cam1?.downDeg > 60, `STADIUM sits higher than TABLE (${cam1?.downDeg}° down)`);
+await shot("battle-stadium_pov");
+
+await click("#qCam");
+await sleep(1400);
+cam1 = await call("camState()");
+ok(cam1?.mode === "follow", "cycle → FOLLOW (the leader cam, kept from v3.0)");
+await shot("battle-follow_pov");
+
+await click("#qCam");
+ok((await call("camState()"))?.mode === "table", "cycle wraps back to TABLE");
+
+console.log("— NAV (keyboard C · dashboard one-tap · back gesture never dead-ends)");
+await evalJs(`window.dispatchEvent(new KeyboardEvent("keydown", { key: "c" })); true`);
+await sleep(250);
+ok((await call("camState()"))?.mode === "stadium", "keyboard C cycles the POV (→ stadium)");
+await evalJs(`window.dispatchEvent(new KeyboardEvent("keydown", { key: "c" })); true`);
+await sleep(250);
+ok((await call("camState()"))?.mode === "follow", "…and again (C → follow)");
+await evalJs(`window.dispatchEvent(new KeyboardEvent("keydown", { key: "c" })); true`);
+await sleep(250);
+ok((await call("camState()"))?.mode === "table", "…and home (C → table)");
+
+await click("#qHome");
+ok(await call("view()") === "home", "dashboard button — ONE TAP from mid-battle → home");
+await evalJs(`location.hash = '#/battle?m=${mid}'; true`);
+await waitFor(() => exists("#gl canvas").catch(() => false), { label: "battle re-entered" });
+await sleep(500);
+await evalJs(`history.back(); true`);
+await sleep(450);
+const backView = await call("view()");
+ok(backView === "home", `browser/Android BACK gesture returns to the dashboard (view=${backView} — no dead-end)`);
+await evalJs(`history.forward(); true`);
+await sleep(450);
+await waitFor(() => exists("#gl canvas").catch(() => false), { label: "forward returns to the battle" });
+ok((await call("view()")) === "battle", "forward re-enters the battle course");
 
 console.log("— DANGER ZONE (clock ramp)");
 await evalJs(`window.__rwfV3.driveDeadline(20 * 60 * 1000); true`);
@@ -401,6 +475,20 @@ const stripTop = await evalJs(`parseFloat(getComputedStyle(document.querySelecto
 ok(stripTop >= 50, `standings rail sits below the camera controls on desktop (top ${stripTop}px)`);
 ok((await evalJs(`document.querySelectorAll('.v3-srow').length`)) === 4, "4 standings rows on the desktop rail");
 await shot("desktop-battle");
+
+console.log("— DESKTOP POV (same battle moment, three views at 1280×800)");
+const dcam0 = await call("camState()");
+ok(dcam0?.mode === "table" && dcam0?.downDeg >= 50 && dcam0?.downDeg <= 65,
+   `desktop TABLE keeps the oblique band (${dcam0?.downDeg}° down)`);
+await shot("desktop-table_pov");
+await evalJs(`window.__rwfV3.cycleCam(); true`);
+await sleep(1400);
+ok((await call("camState()"))?.mode === "stadium", "desktop cycle → STADIUM");
+await shot("desktop-stadium_pov");
+await evalJs(`window.__rwfV3.cycleCam(); true`);
+await sleep(1400);
+ok((await call("camState()"))?.mode === "follow", "desktop cycle → FOLLOW");
+await shot("desktop-follow_pov");
 await langClean("desktop battle");
 
 console.log("— ISOLATION (v3 e2e server mounts only apps/v3)");

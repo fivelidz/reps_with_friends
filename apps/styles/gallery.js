@@ -287,6 +287,9 @@
   document.getElementById("previewExit").addEventListener("click", exitPreview);
   addEventListener("keydown", (e) => {
     if (e.target?.matches?.("input,textarea,select")) return;
+    /* the review layer (review.js) owns keys while its modals are open —
+       the 📱 switcher cycles itself on ← → and closes on esc */
+    if (window.__rwfReview?.modalOpen?.()) return;
     if (e.key === "Escape" && active) {
       e.preventDefault();
       exitPreview();

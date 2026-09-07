@@ -3,7 +3,8 @@
    Verifies the 3D layout on the REAL server (http://localhost:4173/v3):
    runners in distinct centred lanes at the same ground height, the
    charity pot centred on the course axis past the finish, lane geometry
-   sane, mocap models loaded through the real /models routes, frame
+   sane, the oblique TABLE camera (50–65° down, all runners framed),
+   mocap models loaded through the real /models routes, frame
    budget, and zero console errors — at 390×844 and 1280×800.
    Run: bun apps/v3/geom.mjs (needs `bun serve.ts` on :4173)
    ═══════════════════════════════════════════════════════════════════════ */
@@ -87,9 +88,24 @@ async function walk(width, height, mobile, tag) {
   const lanes = await call("laneXs()");
   const spread = Math.max(...lanes) - Math.min(...lanes);
   ok(lanes.length === 4, "4 runners placed (one per lane)");
-  ok(new Set(lanes).size === 4 && spread > 4 && spread < 6.5,
-     `runners in DISTINCT lanes (Δx=${spread.toFixed(2)} for laneW 1.7 — no shared lane)`);
+  ok(new Set(lanes).size === 4 && spread > 5.5 && spread < 7,
+     `runners in DISTINCT lanes (Δx=${spread.toFixed(2)} for laneW 2.1 — no shared lane)`);
   ok(Math.abs(lanes.reduce((a, b) => a + b, 0)) < 0.01, "lane row centred on the course axis (x=0)");
+
+  /* ── the oblique POV (default TABLE) — angle + all-runners-on-frame ── */
+  const cam = await call("camState()");
+  ok(cam?.mode === "table", "TABLE is the default camera (oblique board-game view)");
+  ok(cam?.downDeg >= 50 && cam?.downDeg <= 65,
+     `TABLE looks down in the 50–65° band (${cam?.downDeg}° — perspective third person)`);
+  const onFrame = [];
+  for (const pid of ["you", "sam", "alex", "jordan"]) {
+    const sp = await call(`runnerScreen('${pid}')`);
+    onFrame.push(!!sp && Math.abs(sp.x) <= 1 && Math.abs(sp.y) <= 1);
+  }
+  ok(onFrame.length === 4 && onFrame.every(Boolean), "all 4 runners on-frame at once in the TABLE view");
+  const potNdc = await call(`worldScreen(0, 1.4, ${(await call("potPos()")).z})`);
+  ok(!!potNdc && Math.abs(potNdc.x) <= 0.45 && Math.abs(potNdc.y) <= 0.75,
+     `charity pot framed with the course in TABLE (NDC ${potNdc?.x},${potNdc?.y} — centred, on-screen)`);
 
   const ys = [], zs = [];
   for (const pid of ["you", "sam", "alex", "jordan"]) {

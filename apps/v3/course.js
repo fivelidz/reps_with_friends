@@ -49,12 +49,31 @@ import * as THREE from "three";
 import { OrbitControls } from "three/addons/controls/OrbitControls.js";
 
 /* ── course geometry constants (world units ≈ metres) ─────────────────── */
-export const COURSE_LEN = 60;   // start line → finish line
-export const LANE_W = 1.7;      // lane width
+export const COURSE_LEN = 28;   // start line → finish line (table-top footprint
+                                 // for the oblique POV — the whole course reads
+                                 // like a board game on a table, figures sized
+                                 // like game pieces at the TABLE camera)
+export const LANE_W = 2.1;      // lane width — board-game lane spacing
 export const START_Z = 3;       // start line z (runners run toward −Z)
 export const FINISH_Z = START_Z - COURSE_LEN;
-export const POT_Z = FINISH_Z - 6.5; // charity pot pedestal, past the finish
+export const POT_Z = FINISH_Z - 5.5; // charity pot pedestal, past the finish
 const RUNNER_H = 1.75;          // normalised avatar height
+
+/* ── the POV rig ────────────────────────────────────────────────────────
+   The founder's ask: "a 3d map view that looks more top down on the
+   figures … like they are on a table like a board game, or we are viewing
+   them from high in a stadium. perspective oblique third person."
+   TABLE   — the default: ~57.5° down, TRUE perspective (not orthographic),
+             the whole course framed like a board on a table, gentle drift,
+             drag-to-pan + pinch/wheel zoom
+   STADIUM — higher + wider, slow orbital sweep (the spectacle view)
+   FOLLOW  — the leader cam (kept)
+   PODIUM  — result screen (orbit) */
+const CAM_EL_TABLE = THREE.MathUtils.degToRad(57.5); // down-angle, 50–65° band
+const CAM_YAW = THREE.MathUtils.degToRad(20);        // diagonal board-game composition
+const CAM_EL_STADIUM = THREE.MathUtils.degToRad(68); // higher, wider
+const CAM_SWEEP = 0.045;                             // rad/s — slow orbital sweep
+const CAM_FIT_MARGIN = 1.1;                          // breathing room around the frame
 
 const TRACK_TOP = 0.02;         // running surface y
 const TRACK_H = 0.14;
@@ -135,6 +154,25 @@ function cardTexture(name, glyph, rarHex) {
   return tex;
 }
 
+/** painted lane number — decal lying ON the track surface (board-game lane) */
+function laneNumTexture(num, hex) {
+  const S = 128;
+  const c = document.createElement("canvas");
+  c.width = S; c.height = S;
+  const g = c.getContext("2d");
+  g.clearRect(0, 0, S, S);
+  g.font = `800 ${S * 0.62}px ui-monospace, monospace`;
+  g.textAlign = "center"; g.textBaseline = "middle";
+  g.lineWidth = 14; g.strokeStyle = "rgba(6,7,9,0.78)";
+  g.strokeText(String(num), S / 2, S / 2 + 4);
+  g.fillStyle = hex;
+  g.fillText(String(num), S / 2, S / 2 + 4);
+  const tex = new THREE.CanvasTexture(c);
+  tex.colorSpace = THREE.SRGBColorSpace;
+  tex.anisotropy = 4;
+  return tex;
+}
+
 /** small floating text label (distance markers, name tags, pot label) */
 function labelTexture(lines, { fg = "#e8eaed", bg = "rgba(10,11,13,0.72)", accent = null, font = 700 } = {}) {
   const W = 320, H = 40 * lines.length + 18;
@@ -181,12 +219,17 @@ export class Course3D {
     this.runners = new Map();      // pid → runner state
     this.fx = [];                  // transient sprites {spr, vel, t, dur, kind}
     this.trail = [];               // lightning trail sprites
-    this.mode = "follow";          // follow | orbit | podium
+    this.mode = "table";           // table | stadium | follow | podium
     this.modelsReady = false;
     this.disposed = false;
     this.dirty = true;             // reduced-motion render gate
     this._frameMs = [];            // rolling render cost (perf probe)
     this._clock = new THREE.Clock();
+    /* POV rig state */
+    this._lookAt = null;           // smoothed look target (shared by all modes)
+    this._tablePan = new THREE.Vector3(); // user pan offset (TABLE, ground plane)
+    this._tableZoom = 1;           // user zoom factor (TABLE, clamped)
+    this._stadiumAz = CAM_YAW;     // sweep phase (STADIUM)
     this._onVis = () => { this.dirty = true; };
     document.addEventListener("visibilitychange", this._onVis);
 
@@ -215,7 +258,9 @@ export class Course3D {
       new THREE.MeshBasicMaterial({ map: skyTex, side: THREE.BackSide, depthWrite: false })
     );
     scene.add(sky);
-    scene.fog = new THREE.Fog(0x1c3247, 34, 230);
+    // fog tuned for the TABLE distance (~30–45 units): the whole course stays
+    // crisp, only the far hills breathe out
+    scene.fog = new THREE.Fog(0x1c3247, 62, 240);
 
     const hemi = new THREE.HemisphereLight(0x8fb6ff, 0x24422b, 1.05);
     scene.add(hemi);
@@ -228,8 +273,11 @@ export class Course3D {
 
     this.scene = scene;
     this.camera = new THREE.PerspectiveCamera(46, 1, 0.1, 600);
-    this.camera.position.set(0, 3.4, START_Z + 9);
-    this.camera.lookAt(0, 1.1, START_Z - 4);
+    // seed at the TABLE home — the first frame is already the founder's POV
+    const home = this._tableHome(0);
+    this.camera.position.copy(home.pos);
+    this.camera.lookAt(home.look);
+    this._lookAt = home.look.clone();
   }
 
   _buildRenderer() {
@@ -246,9 +294,66 @@ export class Course3D {
     this.controls.enableDamping = true;
     this.controls.dampingFactor = 0.08;
     this.controls.minDistance = 4;
-    this.controls.maxDistance = 120;
+    this.controls.maxDistance = 140;
     this.controls.maxPolarAngle = Math.PI * 0.52;
-    this.controls.enabled = false; // follow mode drives the camera
+    this.controls.enabled = false; // TABLE/STADIUM/FOLLOW drive the camera; podium owns it
+
+    this._wireTableGestures();
+  }
+
+  /* ── TABLE gestures: drag to pan the table · pinch/wheel zoom ──────── */
+  _wireTableGestures() {
+    const el = this.renderer.domElement;
+    this._ptrs = new Map(); // pointerId → {x, y}
+    const inTable = () => this.mode === "table" && !this.disposed;
+
+    el.addEventListener("pointerdown", (e) => {
+      if (!inTable()) return;
+      this._ptrs.set(e.pointerId, { x: e.clientX, y: e.clientY });
+      try { el.setPointerCapture(e.pointerId); } catch { /* fine */ }
+    });
+    el.addEventListener("pointermove", (e) => {
+      if (!inTable() || !this._ptrs.has(e.pointerId)) return;
+      const pts = this._ptrs;
+      if (pts.size === 2) {
+        // pinch zoom — ratio of pointer-pair distances
+        const pair = [...pts.entries()];
+        const d = ([, a], [, b]) => Math.hypot(a.x - b.x, a.y - b.y);
+        const before = d(pair[0], pair[1]);
+        pts.get(e.pointerId).x = e.clientX; pts.get(e.pointerId).y = e.clientY;
+        const after = d(pair[0], pair[1]);
+        if (before > 0 && after > 0) {
+          this._tableZoom = THREE.MathUtils.clamp(this._tableZoom * (before / after), 0.55, 2.0);
+          this.dirty = true;
+        }
+        return;
+      }
+      // single-pointer pan — the table follows the finger (screen-space → ground)
+      const p = pts.get(e.pointerId);
+      const dx = e.clientX - p.x, dy = e.clientY - p.y;
+      p.x = e.clientX; p.y = e.clientY;
+      const h = this.host.clientHeight || 1;
+      const dist = this.camera.position.distanceTo(this._lookAt ?? new THREE.Vector3());
+      const wpp = (2 * dist * Math.tan(THREE.MathUtils.degToRad(this.camera.fov / 2))) / h;
+      // camera screen basis projected on the ground plane
+      const fwd = new THREE.Vector3(); this.camera.getWorldDirection(fwd); fwd.y = 0; fwd.normalize();
+      const right = new THREE.Vector3().crossVectors(fwd, new THREE.Vector3(0, 1, 0)).normalize();
+      this._tablePan.addScaledVector(right, -dx * wpp).addScaledVector(fwd, dy * wpp);
+      this._tablePan.y = 0;
+      this._tablePan.x = THREE.MathUtils.clamp(this._tablePan.x, -7, 7);
+      this._tablePan.z = THREE.MathUtils.clamp(this._tablePan.z, -COURSE_LEN * 0.45, COURSE_LEN * 0.45);
+      this.dirty = true;
+    });
+    const lift = (e) => this._ptrs.delete(e.pointerId);
+    el.addEventListener("pointerup", lift);
+    el.addEventListener("pointercancel", lift);
+    el.addEventListener("pointerleave", lift);
+    el.addEventListener("wheel", (e) => {
+      if (!inTable()) return;
+      e.preventDefault();
+      this._tableZoom = THREE.MathUtils.clamp(this._tableZoom * Math.exp(e.deltaY * 0.0011), 0.55, 2.0);
+      this.dirty = true;
+    }, { passive: false });
   }
 
   _resize() {
@@ -256,6 +361,65 @@ export class Course3D {
     this.renderer.setSize(w, h, false);
     this.camera.aspect = w / h;
     this.camera.updateProjectionMatrix();
+  }
+
+  /* ── the POV rig: homes for TABLE / STADIUM ─────────────────────────── */
+  /** centre of the framed footprint — start line to the pot, ground level */
+  _courseCenter() {
+    return new THREE.Vector3(0, 0.9, (START_Z + 2 + POT_Z - 2.5) / 2);
+  }
+
+  /**
+   * Solve the camera distance that fits the course footprint (start line →
+   * pot, trophy height included) in TRUE perspective at (elevation, yaw),
+   * for the current viewport aspect. Pinhole approximation at the look
+   * point — corners off-axis are near enough under the 1.1 margin.
+   */
+  _fitDistance(el, yaw) {
+    const n = this._nPlayers ?? 4;
+    const halfW = (n * LANE_W) / 2 + 3.4;        // track + gantry + breathing room
+    const zNear = START_Z + 2.2, zFar = POT_Z - 3.0; // banner → behind the trophy
+    const halfV = Math.tan(THREE.MathUtils.degToRad(this.camera.fov / 2));
+    const aspect = this.camera.aspect || 1;
+    // camera sits at C + R·h — screen basis at the look point
+    const h = new THREE.Vector3(
+      Math.sin(yaw) * Math.cos(el), Math.sin(el), Math.cos(yaw) * Math.cos(el));
+    const fwd = h.clone().negate();                          // camera → look
+    const right = new THREE.Vector3().crossVectors(fwd, new THREE.Vector3(0, 1, 0)).normalize();
+    const up = new THREE.Vector3().crossVectors(right, fwd).normalize();
+    let need = 1;
+    for (const sx of [-halfW, halfW]) for (const sy of [0, 3]) for (const sz of [zNear, zFar]) {
+      const o = new THREE.Vector3(sx, sy, sz).sub(this._courseCenter());
+      const nx = Math.abs(o.dot(right)) / (halfV * aspect);
+      const ny = Math.abs(o.dot(up)) / halfV;
+      need = Math.max(need, nx, ny);
+    }
+    return need * CAM_FIT_MARGIN;
+  }
+
+  /** TABLE home: the oblique board-game view, with gentle drift unless reduced */
+  _tableHome(now) {
+    const el = CAM_EL_TABLE;
+    const yaw = CAM_YAW + (this.reduced ? 0 : Math.sin(now * 0.1) * 0.03); // parallax drift
+    const breathe = this.reduced ? 1 : 1 + Math.sin(now * 0.07) * 0.025;   // slow breathing
+    const R = this._fitDistance(el, yaw) * this._tableZoom * breathe;
+    const look = this._courseCenter().add(this._tablePan);
+    const pos = look.clone().add(new THREE.Vector3(
+      Math.sin(yaw) * Math.cos(el), Math.sin(el), Math.cos(yaw) * Math.cos(el)
+    ).multiplyScalar(R));
+    return { pos, look };
+  }
+
+  /** STADIUM home: higher + wider, slow orbital sweep (frozen under reduced motion) */
+  _stadiumHome(now, dt) {
+    if (!this.reduced) this._stadiumAz += dt * CAM_SWEEP;
+    const el = CAM_EL_STADIUM, yaw = this._stadiumAz;
+    const R = this._fitDistance(el, yaw) * 1.5;
+    const look = this._courseCenter();
+    const pos = look.clone().add(new THREE.Vector3(
+      Math.sin(yaw) * Math.cos(el), Math.sin(el), Math.cos(yaw) * Math.cos(el)
+    ).multiplyScalar(R));
+    return { pos, look };
   }
 
   /* ── the low-poly world: track, lanes, markers, grass, trees, pot ──── */
@@ -343,6 +507,24 @@ export class Course3D {
       );
       strip.position.set(this.laneX(i), TRACK_TOP + 0.004, START_Z - COURSE_LEN / 2 + 2);
       track.add(strip);
+    });
+
+    // painted lane numbers at the start — readable from the oblique TABLE POV
+    // (board-game lanes; texture "up" points down-course, toward the far side
+    // of the table, so the figures' lanes read upright from the camera side)
+    players.forEach((p, i) => {
+      const num = new THREE.Mesh(
+        new THREE.PlaneGeometry(1.15, 1.15),
+        new THREE.MeshBasicMaterial({
+          map: laneNumTexture(i + 1, this.tierHex(p.tier, p.isYou)),
+          transparent: true, depthWrite: false,
+        })
+      );
+      num.rotation.x = -Math.PI / 2;
+      num.rotation.z = CAM_YAW; // align the digits with the camera azimuth
+      num.position.set(this.laneX(i), TRACK_TOP + 0.013, START_Z - 1.5);
+      num.renderOrder = 2;
+      track.add(num);
     });
 
     // lane divider lines
@@ -747,18 +929,56 @@ export class Course3D {
   }
 
   setCameraMode(mode) {
+    if (!["table", "stadium", "follow", "podium"].includes(mode)) return;
     this.mode = mode;
-    if (mode === "orbit") {
-      const lead = this._leader();
-      this.controls.target.set(0, 1.2, (lead ? lead.group.position.z : START_Z) - 3);
+    // fresh framing per mode — the eased lerp still glides there (no jumps)
+    this._tablePan.set(0, 0, 0);
+    this._tableZoom = 1;
+    if (mode === "podium") {
       this.controls.enabled = true;
-      this.controls.autoRotate = false;
-      this.controls.update();
+      this.controls.autoRotate = !this.reduced;
     } else {
       this.controls.enabled = false;
       this.controls.autoRotate = false;
     }
     this.dirty = true;
+  }
+
+  /** table → stadium → follow → table (podium is the result screen, not cycled) */
+  cycleCamera() {
+    const order = ["table", "stadium", "follow"];
+    const i = order.indexOf(this.mode);
+    if (i < 0) return this.mode; // podium — leave the result view alone
+    const next = order[(i + 1) % order.length];
+    this.setCameraMode(next);
+    return next;
+  }
+
+  /** camera probe — the POV audits read this (angle below horizontal, etc) */
+  camState() {
+    if (!this.camera) return null;
+    const look = this._lookAt ?? new THREE.Vector3(0, 1.1, START_Z - 4);
+    const dir = new THREE.Vector3().subVectors(look, this.camera.position).normalize();
+    const downDeg = THREE.MathUtils.radToDeg(Math.asin(THREE.MathUtils.clamp(-dir.y, -1, 1)));
+    const r3 = (v) => ({ x: +v.x.toFixed(2), y: +v.y.toFixed(2), z: +v.z.toFixed(2) });
+    return { mode: this.mode, pos: r3(this.camera.position), look: r3(look), downDeg: +downDeg.toFixed(1) };
+  }
+
+  /** NDC position of a runner on screen (−1..1; |x|,|y| ≤ 1 → on-frame) */
+  runnerScreen(pid) {
+    const r = this.runners.get(pid);
+    if (!r || !this.camera) return null;
+    const v = r.group.position.clone();
+    v.y += 0.9; // mid-figure, not the feet
+    v.project(this.camera);
+    return { x: +v.x.toFixed(3), y: +v.y.toFixed(3) };
+  }
+
+  /** NDC of any world point — pot framing, lane-number placement audits */
+  worldScreen(x, y, z) {
+    if (!this.camera) return null;
+    const v = new THREE.Vector3(x, y, z).project(this.camera);
+    return { x: +v.x.toFixed(3), y: +v.y.toFixed(3) };
   }
 
   _leader() {
@@ -897,14 +1117,26 @@ export class Course3D {
       if (!leader || r.t > leader.t) leader = r;
     }
 
-    // follow camera — behind the leader, looking down-course
-    if (this.mode === "follow" && leader) {
+    // ── the POV rig ──────────────────────────────────────────────────────
+    // Every non-podium mode computes a home (pos, look) each frame; the
+    // camera eases toward it (exp smoothing) — mode changes glide, never
+    // jump. Reduced motion: factors are 1 (snap — learn from the runner
+    // freeze bug: dt=0 with exp ease would never converge).
+    const easePos = this.reduced ? 1 : 1 - Math.exp(-dt * 2.4);
+    const easeLook = this.reduced ? 1 : 1 - Math.exp(-dt * 3.0);
+    if (this.mode === "table" || this.mode === "stadium") {
+      const home = this.mode === "table" ? this._tableHome(now) : this._stadiumHome(now, dt);
+      this.camera.position.lerp(home.pos, easePos);
+      this._lookAt = this._lookAt ?? home.look.clone();
+      this._lookAt.lerp(home.look, easeLook);
+      this.camera.lookAt(this._lookAt);
+    } else if (this.mode === "follow" && leader) {
       const lp = leader.group.position;
       const want = new THREE.Vector3(lp.x * 0.5, 3.15, lp.z + 7.2);
       const look = new THREE.Vector3(lp.x * 0.35, 1.15, lp.z - 5.5);
-      this.camera.position.lerp(want, 1 - Math.exp(-dt * 2.6));
+      this.camera.position.lerp(want, this.reduced ? 1 : 1 - Math.exp(-dt * 2.6));
       this._lookAt = this._lookAt ?? look.clone();
-      this._lookAt.lerp(look, 1 - Math.exp(-dt * 3.2));
+      this._lookAt.lerp(look, this.reduced ? 1 : 1 - Math.exp(-dt * 3.2));
       this.camera.lookAt(this._lookAt);
     } else if (this.mode === "podium") {
       this.controls.update();

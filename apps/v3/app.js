@@ -66,6 +66,87 @@ document.addEventListener("click", (e) => {
   if (!muted) sfx("tap"); // audible confirmation the sound is back
 });
 
+/* ═════════════════════════ THE QUICK BAR — persistent top nav ══════════
+   The founder: "navigation of the options and back to the dashboard should
+   be easier too." One slim bar, fixed, on EVERY screen (mid-battle too):
+     ⌂ DASHBOARD (home) · ◉ camera cycle (battle) · ◐ theme · 🔊 sound
+   One tap from anywhere. The per-screen HUD underneath is untouched. */
+const THEMES = [
+  { id: "night", label: "Night" },   // the default stadium night (tokens.css)
+  { id: "court", label: "Court" },   // amber court sport
+  { id: "ice", label: "Ice" },       // glacier blue
+];
+let themeIdx = Math.max(0, THEMES.findIndex((t) => t.id === (localStorage.getItem("rwf.v3.theme") ?? "night")));
+function applyTheme() {
+  document.body.dataset.rwfTheme = THEMES[themeIdx].id;
+  const btn = document.getElementById("qTheme");
+  if (btn) {
+    btn.setAttribute("aria-label", `Theme — ${THEMES[themeIdx].label} (tap to change)`);
+    btn.title = `Theme — ${THEMES[themeIdx].label}`;
+  }
+}
+function buildQuickbar() {
+  const bar = document.createElement("nav");
+  bar.className = "v3-quick";
+  bar.id = "v3quick";
+  bar.innerHTML = `
+    <button class="v3-quick__btn v3-quick__home" id="qHome" aria-label="Dashboard — back to home" title="Dashboard">
+      <svg viewBox="0 0 24 24" aria-hidden="true"><path d="M4 11.2 12 4l8 7.2v8.3a1 1 0 0 1-1 1h-4.6v-5.7h-4.8v5.7H5a1 1 0 0 1-1-1z" fill="none" stroke="currentColor" stroke-width="2" stroke-linejoin="round"/></svg>
+      <span>DASHBOARD</span>
+    </button>
+    <button class="v3-quick__btn v3-quick__cam v3-cam" id="qCam" data-mode="table" hidden aria-label="Cycle camera view (table, stadium, leader cam)" title="Camera view">
+      <span class="v3-cam__dot"></span><span id="qCamLbl">CAM · TABLE</span>
+    </button>
+    <span class="v3-quick__spring" aria-hidden="true"></span>
+    <button class="v3-quick__btn v3-quick__icon" id="qTheme" aria-label="Theme" title="Theme">◐</button>
+    ${muteBtnHtml()}`;
+  document.body.prepend(bar);
+  $("#qHome").onclick = () => { sfx("tap"); go("home"); };
+  $("#qTheme").onclick = () => {
+    sfx("tap");
+    themeIdx = (themeIdx + 1) % THEMES.length;
+    localStorage.setItem("rwf.v3.theme", THEMES[themeIdx].id);
+    applyTheme();
+    toast(`Theme — ${THEMES[themeIdx].label}`, "ok");
+  };
+  $("#qCam").onclick = () => {
+    if (!course) return;
+    sfx("tap");
+    paintCamChrome(course.cycleCamera());
+  };
+  applyTheme();
+  paintMute(bar);
+}
+
+/* camera chrome (quick bar label + in-course hint) — safe from any view */
+const CAM_LABEL = { table: "CAM · TABLE", stadium: "CAM · STADIUM", follow: "CAM · FOLLOW" };
+const CAM_HINT = {
+  table: "DRAG TO PAN · PINCH TO ZOOM · C TO CYCLE",
+  stadium: "HIGH SWEEP — THE SPECTACLE · C TO CYCLE",
+  follow: "LEADER CAM · C TO CYCLE",
+};
+function paintCamChrome(mode) {
+  const btn = document.getElementById("qCam");
+  if (btn) {
+    btn.dataset.mode = mode;
+    btn.setAttribute("aria-label", `Camera — ${CAM_LABEL[mode] ?? mode} (tap to cycle)`);
+  }
+  const lbl = document.getElementById("qCamLbl");
+  if (lbl) lbl.textContent = CAM_LABEL[mode] ?? mode;
+  const hint = document.getElementById("camHint");
+  if (hint) hint.textContent = CAM_HINT[mode] ?? "";
+}
+/* keyboard C — cycle the POV from anywhere on the battle course */
+addEventListener("keydown", (e) => {
+  if (e.key !== "c" && e.key !== "C") return;
+  if (e.metaKey || e.ctrlKey || e.altKey) return;
+  const t = e.target;
+  if (t && (t.tagName === "INPUT" || t.tagName === "TEXTAREA" || t.isContentEditable)) return;
+  if (route() !== "battle" || !course) return;
+  e.preventDefault();
+  paintCamChrome(course.cycleCamera());
+});
+
 /* ── tier colours (lanes, tints, chips) + card faces ──────────────────── */
 const TIER_COL = { couch: "#ffb03a", casual: "#6ec1ff", fit: "#c6f32e", athlete: "#b78cff" };
 const tierHex = (tier, isYou) => (isYou ? "#c6f32e" : TIER_COL[tier] ?? "#34d399");
@@ -142,6 +223,7 @@ function render() {
   stopCourse();
   closeSheet(true);
   const view = route();
+  syncQuickbar(view);
   dzLevel = 0;           // fresh screen — the DZ heartbeat only fires on a RISE
   sfx("swipe");          // nav whoosh on every screen change (no-op pre-gesture)
   const state = S.load();
@@ -167,6 +249,7 @@ function stopTicker() { if (ticker) { clearInterval(ticker); ticker = null; } }
 
 /* ── shared chrome ────────────────────────────────────────────────────── */
 function topBar({ back = "home", kicker = "", name = "", right = "" }) {
+  // (sound lives in the persistent quick bar above — one toggle, every screen)
   return `
   <header class="v3-top">
     <button class="v3-top__back" data-go="${back}" aria-label="back">‹</button>
@@ -175,8 +258,13 @@ function topBar({ back = "home", kicker = "", name = "", right = "" }) {
       <h2 class="v3-top__name">${esc(name)}</h2>
     </div>
     ${right}
-    ${muteBtnHtml()}
   </header>`;
+}
+
+/* quick bar sync — the camera cycle only exists on the battle course */
+function syncQuickbar(view) {
+  const cam = document.getElementById("qCam");
+  if (cam) cam.hidden = view !== "battle";
 }
 
 /* ═══════════════════════ HOME — your battles ══════════════════════════ */
@@ -376,10 +464,7 @@ function renderBattle(state, matchIn) {
 
     <div class="v3-course" id="course">
       <div class="v3-course__gl" id="gl"></div>
-      <button class="v3-cam" id="camBtn" data-mode="follow" data-sfx="tap">
-        <span class="v3-cam__dot"></span><span id="camLbl">CAM · FOLLOW</span>
-      </button>
-      <div class="v3-cam__hint" id="camHint">TAP FOR FREE ORBIT</div>
+      <div class="v3-cam__hint" id="camHint">DRAG TO PAN · PINCH TO ZOOM · C TO CYCLE</div>
       <div class="v3-veil" id="veil"><span class="v3-veil__tag">RUNNERS WARMING UP</span></div>
 
       <div class="v3-hud">
@@ -419,15 +504,9 @@ function renderBattle(state, matchIn) {
   course.start();
   course.loadAvatars();
 
-  const camBtn = $("#camBtn");
-  camBtn.onclick = () => {
-    sfx("tap");
-    const next = course.mode === "follow" ? "orbit" : "follow";
-    course.setCameraMode(next);
-    camBtn.dataset.mode = next;
-    camBtn.querySelector("#camLbl").textContent = next === "follow" ? "CAM · FOLLOW" : "CAM · ORBIT";
-    $("#camHint").textContent = next === "follow" ? "TAP FOR FREE ORBIT" : "DRAG TO ORBIT · PINCH TO ZOOM";
-  };
+  /* the camera cycle lives in the quick bar (+ keyboard C) — TABLE is the
+     founder's oblique POV and the default; paint the chrome to match */
+  paintCamChrome(course.mode);
 
   /* ── actions ────────────────────────────────────────────────────────── */
   $("#logBtn").onclick = () => { sfx("tap"); openLogSheet(match.config.id); };
@@ -1003,6 +1082,10 @@ window.__rwfV3 = {
     return row ? row.rawReps / m.config.targetReps : null;
   },
   camMode: () => course?.mode ?? null,
+  camState: () => course?.camState() ?? null,
+  runnerScreen: (pid) => course?.runnerScreen(pid) ?? null,
+  worldScreen: (x, y, z) => course?.worldScreen(x, y, z) ?? null,
+  cycleCam: () => (course ? paintCamChrome(course.cycleCamera()) : null),
   modelsReady: () => course?.modelsReady ?? false,
   frameMs: () => course?.frameMs() ?? -1,
   fxPlayed: () => course?.fxPlayed ?? 0,
@@ -1067,4 +1150,16 @@ window.__rwfV3 = {
 };
 
 /* boot */
+buildQuickbar();
+/* Back gesture never dead-ends: a deep link (#/battle, #/result…) gets a
+   #/home entry planted beneath it, so the FIRST hardware/browser back from
+   a deep-linked screen lands on the dashboard instead of leaving the app.
+   In-app navigation (hash links) stacks history naturally — back walks the
+   user home screen by screen. */
+if (route() !== "home") {
+  try {
+    history.replaceState({ rwf: "home" }, "", `${location.pathname}${location.search}#/home`);
+    history.pushState({ rwf: route() }, "", `${location.pathname}${location.search}${location.hash}`);
+  } catch { /* file:// or such — plain hash nav still works */ }
+}
 render();

@@ -3,21 +3,30 @@
    Zero deps: bun static server + headless chromium over the DevTools
    Protocol (same pattern as apps/figma-app/e2e.mjs).
 
-   Walk:
-      1. /styles gallery boots — 26 theme cards, 26 demo iframes,
-         21 app-demo iframes (the V2 board game showcase)
-      2. window.__rwfStylesVerify() — every check passes (distinct
-         --primary/--bg per theme, AA ratios, fonts loaded)
-      3. ON THE APP — appdemo.html?t=… × 21: renders clean, zero console
-         errors, and computed STYLE SIGNATURES (radius/border/shadow/
-         pattern/font) differ per theme pair in ≥3/10 dims — proof the
-         overhaul is structural, not hue-only
-      4. screenshots: compare strip + app strip + appdemo ×26
-         + Sports Poster family (original + 4 variants) × 8 screens each
-         + preview ×5
-      5. /figma-app boots in EACH theme — home + battle screens, zero
-         console errors, data-theme applied, primary-button text follows
-         the theme (no unthemed patches)
+    Walk:
+       1. /styles gallery boots — 26 theme cards, 26 demo iframes,
+          21 app-demo iframes (the V2 board game showcase)
+       2. window.__rwfStylesVerify() — every check passes (distinct
+          --primary/--bg per theme, AA ratios, fonts loaded)
+       3. ON THE APP — appdemo.html?t=… × 21: renders clean, zero console
+          errors, and computed STYLE SIGNATURES (radius/border/shadow/
+          pattern/font) differ per theme pair in ≥3/10 dims — proof the
+          overhaul is structural, not hue-only
+       4. screenshots: compare strip + app strip + appdemo ×26
+          + Sports Poster family (original + 4 variants) × 8 screens each
+          + preview ×5
+       5. /figma-app boots in EACH theme — home + battle screens, zero
+          console errors, data-theme applied, primary-button text follows
+          the theme (no unthemed patches)
+       6. HEADER DIET — one compact bar (≤64px), long subtitle behind the
+          "?" sheet, and the preview bar's ✕ ACTUALLY closes it (the old
+          display:flex-overrides-[hidden] bug, asserted via a real click)
+       7. PHONE REVIEW MODE at 390px — auto-opens on touch devices,
+          synthetic CDP swipes cycle themes with momentum + drag-follow,
+          ♥ picks persist (rwf.styles.shortlist), arrows still cycle,
+          swipe-↑ exits, the ★ shortlist row + text summary generate,
+          ?review=1 resumes at the first pick, AA contrast in the chrome.
+          Shots carry the _phone suffix.
 
    Run:  bun apps/styles/e2e.mjs
    ═══════════════════════════════════════════════════════════════════════ */
@@ -78,6 +87,7 @@ const server = Bun.serve({
                    "cache-control": "no-store" },
       }) : null;
     };
+    if (p === "/favicon.ico") return new Response("", { status: 204 });
     if (p === "/styles" || p === "/styles/") p = "/styles/index.html";
     if (p.startsWith("/styles/")) return map(`apps/styles${p.replace(/^\/styles/, "")}`);
     if (p.startsWith("/design/")) return map(`design${p.replace(/^\/design/, "")}`);
@@ -160,6 +170,12 @@ const sleep = (ms) => Bun.sleep(ms);
 async function shot(name, w, h) {
   if (w) await send("Emulation.setDeviceMetricsOverride", { width: w, height: h, deviceScaleFactor: 1, mobile: false });
   const r = await send("Page.captureScreenshot", { format: "png", captureBeyondViewport: true });
+  writeFileSync(join(SHOTS, `${String(step).padStart(2, "0")}-${name}.png`), Buffer.from(r.data, "base64"));
+}
+/* viewport-only capture — for full-screen overlays (the phone review mode):
+   captureBeyondViewport would shoot the whole gallery behind the overlay */
+async function shotViewport(name) {
+  const r = await send("Page.captureScreenshot", { format: "png" });
   writeFileSync(join(SHOTS, `${String(step).padStart(2, "0")}-${name}.png`), Buffer.from(r.data, "base64"));
 }
 
@@ -638,6 +654,236 @@ print(json.dumps({"worst": round(worst, 2), "pair": worst_pair, "n": len(diffs)}
        `every theme pair is structurally distinct in grayscale — ${parsed.n} pairs, worst ${parsed.pair.join("↔")} = ${parsed.worst} mean-ΔL (threshold 2.0)`);
   }
 }
+
+/* ═══════════════════ F · HEADER DIET + PREVIEW BAR FIX ═══════════════
+   Founder: "the style screen header takes up too much of the screen and
+   the preview bar cannot be closed." Root cause of the close bug:
+   .st-previewbar{display:flex} (author CSS) beat the UA [hidden] rule,
+   so the bar rendered from load and ✕ never hid it. Now: one compact
+   bar (≤64px), the long subtitle behind "?" in a sheet, and a real
+   [hidden]{display:none!important} guard — asserted by CLICKING the ✕. */
+console.log("— HEADER DIET");
+consoleErrors = [];
+await send("Emulation.setDeviceMetricsOverride", { width: 1480, height: 1100, deviceScaleFactor: 1, mobile: false });
+await send("Emulation.setTouchEmulationEnabled", { enabled: false });
+await send("Page.navigate", { url: `${BASE}/styles/` });
+await waitFor(() => evalJs(`window.__rwfStylesReady === true && window.__rwfReviewReady === true`).catch(() => false),
+  { label: "gallery ready (gallery + review layers)" });
+await sleep(1200);
+const barH = await evalJs(`document.querySelector('.st-bar').getBoundingClientRect().height`);
+ok(barH > 24 && barH <= 64, `header collapsed to one compact bar — ${Math.round(barH)}px tall (≤ 64)`);
+const headerH = await evalJs(`document.querySelector('.st-header').getBoundingClientRect().height`);
+ok(headerH <= 70, `header stays slim with preview closed — ${Math.round(headerH)}px`);
+ok(await evalJs(`!document.querySelector('.st-header .st-sub') && !document.querySelector('.st-header .st-links')`),
+   "long subtitle + link nav moved out of the header");
+
+/* the "?" sheet */
+await evalJs(`document.getElementById('stHelp').click(); true`);
+await sleep(220);
+ok(await evalJs(`!document.getElementById('stSheet').hidden && document.getElementById('stSheet').textContent.includes('mined from your own pages')`),
+   "? opens the sheet with the full page description");
+ok(await evalJs(`document.getElementById('stHelp').getAttribute('aria-expanded') === 'true'`),
+   "? button reflects open state (aria-expanded)");
+await evalJs(`document.dispatchEvent(new KeyboardEvent("keydown", { key: "Escape", bubbles: true })); true`);
+await sleep(150);
+ok(await evalJs(`document.getElementById('stSheet').hidden === true`),
+   "Escape closes the sheet");
+await evalJs(`document.querySelector('[data-sheet-close]').click(); true`);   /* backdrop */
+await evalJs(`document.getElementById('stHelp').click(); true`);
+await sleep(150);
+await evalJs(`document.querySelector('.st-sheet__x').click(); true`);
+await sleep(150);
+ok(await evalJs(`document.getElementById('stSheet').hidden === true && document.getElementById('stHelp').getAttribute('aria-expanded') === 'false'`),
+   "sheet ✕ (and backdrop) close it");
+
+/* the preview bar — the actual founder bug, asserted through the real button */
+ok(await evalJs(`getComputedStyle(document.getElementById('previewBar')).display === 'none'`),
+   "preview bar hidden at rest (the display:flex-overrides-[hidden] bug is dead)");
+await evalJs(`window.__rwfStyles.enterPreview('neon'); true`);
+await sleep(500);
+ok(await evalJs(`getComputedStyle(document.getElementById('previewBar')).display === 'flex'`),
+   "preview bar appears in preview mode");
+await evalJs(`document.getElementById('previewExit').click(); true`);
+await sleep(400);
+ok(await evalJs(`getComputedStyle(document.getElementById('previewBar')).display === 'none' && window.__rwfStyles.active() === null && document.documentElement.dataset.theme === 'lime'`),
+   "clicking ✕ actually exits preview (bar hidden, theme back to lime)");
+await shot("header-compact", 1480, 1100);
+ok(consoleErrors.length === 0, `header diet: zero console errors${consoleErrors.length ? " — " + consoleErrors[0] : ""}`);
+
+/* ═══════════════════ G · PHONE REVIEW MODE (390px, synthetic swipes) ══
+   The client-review tool: full-screen theme slides, swipe ← → (+ arrows
+   + trackpad), momentum, crossfade, dots, ♥ shortlist (localStorage
+   rwf.styles.shortlist), swipe ↑ or ⊞ back to the gallery. */
+console.log("— PHONE REVIEW MODE");
+consoleErrors = [];
+await send("Emulation.setDeviceMetricsOverride", { width: 390, height: 844, deviceScaleFactor: 2, mobile: true });
+await send("Emulation.setTouchEmulationEnabled", { enabled: true, maxTouchPoints: 5 });
+await send("Page.navigate", { url: `${BASE}/styles/` });   /* clean URL — no stale hash */
+await waitFor(() => evalJs(`window.__rwfReviewReady === true`).catch(() => false), { label: "phone load" });
+await sleep(2600);   /* switcher slide iframe boots */
+
+/* auto-open: touch + small screen = phone → the review mode takes over */
+ok(await evalJs(`window.__rwfReview.autoWanted() === true`),
+   "touch device with a phone-sized screen wants review mode");
+ok(await evalJs(`window.__rwfReview.isOpen() === true && !document.getElementById('switcher').hidden`),
+   "review mode auto-opens on the phone");
+ok(await evalJs(`document.getElementById('swName').textContent === 'Lime Athletic' && document.getElementById('swCount').textContent === '1 / 26'`),
+   "slide 1 chrome reads Lime Athletic · 1 / 26");
+ok(await evalJs(`document.getElementById('switcher').dataset.theme === 'lime'`),
+   "the whole overlay wears the active theme");
+await waitFor(() => evalJs(`(() => {
+  const l = [...document.querySelectorAll('.sw__slide')].find(x => x.dataset.swIdx === '0');
+  return !!l && l.querySelector('iframe')?.contentWindow?.__appDemoReady === true;
+})()`).catch(() => false), { label: "switcher slide app render" });
+ok(await evalJs(`(() => {
+  const l = [...document.querySelectorAll('.sw__slide')].find(x => x.dataset.swIdx === '0');
+  const f = l?.querySelector('iframe');
+  return !!f && getComputedStyle(f).width === '390px' && !!f.contentDocument.querySelector('#home .bd-tcard');
+})()`),
+   "slide renders the real app screen full-bleed (bare appdemo inside)");
+ok(await evalJs(`document.body.style.overflow === 'hidden'`),
+   "gallery scroll locked under the switcher");
+const geo = JSON.parse(await evalJs(`(() => {
+  const r = (sel) => { const b = document.querySelector(sel)?.getBoundingClientRect(); return b ? { x: +b.x.toFixed(0), y: +b.y.toFixed(0), w: +b.width.toFixed(0), h: +b.height.toFixed(0) } : null; };
+  return JSON.stringify({ panel: r('.sw__panel'), dots: r('.sw__dots'), name: r('.sw__name'), grid: r('.sw__grid') });
+})()`));
+ok(geo.panel && geo.panel.y + geo.panel.h <= 844 && geo.panel.x >= 0 && geo.panel.x + geo.panel.w <= 390,
+   `chrome panel sits fully inside the 390px viewport (${geo.panel.w}×${geo.panel.h} at ${geo.panel.x},${geo.panel.y})`);
+ok(geo.dots && geo.dots.w <= 390 && geo.dots.h <= 16,
+   `26 progress dots fit in one row (${geo.dots.w}px wide)`);
+ok(geo.grid && geo.grid.y <= 60, `⊞ exit reachable in the top corner (${geo.grid.x},${geo.grid.y})`);
+await shotViewport("review-worn_phone");
+/* shot() resets metrics to desktop — the phone profile drives the gesture
+   pipeline, so re-assert it before dispatching touches */
+await send("Emulation.setDeviceMetricsOverride", { width: 390, height: 844, deviceScaleFactor: 2, mobile: true });
+
+/* synthetic swipes over the DevTools Protocol */
+async function swipe(x0, y0, x1, y1, { steps = 4, hold = 80 } = {}) {
+  const pt = (x, y) => ({ x: Math.round(x), y: Math.round(y), id: 1, radiusX: 2, radiusY: 2, force: 1 });
+  await send("Input.dispatchTouchEvent", { type: "touchStart", touchPoints: [pt(x0, y0)] });
+  for (let s = 1; s <= steps; s++) {
+    await send("Input.dispatchTouchEvent", { type: "touchMove",
+      touchPoints: [pt(x0 + ((x1 - x0) * s) / steps, y0 + ((y1 - y0) * s) / steps)] });
+    await Bun.sleep(hold / steps);
+  }
+  await send("Input.dispatchTouchEvent", { type: "touchEnd", touchPoints: [] });
+}
+
+/* mid-swipe: finger down, slide dragging with the finger */
+await send("Input.dispatchTouchEvent", { type: "touchStart", touchPoints: [{ x: 330, y: 420, id: 1 }] });
+await send("Input.dispatchTouchEvent", { type: "touchMove", touchPoints: [{ x: 180, y: 420, id: 1 }] });
+await sleep(120);
+const dragT = await evalJs(`(() => {
+  const l = [...document.querySelectorAll('.sw__slide')].find(x => x.classList.contains('is-cur'));
+  return (l?.style.transform || '').match(/-?[\\d.]+/)?.[0] ?? '';
+})()`);
+ok(Math.abs(Number(dragT)) > 40, `the slide drags with the finger mid-swipe (translateX ${dragT}px)`);
+await shotViewport("review-midswipe_phone");
+await send("Emulation.setDeviceMetricsOverride", { width: 390, height: 844, deviceScaleFactor: 2, mobile: true });
+await send("Input.dispatchTouchEvent", { type: "touchMove", touchPoints: [{ x: 110, y: 420, id: 1 }] });
+await send("Input.dispatchTouchEvent", { type: "touchEnd", touchPoints: [] });
+await sleep(500);
+ok(await evalJs(`window.__rwfReview.cur() === 1 && document.getElementById('swName').textContent === 'Gold Arcade'`),
+   "left swipe (with momentum) advances to the next theme");
+ok(await evalJs(`document.getElementById('swCount').textContent === '2 / 26' && document.getElementById('switcher').dataset.theme === 'gold'`),
+   "count chip + overlay theme track the swipe");
+ok(await evalJs(`document.querySelectorAll('.sw__dot.is-on').length === 1 && document.querySelector('.sw__dot.is-on').dataset.swDot === '1'`),
+   "progress dot follows the slide");
+
+/* the pick heart → localStorage shortlist */
+await evalJs(`document.getElementById('swPick').click(); true`);
+await sleep(120);
+ok(await evalJs(`JSON.parse(localStorage.getItem('rwf.styles.shortlist')).join(',') === 'gold'`),
+   "♥ pick persists to localStorage rwf.styles.shortlist");
+ok(await evalJs(`document.getElementById('swPick').getAttribute('aria-pressed') === 'true' && document.getElementById('swPick').textContent.includes('♥')`),
+   "pick heart fills for the current theme");
+ok(await evalJs(`document.querySelector('.sw__dot.is-picked').dataset.swDot === '1'`),
+   "picked slide's progress dot wears a ring");
+
+/* arrows still cycle inside the switcher (gallery defers to it) */
+await evalJs(`document.dispatchEvent(new KeyboardEvent("keydown", { key: "ArrowRight", bubbles: true })); true`);
+await sleep(500);
+ok(await evalJs(`window.__rwfReview.cur() === 2 && document.getElementById('swName').textContent === 'Sunset Swiss'`),
+   "arrow keys still cycle themes inside review mode");
+ok(await evalJs(`window.__rwfStyles.active() === null`),
+   "gallery preview logic stays out of the way while review mode is open");
+
+/* AA contrast of the switcher chrome — name/desc/pick on their panels */
+const aa = JSON.parse(await evalJs(`(() => {
+  const parse = (s) => {
+    const n = (s.match(/[\\d.]+/g) || []).map(Number);
+    /* color-mix() serializes as color(srgb r g b / a) with 0–1 floats */
+    if (String(s).startsWith("color(") && n.length >= 3) { for (let i = 0; i < 3; i++) n[i] = Math.round(n[i] * 255); if (n.length === 3) n.push(1); }
+    return n;
+  };
+  const blend = (f, b) => f.slice(0, 3).map((c, i) => c * (f[3] ?? 1) + b[i] * (1 - (f[3] ?? 1)));
+  const lum = (c) => { const [r, g, b] = c.map(v => { v /= 255; return v <= 0.03928 ? v / 12.92 : ((v + 0.055) / 1.055) ** 2.4; }); return 0.2126 * r + 0.7152 * g + 0.0722 * b; };
+  const swEl = document.getElementById('switcher');
+  const rootBg = parse(getComputedStyle(swEl).backgroundColor);
+  const ratio = (el, container) => {
+    const cs = getComputedStyle(el);
+    const over = blend(parse(getComputedStyle(container).backgroundColor), rootBg);
+    const bg = blend(parse(cs.backgroundColor), over);   /* the element's OWN fill first */
+    const fg = blend(parse(cs.color), bg);
+    return +(((Math.max(lum(fg), lum(bg)) + 0.05) / (Math.min(lum(fg), lum(bg)) + 0.05))).toFixed(2);
+  };
+  const panel = document.querySelector('.sw__panel');
+  return JSON.stringify({ name: ratio(document.getElementById('swName'), panel),
+                          desc: ratio(document.getElementById('swDesc'), panel),
+                          pick: ratio(document.getElementById('swPick'), panel),
+                          count: ratio(document.getElementById('swCount'), document.querySelector('.sw__top')) });
+})()`));
+ok(aa.name >= 4.5 && aa.desc >= 4.5 && aa.pick >= 4.5 && aa.count >= 4.5,
+   `switcher chrome keeps AA contrast in every kit (name ${aa.name} · desc ${aa.desc} · pick ${aa.pick} · count ${aa.count})`);
+
+/* swipe ↑ exits to the gallery */
+await swipe(195, 660, 195, 230);
+await sleep(400);
+ok(await evalJs(`window.__rwfReview.isOpen() === false && document.getElementById('switcher').hidden === true`),
+   "swipe up exits review mode to the gallery");
+ok(await evalJs(`document.body.style.overflow === ''`),
+   "gallery scroll unlocked after exit");
+
+/* shortlist surfaces at the top of the gallery */
+ok(await evalJs(`!document.getElementById('shortlist').hidden && document.getElementById('shortlistList').textContent.includes('Gold Arcade')`),
+   "★ Picked for review row surfaces at the top of the gallery");
+await shotViewport("shortlist_phone");
+const summary = await evalJs(`window.__rwfReview.shortlistText()`);
+ok(summary.includes("Gold Arcade") && summary.includes("arcade cabinet") && summary.includes("1 picked"),
+   "shortlist summary generates (names + describe-it lines)");
+await evalJs(`document.getElementById('shortlistCopy').click(); true`);
+await sleep(200);
+ok(await evalJs(`document.getElementById('shortlistCopy').textContent.includes('copied') || document.getElementById('shortlistCopy').textContent.includes('⧉')`),
+   "copy button runs clean (clipboard or fallback)");
+await evalJs(`document.getElementById('shortlistClear').click(); true`);
+await sleep(120);
+ok(await evalJs(`document.getElementById('shortlist').hidden === true && localStorage.getItem('rwf.styles.shortlist') === '[]'`),
+   "clear picks empties the shortlist row");
+
+/* forced open via ?review=1 → resumes at the first picked theme */
+await evalJs(`window.__rwfReview.pick('forest'); true`);
+await send("Page.navigate", { url: `${BASE}/styles/?review=1` });
+await waitFor(() => evalJs(`window.__rwfReviewReady === true`).catch(() => false), { label: "?review=1 reload" });
+await sleep(2200);
+ok(await evalJs(`window.__rwfReview.isOpen() === true`),
+   "?review=1 forces review mode open (desktop too)");
+ok(await evalJs(`window.__rwfReview.cur() === 4 && document.getElementById('swName').textContent === 'Forest Retro'`),
+   "review mode resumes at the first picked theme (Forest Retro)");
+ok(await evalJs(`document.getElementById('swPick').getAttribute('aria-pressed') === 'true'`),
+   "picked state survives the reload");
+/* ⊞ exits too, and exit suppresses auto-open for the session */
+await evalJs(`document.getElementById('swExit').click(); true`);
+await sleep(250);
+ok(await evalJs(`window.__rwfReview.isOpen() === false`),
+   "⊞ button exits review mode");
+ok(await evalJs(`sessionStorage.getItem('rwf.styles.switcher') === 'off' && window.__rwfReview.autoWanted() === false`),
+   "exiting suppresses auto-open for the rest of the session");
+await evalJs(`localStorage.removeItem('rwf.styles.shortlist'); true`);
+ok(consoleErrors.length === 0, `phone review mode: zero console errors${consoleErrors.length ? " — " + consoleErrors[0] : ""}`);
+
+/* restore neutral state for the next run */
+await send("Emulation.setTouchEmulationEnabled", { enabled: false });
+await send("Emulation.setDeviceMetricsOverride", { width: 1480, height: 1100, deviceScaleFactor: 1, mobile: false });
 
 /* ── done ────────────────────────────────────────────────────────────── */
 console.log(`\n${failures.length === 0 ? "ALL PASS" : `${failures.length} FAILURES`}: ${passed}/${step} checks`);

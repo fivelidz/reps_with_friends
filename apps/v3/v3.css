@@ -59,6 +59,7 @@ html, body { margin: 0; padding: 0; }
   color: var(--text);
   font-family: var(--font-body);
   -webkit-font-smoothing: antialiased;
+  padding-top: 44px; /* the persistent quick bar owns the top 44px */
   padding-bottom: env(safe-area-inset-bottom);
 }
 .v3-screen { animation: v3ScreenIn 0.32s cubic-bezier(0.22, 1, 0.36, 1) both; }
@@ -67,9 +68,58 @@ html, body { margin: 0; padding: 0; }
   to { opacity: 1; transform: none; }
 }
 
+/* ── 1b · THE QUICK BAR — persistent top nav (dashboard · cam · theme · sound)
+   One tap from anywhere, mid-battle included. Sits above sheets (reachable
+   while a sheet is open), below toasts. */
+.v3-quick {
+  position: fixed; top: 0; left: 0; right: 0; z-index: 70;
+  display: flex; align-items: center; gap: 6px;
+  height: 44px; padding: 0 8px 0 6px;
+  background: color-mix(in srgb, var(--bg) 92%, transparent);
+  backdrop-filter: blur(12px);
+  border-bottom: 1px solid var(--line-bright);
+}
+.v3-quick__btn {
+  display: inline-flex; align-items: center; gap: 6px;
+  height: 32px; padding: 0 11px; border-radius: 999px;
+  border: 1px solid var(--line-bright); background: var(--surface);
+  color: var(--text); cursor: pointer;
+  font: 700 10px/1 var(--font-mono); letter-spacing: 0.12em; text-transform: uppercase;
+  box-shadow: 0 2px 0 var(--rail);
+  transition: transform 0.12s, box-shadow 0.12s;
+}
+.v3-quick__btn:active { transform: translateY(2px); box-shadow: 0 0 0 var(--rail); }
+.v3-quick__btn svg { width: 14px; height: 14px; }
+.v3-quick__home { color: var(--lime); border-color: color-mix(in srgb, var(--lime) 40%, transparent); }
+.v3-quick__icon { width: 32px; justify-content: center; padding: 0; font-size: 14px; }
+.v3-quick__spring { flex: 1; }
+.v3-quick .v3-mute { width: 32px; height: 32px; border-radius: 999px; box-shadow: 0 2px 0 var(--rail); }
+.v3-quick .v3-cam { position: static; padding: 0 11px; height: 32px; box-shadow: 0 2px 0 var(--rail); }
+.v3-quick .v3-cam[hidden] { display: none; }
+
+/* theme skins — the quick bar's ◐ cycles these (night needs no override) */
+body[data-rwf-theme="court"] {
+  --lime: #ff9432;
+  --lime-dim: #cc7600;
+  --lime-glow: rgba(255, 148, 50, 0.16);
+  --on-accent: #221002;
+  --pop-shadow: color-mix(in srgb, #ff9432 42%, #000);
+  --card-back-1: color-mix(in srgb, #ff9432 20%, var(--bg));
+  --sky-lo: #3a2f1c;
+}
+body[data-rwf-theme="ice"] {
+  --lime: #6ec1ff;
+  --lime-dim: #3d90cc;
+  --lime-glow: rgba(110, 193, 255, 0.15);
+  --on-accent: #04182b;
+  --pop-shadow: color-mix(in srgb, #6ec1ff 42%, #000);
+  --card-back-1: color-mix(in srgb, #6ec1ff 20%, var(--bg));
+  --sky-lo: #22364c;
+}
+
 /* header — back · battle name · battle clock */
 .v3-top {
-  position: sticky; top: 0; z-index: 40;
+  position: sticky; top: 44px; z-index: 40; /* parks just under the quick bar */
   display: flex; align-items: center; gap: 10px;
   padding: 10px 12px;
   background: color-mix(in srgb, var(--bg) 88%, transparent);
@@ -190,7 +240,9 @@ html, body { margin: 0; padding: 0; }
 }
 .v3-cam:active { transform: translateY(3px); box-shadow: 0 0 0 var(--rail); }
 .v3-cam__dot { width: 7px; height: 7px; border-radius: 50%; background: var(--faint); }
-.v3-cam[data-mode="follow"] .v3-cam__dot { background: var(--lime); }
+.v3-cam[data-mode="table"] .v3-cam__dot { background: var(--lime); }
+.v3-cam[data-mode="stadium"] .v3-cam__dot { background: var(--sky); }
+.v3-cam[data-mode="follow"] .v3-cam__dot { background: var(--rar-legendary); }
 .v3-cam__hint {
   position: absolute; top: 46px; right: 10px; z-index: 10;
   font: 700 9px/1.4 var(--font-mono); letter-spacing: 0.08em;
@@ -217,7 +269,7 @@ html, body { margin: 0; padding: 0; }
 /* ── 4 · HUD — floats OVER the course (strip · feed · fx dock · actions) */
 .v3-battle, .v3-result {
   display: flex; flex-direction: column;
-  height: 100dvh; overflow: hidden;
+  height: calc(100dvh - 44px); overflow: hidden; /* 44px = the quick bar */
 }
 .v3-battle .v3-course { flex: 1; min-height: 0; }
 .v3-result .v3-course { flex: none; height: 46dvh; min-height: 260px; }
@@ -689,5 +741,5 @@ html, body { margin: 0; padding: 0; }
     animation: none !important;
   }
   .v3-result__confetti { display: none; }
-  .bd-card, .bd-hand__slot, .pop-btn { transition: none !important; }
+  .bd-card, .bd-hand__slot, .pop-btn, .v3-quick__btn { transition: none !important; }
 }

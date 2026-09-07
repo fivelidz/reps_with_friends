@@ -13,34 +13,60 @@
 </head>
 <body>
 
-  <!-- ═══════════════ HEADER — re-skins in preview mode ═══════════════ -->
+  <!-- ═══════════ HEADER — one compact bar (re-skins in preview mode).
+       The long description moved behind "?" → the sheet below. ═══════════ -->
   <header class="st-header">
-    <div class="st-header__row">
-      <div>
-        <p class="st-overline">RWF · theme exploration</p>
-        <h1 class="st-title">Twenty-six material libraries</h1>
-        <p class="st-sub">One design system, twenty-six material kits — the original five,
-          the board-game nine, <b>four readings of your Sports Poster brief</b> (Field Day,
-          Fan Zine, Wayfinding, Clubhouse — the original stays as baseline), and
-          <b>eight mined from your own pages</b> (x10.au, doof.ing, qalarc.com, tradez.au,
-          gmux.ai, volkus.net, endispute.com.au, and your steddi × qalarc page). Each is a
-          <b>full design language</b> — components, type, motion and a contract-level
-          <b>describe it as</b> label — and every pair is structurally distinct, not hue-adjacent.</p>
-      </div>
+    <div class="st-bar">
+      <span class="st-bar__over">RWF</span>
+      <h1 class="st-bar__title">Twenty-six material libraries</h1>
+      <span class="st-bar__count">26 kits</span>
+      <span class="st-bar__spring"></span>
+      <button class="st-bar__review" id="reviewOpen" type="button" title="Full-screen phone review mode — swipe between themes, pick a shortlist">📱 Review mode</button>
+      <button class="st-bar__help" id="stHelp" type="button" aria-expanded="false" aria-controls="stSheet" title="What is this page?">?</button>
+    </div>
+    <div class="st-previewbar" id="previewBar" hidden>
+      <span class="st-previewbar__chip" id="previewChip">THEME</span>
+      <span class="st-kbd">← → swap · hold to scrub · 1–9 jump · esc exit</span>
+      <span class="st-previewbar__copy">preview — this page + the component library wear the theme</span>
+      <button class="st-previewbar__exit" id="previewExit" type="button">✕ Exit preview</button>
+    </div>
+    <div class="st-flash" id="themeFlash" aria-hidden="true"></div>
+  </header>
+
+  <!-- ═══════════ ? SHEET — the full page description, out of the header ═ -->
+  <div class="st-sheet" id="stSheet" hidden role="dialog" aria-modal="true" aria-label="About this page">
+    <div class="st-sheet__backdrop" data-sheet-close></div>
+    <div class="st-sheet__panel">
+      <button class="st-sheet__x" data-sheet-close type="button" aria-label="Close">✕</button>
+      <p class="st-overline">RWF · theme exploration</p>
+      <h2 class="st-sheet__title">Twenty-six material libraries</h2>
+      <p class="st-sub">One design system, twenty-six material kits — the original five,
+        the board-game nine, <b>four readings of your Sports Poster brief</b> (Field Day,
+        Fan Zine, Wayfinding, Clubhouse — the original stays as baseline), and
+        <b>eight mined from your own pages</b> (x10.au, doof.ing, qalarc.com, tradez.au,
+        gmux.ai, volkus.net, endispute.com.au, and your steddi × qalarc page). Each is a
+        <b>full design language</b> — components, type, motion and a contract-level
+        <b>describe it as</b> label — and every pair is structurally distinct, not hue-adjacent.</p>
       <nav class="st-links" aria-label="Related pages">
         <a href="/system">/system · library</a>
         <a href="/figma-app">/figma-app · full app</a>
         <a href="/v2">/v2 · board game</a>
       </nav>
+      <p class="st-sheet__hint"><b>← →</b> swap themes (hold to scrub) · <b>1–9</b> jump ·
+        <b>esc</b> exit preview · <b>📱 Review mode</b> — full-screen swipes on the phone,
+        pick a shortlist for the client</p>
     </div>
-    <div class="st-previewbar" id="previewBar" hidden>
-      <span class="st-previewbar__chip" id="previewChip">THEME</span>
-      <span class="st-kbd">← → swap · hold to scrub · 1–9 jump · esc exit</span>
-      <span class="st-previewbar__copy">full-screen preview — this page + the component library are wearing the theme</span>
-      <button class="st-previewbar__exit" id="previewExit" type="button">✕ &nbsp;Back to compare</button>
+  </div>
+
+  <!-- ═══════════ ★ SHORTLIST — picked in review mode, surfaced up top ══ -->
+  <section class="st-sec st-short" id="shortlist" hidden aria-label="Picked for review">
+    <p class="st-kicker">★ Picked for review <span class="st-short__n" id="shortlistN"></span></p>
+    <div class="st-short__list" id="shortlistList"></div>
+    <div class="st-short__row">
+      <button class="st-short__copy" id="shortlistCopy" type="button">⧉ Copy summary for chat</button>
+      <button class="st-short__clear" id="shortlistClear" type="button">Clear picks</button>
     </div>
-    <div class="st-flash" id="themeFlash" aria-hidden="true"></div>
-  </header>
+  </section>
 
   <!-- ═══════════════ 1 · PICKER — names, descriptions, swatches ════════ -->
   <section class="st-sec" id="picker" aria-label="The twenty-six themes">
@@ -350,8 +376,36 @@
       product skin stays <b>Lime Athletic</b>.</p>
   </footer>
 
+  <!-- ═══════════ 📱 PHONE REVIEW MODE — full-screen theme slides.
+       The whole screen wears the theme (a real app-screen render inside);
+       swipe ← → between themes, swipe ↑ back to the gallery, ♥ picks the
+       shortlist. Auto-opens on touch devices; ?review=1 forces it. ═════ -->
+  <div class="sw" id="switcher" hidden role="dialog" aria-modal="true" aria-label="Theme review mode">
+    <div class="sw__stage" id="swStage">
+      <div class="sw__slide" id="swLayerA"></div>
+      <div class="sw__slide" id="swLayerB"></div>
+      <div class="sw__slide" id="swLayerC"></div>
+    </div>
+    <div class="sw__hud">
+      <div class="sw__top">
+        <span class="sw__count" id="swCount">1 / 26</span>
+        <span class="sw__hint">← → swipe · ↑ all themes</span>
+        <button class="sw__grid" id="swExit" type="button" title="Back to all themes (or swipe up)">⊞</button>
+      </div>
+      <div class="sw__bottom">
+        <div class="sw__dots" id="swDots" aria-hidden="true"></div>
+        <div class="sw__panel">
+          <h2 class="sw__name" id="swName">—</h2>
+          <p class="sw__desc" id="swDesc">—</p>
+          <button class="sw__pick" id="swPick" type="button" aria-pressed="false"><span class="sw__heart">♡</span> Pick for review</button>
+        </div>
+      </div>
+    </div>
+  </div>
+
   <script src="/design/figma-components.js"></script>
   <script src="verify.js"></script>
   <script src="gallery.js"></script>
+  <script src="review.js"></script>
 </body>
 </html>
