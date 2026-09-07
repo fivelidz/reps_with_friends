@@ -206,6 +206,7 @@
   function render() {
     clear(appEl);
     const st = SoT.state;
+    if (App.view === "app") detectMoments();
     if (App.overlay) { appEl.append(renderOverlay(App.overlay)); }
     switch (App.view) {
       case "welcome": appEl.append(scrWelcome()); break;
@@ -448,7 +449,8 @@
       houseCrew: true, activeDays: [1, 2], target: 200, clockMode: "duration", durationMin: 1,
       tiers: {}, exercises: SoT.EXERCISES.map((e) => e.id),
       seasonLength: "weekly", stake: { type: "charity", perPersonCents: 1000, feePct: 5, description: "", dareText: "", capCents: 8000 },
-      powerUps: { lightning: true, steal: true, shield: true, freeze: true, surprise_bomb: true, rescue_rope: true, combo_boost: false, double_down: false, assist_boost: false, shield_bash: false },
+      // the full card stack is on by default; shield_bash stays opt-in
+      powerUps: Object.fromEntries(Object.values(SoT.CARDS).map((c) => [c.id, c.id !== "shield_bash"])),
     };
     go("create");
   }
@@ -592,14 +594,14 @@
           el("p", { class: "tiny" }, "Contributions are agreed up-front; the pot resolves at season end (SOT §4.15).")];
       },
       powerups: () => [
-        el("h1", { class: "display" }, "POWER-UP SETTINGS"),
-        el("p", { class: "sub" }, "The canon four are on by default. Post-launch cards are yours to toggle."),
+        el("h1", { class: "display" }, "CARD SETTINGS"),
+        el("p", { class: "sub" }, "The canon four are on by default. Every other card in the stack is yours to toggle — the deal only deals what's on."),
         el("div", { class: "card" }, Object.values(SoT.CARDS).map((c) => el("div", { class: "toggle-row" },
           el("div", { style: "flex:1" },
-            el("div", { class: "t-name" }, c.name + (c.canon ? el("span", { class: "chip gold", style: "margin-left:7px" }, "canon") : "")),
+            el("div", { class: "t-name" }, (c.icon || "🃏") + " " + c.name + (c.canon ? el("span", { class: "chip gold", style: "margin-left:7px" }, "canon") : "")),
             el("div", { class: "t-sub" }, c.blurb)),
           switchEl(w.powerUps[c.id], (v) => { w.powerUps[c.id] = v; }, c.id + "-pu")))),
-        el("p", { class: "tiny" }, "Season 1 deal: founder's pack — one of every enabled card. After that, a daily drop per battle day (hold up to 4)."),
+        el("p", { class: "tiny" }, "Each battle day opens with a deal — three cards face-down, pick one. Cross 50% of target and you earn a bonus deal. Hold up to 3."),
       ],
       review: () => [
         el("h1", { class: "display" }, "REVIEW & CREATE"),
@@ -794,6 +796,29 @@
             el("span", { class: "chip" }, SoT.tierOf(me ? me.tier : "fit").label + " ×" + SoT.tierOf(me ? me.tier : "fit").mult),
             bombAdd > 0 ? el("span", { class: "chip bad" }, "💣 +" + bombAdd + " bombed") : null)))));
 
+    // MY HAND (v4.1): the cards I'm holding, small poster glyphs
+    const myHand = (snap.me && snap.me.inventory) || [];
+    if (myHand.length) {
+      scr.append(el("div", { class: "hand-strip", id: "my-hand" },
+        el("span", { class: "tiny", style: "align-self:center" }, "HAND"),
+        myHand.map((k) => {
+          const c = SoT.CARDS[k];
+          return el("span", { class: "hand-chip rarity-" + (c ? c.rarity : "common"), title: c ? c.name : k, onclick: () => { sfx("tap"); App.overlay = { kind: "card", cardId: k }; render(); } },
+            (c && c.icon) + " " + (c ? c.name : k));
+        })));
+    }
+
+    // a pending deal of mine — one tap to the sheet (reopen after "Later")
+    if (snap.myDraft && !App.overlay) {
+      scr.append(el("div", { class: "card gold tight deal-waiting", style: "cursor:pointer", onclick: () => { sfx("deal"); App.overlay = { kind: "deal" }; render(); } },
+        el("div", { style: "display:flex;align-items:center;gap:10px" },
+          el("span", { style: "font-size:22px" }, "🃏"),
+          el("div", { style: "flex:1" },
+            el("div", { style: "font-weight:700" }, "Your deal is waiting"),
+            el("div", { class: "tiny" }, snap.myDraft.reason === "halfway" ? "Bonus deal earned — halfway there" : "Three cards on the table — pick one")),
+          el("span", { class: "chip gold" }, "Pick 1 of 3"))));
+    }
+
     // WINNER-KNOWN TRANSITION (#102, live half): the Daily Win is decided,
     // the battle rolls on — tomorrow framing + bank-your-day push
     if (b.winnerId && b.status === "live") {
@@ -837,6 +862,13 @@
           el("span", null, "BOMB INBOUND — log " + E.SURPRISE_BOMB_RUF + " reps in ",
             el("b", { id: "bomb-t", "data-until": String(bb.deadline) }, fmtMs(bb.deadline - Date.now())),
             " to defuse. Defuse it and the bomb pays YOU +" + E.SURPRISE_BOMB_BONUS_RUF + ".")));
+      }
+      // a Prove It watching MY next set (v4.1 proof lane)
+      for (const p of snap.openProofs || []) {
+        if (!p.iAmTarget || p.status !== "awaiting_log") continue;
+        scr.append(el("div", { class: "banner proof" }, "📋",
+          el("span", null, "PROVE IT — your next set gets checked. Log it and mark ",
+            el("b", null, "verified"), ` (camera or timer): honest effort pays YOU +${E.PROVE_IT_BONUS_RUF}. Skip it and the crew accepts or contests.`)));
       }
       // (winner-known banner lives in the #102 card above the clock)
       // active effects
@@ -909,6 +941,21 @@
     if (boltUntil > now) fx.push(el("span", { class: "fx-pill lightning" }, "⚡ ×3 — ", el("span", { class: "fx-t", "data-until": boltUntil }, fmtMs(boltUntil - now))));
     if (b.frozenUntilMs && now < b.frozenUntilMs) fx.push(el("span", { class: "fx-pill frozen" }, "❄️ frozen ", el("span", { class: "fx-t", "data-until": b.frozenUntilMs }, fmtMs(b.frozenUntilMs - now))));
     if (b.core && b.core.groupShield && b.core.groupShield.consumedAt == null) fx.push(el("span", { class: "fx-pill shield" }, "🛡️ shield up"));
+    // card-stack modifiers (v4.1) — all end-of-day unless windowed
+    const mods = b.core && b.core.modifiers ? b.core.modifiers[snap.me.id] : null;
+    if (mods) {
+      if (mods.doubleExerciseId) {
+        const ex = SoT.exerciseById(mods.doubleExerciseId);
+        fx.push(el("span", { class: "fx-pill stack" }, "🏋️ ×2 " + (ex ? ex.name.toLowerCase() : "exercise") + " · today"));
+      }
+      if (mods.specialistIds && mods.specialistIds.length) {
+        fx.push(el("span", { class: "fx-pill stack" }, "🎯 ×1.5 specialist · today"));
+      }
+      if (mods.wildcard) fx.push(el("span", { class: "fx-pill stack" }, "🃏 wildcard · today"));
+      if (mods.underdog) fx.push(el("span", { class: "fx-pill stack" }, "🐕 ×1.25 underdog · today"));
+    }
+    const sw = b.core && b.core.secondWinds ? b.core.secondWinds[snap.me.id] : null;
+    if (sw && now < sw.until) fx.push(el("span", { class: "fx-pill stack" }, "💨 ×1.5 second wind — ", el("span", { class: "fx-t", "data-until": sw.until }, fmtMs(sw.until - now))));
     return fx;
   }
 
@@ -927,7 +974,11 @@
           el("div", { class: "lb-body" },
             el("div", { class: "lb-top" }, el("span", { class: "lb-name" }, m.name + (isMe ? " (you)" : "")),
               el("span", { class: "lb-adj" }, row.adjusted + " / " + row.dayTarget)),
-            el("div", { class: "lb-bar" }, el("i", { style: "width:" + Math.min(100, Math.round(row.pct * 100)) + "%" + (isMe ? "" : "") }))),
+            el("div", { class: "lb-bar" }, el("i", { style: "width:" + Math.min(100, Math.round(row.pct * 100)) + "%" + (isMe ? "" : "") })),
+            (row.hand && row.hand.length) ? el("div", { class: "lb-hand" }, row.hand.map((k) => {
+              const c = SoT.CARDS[k];
+              return el("span", { class: "lb-card rarity-" + (c ? c.rarity : "common"), title: c ? c.name : k }, (c && c.icon) || "🃏");
+            })) : null),
           el("div", { class: "lb-right" },
             row.isWinner ? el("div", { class: "win-flag" }, "DAILY WIN") :
               row.completed ? el("div", { class: "bank-flag" }, "✓ BANKED") :
@@ -945,12 +996,33 @@
   }
 
   /* ══ FEED ════════════════════════════════════════════════════════ */
-  const FEED_ICO = { log: "📝", win: "🏆", bank: "✅", card: "🃏", steal: "🥷", bomb: "💣", bomb_defused: "✂️", bomb_detonated: "💥", milestone: "📈", join: "➕", season_start: "🏁", season_end: "🏁", stake_due: "⚖️", charity_donated: "❤️", recap: "📊", group_created: "⚔️", battle_start: "🔔", undo: "↩️", shield_used: "🛡️" };
+  const FEED_ICO = { log: "📝", win: "🏆", bank: "✅", card: "🃏", steal: "🥷", bomb: "💣", bomb_defused: "✂️", bomb_detonated: "💥", milestone: "📈", join: "➕", season_start: "🏁", season_end: "🏁", stake_due: "⚖️", charity_donated: "❤️", recap: "📊", group_created: "⚔️", battle_start: "🔔", undo: "↩️", shield_used: "🛡️", deal: "🎴", deal_pick: "🃏", deal_reroll: "🔄", proof_request: "📋", proof_verified: "📋", proof_review: "⚖️", proof_accepted: "✅", proof_contested: "❌", proof_vote: "🗳️" };
   function scrFeed() {
     const snap = SoT.snapshot();
     const scr = el("div", { class: "screen on" },
       el("h1", { class: "display", style: "font-size:30px" }, "THE FEED"),
-      el("p", { class: "sub" }, "Every rep, win, card and bomb in the crew."));
+      el("p", { class: "sub" }, "Every rep, win, card and proof call in the crew."));
+    // GROUP REVIEW CARDS (v4.1): open Prove It / Spot Check reviews ride the
+    // top of the feed — the crew accepts or contests, right here
+    for (const p of (snap.openProofs || []).filter((x) => x.status === "review")) {
+      const tgt = p.targetName;
+      const entry = snap.battle && snap.battle.core && snap.battle.core.entries[p.entryIndex];
+      const canVote = snap.me && !p.iAmTarget && !p.myVote && snap.battle && snap.battle.status === "live";
+      scr.append(el("div", { class: "proof-card", id: "proof-" + p.id },
+        el("div", { class: "proof-head" },
+          el("span", { class: "p-ico" }, "⚖️"),
+          el("div", { style: "flex:1" },
+            el("div", { style: "font-weight:700" }, `${tgt}'s set is under review`),
+            el("div", { class: "tiny" }, (p.spot ? "Spot check on the leader's biggest set" : "Prove It — unverified set") + (entry ? ` · ${entry.ruf} reps at stake` : "")))),
+        el("div", { class: "proof-votes" },
+          el("span", { class: "chip live" }, "👍 " + p.accepts + " accept"),
+          el("span", { class: "chip bad" }, "👎 " + p.contests + " contest")),
+        canVote ? el("div", { class: "proof-actions" },
+          el("button", { class: "btn sm", onclick: () => voteOn(p.id, "accept") }, "👍 Accept"),
+          el("button", { class: "btn danger sm", onclick: () => voteOn(p.id, "contest") }, "👎 Contest")) :
+          el("div", { class: "tiny", style: "margin-top:8px" }, p.iAmTarget ? "Your set — the crew decides." : p.myVote ? "You voted to " + p.myVote + "." : "Settles when the crew has voted (majority) or the day closes."),
+        el("div", { class: "tiny", style: "margin-top:6px;color:var(--ink-faint)" }, "Contested sets score 0 — but the day still banks. Never shame; just honesty.")));
+    }
     if (!snap.feed.length) scr.append(el("div", { class: "card tight", style: "text-align:center" }, el("p", { class: "sub", style: "margin:6px" }, "Quiet… for now. Log the first set and wake them up.")));
     for (const e of snap.feed) {
       scr.append(el("div", { class: "feed-item" },
@@ -962,18 +1034,24 @@
             el("button", { class: (e.reactions[emo] ? "tapped" : ""), onclick: () => { sfx("tap"); SoT.react(snap.group.id, e.id, emo); render(); } }, emo + (e.reactions[emo] ? " " + e.reactions[emo] : "")))))));
     }
     return scr;
+    function voteOn(proofId, vote) {
+      sfx("tap");
+      const r = SoT.voteProof(snap.group.id, proofId, snap.me.id, vote);
+      if (r.error) { sfx("error"); toast(r.error); return; }
+      toast(r.settled ? (r.outcome === "contested" ? "Contested — the set scores 0" : "Accepted — the reps stand") : "Vote in");
+      render();
+    }
   }
 
   /* ══ QUICK LOG (#106-118) ════════════════════════════════════════ */
   function openLog() {
-    const snap = SoT.snapshot();
-    App.logFlow = { step: "sheet", exerciseId: null, amount: 0, buf: "", timerStart: null, secs: 0 };
+    App.logFlow = { step: "sheet", exerciseId: null, amount: 0, buf: "", timerStart: null, secs: 0, verified: null, timerAttested: false };
     App.tab = "log";
   }
 
   function scrLog() {
     const snap = SoT.snapshot();
-    if (!App.logFlow) App.logFlow = { step: "sheet", exerciseId: null, amount: 0, buf: "", timerStart: null, secs: 0 };
+    if (!App.logFlow) App.logFlow = { step: "sheet", exerciseId: null, amount: 0, buf: "", timerStart: null, secs: 0, verified: null, timerAttested: false };
     const F = App.logFlow;
     const scr = el("div", { class: "screen on qlog-open" });
 
@@ -1040,7 +1118,7 @@
             el("div", { class: "btn-row", style: "margin-top:14px" },
               el("button", { class: "btn " + (running ? "danger" : ""), onclick: () => {
                 if (!F.timerStart) { sfx("primary"); F.timerStart = Date.now(); startHoldTicker(); render(); }
-                else { sfx("tap"); F.secs = Math.max(1, Math.round((Date.now() - F.timerStart) / 1000)); F.amount = F.secs; F.timerStart = null; F.step = "confirm"; render(); }
+                else { sfx("tap"); F.secs = Math.max(1, Math.round((Date.now() - F.timerStart) / 1000)); F.amount = F.secs; F.timerStart = null; F.timerAttested = true; F.step = "confirm"; render(); }
               } }, running ? "STOP" : "START HOLD"),
               !running && F.secs ? el("button", { class: "btn ghost", onclick: () => { sfx("tap"); F.step = "confirm"; render(); } }, "Use " + F.secs + "s") : null)));
         const presets2 = [30, 45, 60, 90];
@@ -1065,18 +1143,38 @@
       const ex = SoT.exerciseById(F.exerciseId);
       const tier = SoT.tierOf(snap.me.tier);
       const bolt = snap.battle && snap.battle.core && (snap.battle.core.lightning[snap.me.id] || 0) > Date.now();
-      const mult = bolt ? 3 : 1;
-      const gain = previewGain(ex, F.amount, tier.mult, mult);
+      const E = SoT.engine;
+      const mods = snap.battle && snap.battle.core && snap.battle.core.modifiers ? snap.battle.core.modifiers[snap.me.id] : null;
+      const sw = snap.battle && snap.battle.core && snap.battle.core.secondWinds ? snap.battle.core.secondWinds[snap.me.id] : null;
+      const stackFx = [];
+      let stackMult = 1;
+      if (mods && mods.doubleExerciseId === ex.id) { stackMult *= E.DOUBLE_EXERCISE_MULTIPLIER; stackFx.push("🏋️ ×2 double " + ex.name.toLowerCase()); }
+      if (mods && mods.specialistIds && mods.specialistIds.includes(ex.id)) { stackMult *= E.SPECIALIST_MULTIPLIER; stackFx.push("🎯 ×1.5 specialist"); }
+      if (mods && mods.underdog) { stackMult *= E.UNDERDOG_MULTIPLIER; stackFx.push("🐕 ×1.25 underdog"); }
+      if (sw && Date.now() < sw.until) { stackMult *= E.SECOND_WIND_MULTIPLIER; stackFx.push("💨 ×1.5 second wind"); }
+      const wildOn = !!(mods && mods.wildcard);
+      if (wildOn) stackFx.push("🃏 wildcard — best-value conversion");
+      const mult = (bolt ? 3 : 1) * stackMult;
+      const gain = previewGain(ex, F.amount, tier.mult, mult, wildOn);
       const my = snap.myRow || { remaining: snap.group.target };
+      const awaitingProof = (snap.openProofs || []).some((p) => p.iAmTarget && p.status === "awaiting_log");
+      if (awaitingProof && F.verified == null) F.verified = !!F.timerAttested;
       scr.append(el("h1", { class: "display", style: "text-align:center" }, "CONFIRM SET"),
+        awaitingProof ? el("div", { class: "banner proof", id: "prove-banner" }, "📋",
+          el("span", null, "PROVE IT is on this set — mark it verified for +15 reps, or the crew reviews it.")) : null,
         el("div", { class: "card gold", style: "text-align:center" },
           el("div", { class: "ex-ill", style: "margin:6px 0" }, ex.icon),
           el("div", { class: "display", style: "font-size:34px" }, F.amount + " " + (ex.unit || "reps")),
           el("div", { class: "tiny" }, ex.name),
           el("div", { style: "margin-top:12px" },
             el("span", { class: "chip gold", style: "font-size:14px" }, "+ " + gain + " reps"),
-            bolt ? el("span", { class: "chip purple", style: "margin-left:6px" }, "⚡ ×3 active") : null),
-          el("p", { class: "sub", style: "margin:12px 0 0" }, gain >= my.remaining ? "This set takes you to TARGET." : my.remaining - gain + " reps still to go after this set.")),
+            bolt ? el("span", { class: "chip purple", style: "margin-left:6px" }, "⚡ ×3 active") : null,
+            stackFx.map((t) => el("span", { class: "chip purple", style: "margin-left:6px" }, t))),
+          el("p", { class: "sub", style: "margin:12px 0 0" }, gain >= my.remaining ? "This set takes you to TARGET." : my.remaining - gain + " reps still to go after this set."),
+          awaitingProof ? el("div", { class: "verify-row", id: "verify-row" },
+            el("button", { class: "btn sm " + (F.verified ? "" : "ghost"), onclick: () => { sfx("tap"); F.verified = !F.verified; render(); } },
+              F.verified ? "🎥 VERIFIED — honesty pays +15" : "🎥 Mark verified (camera / timer)"),
+            F.timerAttested && F.verified ? el("span", { class: "tiny", style: "margin-left:8px" }, "timer-attested") : null) : null),
         el("button", { class: "btn", onclick: () => submitSet() }, "Log it"));
     } else if (F.step === "success") {
       const S = F.result || {};
@@ -1139,9 +1237,15 @@
       if (jp) out.push({ ex: jp.id, v: 50, label: jp.name.toUpperCase() });
       return out;
     }
-    function previewGain(ex, amount, tierMult, mult) {
-      if (ex.secsPerRep) return Math.round((amount / ex.secsPerRep) * ex.value * tierMult * mult);
-      return Math.round(amount * ex.value * tierMult * mult);
+    function previewGain(ex, amount, tierMult, mult, wildOn) {
+      const conv = wildOn ? bestWildExercise() : ex;
+      if (conv.secsPerRep) return Math.round((amount / conv.secsPerRep) * conv.value * tierMult * mult);
+      return Math.round(amount * conv.value * tierMult * mult);
+    }
+    function bestWildExercise() {
+      const list = snap.exerciseList;
+      if (!list || !list.length) return ex;
+      return list.reduce((best, e) => (e.value / (e.secsPerRep || 1)) > (best.value / (best.secsPerRep || 1)) ? e : best, list[0]);
     }
     function submitSet() {
       // OFFLINE (#104/#120): sets queue locally and replay on reconnect
@@ -1161,7 +1265,8 @@
       applySet();
     }
     function applySet() {
-      const r = SoT.logReps(snap.group.id, snap.me.id, F.exerciseId, F.amount);
+      const verified = !!F.verified;
+      const r = SoT.logReps(snap.group.id, snap.me.id, F.exerciseId, F.amount, verified ? { verified: true } : {});
       if (r.error) { sfx("error"); toast(r.error); return; }
       F.result = r;
       if (r.completion && r.completion.kind === "win") {
@@ -1175,6 +1280,8 @@
         render(); return;
       }
       sfx("log");
+      if (r.proof && r.proof.status === "review") toast("📋 the crew reviews this set — accept or contest in the Feed");
+      if (r.proof && r.proof.status === "verified") toast("📋 verified — +15 reps for the honesty");
       F.step = "success"; render();
     }
     function startHoldTicker() {
@@ -1189,13 +1296,23 @@
   /* ══ POWER-UPS TAB (#138+) ═══════════════════════════════════════ */
   function scrPowerUps() {
     const snap = SoT.snapshot();
+    const cap = SoT.engine.HAND_CAP;
     const scr = el("div", { class: "screen on" },
-      el("h1", { class: "display", style: "font-size:30px" }, "POWER-UPS"),
-      el("p", { class: "sub" }, "Cards stay face-down until you tap them. Season 1 founder's pack, then a daily drop each battle day."));
+      el("h1", { class: "display", style: "font-size:30px" }, "THE STACK"),
+      el("p", { class: "sub" }, `Each battle day opens with a deal — three face-down, pick one. Halfway earns a bonus deal. Hold up to ${cap}.`));
+    if (snap.myDraft) {
+      scr.append(el("div", { class: "card gold tight", style: "cursor:pointer", id: "deal-waiting", onclick: () => { sfx("deal"); App.overlay = { kind: "deal" }; render(); } },
+        el("div", { style: "display:flex;align-items:center;gap:10px" },
+          el("span", { style: "font-size:22px" }, "🎴"),
+          el("div", { style: "flex:1" },
+            el("div", { style: "font-weight:700" }, "A deal is on the table"),
+            el("div", { class: "tiny" }, snap.myDraft.reason === "halfway" ? "Bonus deal — halfway earned" : "Pick 1 of 3 before the day closes")),
+          el("span", { class: "chip gold" }, "Open"))));
+    }
     const fx = activeEffects(snap);
     if (fx.length) { scr.append(el("h3", { class: "row" }, "Active")); scr.append(el("div", { class: "active-fx", style: "margin-bottom:8px" }, fx)); }
     const inv = (snap.me && snap.me.inventory) || [];
-    scr.append(el("h3", { class: "row" }, "Your stack — " + inv.length + " card" + (inv.length === 1 ? "" : "s")));
+    scr.append(el("h3", { class: "row" }, "Your hand — " + inv.length + " of " + cap));
     const grid = el("div", { class: "pu-grid" });
     const counts = {};
     for (const c of inv) counts[c] = (counts[c] || 0) + 1;
@@ -1211,15 +1328,20 @@
       } },
         n > 1 ? el("div", { class: "qty" }, "×" + n) : null,
         isRev ? el("div", { class: "face" },
-          el("div", { class: "f-rar" }, card.rarity),
-          el("div", { class: "f-ico" }, cardIcon(card.id)),
-          el("div", { class: "f-name" }, card.name.toUpperCase())) :
+          el("div", { class: "f-rar" }, card.rarity + " · " + (card.family || "card")),
+          el("div", { class: "f-ico" }, card.icon || cardIcon(card.id)),
+          el("div", { class: "f-name" }, card.name.toUpperCase()),
+          el("div", { class: "f-exp" }, "⏳ " + (card.expiry || "today"))) :
           el("div", { class: "back" }, el("div", { class: "logo" }, "RWF"), el("div", { class: "tiny" }, "tap to flip")));
       grid.append(c);
     });
-    for (let i = inv.length; i < 4; i++) grid.append(el("div", { class: "pu-empty" }, "+"));
+    for (let i = inv.length; i < cap; i++) grid.append(el("div", { class: "pu-empty" }, "+"));
     scr.append(grid);
-    const cardEvents = snap.feed.filter((e) => ["card", "steal", "bomb", "bomb_defused", "bomb_detonated"].includes(e.type)).slice(0, 8);
+    scr.append(el("div", { class: "deal-points", style: "margin-top:10px" },
+      el("span", { class: "chip gold" }, "💰 " + snap.points + " pts"),
+      el("span", { class: "chip" }, "🪙 pot " + snap.pot),
+      el("span", { class: "chip" }, "🔄 reroll " + (snap.battle && snap.battle.core ? SoT.engine.rerollCostFor(snap.battle.core, snap.me.id) : 50) + " pts")));
+    const cardEvents = snap.feed.filter((e) => ["card", "steal", "bomb", "bomb_defused", "bomb_detonated", "deal", "deal_pick", "deal_reroll", "proof_request", "proof_verified", "proof_accepted", "proof_contested"].includes(e.type)).slice(0, 8);
     if (cardEvents.length) {
       scr.append(el("h3", { class: "row" }, "Card history"));
       scr.append(el("div", { class: "card tight" }, cardEvents.map((e) =>
@@ -1227,7 +1349,7 @@
     }
     return scr;
   }
-  function cardIcon(id) { return { lightning: "⚡", steal: "🥷", shield: "🛡️", freeze: "❄️", surprise_bomb: "💣", rescue_rope: "🪢", combo_boost: "🔥", double_down: "🎲", assist_boost: "🤝", shield_bash: "🔨" }[id] || "🃏"; }
+  function cardIcon(id) { const c = SoT.CARDS[id]; return (c && c.icon) || { lightning: "⚡", steal: "🥷", shield: "🛡️", freeze: "❄️", surprise_bomb: "💣", rescue_rope: "🪢", combo_boost: "🔥", double_down: "🎲", assist_boost: "🤝", shield_bash: "🔨" }[id] || "🃏"; }
 
   /* ══ PROFILE (#245+) ═════════════════════════════════════════════ */
   function scrProfile() {
@@ -1553,34 +1675,126 @@
         el("button", { class: "btn ghost", onclick: () => { App.overlay = null; render(); } }, "Close")));
       return layer;
     }
+    if (ov.kind === "deal") {
+      // THE DEAL (v4.1): three cards face-down → flip → pick one. The
+      // founder's directive: "players should have the option of which card
+      // to pick out of three dealt." Rerolls pay points to the pot.
+      const snap = SoT.snapshot();
+      const draft = snap.myDraft;
+      if (!draft) { setTimeout(() => { App.overlay = null; render(); }, 0); return layer; }
+      const b = snap.battle;
+      const kicker = draft.reason === "halfway" ? "BONUS DEAL — HALFWAY EARNED" : draft.reason === "mulligan" ? "MULLIGAN DEAL" : `THE DEAL — BATTLE ${b ? b.idx : ""}`;
+      const cost = SoT.engine.rerollCostFor(b.core, snap.me.id);
+      const box = el("div", { class: "oval deal-oval" },
+        el("div", { class: "o-kicker" }, kicker),
+        el("div", { class: "o-title", style: "font-size:34px" }, "PICK 1 OF 3"),
+        el("p", { class: "o-sub" }, ov.flipped ? "Tap your card." : "Three cards on the table. Tap to flip them."),
+        el("div", { class: "deal-cards" + (ov.flipped ? " flipped" : ""), id: "deal-cards" },
+          draft.options.map((kind, i) => {
+            const card = SoT.CARDS[kind] || { name: kind, rarity: "common", blurb: "" };
+            return el("div", {
+              class: "rwcard rarity-" + card.rarity + (ov.picked === kind ? " picked" : ""),
+              style: `--i:${i}`,
+              onclick: () => {
+                if (!ov.flipped) { sfx("flip"); ov.flipped = true; render(); return; }
+                sfx("play");
+                ov.picked = kind;
+                const r = SoT.pickDraft(snap.group.id, snap.me.id, kind);
+                if (r.error) { sfx("error"); toast(r.error); ov.picked = null; render(); return; }
+                setTimeout(() => { App.overlay = null; toast(`🃏 ${r.name} — ${r.rarity}`); render(); }, 260);
+                render();
+              },
+            },
+              el("div", { class: "rw-inner" },
+                el("div", { class: "rw-face rw-back" },
+                  el("div", { class: "rw-logo" }, "RWF"),
+                  el("div", { class: "rw-mini" }, "REPS WITH FRIENDS")),
+                el("div", { class: "rw-face rw-front rarity-" + card.rarity },
+                  el("div", { class: "rw-rar" }, card.rarity),
+                  el("div", { class: "rw-ico" }, card.icon || "🃏"),
+                  el("div", { class: "rw-name" }, card.name.toUpperCase()),
+                  el("div", { class: "rw-fam" }, (card.family || "card") + " · " + (card.expiry || "")),
+                  el("div", { class: "rw-blurb" }, card.blurb))));
+          })),
+        el("div", { class: "deal-points" },
+          el("span", { class: "chip gold" }, "💰 " + snap.points + " pts"),
+          el("span", { class: "chip" }, "🪙 pot " + snap.pot)),
+        el("div", { class: "btn-row", style: "margin-top:12px" },
+          el("button", { class: "btn ghost sm", style: "flex:1", onclick: () => {
+            sfx("pot");
+            const r = SoT.rerollDeal(snap.group.id, snap.me.id);
+            if (r.error) { sfx("error"); toast(r.error); return; }
+            ov.flipped = false; ov.picked = null;
+            render();
+          } }, "🔄 Reroll — " + cost + " pts to the pot"),
+          el("button", { class: "btn ghost sm", style: "flex:1", onclick: () => {
+            sfx("tap");
+            App.dealDismissed = draft.openedAt;   // stays waiting — reopen from the chip
+            App.overlay = null; render();
+          } }, "Later")),
+        el("p", { class: "tiny", style: "margin-top:10px" }, "Rerolls grow the pot for everyone. Behind the pack? The deal leans your way."));
+      layer.append(box);
+      return layer;
+    }
     if (ov.kind === "card") {
       const snap = SoT.snapshot();
       const card = SoT.CARDS[ov.cardId];
-      const needsTarget = ["steal", "surprise_bomb", "rescue_rope", "assist_boost"].includes(card.id);
+      const TARGET_RIVALS = ["steal", "surprise_bomb", "rivalry", "prove_it"];
+      const TARGET_MATES = ["rescue_rope", "assist_boost", "training_partners"];
+      const needsTarget = TARGET_RIVALS.includes(card.id) || TARGET_MATES.includes(card.id);
+      const needsExercise = card.id === "double_exercise";
       const box = el("div", { class: "oval" },
-        el("div", { class: "o-kicker" }, card.rarity.toUpperCase() + " CARD"),
-        el("div", { style: "font-size:52px;margin:8px 0" }, cardIcon(card.id)),
+        el("div", { class: "o-kicker" }, card.rarity.toUpperCase() + " · " + (card.family || "CARD").toUpperCase()),
+        el("div", { style: "font-size:52px;margin:8px 0" }, card.icon || cardIcon(card.id)),
         el("div", { class: "o-title", style: "font-size:30px" }, card.name.toUpperCase()),
         el("p", { class: "o-sub" }, card.detail),
+        el("div", { class: "chip-row" },
+          el("span", { class: "chip gold" }, "target: " + (card.target || "self")),
+          el("span", { class: "chip" }, "⏳ " + (card.expiry || "today"))),
         el("div", { id: "card-act" }));
       const act = box.querySelector("#card-act");
       const live = snap.battle && snap.battle.status === "live";
       const held = (snap.me.inventory || []).includes(card.id);
       if (!held) act.append(el("p", { class: "tiny" }, "You don't hold this card right now."));
       else if (!live) act.append(el("p", { class: "tiny" }, "Cards play during a live battle."));
-      else if (needsTarget) {
-        act.append(el("p", { class: "tiny", style: "margin-bottom:6px" }, "Pick a target:"));
-        const rivals = snap.board.filter((r) => r.member.id !== snap.me.id && (card.id === "rescue_rope" || card.id === "assist_boost" ? true : !r.completed));
-        for (const r of rivals.slice(0, 5)) {
+      else if (card.id === "pack_bond") {
+        // team card: bond MY team (team mode groups only)
+        const myTeam = (snap.group.teams || []).find((t) => snap.me.teamId === t.id);
+        if (!myTeam) act.append(el("p", { class: "tiny" }, "Team card — it needs a team battle."));
+        else {
+          const names = snap.group.members.filter((mm) => mm.teamId === myTeam.id).map((mm) => mm.name.split(" ")[0]);
+          act.append(el("p", { class: "tiny", style: "margin-bottom:6px" }, `Bond ${myTeam.name} (${names.join(", ")}):`),
+            el("button", { class: "btn", style: "margin-top:6px", onclick: () => confirmUse(card.id, null, myTeam.name, { memberIds: snap.group.members.filter((mm) => mm.teamId === myTeam.id).map((mm) => mm.id) }) }, "🐺 Bond the pack"));
+        }
+      } else if (needsExercise) {
+        act.append(el("p", { class: "tiny", style: "margin-bottom:6px" }, "Name your exercise — it counts ×2 today:"),
+          el("div", { class: "chip-row" }, snap.exerciseList.map((ex) =>
+            el("button", { class: "btn ghost sm", style: "margin:4px 3px 0 0", onclick: () => confirmUse(card.id, null, ex.name, { exerciseId: ex.id }) },
+              ex.icon + " " + ex.name))));
+      } else if (needsTarget) {
+        const proofBusy = new Set((snap.battle.core.proofs || []).filter((p) => p.status === "awaiting_log" || p.status === "review").map((p) => p.targetId));
+        const partnered = new Set();
+        for (const p of snap.battle.core.partnerships || []) { partnered.add(p.a); partnered.add(p.b); }
+        const rivals = snap.board.filter((r) => {
+          if (r.member.id === snap.me.id) return false;
+          // mates + rivalries + proofs reach anyone; effect cards only reach
+          // players still mid-battle (the engine refuses finished targets)
+          const anyTarget = TARGET_MATES.includes(card.id) || card.id === "rivalry" || card.id === "prove_it";
+          if (anyTarget) return true;
+          if (card.id === "prove_it" && proofBusy.has(r.member.id)) return false;
+          return !r.completed;
+        }).filter((r) => !(card.id === "training_partners" && partnered.has(r.member.id)));
+        act.append(el("p", { class: "tiny", style: "margin-bottom:6px" }, card.id === "prove_it" ? "Who has to prove it?" : card.id === "training_partners" ? "Pick your partner:" : "Pick a target:"));
+        for (const r of rivals.slice(0, 6)) {
           act.append(el("button", { class: "btn ghost sm", style: "margin:4px 3px 0 0", onclick: () => confirmUse(card.id, r.member.id, r.member.name) },
             r.member.name.split(" ")[0] + " (" + r.adjusted + ")"));
         }
         if (!rivals.length) act.append(el("p", { class: "tiny" }, "No eligible targets right now."));
       } else {
-        act.append(el("button", { class: "btn", style: "margin-top:10px", onclick: () => confirmUse(card.id, null, null) }, "Activate " + card.name));
+        act.append(el("button", { class: "btn", style: "margin-top:10px", onclick: () => confirmUse(card.id, null, null) }, "Play " + card.name));
       }
-      function confirmUse(cid, targetId, targetName) {
-        App.overlay = { kind: "confirmCard", cardId: cid, targetId, targetName };
+      function confirmUse(cid, targetId, targetName, extra = {}) {
+        App.overlay = { kind: "confirmCard", cardId: cid, targetId, targetName, ...extra };
         render();
       }
       act.append(el("button", { class: "btn ghost sm", style: "margin-top:12px", onclick: () => { App.overlay = null; render(); } }, "Close"));
@@ -1590,19 +1804,25 @@
     if (ov.kind === "confirmCard") {
       const card = SoT.CARDS[ov.cardId];
       layer.append(el("div", { class: "oval" },
-        el("div", { class: "o-kicker" }, "ACTIVATE CARD"),
-        el("div", { class: "o-title", style: "font-size:28px" }, cardIcon(card.id) + " " + card.name.toUpperCase()),
+        el("div", { class: "o-kicker" }, "PLAY CARD"),
+        el("div", { class: "o-title", style: "font-size:28px" }, (card.icon || cardIcon(card.id)) + " " + card.name.toUpperCase()),
         el("p", { class: "o-sub" }, ov.targetName ? "Target: " + ov.targetName : card.blurb),
         el("p", { class: "tiny" }, "No take-backs — the whole crew sees it."),
         btnRow(() => { App.overlay = { kind: "card", cardId: ov.cardId }; render(); }, "Cancel", () => {
           const snap = SoT.snapshot();
-          const r = SoT.activateCard(snap.group.id, snap.me.id, ov.cardId, ov.targetId);
+          const r = SoT.activateCard(snap.group.id, snap.me.id, ov.cardId, ov.targetId, {
+            ...(ov.exerciseId ? { exerciseId: ov.exerciseId } : {}),
+            ...(ov.memberIds ? { memberIds: ov.memberIds } : {}),
+          });
           if (r.error) { sfx("error"); toast(r.error); return; }
           sfx("play");
-          // Lightning earns the full-screen 10-minute moment (#142)
+          // Lightning earns the full-screen 10-minute moment (#142); the
+          // Mulligan chains straight into its fresh deal
           App.overlay = ov.cardId === "lightning"
             ? { kind: "lightning", untilMs: r.untilMs || (Date.now() + (SoT.engine ? SoT.engine.LIGHTNING_MS : 600_000)) }
-            : { kind: "cardResult", result: r, cardId: ov.cardId };
+            : ov.cardId === "mulligan"
+              ? { kind: "deal" }
+              : { kind: "cardResult", result: r, cardId: ov.cardId };
           render();
         }, "Confirm")));
       return layer;
@@ -1629,6 +1849,17 @@
       if (ov.cardId === "freeze") { headline = "CLOCK FROZEN"; line = "30 minutes added to the battle. Everyone sees the ice."; }
       if (ov.cardId === "lightning") { headline = "×3 STORM LIVE"; line = "Your reps count triple while the lightning runs."; }
       if (ov.cardId === "shield") { headline = "SHIELD UP"; line = "The crew's streaks are protected for today."; }
+      if (ov.cardId === "double_exercise") { headline = "×2 ON " + (r.exerciseName || "IT").toUpperCase(); line = `Every ${r.exerciseName || "rep"} you log counts double for the rest of the day.`; }
+      if (ov.cardId === "specialist") { headline = "×1.5 SPECIALIST"; line = `Locked in: ${(r.exerciseNames || []).join(", ")} — those count ×1.5 today.`; }
+      if (ov.cardId === "wildcard_workout") { headline = "WILDCARD LIVE"; line = "Any exercise counts as any other for you today. Mix it up."; }
+      if (ov.cardId === "rivalry") { headline = "RIVALRY LIVE"; line = `vs ${r.rivalName} — more reps by the close takes +${r.bonusRuf}.`; }
+      if (ov.cardId === "training_partners") { headline = "PARTNERS LOCKED"; line = `You and ${r.partnerName} — both bank today and both pocket +${r.bonusRufEach}.`; }
+      if (ov.cardId === "pack_bond") { headline = "PACK BONDED"; line = `Everyone who logs ${r.thresholdRuf || 20}+ reps banks +10% at the close.`; }
+      if (ov.cardId === "prove_it") { headline = "PROOF OUT"; line = `${r.targetName}'s next set gets checked — verify and THEY bank +15. Skip it and the crew decides.`; }
+      if (ov.cardId === "spot_check") { headline = "SPOT CHECK"; line = `${r.targetName}'s biggest set (${r.entryRuf} reps) is under group review — the crew accepts or contests.`; }
+      if (ov.cardId === "second_wind") { headline = "×1.5 SECOND WIND"; line = "15 minutes of comeback fuel. Go."; }
+      if (ov.cardId === "mulligan") { headline = "HAND SCRAPPED"; line = `${r.discarded} card${r.discarded === 1 ? "" : "s"} gone — three fresh cards are on the table.`; }
+      if (ov.cardId === "underdog") { headline = "×1.25 UNDERDOG"; line = "You're riding at the back — every rep counts extra today. Comeback lane open."; }
       const layer2 = el("div", { class: "oval" },
         el("div", { class: "o-kicker" }, card.name.toUpperCase()),
         el("div", { class: "o-title", style: "font-size:34px" }, headline),
@@ -1732,15 +1963,18 @@
     }
     function applyQueuedOrCurrent() {
       // the confirmed duplicate: apply the set sitting in the log flow
+      // (carrying the verified mark if the proof lane armed it)
       if (App.logFlow) {
         const F = App.logFlow;
-        const r = SoT.logReps(SoT.state.activeGroupId, SoT.state.me.id, F.exerciseId, F.amount);
+        const r = SoT.logReps(SoT.state.activeGroupId, SoT.state.me.id, F.exerciseId, F.amount, F.verified ? { verified: true } : {});
         if (r.error) { toast(r.error); return; }
         F.result = r;
         if (r.completion && (r.completion.kind === "win" || r.completion.kind === "bank")) {
           App.overlay = r.completion.kind === "win" ? { kind: "youWon" } : { kind: "banked" };
           App.tab = "battle"; App.logFlow = null; return;
         }
+        if (r.proof && r.proof.status === "review") toast("📋 the crew reviews this set — accept or contest in the Feed");
+        if (r.proof && r.proof.status === "verified") toast("📋 verified — +15 reps for the honesty");
         F.step = "success";
       }
     }
@@ -1777,15 +2011,18 @@
     return row;
   }
 
-  /* ── moment detection (other players' wins, deadline fallout) ────── */
+  /* ── moment detection (deals, other players' wins, deadline fallout) ─ */
   function detectMoments(prevFeedLen) {
     const snap = SoT.snapshot();
     if (!snap || !snap.me) return;
     const g = snap.group, me = snap.me;
+    // one-time moments may bump a waiting deal sheet (the deal re-claims
+    // focus after the moment closes — it's still on the table)
+    const claimable = () => !App.overlay || App.overlay.kind === "deal";
     for (const e of snap.feed) {
       if (e._seen) continue;
       e._seen = true;
-      if (e.type === "win" && App.view === "app" && !App.overlay) {
+      if (e.type === "win" && App.view === "app" && claimable()) {
         if (e.memberId !== me.id) {
           const w = g.members.find((m) => m.id === e.memberId);
           App.overlay = { kind: "otherWon", name: w ? w.name.split(" ")[0] : "Someone" };
@@ -1799,17 +2036,24 @@
         const key = "fail" + b.idx;
         if (b.status === "ended" && !App.overlayShown[key] && b.failures.includes(me.id)) {
           App.overlayShown[key] = true;
-          if (!App.overlay && App.view === "app") {
+          if (claimable() && App.view === "app") {
             App.overlay = { kind: "failed", battleIdx: b.idx, shielded: b.shields.some((sh) => sh.consumedAtMs) };
           }
         }
       }
       if (s.status === "ended" && !App.overlayShown["season" + s.idx]) {
         App.overlayShown["season" + s.idx] = true;
-        if (!App.overlay && App.view === "app") {
+        if (claimable() && App.view === "app") {
           App.overlay = { kind: "seasonWinner", me: s.winnerId === me.id, name: (g.members.find((m) => m.id === s.winnerId) || { name: "" }).name.split(" ")[0] };
         }
       }
+    }
+    // THE DEAL claims whatever's left: a pending draft of mine claims the
+    // screen until dismissed ("Later") or picked. A win moment may briefly
+    // sit on top of it — the deal re-claims when that moment closes.
+    if (snap.myDraft && !App.overlay && App.view === "app" && App.dealDismissed !== snap.myDraft.openedAt) {
+      sfx("deal");
+      App.overlay = { kind: "deal" };
     }
   }
 

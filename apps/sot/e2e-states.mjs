@@ -157,6 +157,11 @@ const exists = (sel) => evalJs(`!!document.querySelector('${sel}')`);
 const bodyHas = (s) => evalJs(`(document.body.innerText || '').includes(${JSON.stringify(s)})`);
 const dump = () => evalJs(`(document.body.innerText || '').replace(/\\n/g, ' | ').slice(0, 200)`);
 const okBody = async (s, label) => { const r = await bodyHas(s); if (!r) console.log(`    [miss "${s}" — screen: ${await dump()}]`); ok(r, label); };
+// v4.1: the halfway/day-open deal sheet claims focus when it earns it —
+// dismiss it so the states below photograph their own screens
+async function dismissDeal() {
+  if (await exists(".deal-oval")) { await clickText("Later"); await sleep(220); }
+}
 const snapState = () => evalJs(`(() => { const s = RWFSoT.snapshot(); return JSON.parse(JSON.stringify({ gid: s.group.id, battle: s.battle ? { idx: s.battle.idx, status: s.battle.status, winnerId: s.battle.winnerId } : null, board: s.board.map(r => ({ id: r.member.id, name: r.member.name, adjusted: r.adjusted })), me: s.me ? { id: s.me.id } : null, members: s.group.members.map(m => ({ id: m.id, name: m.name })) })); })()`);
 const driveLog = (memberId, ex, physical) =>
   evalJs(`RWFSoT.logRepsAs(RWFSoT.state.activeGroupId, ${JSON.stringify(memberId)}, ${JSON.stringify(ex)}, ${physical})`);
@@ -176,6 +181,15 @@ await sleep(600);
 /* seed the demo crew — a live mid-battle group with a bomb in flight */
 await clickText("Jump into a live demo battle");
 await sleep(700);
+// the demo deal (v4.1) claims the screen at day open — take the card so the
+// state screenshots below show the battle, then move on
+if (await exists(".deal-oval")) {
+  await click(".rwcard");                                          // flip
+  await sleep(950);
+  await click(".rwcard");                                          // pick one
+  await sleep(400);
+}
+if (await exists(".deal-oval")) { await clickText("Later"); await sleep(250); }
 let st = await snapState();
 const me = st.me.id;
 const priya = st.members.find((m) => m.name === "Priya");
@@ -260,6 +274,7 @@ await sleep(300);
 ok(await exists("#dup-warn") === false, "confirm dismisses the sheet");
 ok((await myAdjusted()) === 110, "confirmed duplicate lands (+40 → 110)");
 okBody("+40 REPS", "success screen after confirm");
+await dismissDeal();                                            // the halfway deal earned by that set
 
 await clickText("Log another");
 await clickText("40", ".preset");                              // one more identical set
@@ -327,6 +342,7 @@ if (await exists(".oval")) {
   await clickText("Close");
   await sleep(200);
 }
+await dismissDeal();                                            // battle 2's opening deal waits — dismiss for these shots
 await clickText("Battle");
 await waitFor(() => evalJs(`!!document.querySelector('#battle-complete')`).catch(() => false), { label: "battle-complete card", timeout: 8000 });
 ok(await exists("#battle-complete"), "battle-complete card renders (#102, ended half)");

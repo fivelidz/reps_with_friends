@@ -42,20 +42,38 @@
      doubleDownFinishers(day) → ids clearing their 2× quest
      dayLeaderboard(day) → rows sorted (earliest finish first)
 
-   POWER-UPS  (SOT canon; state lives on the day)
-     POWER_UP_CATALOG (launch ×4, post-launch ×6, experimental preserved ×9)
-     LIGHTNING_MS/LIGHTNING_MULTIPLIER, STEAL_SHARE, FREEZE_MS,
-       SURPRISE_BOMB_*, RESCUE_ROPE_*, ASSIST_*, DOUBLE_DOWN_*
-     grantPowerUp(day, playerId, kind)     inventory/draft economy hook
-     inventoryOf(day, playerId)
-     activatePowerUp(day, playerId, kind, {at?, targetId?|teammateId?, comboId?})
-       → { state, result:{ok, reason?|…} }  — steal: PURE GAIN (target keeps
-         theirs); shield: GROUP streak protection consumed at the close it
-         saves; freeze: group-wide +30 min; bomb: +20 RUF in 10 min or
-         nothing; rescue: 50 credit to an INACTIVE mate (counts to target);
-         experimental cards refuse (they live in the v1-v3 forks)
-     stealPreview(day, activatorId, targetId) → expected gain
-     lightningActive(day, playerId, at)
+    POWER-UPS  (SOT canon; state lives on the day)
+      POWER_UP_CATALOG (launch ×4, post-launch ×6, experimental preserved ×9)
+      LIGHTNING_MS/LIGHTNING_MULTIPLIER, STEAL_SHARE, FREEZE_MS,
+        SURPRISE_BOMB_*, RESCUE_ROPE_*, ASSIST_*, DOUBLE_DOWN_*
+      grantPowerUp(day, playerId, kind)     inventory/draft economy hook
+      inventoryOf(day, playerId)
+      activatePowerUp(day, playerId, kind, {at?, targetId?|teammateId?, comboId?,
+        exerciseId?, memberIds?, rng?})
+        → { state, result:{ok, reason?|…} }  — steal: PURE GAIN (target keeps
+          theirs); shield: GROUP streak protection consumed at the close it
+          saves; freeze: group-wide +30 min; bomb: +20 RUF in 10 min or
+          nothing; rescue: 50 credit to an INACTIVE mate (counts to target);
+          experimental cards refuse (they live in the v1-v3 forks)
+      stealPreview(day, activatorId, targetId) → expected gain
+      lightningActive(day, playerId, at)
+
+    THE CARD STACK  (v4.1 — the founder's card system: deal 3, pick 1)
+      CARD_CATALOG — the full dealable stack (~21 kinds) with family / rarity /
+        target / expiry / counter notes (doc table below the catalog)
+      STACK_POOL — kinds a draft can deal
+      HAND_CAP (3), STARTING_POINTS (500), REROLL_COSTS (50/100/200 → pot)
+      BASE_DRAFT_ODDS (50/30/15/5), CATCH_UP_MAX_SHIFT, catchUpBehind(day, id),
+        defaultCatchUpCurve(behind) — behind players draft BETTER cards
+      draftOptions(day, id, {count=3, at, rng, curve, reason='open'|'halfway',
+        pool}) → { options, state }   3 face-down candidates, odds by curve
+      draftPick(day, id, kind, {at}) → pick one (hand cap enforced)
+      rerollCostFor(day, id) / pointsOf(day, id) / potTotal(day)
+      rerollDraft(day, id, {at, rng, curve}) — pays escalating points TO THE POT
+      sweepExpiredCards(day, at) — expired drafts/modifier windows sweep
+      proofsOf(day) / voteProof(day, proofId, voterId, 'accept'|'contest')
+        — the Prove It / Spot Check group review (settles on majority or when
+          all others voted; contested logs score 0 but never un-bank the day)
 
    BATTLE SEASONS + STAKES  (weekly default, 1 Daily Win = 1 point)
      createBattleSeason({id, name, length?'weekly'|'monthly', playDays,
@@ -203,14 +221,14 @@ export function stealPreview(day, _activatorId, targetId) {
 }
 
 export function grantPowerUp(day, playerId, kind) {
-  if (!POWER_UP_CATALOG[kind]) throw new Error(`unknown power-up ${kind}`);
+  if (!POWER_UP_CATALOG[kind] && !CARD_CATALOG[kind]) throw new Error(`unknown power-up ${kind}`);
   if (!day.players.some((p) => p.id === playerId)) throw new Error(`player ${playerId} not in battle`);
   return { ...day, inventory: { ...day.inventory, [playerId]: [...inventoryOf(day, playerId), kind] } };
 }
 
 export function activatePowerUp(day, playerId, kind, opts = {}) {
   const at = opts.at ?? Date.now();
-  const def = POWER_UP_CATALOG[kind];
+  const def = CARD_CATALOG[kind] ?? POWER_UP_CATALOG[kind];
   const fail = (reason) => ({ state: day, result: { ok: false, kind, playerId, reason } });
   if (!def) return fail(`unknown power-up ${kind}`);
   if (day.status !== "live") return fail("day is closed");
@@ -227,8 +245,13 @@ export function activatePowerUp(day, playerId, kind, opts = {}) {
     if (targetId === playerId) return fail("can't target yourself");
     return null;
   };
+  const modOf = (pid) => day.modifiers?.[pid] ?? {};
+  const setMod = (patch) => ({
+    ...day,
+    modifiers: { ...(day.modifiers ?? {}), [playerId]: { ...modOf(playerId), ...patch } },
+  });
 
-  if (def.experimental)
+  if (def.experimental && kind !== "second_wind")
     return fail("experimental card — mechanics live in the v1-v3 app forks, not the v4 engine");
   if (idx < 0) return fail(`no ${kind} card held`);
 
@@ -356,6 +379,139 @@ export function activatePowerUp(day, playerId, kind, opts = {}) {
     };
   }
 
+  /* ── the card stack (v4.1) ─────────────────────────────────────────── */
+
+  if (kind === "double_exercise") {
+    const exId = opts.exerciseId;
+    if (!exId) return fail("name one exercise — this card needs an exercise");
+    if (modOf(playerId).doubleExerciseId) return fail("an exercise is already doubled today");
+    if (day.config.exercises && day.config.exercises.length > 0 &&
+        !day.config.exercises.some((e) => e.id === exId))
+      return fail(`exercise ${exId} is not in today's library`);
+    const state = { ...setMod({ doubleExerciseId: exId }), inventory: spend(), powerLog: log({ kind, playerId, at, detail: { exerciseId: exId, multiplier: DOUBLE_EXERCISE_MULTIPLIER, until: "end of day" } }) };
+    return { state, result: { ok: true, kind, playerId, exerciseId: exId, multiplier: DOUBLE_EXERCISE_MULTIPLIER } };
+  }
+
+  if (kind === "specialist") {
+    if (modOf(playerId).specialistIds) return fail("the Specialist is already riding your top three");
+    const byEx = {};
+    for (const e of day.entries) {
+      if (e.playerId !== playerId || e.reps <= 0) continue;
+      byEx[e.exerciseId] = (byEx[e.exerciseId] ?? 0) + e.ruf;
+    }
+    const top = Object.entries(byEx).sort((a, b) => b[1] - a[1]).slice(0, SPECIALIST_TOP_N).map(([id]) => id);
+    if (top.length === 0) return fail("log a set first — the Specialist rides your top three");
+    const state = { ...setMod({ specialistIds: top }), inventory: spend(), powerLog: log({ kind, playerId, at, detail: { exercises: top, multiplier: SPECIALIST_MULTIPLIER } }) };
+    return { state, result: { ok: true, kind, playerId, exercises: top, multiplier: SPECIALIST_MULTIPLIER } };
+  }
+
+  if (kind === "wildcard_workout") {
+    if (modOf(playerId).wildcard) return fail("the Wildcard is already live for you today");
+    const state = { ...setMod({ wildcard: true }), inventory: spend(), powerLog: log({ kind, playerId, at, detail: { anyCountsAsAny: true, until: "end of day" } }) };
+    return { state, result: { ok: true, kind, playerId, anyCountsAsAny: true } };
+  }
+
+  if (kind === "rivalry") {
+    const bad = needTarget();
+    if (bad) return bad;
+    const already = (day.rivalries ?? []).some((r) => r.a === targetId && r.b === playerId);
+    if (already) return fail("this rivalry is already live");
+    return {
+      state: { ...day, rivalries: [...(day.rivalries ?? []), { a: playerId, b: targetId, at, bonusRuf: RIVALRY_BONUS_RUF }], inventory: spend(), powerLog: log({ kind, playerId, at, detail: { rivalId: targetId, bonusRuf: RIVALRY_BONUS_RUF, settles: "end of day" } }) },
+      result: { ok: true, kind, playerId, rivalId: targetId, bonusRuf: RIVALRY_BONUS_RUF },
+    };
+  }
+
+  if (kind === "training_partners") {
+    const bad = needTarget();
+    if (bad) return bad;
+    const taken = (day.partnerships ?? []).some((p) => p.a === playerId || p.b === playerId || p.a === targetId || p.b === targetId);
+    if (taken) return fail("one partner per day — a partnership is already live");
+    return {
+      state: { ...day, partnerships: [...(day.partnerships ?? []), { a: playerId, b: targetId, at, bonusRuf: PARTNERSHIP_BONUS_RUF }], inventory: spend(), powerLog: log({ kind, playerId, at, detail: { partnerId: targetId, bothMustBank: true, bonusRufEach: PARTNERSHIP_BONUS_RUF } }) },
+      result: { ok: true, kind, playerId, partnerId: targetId, bonusRufEach: PARTNERSHIP_BONUS_RUF },
+    };
+  }
+
+  if (kind === "pack_bond") {
+    if (day.packBond) return fail("the pack is already bonded today");
+    const members = (opts.memberIds ?? []).filter((id) => day.players.some((p) => p.id === id));
+    if (members.length < 2) return fail("team card — pick your pack (2+ members)");
+    return {
+      state: { ...day, packBond: { by: playerId, memberIds: members, at, thresholdRuf: PACK_BOND_THRESHOLD_RUF, share: PACK_BOND_SHARE }, inventory: spend(), powerLog: log({ kind, playerId, at, detail: { members, thresholdRuf: PACK_BOND_THRESHOLD_RUF, share: PACK_BOND_SHARE } }) },
+      result: { ok: true, kind, playerId, members, thresholdRuf: PACK_BOND_THRESHOLD_RUF },
+    };
+  }
+
+  if (kind === "prove_it") {
+    const bad = needTarget();
+    if (bad) return bad;
+    const awaiting = (day.proofs ?? []).find((p) => p.targetId === targetId && (p.status === "awaiting_log" || p.status === "review"));
+    if (awaiting) return fail(`${targetId} is already under a proof request`);
+    const proof = { id: `proof-${(day.proofs ?? []).length}-${at}`, fromId: playerId, targetId, issuedAt: at, status: "awaiting_log", bonusRuf: PROVE_IT_BONUS_RUF };
+    return {
+      state: { ...day, proofs: [...(day.proofs ?? []), proof], inventory: spend(), powerLog: log({ kind, playerId, at, detail: { targetId, watches: "next log", bonusRuf: PROVE_IT_BONUS_RUF } }) },
+      result: { ok: true, kind, playerId, targetId, proofId: proof.id, bonusRuf: PROVE_IT_BONUS_RUF },
+    };
+  }
+
+  if (kind === "spot_check") {
+    const rows = day.players.map((p) => ({ id: p.id, prog: targetProgressOf(day, p.id) })).sort((a, b) => b.prog - a.prog);
+    const leader = rows[0];
+    if (!leader || leader.prog <= 0) return fail("no leader on the board yet — nothing to check");
+    if (leader.id === playerId) return fail("you're leading — nothing to spot check");
+    const real = day.entries.filter((e) => e.playerId === leader.id && e.reps > 0 && !e.powerUps);
+    if (!real.length) return fail("the leader has no real log to check yet");
+    let biggest = real[0];
+    for (const e of real) if (e.ruf > biggest.ruf) biggest = e;
+    if (biggest.verified) return fail("the leader's biggest log is already verified");
+    const entryIndex = day.entries.indexOf(biggest);
+    const proof = { id: `proof-${(day.proofs ?? []).length}-${at}`, fromId: playerId, targetId: leader.id, issuedAt: at, status: "review", entryIndex, bonusRuf: PROVE_IT_BONUS_RUF, votes: {}, spot: true };
+    const entries = day.entries.map((e, i) => (i === entryIndex ? { ...e, underReview: proof.id } : e));
+    return {
+      state: { ...day, entries, proofs: [...(day.proofs ?? []), proof], inventory: spend(), powerLog: log({ kind, playerId, at, detail: { targetId: leader.id, entryIndex, reviews: "biggest log" } }) },
+      result: { ok: true, kind, playerId, targetId: leader.id, proofId: proof.id, entryRuf: biggest.ruf },
+    };
+  }
+
+  if (kind === "second_wind") {
+    const behind = catchUpBehind(day, playerId);
+    if (behind < SECOND_WIND_MIN_BEHIND) return fail(`you're too close to the front — Second Wind is for comebacks (need ${Math.round(SECOND_WIND_MIN_BEHIND * 100)}% behind, you're ${Math.round(behind * 100)}%)`);
+    const until = at + SECOND_WIND_MS;
+    return {
+      state: { ...day, secondWinds: { ...(day.secondWinds ?? {}), [playerId]: { until } }, inventory: spend(), powerLog: log({ kind, playerId, at, detail: { until, multiplier: SECOND_WIND_MULTIPLIER, behind } }) },
+      result: { ok: true, kind, playerId, until, multiplier: SECOND_WIND_MULTIPLIER },
+    };
+  }
+
+  if (kind === "mulligan") {
+    const discarded = held.filter((_, i) => i !== idx);
+    const base = { ...day, inventory: { ...day.inventory, [playerId]: [] } };
+    const odds = defaultCatchUpCurve(catchUpBehind(base, playerId));
+    const rng = opts.rng ?? Math.random;
+    const options = [];
+    let guard = 0;
+    while (options.length < 3 && guard++ < 200) {
+      const k = randomKindByOdds(odds, rng);
+      if (!options.includes(k)) options.push(k);
+    }
+    const state = {
+      ...base,
+      drafts: { ...(base.drafts ?? {}), [playerId]: { options, openedAt: at, rerolls: base.drafts?.[playerId]?.rerolls ?? 0, reason: "mulligan", expiresAt: effectiveDeadline(base) } },
+      powerLog: log({ kind, playerId, at, detail: { discarded: discarded.length, dealt: 3 } }),
+    };
+    return { state, result: { ok: true, kind, playerId, discarded: discarded.length, options } };
+  }
+
+  if (kind === "underdog") {
+    if (modOf(playerId).underdog) return fail("the Underdog is already riding for you today");
+    const mine = targetProgressOf(day, playerId);
+    const others = day.players.filter((p) => p.id !== playerId).map((p) => targetProgressOf(day, p.id));
+    if (others.some((o) => o < mine)) return fail("you're not last — the Underdog rides at the back of the pack");
+    const state = { ...setMod({ underdog: true }), inventory: spend(), powerLog: log({ kind, playerId, at, detail: { multiplier: UNDERDOG_MULTIPLIER, until: "end of day" } }) };
+    return { state, result: { ok: true, kind, playerId, multiplier: UNDERDOG_MULTIPLIER } };
+  }
+
   return fail(`power-up ${kind} has no v4 activation path`);
 }
 
@@ -384,6 +540,277 @@ export function resolveExpiredBombs(day, at) {
     };
   }
   return state;
+}
+
+/* ═══════════════════════════════════════════════════════════════════════
+   THE CARD STACK (v4.1 — the founder's directives, made real)
+   ┄┄┄┄┄┄┄┄┄┄┄┄┄┄┄┄┄┄┄┄┄┄┄┄┄┄┄┄┄┄┄┄┄┄┄┄┄┄┄┄┄┄┄┄┄┄┄┄┄┄┄┄┄┄┄┄┄┄┄┄┄┄┄┄┄┄┄┄┄┄
+   "When cards are given players should have the option of which card to
+   pick out of three dealt" — draftOptions/draftPick below.
+   "A stack of many different cards — making an exercise or relationship
+   worth more, or making another player prove they did the exercise which
+   other players have to accept" — the exercise / rivalry / proof families.
+
+   STATE DISCIPLINE (parity guard): every stack field (drafts, modifiers,
+   proofs, rivalries, partnerships, packBond, points, pot, rerolls, deals,
+   secondWinds) is created LAZILY by the API that needs it. A day that never
+   touches the stack carries NONE of these keys — the TS-core parity harness
+   (apps/sot-engine.test.js) snapshots whole day objects and must stay green.
+
+   ── THE DECK (21 dealable kinds · CARD_CATALOG) ──────────────────────────
+   ┌ family     ─ card ─────────┬ rar ───┬ target ──┬ expiry ──┬ notes ─────┐
+   │ CANON (SOT §3.6 launch 4)                                                │
+   │ lightning    Lightning Round │ leg │ self     │ 10 min   │ ×3 window  │
+   │ steal        Rep Steal       │ epi │ rival    │ instant  │ pure gain; │
+   │              │                │     │          │          │ counters: │
+   │              │                │     │          │          │ anchor(v3)│
+   │ shield       Group Shield    │ com │ group    │ day close│ bashable  │
+   │ freeze       Time Freeze     │ rar │ group    │ instant  │ stack cap │
+   │ POST-LAUNCH (SOT §3.6 — already specced)                                 │
+   │ combo_boost  Combo Boost     │ rar │ self     │ day      │ combo armed│
+   │ double_down  Double Down     │ epi │ self     │ day      │ 2× quest   │
+   │ assist_boost Assist Boost    │ com │ mate     │ 30 min   │ both paid  │
+   │ surprise_bomb Surprise Bomb  │ epi │ rival    │ 10 min   │ defusal +20│
+   │ rescue_rope  Rescue Rope     │ rar │ mate     │ instant  │ inactive   │
+   │ shield_bash  Shield Bash     │ rar │ group    │ instant  │ needs armed│
+   │ EXERCISE (founder-named — "make an exercise worth more")                 │
+   │ double_exercise Double Exer. │ rar │ exercise │ end of   │ name one   │
+   │              │                │     │          │ day      │ exercise; │
+   │              │                │     │          │          │ yours ×2  │
+   │ specialist   Specialist      │ epi │ self     │ end of   │ top-3 most │
+   │              │                │     │          │ day      │ logged ×1.5│
+   │ wildcard_workout Wildcard W. │ leg │ self     │ end of   │ any counts │
+   │              │                │     │          │ day      │ as any    │
+   │ RIVALRY (founder-named — "make a relationship worth more")              │
+   │ rivalry      Rivalry         │ com │ rival    │ end of   │ more reps  │
+   │              │                │     │          │ day      │ today:    │
+   │              │                │     │          │          │ +30 RUF   │
+   │ training_partners Training   │ rar │ mate     │ end of   │ both bank: │
+   │              Partners        │     │          │ day      │ +25 each +│
+   │              │                │     │          │          │ bonus stat│
+   │ pack_bond    Pack Bond       │ epi │ team     │ end of   │ ≥20 RUF →  │
+   │              │                │     │          │ day      │ +10% each │
+   │ PROOF (SOT §2.11 — "others have to accept")                             │
+   │ prove_it     Prove It        │ rar │ rival    │ next log │ verified → │
+   │              │                │     │          │          │ THEY +15; │
+   │              │                │     │          │          │ else group│
+   │              │                │     │          │          │ accept/   │
+   │              │                │     │          │          │ contest   │
+   │ spot_check   Spot Check      │ epi │ leader   │ biggest  │ same flow, │
+   │              │                │     │          │ log      │ auto-aim  │
+   │ CATCH-UP / UTILITY (never shame — the comeback lane)                    │
+   │ second_wind  Second Wind     │ rar │ self     │ 15 min   │ ≥40% behind│
+   │              │                │     │          │          │ → ×1.5    │
+   │ mulligan     Mulligan        │ com │ self     │ instant  │ discard    │
+   │              │                │     │          │          │ hand, new │
+   │              │                │     │          │          │ deal of 3 │
+   │ underdog     Underdog        │ epi │ self     │ end of   │ last place │
+   │              │                │     │          │ day      │ → ×1.25   │
+   └────────────────────────────────────────────────────────────────────────┘
+   Rarity odds in a deal: common 50% / rare 30% / epic 15% / legendary 5%,
+   shifted by the CATCH-UP CURVE (ported from the v1 draft economy): a player
+   100% behind the leader drafts at 10/50/27/13. Every reroll pays points TO
+   THE POT (50 → 100 → 200, then holds). ═══════════════════════════════ */
+
+export const HAND_CAP = 3;
+export const STARTING_POINTS = 500;
+export const REROLL_COSTS = [50, 100, 200];
+export const BASE_DRAFT_ODDS = { common: 0.5, rare: 0.3, epic: 0.15, legendary: 0.05 };
+export const CATCH_UP_MAX_SHIFT = 0.4;
+
+export const DOUBLE_EXERCISE_MULTIPLIER = 2;
+export const SPECIALIST_MULTIPLIER = 1.5;
+export const SPECIALIST_TOP_N = 3;
+export const UNDERDOG_MULTIPLIER = 1.25;
+export const RIVALRY_BONUS_RUF = 30;
+export const PARTNERSHIP_BONUS_RUF = 25;
+export const PACK_BOND_THRESHOLD_RUF = 20;
+export const PACK_BOND_SHARE = 0.1;
+export const PROVE_IT_BONUS_RUF = 15;
+export const SECOND_WIND_MS = 15 * 60 * 1000;
+export const SECOND_WIND_MULTIPLIER = 1.5;
+export const SECOND_WIND_MIN_BEHIND = 0.4;
+
+export const CARD_CATALOG = {
+  // canon (SOT §3.6 launch four)
+  lightning:     { kind: "lightning", name: "Lightning Round", family: "canon", rarity: "legendary", target: "self", expiry: "10-minute window", blurb: "Your reps count ×3 for the next 10 minutes · once per day", counters: "none — the storm is fair" },
+  steal:         { kind: "steal", name: "Rep Steal", family: "canon", rarity: "epic", target: "rival", expiry: "instant", blurb: "Gain 10% of a rival's completed score — they keep theirs", counters: "Anchor (v3 lane)" },
+  shield:        { kind: "shield", name: "Group Shield", family: "canon", rarity: "common", target: "group", expiry: "consumed at the close it saves", blurb: "Protect everyone's streak from one failed day", counters: "Shield Bash" },
+  freeze:        { kind: "freeze", name: "Time Freeze", family: "canon", rarity: "rare", target: "group", expiry: "instant (+30 min)", blurb: "The battle clock extends 30 minutes, group-wide", counters: "stack limit 1" },
+  // post-launch set (SOT §3.6 — already specced, mechanics live above)
+  combo_boost:   { kind: "combo_boost", name: "Combo Boost", family: "post-launch", rarity: "rare", target: "self", expiry: "end of day", blurb: "Bonus for nailing a prescribed exercise combo", counters: "wrong order resets progress" },
+  double_down:   { kind: "double_down", name: "Double Down", family: "post-launch", rarity: "epic", target: "self", expiry: "end of day", blurb: "Volunteer for 2× target; 2× season reward if you make it", counters: "completion bar unchanged" },
+  assist_boost:  { kind: "assist_boost", name: "Assist Boost", family: "post-launch", rarity: "common", target: "mate", expiry: "30-minute window", blurb: "Help a mate finish — you both get rewarded when they do", counters: "mate must finish in-window" },
+  surprise_bomb: { kind: "surprise_bomb", name: "Surprise Bomb", family: "post-launch", rarity: "epic", target: "rival", expiry: "10-minute fuse", blurb: "Drop +20 reps on a rival: 10 minutes to deliver or it fizzles", counters: "defusal pays the victim" },
+  rescue_rope:   { kind: "rescue_rope", name: "Rescue Rope", family: "post-launch", rarity: "rare", target: "mate", expiry: "instant", blurb: "Instant 50-rep credit to an inactive teammate · limited", counters: "inactive mates only" },
+  shield_bash:   { kind: "shield_bash", name: "Shield Bash", family: "post-launch", rarity: "rare", target: "group", expiry: "instant", blurb: "Cancel the active Group Shield · Pro/competitive", counters: "needs an armed shield" },
+  // exercise modifiers (founder-named: "making an exercise worth more")
+  double_exercise: { kind: "double_exercise", name: "Double Exercise", family: "exercise", rarity: "rare", target: "exercise", expiry: "end of day", blurb: "Name one exercise — your reps of it count ×2 today", counters: "one exercise per day" },
+  specialist:      { kind: "specialist", name: "Specialist", family: "exercise", rarity: "epic", target: "self", expiry: "end of day", blurb: `Your ${SPECIALIST_TOP_N} most-logged exercises' reps +50% today`, counters: "top-3 frozen at play time" },
+  wildcard_workout:{ kind: "wildcard_workout", name: "Wildcard Workout", family: "exercise", rarity: "legendary", target: "self", expiry: "end of day", blurb: "Any exercise counts as any other for you today", counters: "the group sees the wild log" },
+  // relationship / rivalry (founder-named: "making a relationship worth more")
+  rivalry:          { kind: "rivalry", name: "Rivalry", family: "rivalry", rarity: "common", target: "rival", expiry: "end of day", blurb: "Pick a rival — whoever logs more today takes +30 reps", counters: "tie pays nobody" },
+  training_partners:{ kind: "training_partners", name: "Training Partners", family: "rivalry", rarity: "rare", target: "mate", expiry: "end of day", blurb: "Pick a partner — if you BOTH bank today, you both earn the partner bonus", counters: "one partner per day · bonus stat, not a season point (open Q)" },
+  pack_bond:        { kind: "pack_bond", name: "Pack Bond", family: "rivalry", rarity: "epic", target: "team", expiry: "end of day", blurb: `Team card: every member who logs ≥${PACK_BOND_THRESHOLD_RUF} reps gets +10% today`, counters: "team mode only" },
+  // proof / integrity (SOT §2.11 — flag, peer review, trust)
+  prove_it:   { kind: "prove_it", name: "Prove It", family: "proof", rarity: "rare", target: "rival", expiry: "target's next log", blurb: `Target's next log must be verified — verify and THEY bank +${PROVE_IT_BONUS_RUF}; skip and the crew accepts or contests`, counters: "contested logs score 0 but still bank the day" },
+  spot_check: { kind: "spot_check", name: "Spot Check", family: "proof", rarity: "epic", target: "leader", expiry: "biggest log", blurb: "Random proof check on the current leader's biggest log — the crew accepts or contests", counters: "verified logs are immune" },
+  // catch-up / utility (never shame — comeback framing)
+  second_wind: { kind: "second_wind", name: "Second Wind", family: "catch-up", rarity: "rare", target: "self", expiry: "15-minute window", blurb: "Behind the pack? Your reps count ×1.5 for 15 minutes", counters: `needs ≥${Math.round(SECOND_WIND_MIN_BEHIND * 100)}% gap to the leader` },
+  mulligan:    { kind: "mulligan", name: "Mulligan", family: "catch-up", rarity: "common", target: "self", expiry: "instant", blurb: "Discard your hand — a fresh deal of 3 is on the table", counters: "the discarded cards are gone" },
+  underdog:    { kind: "underdog", name: "Underdog", family: "catch-up", rarity: "epic", target: "self", expiry: "end of day", blurb: "Last place at the deal? Your reps count ×1.25 today", counters: "front-runners can't ride it" },
+};
+
+export const STACK_POOL = Object.keys(CARD_CATALOG);
+
+/** How far behind the leader a player is, 0..1 (target progress basis). */
+export function catchUpBehind(day, playerId) {
+  const rows = day.players.map((p) => targetProgressOf(day, p.id));
+  const leader = Math.max(...rows, 0);
+  if (leader <= 0) return 0;
+  return Math.min(1, Math.max(0, (leader - targetProgressOf(day, playerId)) / leader));
+}
+
+/** THE CATCH-UP CURVE (default, injectable — ported from the v1 draft
+ *  economy): behind 0 → 50/30/15/5, behind 1 → 10/50/27/13, linear between.
+ *  A player 50% behind drafts ~26% epic vs the leader's 15%. */
+export function defaultCatchUpCurve(behind) {
+  const b = Math.min(1, Math.max(0, behind));
+  const shift = b * CATCH_UP_MAX_SHIFT;
+  return {
+    common: BASE_DRAFT_ODDS.common - shift,
+    rare: BASE_DRAFT_ODDS.rare + shift * 0.5,
+    epic: BASE_DRAFT_ODDS.epic + shift * 0.3,
+    legendary: BASE_DRAFT_ODDS.legendary + shift * 0.2,
+  };
+}
+
+/** Sample a card kind from an odds table (injectable rng). Rarity bands walk
+ *  best-first; kinds draw uniformly within the rarity inside `pool`. */
+export function randomKindByOdds(odds, rng = Math.random, pool = STACK_POOL) {
+  const r = rng();
+  const bands = [
+    ["legendary", odds.legendary],
+    ["epic", odds.epic],
+    ["rare", odds.rare],
+    ["common", odds.common],
+  ];
+  let acc = 0;
+  let rarity = "common";
+  for (const [name, p] of bands) {
+    acc += p;
+    if (r < acc) { rarity = name; break; }
+  }
+  let kinds = pool.filter((k) => CARD_CATALOG[k]?.rarity === rarity);
+  if (!kinds.length) kinds = pool.filter((k) => CARD_CATALOG[k]); // degenerate pool
+  if (!kinds.length) return "shield";
+  return kinds[Math.floor(rng() * kinds.length) % kinds.length];
+}
+
+/** Deal 3 face-down candidates (the founder's "pick out of three dealt").
+ *  Odds ride the catch-up curve; options stored on the day until picked /
+ *  rerolled / swept. reason: "open" (day open) | "halfway" (the earned 50%
+ *  bonus deal — once per player per day). Pure: { options, state }. */
+export function draftOptions(day, playerId, { count = 3, at = Date.now(), rng = Math.random, curve = defaultCatchUpCurve, reason = "open", pool = STACK_POOL } = {}) {
+  const fail = (reasonText) => ({ options: [], state: day, result: { ok: false, playerId, reason: reasonText } });
+  if (!day.players.some((p) => p.id === playerId)) return fail(`player ${playerId} not in battle`);
+  if (day.status !== "live") return fail("day is closed");
+  if (day.drafts?.[playerId]) return fail("a deal is already on the table");
+  if (inventoryOf(day, playerId).length >= HAND_CAP) return fail("hand full — play a card first");
+  if (reason === "halfway" && day.deals?.[playerId]?.halfway) return fail("the halfway bonus deal is already used today");
+  const usable = pool.filter((k) => CARD_CATALOG[k]);
+  if (!usable.length) return fail("no cards enabled for this group");
+  const odds = curve(catchUpBehind(day, playerId));
+  const options = [];
+  let guard = 0;
+  while (options.length < Math.min(count, usable.length) && guard++ < 200) {
+    const kind = randomKindByOdds(odds, rng, usable);
+    if (!options.includes(kind)) options.push(kind);
+  }
+  let state = {
+    ...day,
+    drafts: {
+      ...(day.drafts ?? {}),
+      [playerId]: { options, openedAt: at, rerolls: day.drafts?.[playerId]?.rerolls ?? 0, reason, expiresAt: effectiveDeadline(day) },
+    },
+  };
+  if (reason === "halfway") {
+    state = { ...state, deals: { ...(day.deals ?? {}), [playerId]: { ...(day.deals?.[playerId] ?? {}), halfway: true } } };
+  }
+  return { options, state, result: { ok: true, playerId, options, reason } };
+}
+
+/** Pick one of the dealt cards → into the hand (cap HAND_CAP). */
+export function draftPick(day, playerId, kind, { at = Date.now() } = {}) {
+  const draft = day.drafts?.[playerId];
+  const fail = (reason) => ({ state: day, result: { ok: false, kind, playerId, reason } });
+  if (!draft) return fail("no deal on the table");
+  if (!draft.options.includes(kind)) return fail("card not offered in this deal");
+  if (inventoryOf(day, playerId).length >= HAND_CAP) return fail(`hand full (max ${HAND_CAP}) — play a card first`);
+  const def = CARD_CATALOG[kind];
+  let state = grantPowerUp(day, playerId, kind);
+  const drafts = { ...(state.drafts ?? {}) };
+  delete drafts[playerId];
+  state = {
+    ...state,
+    drafts,
+    powerLog: [...state.powerLog, { kind, playerId, at, event: "draft_pick", rarity: def.rarity, family: def.family, expiresAt: effectiveDeadline(state) }],
+  };
+  return { state, result: { ok: true, kind, name: def.name, rarity: def.rarity, family: def.family, playerId, expiresAt: effectiveDeadline(state) } };
+}
+
+/** Reroll price right now — 50 → 100 → 200 per player per day, then holds. */
+export function rerollCostFor(day, playerId) {
+  const n = day.rerolls?.[playerId] ?? 0;
+  return REROLL_COSTS[Math.min(n, REROLL_COSTS.length - 1)];
+}
+
+/** Trial points balance (every player starts the day with STARTING_POINTS).
+ *  Lazy: days that never touch points carry no `points` key. */
+export function pointsOf(day, playerId) {
+  return day.points?.[playerId] ?? STARTING_POINTS;
+}
+
+/** The pot — fed by rerolls (the "pay to the pot" mechanic). Day-scoped. */
+export function potTotal(day) {
+  return day.pot?.points ?? 0;
+}
+
+/** Reroll the pending deal: player pays the escalating cost, the POT grows,
+ *  three fresh candidates hit the table. Refuses on no draft / short balance. */
+export function rerollDraft(day, playerId, { at = Date.now(), rng = Math.random, curve = defaultCatchUpCurve, pool = STACK_POOL } = {}) {
+  const fail = (reason) => ({ state: day, result: { ok: false, playerId, reason } });
+  const draft = day.drafts?.[playerId];
+  if (!draft) return fail("no deal on the table");
+  const cost = rerollCostFor(day, playerId);
+  const balance = pointsOf(day, playerId);
+  if (balance < cost) return fail(`reroll costs ${cost} points (you have ${balance})`);
+  const rest = { ...day, drafts: { ...(day.drafts ?? {}) }, points: { ...(day.points ?? {}), [playerId]: balance - cost }, pointsLedger: { ...(day.pointsLedger ?? {}), [playerId]: [...(day.pointsLedger?.[playerId] ?? []), { delta: -cost, reason: "reroll", at, balance: balance - cost }] }, pot: { points: potTotal(day) + cost, ledger: [...(day.pot?.ledger ?? []), { playerId, amount: cost, reason: "reroll", at }] } };
+  delete rest.drafts[playerId];
+  const re = draftOptions(rest, playerId, { count: draft.options.length, at, rng, curve, reason: draft.reason, pool });
+  if (!re.result.ok) return fail(re.result.reason);
+  const state = {
+    ...re.state,
+    rerolls: { ...(day.rerolls ?? {}), [playerId]: (day.rerolls?.[playerId] ?? 0) + 1 },
+    powerLog: [...re.state.powerLog, { playerId, at, event: "reroll", cost }],
+  };
+  return { state, result: { ok: true, cost, options: re.options, balance: balance - cost, pot: potTotal(state), playerId } };
+}
+
+/** Sweep expired stack state: past-deadline drafts vanish (never pickable). */
+export function sweepExpiredCards(day, at) {
+  let changed = false;
+  const drafts = { ...(day.drafts ?? {}) };
+  for (const [pid, d] of Object.entries(drafts)) {
+    if (d.expiresAt != null && at >= d.expiresAt) { delete drafts[pid]; changed = true; }
+  }
+  if (!changed) return day;
+  return { ...day, drafts };
+}
+
+/** Open proofs (Prove It / Spot Check review state), newest last. */
+export function proofsOf(day) {
+  return day.proofs ?? [];
 }
 
 /* ── Daily battle (spec: game-core/src/daily.ts) ────────────────────────── */
@@ -445,20 +872,38 @@ export function logSet(day, input) {
   if (day.status !== "live") throw new Error("day is closed");
   const player = day.players.find((p) => p.id === input.playerId);
   if (!player) throw new Error(`player ${input.playerId} not in battle`);
+  const mods = day.modifiers?.[input.playerId];
   if (day.config.exercises && day.config.exercises.length > 0 &&
-      !day.config.exercises.some((e) => e.id === input.exerciseId))
-    throw new Error(`exercise ${input.exerciseId} not allowed today`);
+      !day.config.exercises.some((e) => e.id === input.exerciseId)) {
+    // Wildcard Workout: any exercise counts as any other for the holder
+    if (!mods?.wildcard) throw new Error(`exercise ${input.exerciseId} not allowed today`);
+  }
   if (!Number.isInteger(input.reps) || input.reps <= 0)
     throw new Error("reps must be a positive integer");
   if (input.at >= effectiveDeadline(day)) throw new Error("past the battle deadline");
 
   const bolt = lightningActive(day, input.playerId, input.at);
-  const ruf = entryRufValue(day, player, input, bolt);
+  let ruf = entryRufValue(day, player, input, bolt);
+  const stack = [];
+  if (mods?.doubleExerciseId === input.exerciseId) {
+    ruf = roundRuf(ruf * DOUBLE_EXERCISE_MULTIPLIER); stack.push("double_exercise");
+  }
+  if (mods?.specialistIds?.includes(input.exerciseId)) {
+    ruf = roundRuf(ruf * SPECIALIST_MULTIPLIER); stack.push("specialist");
+  }
+  if (mods?.underdog) {
+    ruf = roundRuf(ruf * UNDERDOG_MULTIPLIER); stack.push("underdog");
+  }
+  const sw = day.secondWinds?.[input.playerId];
+  if (sw && input.at < sw.until) {
+    ruf = roundRuf(ruf * SECOND_WIND_MULTIPLIER); stack.push("second_wind");
+  }
+  if (mods?.wildcard) stack.push("wildcard_workout");
   const powerUps = bolt ? ["lightning"] : undefined;
 
   let state = {
     ...day,
-    entries: [...day.entries, { ...input, ruf, powerUps }],
+    entries: [...day.entries, { ...input, ruf, powerUps, ...(stack.length ? { stack } : {}) }],
     progress: {
       ...day.progress,
       [input.playerId]: {
@@ -467,6 +912,31 @@ export function logSet(day, input) {
       },
     },
   };
+
+  // Prove It: bind the target's next log to its proof. A verified log pays
+  // the TARGET the honest-incentive bonus on the spot (it counts toward
+  // their day); an unverified log goes to group review instead.
+  if (state.proofs?.length) {
+    const proof = state.proofs.find((p) => p.targetId === input.playerId && p.status === "awaiting_log");
+    if (proof) {
+      const entryIndex = state.entries.length - 1;
+      if (input.verified) {
+        state = {
+          ...state,
+          entries: state.entries.map((e, i) => (i === entryIndex ? { ...e, proof: proof.id, verified: true } : e)),
+          proofs: state.proofs.map((p) => (p === proof ? { ...p, status: "verified", entryIndex, settledAt: input.at } : p)),
+        };
+        state = addEarnedRuf(state, input.playerId, PROVE_IT_BONUS_RUF, input.at, "prove_it");
+        state = { ...state, powerLog: [...state.powerLog, { kind: "prove_it", playerId: proof.fromId, at: input.at, detail: { targetId: input.playerId, verified: true, bonusRuf: PROVE_IT_BONUS_RUF } }] };
+      } else {
+        state = {
+          ...state,
+          entries: state.entries.map((e, i) => (i === entryIndex ? { ...e, underReview: proof.id } : e)),
+          proofs: state.proofs.map((p) => (p === proof ? { ...p, status: "review", entryIndex, votes: {} } : p)),
+        };
+      }
+    }
+  }
 
   // Combo Boost: prescribed-sequence progress.
   let bonusRuf = 0;
@@ -551,6 +1021,13 @@ export function closeDay(day, at) {
     }
   }
 
+  // Card-stack resolutions (all lazy — untouched days stay untouched, and
+  // the TS-core parity digest never sees these fields).
+  state = resolveRivalries(state, at);
+  state = settleProofs(state, at);   // contested entries score 0 — completion stands (never shame)
+  state = resolvePartnerships(state, at);
+  state = resolvePackBond(state, at);
+
   const outcomes = {};
   const failures = [];
   for (const p of state.players) {
@@ -575,12 +1052,169 @@ export function closeDay(day, at) {
     for (const id of failures) outcomes[id] = { outcome: "failed", completed: false, streakPreserved: false };
   }
 
+  // Stack outcome flags (lazy — only on days that played the card)
+  if (state.rivalries) {
+    for (const r of state.rivalries) {
+      if (r.winnerId) outcomes[r.winnerId] = { ...outcomes[r.winnerId], rivalryWon: true };
+    }
+  }
+  if (state.partnerships) {
+    for (const p of state.partnerships) {
+      if (p.fulfilled) {
+        outcomes[p.a] = { ...outcomes[p.a], partnershipBonus: true };
+        outcomes[p.b] = { ...outcomes[p.b], partnershipBonus: true };
+      }
+    }
+  }
+  if (state.packBond?.paid) {
+    for (const id of Object.keys(state.packBond.paid)) {
+      outcomes[id] = { ...outcomes[id], packBondPaid: true };
+    }
+  }
+
   state = { ...state, outcomes };
   return { state, outcomes, shieldConsumed };
 }
 
-export function doubleDownFinishers(day) {
-  return Object.entries(day.doubleDowns)
+/* ── card-stack close-out helpers (all lazy: no card state → same state) ── */
+
+/** Rivalries settle at the close: whoever logged more today banks the bonus
+ *  (bonusRuf — counts toward the target only under stealCanTriggerWin).
+ *  A tie — or both at zero — pays nobody. */
+function resolveRivalries(state, at) {
+  if (!state.rivalries?.length) return state;
+  let out = state;
+  const rivalries = state.rivalries.map((r) => {
+    const pa = targetProgressOf(out, r.a);
+    const pb = targetProgressOf(out, r.b);
+    if (pa === pb || (pa === 0 && pb === 0)) return { ...r, winnerId: null };
+    const winnerId = pa > pb ? r.a : r.b;
+    out = addBonusRuf(out, winnerId, r.bonusRuf ?? RIVALRY_BONUS_RUF);
+    out = { ...out, powerLog: [...out.powerLog, { kind: "rivalry", playerId: r.a, at, detail: { rivalId: r.b, winnerId, bonusRuf: r.bonusRuf ?? RIVALRY_BONUS_RUF } }] };
+    return { ...r, winnerId, settledAt: at };
+  });
+  return { ...out, rivalries };
+}
+
+/** Group review: everyone except the target votes accept/contest. Settles on
+ *  a majority of either kind, or when all others have voted (a tie accepts —
+ *  benefit of the doubt, never shame). Contested logs score 0, but a
+ *  completion already banked STANDS (the day banks; only the reps burn). */
+export function voteProof(day, proofId, voterId, vote) {
+  const fail = (reason) => ({ state: day, result: { ok: false, proofId, voterId, reason } });
+  const proof = day.proofs?.find((p) => p.id === proofId);
+  if (!proof) return fail("no such proof");
+  if (proof.status !== "review") return fail(`proof is ${proof.status} — nothing to vote on`);
+  if (!day.players.some((p) => p.id === voterId)) return fail(`voter ${voterId} not in battle`);
+  if (voterId === proof.targetId) return fail("the target doesn't vote on their own proof");
+  if (proof.votes[voterId]) return fail(`${voterId} already voted`);
+  if (vote !== "accept" && vote !== "contest") return fail("vote must be accept or contest");
+
+  const votes = { ...proof.votes, [voterId]: vote };
+  const eligible = day.players.filter((p) => p.id !== proof.targetId).map((p) => p.id);
+  const accepts = Object.values(votes).filter((v) => v === "accept").length;
+  const contests = Object.values(votes).filter((v) => v === "contest").length;
+  const allVoted = eligible.every((id) => votes[id]);
+
+  let outcome = null;
+  if (contests > eligible.length / 2) outcome = "contested";
+  else if (accepts > eligible.length / 2) outcome = "accepted";
+  else if (allVoted) outcome = contests > accepts ? "contested" : "accepted";
+
+  let state = { ...day, proofs: day.proofs.map((p) => (p === proof ? { ...p, votes } : p)) };
+  if (outcome) {
+    const res = applyProofSettlement(state, { ...proof, votes }, outcome, Date.now());
+    return { state: res, result: { ok: true, proofId, voterId, vote, settled: true, outcome } };
+  }
+  return { state, result: { ok: true, proofId, voterId, vote, settled: false, accepts, contests, awaiting: eligible.length - accepts - contests } };
+}
+
+/** Apply a settlement to a proof: contested → the bound entry scores 0 (the
+ *  original value is kept for the record); accepted → it stands. */
+function applyProofSettlement(state, proof, outcome, at) {
+  const entry = state.entries[proof.entryIndex];
+  let out = state;
+  if (outcome === "contested" && entry) {
+    const burn = entry.ruf;
+    const p = out.progress[proof.targetId];
+    out = {
+      ...out,
+      entries: out.entries.map((e, i) => (i === proof.entryIndex ? { ...e, ruf: 0, origRuf: burn, proofZeroed: proof.id } : e)),
+      progress: { ...out.progress, [proof.targetId]: { ...p, ruf: roundRuf(Math.max(0, p.ruf - burn)) } },
+    };
+  }
+  out = {
+    ...out,
+    proofs: out.proofs.map((p) => (p.id === proof.id ? { ...p, status: outcome, settledAt: at } : p)),
+    powerLog: [...out.powerLog, { kind: "spot_check", playerId: proof.fromId, at, detail: { targetId: proof.targetId, outcome, entryRuf: entry ? (outcome === "contested" ? (entry.origRuf ?? entry.ruf) : entry.ruf) : 0, dayStillBanks: true } }],
+  };
+  return out;
+}
+
+/** Force-settle open proofs at the day close. Reviews settle on their votes
+ *  (no votes → accepted, benefit of the doubt); un-triggered requests expire. */
+function settleProofs(state, at) {
+  if (!state.proofs?.length) return state;
+  let out = state;
+  for (const proof of out.proofs) {
+    if (proof.status === "review") {
+      const accepts = Object.values(proof.votes ?? {}).filter((v) => v === "accept").length;
+      const contests = Object.values(proof.votes ?? {}).filter((v) => v === "contest").length;
+      const outcome = contests > accepts ? "contested" : "accepted";
+      out = applyProofSettlement(out, proof, outcome, at);
+    } else if (proof.status === "awaiting_log") {
+      out = { ...out, proofs: out.proofs.map((p) => (p.id === proof.id ? { ...p, status: "expired", settledAt: at } : p)) };
+    }
+  }
+  return out;
+}
+
+/** Training Partners: both bank the day → both earn the bonus (+ a recorded
+ *  partnership stat for the app layer — deliberately NOT a season point:
+ *  season points are 1:1 Daily Wins per the SOT; open question noted). */
+function resolvePartnerships(state, at) {
+  if (!state.partnerships?.length) return state;
+  let out = state;
+  const partnerships = state.partnerships.map((p) => {
+    const aDone = out.progress[p.a]?.completedAt != null;
+    const bDone = out.progress[p.b]?.completedAt != null;
+    if (aDone && bDone) {
+      const each = p.bonusRuf ?? PARTNERSHIP_BONUS_RUF;
+      out = addBonusRuf(out, p.a, each);
+      out = addBonusRuf(out, p.b, each);
+      out = { ...out, powerLog: [...out.powerLog, { kind: "training_partners", playerId: p.a, at, detail: { partnerId: p.b, bothBanked: true, bonusRufEach: each } }] };
+      return { ...p, fulfilled: true, settledAt: at };
+    }
+    return { ...p, fulfilled: false, settledAt: at };
+  });
+  return { ...out, partnerships };
+}
+
+/** Pack Bond: every bonded member whose REAL logs total ≥ the threshold
+ *  banks +10% of that total as bonus. */
+function resolvePackBond(state, at) {
+  const bond = state.packBond;
+  if (!bond) return state;
+  let out = state;
+  const paid = {};
+  for (const id of bond.memberIds) {
+    const logged = state.entries
+      .filter((e) => e.playerId === id && e.reps > 0 && !e.proofZeroed)
+      .reduce((s, e) => s + e.ruf, 0);
+    if (roundRuf(logged) >= (bond.thresholdRuf ?? PACK_BOND_THRESHOLD_RUF)) {
+      const bonus = roundRuf(logged * (bond.share ?? PACK_BOND_SHARE));
+      out = addBonusRuf(out, id, bonus);
+      paid[id] = bonus;
+    }
+  }
+  out = { ...out, packBond: { ...bond, paid, settledAt: at } };
+  if (Object.keys(paid).length) {
+    out = { ...out, powerLog: [...out.powerLog, { kind: "pack_bond", playerId: bond.by, at, detail: { paid } }] };
+  }
+  return out;
+}
+
+export function doubleDownFinishers(day) {  return Object.entries(day.doubleDowns)
     .filter(([id, dd]) => {
       const p = day.progress[id];
       return p.completedAt != null && targetProgressOf(day, id) >= baseTargetOf(day) * dd.targetMultiplier;

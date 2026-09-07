@@ -258,6 +258,22 @@ ok(/^[A-Z0-9]{6}$/.test(CODE), `invite code generated (${CODE})`);
 await clickText("Start the season");                          // lobby → season 1 live
 await waitFor(() => evalJs(`(() => { const g = RWFSoT.state.groups[RWFSoT.state.activeGroupId]; return g.seasons.length === 1 && g.seasons[0].battles[0].status === 'live'; })()`).catch(() => false), { label: "season 1 battle 1 live" });
 
+console.log("— THE DEAL (v4.1): day opens → 3 cards flip → pick one");
+await waitFor(() => evalJs(`!!document.querySelector('.deal-oval')`).catch(() => false), { label: "deal sheet on day open", timeout: 8000 });
+ok(await exists(".deal-oval"), "deal sheet claims the screen at day open");
+ok((await evalJs(`document.querySelectorAll('.rwcard').length`)) === 3, "three cards dealt");
+await shot("deal-facedown");
+await click(".rwcard");                                        // first tap flips the table
+await sleep(260);                                              // mid-flip: the 3D turn is live
+await shot("deal-midflip");
+await sleep(700);                                              // flips settle
+ok((await evalJs(`document.querySelectorAll('.rwcard .rw-front').length`)) === 3, "all three flipped face-up");
+await click(".rwcard");                                        // tap the first card → picked
+await waitFor(() => evalJs(`!!document.querySelector('#my-hand') || !!RWFSoT.snapshot().me.inventory.length`).catch(() => false), { label: "card picked into hand", timeout: 6000 });
+const stDeal = await snapState();
+ok(stDeal.me.inventory.length === 1, `one card in hand after the pick (${stDeal.me.inventory[0]})`);
+okBody("HAND", "hand strip on battle home");
+
 console.log("— DAY 1 BATTLE HOME");
 await sleep(400);
 ok((await text(".hero-target")).startsWith("200"), "adjusted target hero numeral 200");
@@ -278,6 +294,9 @@ const me = st.me.id;
 ok(!!priya && !!jack && !!marco, "house crew Marco/Priya/Jack on roster");
 await driveLog(priya.id, "pushups", 100);                     // Priya to 100
 await sleep(300);
+// the deal is RNG — grant the Rep Steal deterministically through the same
+// engine API the app drives, then play it through the real UI
+await evalJs(`RWFSoT.debugGrant(RWFSoT.state.activeGroupId, ${JSON.stringify(me)}, 'steal')`);
 await clickText("Power-Ups");                                     // → Power-Ups tab
 ok(await exists(".pu-grid"), "power-up inventory grid");
 for (let i = 0; i < 10; i++) {                                 // reveal hidden cards one at a
@@ -291,7 +310,7 @@ ok(await evalJs(`(() => { for (const c of document.querySelectorAll('.pu-card.re
 await sleep(300);
 ok((await bodyHas("Pure gain")) || (await bodyHas("keep every rep")), "card detail explains pure-gain steal");
 await clickText("Priya (");                                   // target selection
-okBody("ACTIVATE CARD", "activation confirm shown");
+okBody("PLAY CARD", "activation confirm shown");
 await clickText("Confirm");
 okBody("+10 REPS", "steal result: +10 reps gained");
 ok((await bodyHas("keeps their 100")) || (await bodyHas("keep their 100")), "steal result shows target kept their score");
@@ -362,6 +381,15 @@ ok(w1o.winnerId === me, "Daily Win flag on the battle (season point accrues at d
 ok(w1o.status === "live", "battle CONTINUES after the Daily Win (bank-day model)");
 await clickText("Back to battle");
 okBody("took the Daily Win", "battle home shows the win banner");
+// crossing 50% on that winning log EARNED the halfway bonus deal (v4.1) —
+// it claims focus once the win moment closes; dismiss for this walk
+await sleep(500);
+if (await exists(".deal-oval")) {
+  ok(await bodyHas("BONUS DEAL"), "halfway bonus deal offered (earned, not automatic)");
+  await clickText("Later");
+  await sleep(250);
+}
+ok((await exists(".deal-oval")) === false, "deal dismissable — the draft waits on the Cards tab");
 
 console.log("— RIVAL COMPLETES (banks the day) · THIRD PLAYER FAILS AT DEADLINE");
 await driveLog(priya.id, "pushups", 100);                     // Priya → 200 = banked
@@ -399,7 +427,18 @@ await shot("season");
 await langClean("season hub");
 await click(".topbar .icon-btn");                             // back → battle
 
-console.log("— DAY 2 · SURPRISE BOMB HIT + MISS · LIGHTNING ×3 · SECOND DAILY WIN");
+console.log("— DAY 2 · THE DEAL AGAIN · SURPRISE BOMB HIT + MISS · LIGHTNING ×3 · SECOND DAILY WIN");
+await waitFor(() => evalJs(`!!document.querySelector('.deal-oval')`).catch(() => false), { label: "day-2 deal sheet", timeout: 15000 });
+ok(await exists(".deal-oval"), "a fresh deal opens with battle 2 (cards don't carry across days)");
+await click(".rwcard");                                        // flip + pick one
+await sleep(900);
+await click(".rwcard");
+await waitFor(() => evalJs(`(() => { const s = RWFSoT.snapshot(); return s.me.inventory.length >= 1 && !document.querySelector('.deal-oval'); })()`).catch(() => false), { label: "day-2 pick landed", timeout: 6000 });
+st = await snapState();
+ok(st.me.inventory.length === 1, "day-2 hand dealt (1 card)");
+// the deal is RNG — grant the cards this walk plays through the real UI
+await evalJs(`RWFSoT.debugGrant(RWFSoT.state.activeGroupId, ${JSON.stringify(me)}, 'surprise_bomb')`);
+await evalJs(`RWFSoT.debugGrant(RWFSoT.state.activeGroupId, ${JSON.stringify(me)}, 'lightning')`);
 await clickText("Power-Ups");
 for (let i = 0; i < 10; i++) {
   const more = await evalJs(`(() => { const c = document.querySelector('.pu-card:not(.revealed)'); if (c) { c.click(); return true; } return false; })()`);
@@ -420,8 +459,8 @@ ok(true, "bomb HIT — defused inside the fuse (victim banks the +20 bonus)");
 await driveLog(marco.id, "squats", 5);                        // Marco on the board (small)
 await sleep(150);
 // MISS run: Jack drops his Surprise Bomb on Marco through the same engine API
-// the UI drives (house cards came from the same founder pack). The daily card
-// drop is RNG, so Jack is GRANTED the card first via the exposed core engine
+// the UI drives (house cards came from their own deal picks). The deal
+// is RNG, so Jack is GRANTED the card first via the exposed core engine
 // (RWFSoT.engine === apps/sot-engine.js — the same API the app drives).
 await evalJs(`(() => { const g = RWFSoT.state.groups[RWFSoT.state.activeGroupId]; const b = g.seasons[0].battles[1]; b.core = RWFSoT.engine.grantPowerUp(b.core, ${JSON.stringify(jack.id)}, 'surprise_bomb'); return true; })()`);
 const bomb2 = await evalJs(`RWFSoT.activateCard(RWFSoT.state.activeGroupId, ${JSON.stringify(jack.id)}, 'surprise_bomb', ${JSON.stringify(marco.id)})`);
@@ -439,7 +478,7 @@ await clickText("Power-Ups");
 await sleep(200);
 ok(await evalJs(`(() => { for (const c of document.querySelectorAll('.pu-card.revealed')) { if (c.textContent.toUpperCase().includes('LIGHTNING')) { c.click(); return true; } } return false; })()`), "Lightning Round card");
 await sleep(300);
-await clickText("Activate Lightning");
+await clickText("Play Lightning");
 await clickText("Confirm");
 // lightning gets the FULL-SCREEN 10-minute storm moment (#142), not a cardResult
 ok((await exists(".oval.storm")) && (await bodyHas("counts TRIPLE")), "lightning full-screen storm moment");
@@ -466,6 +505,8 @@ await clickText("Log it");
 await sleep(400);
 ok((await text(".o-title")) === "YOU WON THE DAY", "second Daily Win moment");
 await clickText("Back to battle");
+// the halfway deal from the winning log claims focus once the win closes
+if (await exists(".deal-oval")) { await clickText("Later"); await sleep(250); }
 await driveLog(priya.id, "pushups", 200);                     // Priya banks day 2 (streak 2)
 await sleep(300);
 

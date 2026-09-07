@@ -33,11 +33,12 @@
      open gap and stays in the app layer. RUF is internal — the UI says
      "reps" (Q216 ruling).
 
-   FACADE (unchanged surface for app.js + e2e):
-   SoT.load/save/setMe/subscribe · createGroup/startSeason/startNextSeason/
-   joinByCode/agreeStake · snapshot · logReps/undoLast/activateCard/tick ·
-   resolveCharity/markObligationFulfilled/react · resetProfile/resetAll ·
-   EXERCISES/CARDS/CHARITIES/TIERS… (see the bottom export).
+    FACADE (unchanged surface for app.js + e2e):
+    SoT.load/save/setMe/subscribe · createGroup/startSeason/startNextSeason/
+    joinByCode/agreeStake · snapshot · logReps/undoLast/activateCard/tick ·
+    pickDraft/rerollDeal/voteProof/debugGrant (the v4.1 card stack) ·
+    resolveCharity/markObligationFulfilled/react · resetProfile/resetAll ·
+    EXERCISES/CARDS/CHARITIES/TIERS… (see the bottom export).
    ═══════════════════════════════════════════════════════════════════════ */
 
 let Core = null;
@@ -82,19 +83,50 @@ const EXERCISES = [
   { id: "plank", name: "Plank Hold", cat: "Core", value: 1.0, unit: "secs", icon: "➖", secsPerRep: 10, variants: "Side plank · Shoulder taps", cues: "Rigid line, squeeze glutes." },
 ];
 
-/* ── power-up cards — ids are the shared engine kinds ──────────────── */
-const CARDS = {
-  lightning: { id: "lightning", name: "Lightning Round", rarity: "rare", canon: true, blurb: "Your next 10 minutes count TRIPLE.", detail: "Activate, then log — every rep inside the window scores ×3. Once per day; the group sees the storm." },
-  steal: { id: "steal", name: "Rep Steal", rarity: "epic", canon: true, blurb: "Snatch 10% of a rival's completed reps.", detail: "You gain 10% of their completed score — and they keep every rep. Pure gain, no mercy. Once per day." },
-  shield: { id: "shield", name: "Group Shield", rarity: "rare", canon: true, blurb: "Protect the crew's streaks for one day.", detail: "If someone fails the day while the shield is armed, their streak survives. Consumed at the close it saves." },
-  freeze: { id: "freeze", name: "Time Freeze", rarity: "rare", canon: true, blurb: "Freeze the battle clock for 30 minutes.", detail: "The deadline extends half an hour for the WHOLE group. One freeze per day." },
-  surprise_bomb: { id: "surprise_bomb", name: "Surprise Bomb", rarity: "epic", canon: false, blurb: "+20 reps for a rival — 10 minutes to deliver.", detail: "Drop +20 reps on a rival. Deliver inside 10 minutes and the bomb pays THEM a +20 defusal bonus; let it fizzle and nothing sticks." },
-  rescue_rope: { id: "rescue_rope", name: "Rescue Rope", rarity: "rare", canon: false, blurb: "Throw an inactive mate a 50-rep credit.", detail: "A mate with zero reps today? The rope hands them an instant 50-rep credit toward target. Once per day." },
-  combo_boost: { id: "combo_boost", name: "Combo Boost", rarity: "common", canon: false, blurb: "Nail a prescribed combo for a bonus.", detail: "Arm the group's prescribed exercise sequence and land it in order for the rep bonus." },
-  double_down: { id: "double_down", name: "Double Down", rarity: "epic", canon: false, blurb: "Volunteer for 2× target today.", detail: "A personal quest: clear double your target today. Season-point doubling only under competitive flags." },
-  assist_boost: { id: "assist_boost", name: "Assist Boost", rarity: "common", canon: false, blurb: "Help a mate finish — you both score.", detail: "Arm it on a teammate: when THEY finish inside the window, you both pocket +25 bonus reps." },
-  shield_bash: { id: "shield_bash", name: "Shield Bash", rarity: "epic", canon: false, blurb: "Shatter an armed Group Shield.", detail: "Competitive mode: smash the crew's armed shield and its protection ends." },
+/* ── power-up cards — ids are the shared engine kinds ────────────────
+      The full CARD STACK (engine CARD_CATALOG) + app-side copy: the
+      detail line, the glyph, and the target-picker hints the UI needs.
+      canon: true marks the SOT §3.6 launch four. */
+const CARD_ICONS = {
+  lightning: "⚡", steal: "🥷", shield: "🛡️", freeze: "❄️",
+  combo_boost: "🔥", double_down: "🎲", assist_boost: "🤝",
+  surprise_bomb: "💣", rescue_rope: "🪢", shield_bash: "🔨",
+  double_exercise: "🏋️", specialist: "🎯", wildcard_workout: "🃏",
+  rivalry: "⚔️", training_partners: "🤜", pack_bond: "🐺",
+  prove_it: "📋", spot_check: "🔍",
+  second_wind: "💨", mulligan: "🔄", underdog: "🐕",
 };
+const CARD_DETAIL = {
+  lightning: "Activate, then log — every rep inside the window scores ×3. Once per day; the group sees the storm.",
+  steal: "You gain 10% of their completed score — and they keep every rep. Pure gain, no mercy. Once per day.",
+  shield: "If someone fails the day while the shield is armed, their streak survives. Consumed at the close it saves.",
+  freeze: "The deadline extends half an hour for the WHOLE group. One freeze per day.",
+  surprise_bomb: "Drop +20 reps on a rival. Deliver inside 10 minutes and the bomb pays THEM a +20 defusal bonus; let it fizzle and nothing sticks.",
+  rescue_rope: "A mate with zero reps today? The rope hands them an instant 50-rep credit toward target. Once per day.",
+  combo_boost: "Arm the group's prescribed exercise sequence and land it in order for the rep bonus.",
+  double_down: "A personal quest: clear double your target today. Season-point doubling only under competitive flags.",
+  assist_boost: "Arm it on a teammate: when THEY finish inside the window, you both pocket +25 bonus reps.",
+  shield_bash: "Competitive mode: smash the crew's armed shield and its protection ends.",
+  double_exercise: "Name ONE exercise from today's library — every set of it you log counts double for the rest of the day.",
+  specialist: "Your three most-logged exercises are locked in at play time — new sets of those count ×1.5 today.",
+  wildcard_workout: "Today, any movement counts as any other: mix it up, log it under whatever fits, the crew sees the wild log.",
+  rivalry: "Pick a rival. Whoever has banked more reps when the day closes takes +30 bonus reps. Tie pays nobody.",
+  training_partners: "Pick a partner. If you BOTH bank the day, you both pocket +25 bonus reps and the partner stat. One partner per day.",
+  pack_bond: "Team card: bond the pack — every member who logs 20+ reps today banks +10% on top of their work.",
+  prove_it: "Target a rival's NEXT set: they mark it verified (camera or timer) and THEY bank +15 reps for the honesty. Skip it and the crew accepts or contests the set.",
+  spot_check: "A proof check lands on the current leader's biggest set — verified sets are immune, everything else goes to the crew.",
+  second_wind: "Way behind? Your reps count ×1.5 for 15 minutes. Only fires when you're 40%+ off the lead.",
+  mulligan: "Scrap the hand you're holding — three fresh cards hit the table. The discarded cards are gone for good.",
+  underdog: "Last place when you play it? Every rep you log today counts ×1.25. Front-runners can't ride it.",
+};
+const CARDS = Object.fromEntries(
+  Object.entries(Core.CARD_CATALOG).map(([id, c]) => [
+    id,
+    { id, name: c.name, rarity: c.rarity, family: c.family, canon: c.family === "canon",
+      target: c.target, expiry: c.expiry, blurb: c.blurb,
+      detail: CARD_DETAIL[id] || c.blurb, icon: CARD_ICONS[id] || "🃏" },
+  ])
+);
 
 const CHARITIES = [
   { id: "heart", name: "Heart Foundation", icon: "❤️", note: "Heart health research & prevention" },
@@ -154,8 +186,10 @@ function createGroup(cfg) {
     durationMin: Math.max(1, cfg.durationMin || 1),
     exerciseIds: cfg.exerciseIds && cfg.exerciseIds.length ? cfg.exerciseIds.slice() : EXERCISES.map((e) => e.id),
     stake: normalizeStake(cfg.stake || { type: "none" }),
+    // the card stack: every dealable kind is on by default (the founder's
+    // card system IS the product); shield_bash stays opt-in (competitive)
     powerUps: Object.assign(
-      { lightning: true, steal: true, shield: true, freeze: true, surprise_bomb: false, rescue_rope: false, combo_boost: false, double_down: false, assist_boost: false, shield_bash: false },
+      Object.fromEntries(Object.keys(CARDS).map((k) => [k, k !== "shield_bash"])),
       mapLegacyPowerUps(cfg.powerUps || {})),
     members: [], seasons: [], currentSeasonId: null,
     events: [], createdAt: Date.now(),
@@ -246,18 +280,10 @@ function startSeason(gRaw) {
       status: i === 0 ? "live" : "scheduled", core: null,
       winnerId: null, winnerAtMs: null, completions: {}, failures: [], steals: [], bombs: [] });
   }
-  // founder pack for season 1 (our answer to the power-up economy question —
-  // deterministic starter, then daily drops)
+  // the card system (v4.1): no more founder pack / random drop — every
+  // battle day OPENS with a deal of three, pick one (the founder's
+  // directive). beginBattle → createEngineDay → dealDay deals the cards.
   beginBattle(g, s, s.battles[0]);
-  if (idx === 1 && s.battles[0].core) {
-    // founder pack for season 1 (our answer to the power-up economy question —
-    // deterministic starter, then daily drops). Window-clock groups whose
-    // first battle is still in the future have no engine day yet — the daily
-    // drop at beginBattle deals their cards when the day actually opens.
-    for (const m of g.members) {
-      for (const kind of Object.keys(CARDS)) if (g.powerUps[kind]) s.battles[0].core = Core.grantPowerUp(s.battles[0].core, m.id, kind);
-    }
-  }
   pushEvent(g, { type: "season_start", memberId: g.members[0].id, text: `${s.label} is LIVE — ${s.battles.length} battle days, first to ${g.target} takes the Daily Win`, season: s.id });
   save();
   return s;
@@ -302,29 +328,46 @@ function createEngineDay(g, s, b) {
     exercises: g.exerciseIds.map((id) => ({ id })),
     flags: { stealCanTriggerWin: true },     // our answer to SOT Q237 for this demo
   }, roster);
-  // engine inventory is per-day; cards persist across battles (our answer to
-  // SOT Q242 — no expiry, hold cap enforced at drop time) → carry leftovers
-  const prev = s.battles[b.idx - 2];
-  if (prev && prev.core) {
-    for (const m of g.members) {
-      for (const kind of (Core.inventoryOf(prev.core, m.id) || [])) {
-        b.core = Core.grantPowerUp(b.core, m.id, kind);
-      }
-    }
-  }
-  dailyDrop(g, s, b);
+  // cards are day-scoped now: drafted cards expire when the battle closes
+  // (the expiry sweep) — nothing carries across battles. Day open = deal.
+  dealDay(g, s, b, "open");
   pushEvent(g, { type: "battle_start", memberId: g.members[0].id, battle: b.idx, text: `Battle day ${b.idx} is LIVE — first to ${g.target} takes the Daily Win` });
 }
 
-function dailyDrop(g, s, b) {
-  const pool = Object.keys(CARDS).filter((c) => g.powerUps[c]);
-  if (!pool.length || !b.core) return;
+/* ── the deal (v4.1): three dealt, pick one — the founder's directive ──
+      Every battle day opens with a deal for each player; crossing 50% of
+      target EARNS a bonus deal (once per day). House players auto-pick
+      (they have no screen); the human's deal waits on the day until they
+      pick, reroll, or the deadline sweeps it. */
+function stackPool(g) {
+  return Object.keys(CARDS).filter((k) => g.powerUps[k]);
+}
+
+function dealDay(g, s, b, reason, onlyId = null) {
+  if (!b.core || b.core.status !== "live") return false;
+  const pool = stackPool(g);
+  if (!pool.length) return false;
+  let dealt = false;
   for (const m of g.members) {
-    if ((Core.inventoryOf(b.core, m.id) || []).length < 4) {
-      const kind = pool[rnd(pool.length)];
-      b.core = Core.grantPowerUp(b.core, m.id, kind);
+    if (onlyId && m.id !== onlyId) continue;                  // halfway deals THE player who crossed
+    if (!eligible(g, b, m)) continue;
+    if (Core.inventoryOf(b.core, m.id).length >= Core.HAND_CAP) continue;
+    if (b.core.drafts && b.core.drafts[m.id]) continue;
+    const ret = Core.draftOptions(b.core, m.id, { at: Date.now(), reason, pool });
+    if (!ret.result.ok) continue;
+    b.core = ret.state;
+    dealt = true;
+    if (m.isHouse) {
+      // the house crew picks immediately (they don't have a screen)
+      const pick = ret.options[rnd(ret.options.length)];
+      const done = Core.draftPick(b.core, m.id, pick);
+      if (done.result.ok) b.core = done.state;
+      pushEvent(g, { type: "deal", memberId: m.id, battle: b.idx, quiet: true, text: `🃏 ${firstName(g, m)} took a card from the deal — ${CARDS[pick].name}` });
+    } else {
+      pushEvent(g, { type: "deal", memberId: m.id, battle: b.idx, text: `🃏 three cards on the table for ${firstName(g, m)} — pick one` });
     }
   }
+  return dealt;
 }
 
 /* ── battle math (reads through the engine day) ────────────────────── */
@@ -351,7 +394,8 @@ function snapshotBoard(g, b) {
     rows.push({ member: m, physical: 0, adjusted: displayTotal(b, m.id), dayTarget: target,
       pct: Math.min(1, target ? prog / target : 0), remaining: Math.max(0, target - prog),
       completed: done, completedAt: done ? progOf(b, m.id).completedAt : null,
-      isWinner: !!(b.core && b.core.winnerId === m.id), eligible: true });
+      isWinner: !!(b.core && b.core.winnerId === m.id), eligible: true,
+      hand: (b.core && Core.inventoryOf(b.core, m.id)) || [] });
   }
   rows.sort((a, b2) => {
     if (a.completed && b2.completed) return a.completedAt - b2.completedAt;
@@ -372,16 +416,23 @@ function teamTotals(g, b) {
 }
 
 /* ── logging (delegated: Core.logSet) ──────────────────────────────── */
-function logReps(gRaw, memberId, exerciseId, physical) {
+function logReps(gRaw, memberId, exerciseId, physical, opts = {}) {
   const g = asGroup(gRaw);
   if (!g) return { error: "no group" };
   const s = curSeason(g); if (!s) return { error: "no active season" };
   const b = curBattle(s); if (!b || b.status !== "live" || !b.core) return { error: "battle not live" };
   const m = memberById(g, memberId); if (!m) return { error: "unknown member" };
   const ex = exerciseById(exerciseId); if (!ex) return { error: "unknown exercise" };
-  if (!g.exerciseIds.includes(exerciseId)) return { error: "exercise not allowed in this group" };
+  if (!g.exerciseIds.includes(exerciseId)) {
+    // Wildcard Workout lifts the allowlist in the engine — the app converts
+    // the physical reps at the group's BEST exercise value for the holder
+    const wild = !!(b.core.modifiers && b.core.modifiers[memberId] && b.core.modifiers[memberId].wildcard);
+    if (!wild) return { error: "exercise not allowed in this group" };
+  }
   physical = Math.max(1, Math.round(physical));
-  const rufReps = ex.secsPerRep ? Math.round((physical / ex.secsPerRep) * ex.value) : Math.round(physical * ex.value);
+  const wildOn = !!(b.core.modifiers && b.core.modifiers[memberId] && b.core.modifiers[memberId].wildcard);
+  const convertEx = wildOn ? bestValueExercise(g) : ex;
+  const rufReps = convertEx.secsPerRep ? Math.round((physical / convertEx.secsPerRep) * convertEx.value) : Math.round(physical * convertEx.value);
 
   const beforeProg = targetProgress(b, m.id);
   const beforeDone = progOf(b, m.id).completedAt != null;
@@ -389,7 +440,7 @@ function logReps(gRaw, memberId, exerciseId, physical) {
 
   let ret;
   try {
-    ret = Core.logSet(b.core, { playerId: m.id, exerciseId, reps: rufReps, at: Date.now() });
+    ret = Core.logSet(b.core, { playerId: m.id, exerciseId, reps: rufReps, at: Date.now(), ...(opts.verified ? { verified: true } : {}) });
   } catch (e) {
     return { error: String(e.message || e) };
   }
@@ -398,12 +449,35 @@ function logReps(gRaw, memberId, exerciseId, physical) {
 
   const afterProg = targetProgress(b, m.id);
   const target = dayTargetFor(g, b, m);
+  let lastEntry = null;
+  for (let i = b.core.entries.length - 1; i >= 0; i--) {
+    const e = b.core.entries[i];
+    if (e.playerId === m.id && !e.powerUps) { lastEntry = e; break; }
+  }
+  const stackFx = (lastEntry && lastEntry.stack) || [];
 
   // feed events
+  const fxNote = stackFx.length
+    ? " (" + stackFx.map(fxTag).join(" · ") + ")"
+    : "";
   if (bolt) {
-    pushEvent(g, { type: "log", memberId: m.id, battle: b.idx, text: `${firstName(g, m)} logged ${physical} ${ex.unit === "secs" ? "sec " : ""}${ex.name.toLowerCase()} — +${ret.ruf} reps (⚡ ×3)`, exercise: ex.id });
+    pushEvent(g, { type: "log", memberId: m.id, battle: b.idx, text: `${firstName(g, m)} logged ${physical} ${ex.unit === "secs" ? "sec " : ""}${ex.name.toLowerCase()} — +${ret.ruf} reps (⚡ ×3)${fxNote}`, exercise: ex.id });
   } else if (!m.isHouse || ret.ruf >= 50) {
-    pushEvent(g, { type: "log", memberId: m.id, battle: b.idx, text: `${firstName(g, m)} logged ${physical} ${ex.unit === "secs" ? "sec " : ""}${ex.name.toLowerCase()} — +${ret.ruf} reps`, quiet: m.isHouse, exercise: ex.id });
+    pushEvent(g, { type: "log", memberId: m.id, battle: b.idx, text: `${firstName(g, m)} logged ${physical} ${ex.unit === "secs" ? "sec " : ""}${ex.name.toLowerCase()} — +${ret.ruf} reps${fxNote}`, quiet: m.isHouse, exercise: ex.id });
+  }
+  // proof outcomes on this log (Prove It / Spot Check). A verified proof
+  // lands an extra +15 pseudo-entry AFTER the log — walk back past it.
+  let proofInfo = null;
+  const entries = b.core.entries;
+  const pseudo = entries.length && entries[entries.length - 1].powerUps && entries[entries.length - 1].powerUps.includes("prove_it");
+  const entryIdx = entries.length - 1 - (pseudo ? 1 : 0);
+  const boundProof = Core.proofsOf(b.core).find((p) => p.entryIndex === entryIdx);
+  if (boundProof && boundProof.status === "verified") {
+    proofInfo = { status: "verified", bonusRuf: Core.PROVE_IT_BONUS_RUF };
+    pushEvent(g, { type: "proof_verified", memberId: m.id, battle: b.idx, text: `📋 ${firstName(g, m)} verified the set — honest effort pays THEM +${Core.PROVE_IT_BONUS_RUF} reps` });
+  } else if (boundProof && boundProof.status === "review") {
+    proofInfo = { status: "review" };
+    pushEvent(g, { type: "proof_review", memberId: m.id, battle: b.idx, text: `📋 ${firstName(g, m)}'s set is under group review — the crew accepts or contests` });
   }
   // bomb defusal bonus shows as an extra moment
   if ((ret.bonusRuf || 0) > 0) {
@@ -411,9 +485,13 @@ function logReps(gRaw, memberId, exerciseId, physical) {
   }
   syncBombMirror(g, b);
 
-  // milestone at 50%
-  if (beforeProg / target < 0.5 && afterProg / target >= 0.5 && !m.isHouse) {
-    pushEvent(g, { type: "milestone", memberId: m.id, battle: b.idx, text: `${firstName(g, m)} is halfway — ${Math.round((afterProg / target) * 100)}% of target` });
+  // milestone at 50% — and the EARNED bonus deal (v4.1): crossing halfway
+  // deals a second 3-card choice (once per day, hand permitting) — for the
+  // player who crossed, not the whole crew
+  if (beforeProg / target < 0.5 && afterProg / target >= 0.5) {
+    if (!m.isHouse) pushEvent(g, { type: "milestone", memberId: m.id, battle: b.idx, text: `${firstName(g, m)} is halfway — ${Math.round((afterProg / target) * 100)}% of target` });
+    const dealt = dealDay(g, s, b, "halfway", m.id);
+    if (dealt && !m.isHouse) pushEvent(g, { type: "deal", memberId: m.id, battle: b.idx, text: `🃏 halfway bonus deal earned — three more cards for ${firstName(g, m)}, pick one` });
   }
 
   // completion / Daily Win bookkeeping (engine already decided)
@@ -424,7 +502,20 @@ function logReps(gRaw, memberId, exerciseId, physical) {
 
   save();
   return { ok: true, gained: ret.ruf + (ret.bonusRuf || 0), adjustedTotal: displayTotal(b, m.id),
-    dayTarget: target, remaining: Math.max(0, target - afterProg), completion, lightning: bolt };
+    dayTarget: target, remaining: Math.max(0, target - afterProg), completion, lightning: bolt,
+    stack: stackFx, proof: proofInfo };
+}
+
+function fxTag(tag) {
+  const names = { double_exercise: "×2 double", specialist: "×1.5 specialist", underdog: "×1.25 underdog", second_wind: "×1.5 second wind", wildcard_workout: "wildcard" };
+  return names[tag] || tag;
+}
+
+/** The group's best-value exercise (Wildcard Workout conversion basis). */
+function bestValueExercise(g) {
+  const list = g.exerciseIds.map(exerciseById).filter(Boolean);
+  if (!list.length) return EXERCISES[0];
+  return list.reduce((best, e) => (e.value / (e.secsPerRep || 1)) > (best.value / (best.secsPerRep || 1)) ? e : best, list[0]);
 }
 
 function recordCompletion(g, s, b, m, prog, target, wonDay) {
@@ -465,7 +556,7 @@ function undoLast(gRaw, memberId) {
 }
 
 /* ── power-ups (delegated: Core.activatePowerUp) ───────────────────── */
-function activateCard(gRaw, memberId, cardId, targetId) {
+function activateCard(gRaw, memberId, cardId, targetId, opts = {}) {
   const g = asGroup(gRaw);
   if (!g) return { error: "no group" };
   const s = curSeason(g); if (!s) return { error: "no active season" };
@@ -476,7 +567,7 @@ function activateCard(gRaw, memberId, cardId, targetId) {
 
   let ret;
   try {
-    ret = Core.activatePowerUp(b.core, m.id, cardId, { at: Date.now(), targetId: targetId || undefined });
+    ret = Core.activatePowerUp(b.core, m.id, cardId, { at: Date.now(), targetId: targetId || undefined, ...opts });
   } catch (e) {
     return { error: String(e.message || e) };
   }
@@ -528,10 +619,114 @@ function activateCard(gRaw, memberId, cardId, targetId) {
     pushEvent(g, { type: "card", memberId, battle: b.idx, text: `🤝 ${firstName(g, m)} ASSISTED ${tgt ? firstName(g, tgt) : "?"} — finish in window and you both score` });
   } else if (cardId === "shield_bash") {
     pushEvent(g, { type: "card", memberId, battle: b.idx, text: `🔨 ${firstName(g, m)} BASHED the Group Shield — protection shattered` });
+  } else if (cardId === "double_exercise") {
+    const ex = exerciseById(r.exerciseId);
+    result.exerciseId = r.exerciseId; result.exerciseName = ex ? ex.name : r.exerciseId; result.multiplier = r.multiplier;
+    pushEvent(g, { type: "card", memberId, battle: b.idx, text: `🏋️ ${firstName(g, m)} DOUBLED ${ex ? ex.name.toLowerCase() : "an exercise"} — their reps of it count ×2 today` });
+  } else if (cardId === "specialist") {
+    const names = (r.exercises || []).map((id) => { const e = exerciseById(id); return e ? e.name.toLowerCase() : id; });
+    result.exercises = r.exercises; result.exerciseNames = names; result.multiplier = r.multiplier;
+    pushEvent(g, { type: "card", memberId, battle: b.idx, text: `🎯 ${firstName(g, m)} is now a SPECIALIST — ${names.join(", ")} count ×1.5 today` });
+  } else if (cardId === "wildcard_workout") {
+    pushEvent(g, { type: "card", memberId, battle: b.idx, text: `🃏 ${firstName(g, m)} went WILDCARD — any exercise counts as any other for them today` });
+  } else if (cardId === "rivalry") {
+    const tgt = memberById(g, r.rivalId);
+    result.rivalName = tgt ? firstName(g, tgt) : "?"; result.bonusRuf = r.bonusRuf;
+    pushEvent(g, { type: "card", memberId, battle: b.idx, text: `⚔️ ${firstName(g, m)} called a RIVALRY on ${tgt ? firstName(g, tgt) : "?"} — more reps today takes +${r.bonusRuf}` });
+  } else if (cardId === "training_partners") {
+    const tgt = memberById(g, r.partnerId);
+    result.partnerName = tgt ? firstName(g, tgt) : "?"; result.bonusRufEach = r.bonusRufEach;
+    pushEvent(g, { type: "card", memberId, battle: b.idx, text: `🤜🤛 ${firstName(g, m)} and ${tgt ? firstName(g, tgt) : "?"} are TRAINING PARTNERS — both bank today and both pocket +${r.bonusRufEach}` });
+  } else if (cardId === "pack_bond") {
+    const names = (r.members || []).map((id) => { const mm = memberById(g, id); return mm ? firstName(g, mm) : id; });
+    pushEvent(g, { type: "card", memberId, battle: b.idx, text: `🐺 ${firstName(g, m)} bonded the pack — ${names.join(", ")}: log ${r.thresholdRuf}+ and bank +10%` });
+  } else if (cardId === "prove_it") {
+    const tgt = memberById(g, r.targetId);
+    result.targetName = tgt ? firstName(g, tgt) : "?"; result.proofId = r.proofId;
+    pushEvent(g, { type: "proof_request", memberId, battle: b.idx, proofId: r.proofId, text: `📋 ${firstName(g, m)} played PROVE IT on ${tgt ? firstName(g, tgt) : "?"} — their next set gets verified, honest effort pays THEM +${r.bonusRuf}` });
+  } else if (cardId === "spot_check") {
+    const tgt = memberById(g, r.targetId);
+    result.targetName = tgt ? firstName(g, tgt) : "?"; result.proofId = r.proofId; result.entryRuf = r.entryRuf;
+    pushEvent(g, { type: "proof_request", memberId, battle: b.idx, proofId: r.proofId, text: `🔍 SPOT CHECK on ${tgt ? firstName(g, tgt) : "?"}'s biggest set (${r.entryRuf} reps) — the crew accepts or contests` });
+  } else if (cardId === "second_wind") {
+    result.untilMs = r.until; result.multiplier = r.multiplier;
+    pushEvent(g, { type: "card", memberId, battle: b.idx, text: `💨 ${firstName(g, m)} caught a SECOND WIND — their reps count ×1.5 for 15 minutes` });
+  } else if (cardId === "mulligan") {
+    result.options = r.options; result.discarded = r.discarded;
+    pushEvent(g, { type: "card", memberId, battle: b.idx, text: `🔄 ${firstName(g, m)} took the MULLIGAN — hand scrapped, three fresh cards on the table` });
+  } else if (cardId === "underdog") {
+    result.multiplier = r.multiplier;
+    pushEvent(g, { type: "card", memberId, battle: b.idx, text: `🐕 ${firstName(g, m)} is the UNDERDOG — their reps count ×1.25 today. Comeback lane open.` });
   }
   syncBombMirror(g, b);
   save();
   return result;
+}
+
+/* ── the deal: pick / reroll (delegated: Core.draftPick / rerollDraft) ── */
+function pickDraft(gRaw, memberId, kind) {
+  const g = asGroup(gRaw);
+  if (!g) return { error: "no group" };
+  const s = curSeason(g); if (!s) return { error: "no active season" };
+  const b = curBattle(s); if (!b || !b.core) return { error: "no battle" };
+  const m = memberById(g, memberId); if (!m) return { error: "unknown member" };
+  const ret = Core.draftPick(b.core, m.id, kind);
+  if (!ret.result.ok) return { error: ret.result.reason };
+  b.core = ret.state;
+  const card = CARDS[kind] || { name: kind };
+  pushEvent(g, { type: "deal_pick", memberId, battle: b.idx, text: `🃏 ${firstName(g, m)} took ${card.name.toUpperCase()} (${ret.result.rarity}) from the deal` });
+  save();
+  return { ok: true, kind, name: card.name, rarity: ret.result.rarity, family: ret.result.family };
+}
+
+function rerollDeal(gRaw, memberId) {
+  const g = asGroup(gRaw);
+  if (!g) return { error: "no group" };
+  const s = curSeason(g); if (!s) return { error: "no active season" };
+  const b = curBattle(s); if (!b || !b.core) return { error: "no battle" };
+  const m = memberById(g, memberId); if (!m) return { error: "unknown member" };
+  const ret = Core.rerollDraft(b.core, m.id, { pool: stackPool(g) });
+  if (!ret.result.ok) return { error: ret.result.reason };
+  b.core = ret.state;
+  pushEvent(g, { type: "deal_reroll", memberId, battle: b.idx, text: `🔄 ${firstName(g, m)} rerolled the deal — ${ret.result.cost} points to the pot (pot: ${ret.result.pot})` });
+  save();
+  return { ok: true, cost: ret.result.cost, options: ret.result.options, balance: ret.result.balance, pot: ret.result.pot };
+}
+
+/* ── group review votes (Prove It / Spot Check) ────────────────────── */
+function voteProof(gRaw, proofId, voterId, vote) {
+  const g = asGroup(gRaw);
+  if (!g) return { error: "no group" };
+  const s = curSeason(g); if (!s) return { error: "no active season" };
+  const b = curBattle(s); if (!b || !b.core) return { error: "no battle" };
+  const ret = Core.voteProof(b.core, proofId, voterId, vote);
+  if (!ret.result.ok) return { error: ret.result.reason };
+  b.core = ret.state;
+  const voter = memberById(g, voterId);
+  if (ret.result.settled) {
+    const proof = Core.proofsOf(b.core).find((p) => p.id === proofId);
+    const tgt = proof ? memberById(g, proof.targetId) : null;
+    if (ret.result.outcome === "contested") {
+      pushEvent(g, { type: "proof_contested", battle: b.idx, text: `📋 the crew CONTESTED ${tgt ? firstName(g, tgt) : "the set"} — it scores 0, but the day still banks. Onward.` });
+    } else {
+      pushEvent(g, { type: "proof_accepted", battle: b.idx, text: `📋 the crew ACCEPTED ${tgt ? firstName(g, tgt) : "the set"} — reps stand. Trust is the game.` });
+    }
+  } else {
+    pushEvent(g, { type: "proof_vote", memberId: voterId, battle: b.idx, quiet: true, text: `📋 ${voter ? firstName(g, voter) : "?"} voted to ${vote} the set under review` });
+  }
+  save();
+  return { ok: true, ...ret.result };
+}
+
+/* ── e2e / driver affordances (same engine APIs the UI drives) ─────── */
+function debugGrant(gRaw, memberId, kind) {
+  const g = asGroup(gRaw);
+  if (!g) return { error: "no group" };
+  const s = curSeason(g); if (!s) return { error: "no active season" };
+  const b = curBattle(s); if (!b || !b.core) return { error: "no battle" };
+  try { b.core = Core.grantPowerUp(b.core, memberId, kind); } catch (e) { return { error: String(e.message || e) }; }
+  save();
+  return { ok: true };
 }
 
 /* mirror engine bomb states onto the UI/e2e-friendly shape */
@@ -566,11 +761,13 @@ function tick(gRaw) {
   for (const b of s.battles) {
     if (b.status !== "live" || !b.core) continue;
     if (b.frozenUntilMs && now < b.frozenUntilMs) continue; // frozen visual clock
-    // lazily resolve expired bombs so the UI reflects fizzles/hits
+    // lazily resolve expired bombs so the UI reflects fizzles/hits, and
+    // sweep expired card-stack state (past-deadline deals vanish)
     try {
       const nextCore = Core.resolveExpiredBombs(b.core, now);
-      if (nextCore !== b.core) {
-        b.core = nextCore;
+      const swept = Core.sweepExpiredCards(nextCore, now);
+      if (swept !== b.core) {
+        b.core = swept;
         syncBombMirror(g, b);
         changed = true;
       }
@@ -618,6 +815,17 @@ function resolveBattle(g, s, b) {
       if (m) m.streak = Math.max(0, m.streak); // streak survives (engine preserves)
       pushEvent(g, { type: "shield_used", memberId: id, battle: b.idx, text: `🛡️ the Group Shield held — ${m ? firstName(g, m) : "?"}'s streak survives the failed day` });
     }
+    // card-stack stat folds (recorded bonuses — deliberately NOT season
+    // points: those stay 1:1 with Daily Wins per the SOT; open question
+    // logged in the handover)
+    if (m && o.partnershipBonus) m.partnerBonuses = (m.partnerBonuses || 0) + 1;
+    if (m && o.rivalryWon) m.rivalryWins = (m.rivalryWins || 0) + 1;
+  }
+  // settled proofs read back for the recap
+  const proofEvents = Core.proofsOf(b.core).filter((p) => p.status === "contested");
+  for (const p of proofEvents) {
+    const tgt = memberById(g, p.targetId);
+    pushEvent(g, { type: "proof_contested", battle: b.idx, text: `📋 the crew CONTESTED ${tgt ? firstName(g, tgt) : "the set"} at the close — it scores 0, but the day still banks. Onward.` });
   }
   // fold the day into the engine season record (points + engine streaks)
   try {
@@ -847,8 +1055,23 @@ function snapshot(groupId) {
   const feed = g.events.slice().reverse().slice(0, 60);
   // transient: live inventory for the Power-Ups tab (engine day holds the truth)
   if (meM) meM.inventory = b && b.core ? Core.inventoryOf(b.core, meM.id) : (meM.inventory || []);
+  // the card system (v4.1): pending deal, hand, points/pot, open proofs
+  const myDraft = (meM && b && b.core && b.core.drafts && b.core.drafts[meM.id]) || null;
+  const openProofs = (b && b.core ? Core.proofsOf(b.core) : [])
+    .filter((p) => p.status === "review" || p.status === "awaiting_log")
+    .map((p) => ({
+      ...p,
+      targetName: (memberById(g, p.targetId) || { name: "?" }).name.split(" ")[0],
+      fromName: (memberById(g, p.fromId) || { name: "?" }).name.split(" ")[0],
+      accepts: Object.values(p.votes || {}).filter((v) => v === "accept").length,
+      contests: Object.values(p.votes || {}).filter((v) => v === "contest").length,
+      myVote: meM ? ((p.votes || {})[meM.id] || null) : null,
+      iAmTarget: !!(meM && p.targetId === meM.id),
+    }));
   return { group: g, season: s, battle: b, me: meM, board, myRow, clock, danger, closeCall, streakAtRisk, teams, feed,
-    stakeLabel: stakeLabel(g.stake), exerciseList: g.exerciseIds.map(exerciseById).filter(Boolean) };
+    stakeLabel: stakeLabel(g.stake), exerciseList: g.exerciseIds.map(exerciseById).filter(Boolean),
+    myDraft, points: b && b.core ? Core.pointsOf(b.core, meM ? meM.id : "") : Core.STARTING_POINTS,
+    pot: b && b.core ? Core.potTotal(b.core) : 0, openProofs };
 }
 
 /* ── demo seeder — a live mid-battle, instantly (v1's demo crew pattern).
@@ -872,20 +1095,23 @@ function seedDemo() {
     activeDays: [1, 2, 3, 4, 5], target: 200,
     clockMode: "duration", durationMin: 60,   // a live hour, not a 1-minute sprint
     stake: { type: "charity", perPersonCents: 1000, feePct: 5 },
-    powerUps: { lightning: true, steal: true, shield: true, freeze: true, surprise_bomb: true, rescue_rope: true, combo_boost: false, double_down: false, assist_boost: false, shield_bash: false },
+    // the full stack is on in the demo — the deal decides what you hold
     housePlayers: [
       { name: "Marco", tier: "casual" }, { name: "Priya", tier: "fit" }, { name: "Jack", tier: "couch" },
     ],
   });
   g.isDemo = true;
-  startSeason(g);                                   // battle 1 live, founder pack dealt
+  startSeason(g);                                   // battle 1 live, the deal is on the table
   const byName = (n) => g.members.find((m) => m.name === n);
   logReps(g.id, byName("Marco").id, "pushups", 48); // casual ×1.25 → 60 reps
   logReps(g.id, byName("Priya").id, "burpees", 22); // fit ×1.0 → 44 reps
   logReps(g.id, byName("Jack").id, "squats", 40);   // couch ×1.5 → 60 reps
   // Marco throws his Surprise Bomb at me — 10-minute fuse, defusable
-  try { activateCard(g.id, byName("Marco").id, "surprise_bomb", state.me.id); } catch (e) { /* demo spice, best-effort */ }
-  pushEvent(g, { type: "group_created", memberId: state.me.id, text: "Demo battle seeded — the house crew is already moving. Your stack is on the Cards tab." });
+  try {
+    debugGrant(g.id, byName("Marco").id, "surprise_bomb");
+    activateCard(g.id, byName("Marco").id, "surprise_bomb", state.me.id);
+  } catch (e) { /* demo spice, best-effort */ }
+  pushEvent(g, { type: "group_created", memberId: state.me.id, text: "Demo battle seeded — the crew is already moving. Your deal is on the Cards tab." });
   save();
   return g;
 }
@@ -916,12 +1142,15 @@ const SoT = {
   load, save, setMe, subscribe(fn) { listeners.add(fn); return () => listeners.delete(fn); },
   createGroup, startSeason, startNextSeason, joinByCode, agreeStake,
   snapshot, logReps, undoLast, activateCard, tick, seedDemo,
+  pickDraft, rerollDeal, voteProof, debugGrant,
   resolveCharity, markObligationFulfilled, react,
   resetProfile, resetAll,
   curSeasonOf: curSeason, curBattleOf: curBattle,
   totalsFor, dayTargetFor, tierOf, exerciseById, stakeLabel,
   // page-driver API (the e2e + any future server drive OTHER players through this)
-  logRepsAs(groupId, memberId, exerciseId, physical) { return logReps(groupId, memberId, exerciseId, physical); },
+  logRepsAs(groupId, memberId, exerciseId, physical, verified) { return logReps(groupId, memberId, exerciseId, physical, verified ? { verified: true } : {}); },
+  pickDraftAs(groupId, memberId, kind) { return pickDraft(groupId, memberId, kind); },
+  voteProofAs(groupId, proofId, voterId, vote) { return voteProof(groupId, proofId, voterId, vote); },
   groupByCode(code) { return Object.values(state.groups).find((x) => x.code === String(code).trim().toUpperCase()) || null; },
 };
 window.RWFSoT = SoT;
