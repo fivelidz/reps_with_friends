@@ -11,3 +11,5 @@ export * from "./digest.ts";
 export * from "./api-sync.ts";
 export * from "./transports/chat-transport.ts";
 export * from "./transports/beeper.ts";
+export { WeComTransport } from "./transports/wecom.ts";
+export type { WeComOptions } from "./transports/wecom.ts";

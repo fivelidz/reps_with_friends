@@ -199,3 +199,25 @@ unofficial rails stay friends-only, disposable, never the product.
 - Mini Program docs: https://developers.weixin.qq.com/miniprogram/dev/framework/
 - wechaty repo + puppet-provider status: https://github.com/wechaty/wechaty · https://wechaty.js.org/docs/puppet-providers/ (fetched 2026-09-07; table last updated Dec 2025)
 - Context: docs/18_MESSAGING_PLATFORMS.md (WhatsApp Groups API reality), docs/21 (Beeper/Matrix), agents/05-concierge (corporate lane)
+
+---
+
+## UPDATE 7 Sep — OUTBOUND BUILT (founder approved "outbound would be fine")
+
+`WeComTransport` is live in bot-core (`packages/bot-core/src/transports/wecom.ts`,
+6 tests): the group-robot webhook POST — markdown cards, errcode-aware, local
+18/min rate guard under the platform's 20/min cap, 4096-byte truncation,
+probe-based health. One robot = one group = one key; no inbound, no session,
+nothing to review.
+
+**To activate a real WeCom group:** in WeCom, group settings → 群机器人 → add
+→ copy the webhook URL → the `key` query param is the config. Then:
+
+```ts
+import { WeComTransport } from "@rwf/bot-core";
+const wecom = new WeComTransport({ key: process.env.WECOM_KEY });
+await wecom.send(standingsCard);  // broadcasts to that group
+```
+
+Broadcast-only by design: WeCom groups receive Daily Win moments, standings
+and recaps; logging stays in the hero app (the SOT dual-surface rule).
