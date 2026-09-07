@@ -156,6 +156,13 @@ done
 cp site/models/geno_npz_*.json deploy/public/models/
 cp site/models/meshy/manifest.json deploy/public/models/meshy/
 cp site/models/*.js deploy/public/site/models/
+# The atelier + model-avatars import garment/head modules from /models/ —
+# serve.ts maps /models/ -> site/models/ locally, but Pages needs them at that
+# exact path too, or its HTML fallthrough serves index.html as JS and the
+# viewport goes blank (the live /atelier bug, 4 Sep).
+for m in frog-heads.js geno-derived.js geno-outfit.js geno-wardrobe.js geno-cloth.js model-recolor.js; do
+  cp "site/models/$m" deploy/public/models/ 2>/dev/null || true
+done
 cp site/avatar-styles/*.js deploy/public/site/avatar-styles/
 
 # ── photo booth (selfie → stylised bust; the /booth link) ──────────────
