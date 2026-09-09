@@ -1,0 +1,7 @@
+... IN_PROGRESS 35%
+... IN_PROGRESS 70%
+... IN_PROGRESS 70%
+TERMINAL SUCCEEDED credits: 10
+{"id": "01a08348-ed48-755f-a7b2-bea929efacab", "status": "SUCCEEDED", "consumed_credits": 10, "task_error": null}
+GLB: https://assets.meshy.ai/8d4320d1-3e6b-4ae6-a775-7c5db5a7f36c/tasks/01a08348-ed48-755f-a7b2-bea929efacab/output/model.glb?Expires=4942425600&Signature=CieEcRNvlCVnkrViCaO7tyYJbSadynGpCMU48001dMWZrmUxdKPNEd3bt8OsLevNPWZaSnRgKJeQTFb36QNHFRy46017hXWAmD5q8I1sxxj8CVp8-WdhoQsAXXt6pP~t0uOZfJkxX0Gq8G~e3Wsiw7NTvRk0H7io9G9tSUaVPnlWX-Y3qPwh6C6i~fhkupjTtKUhQRkf~~j3B4YMLzMqLaGH1tLSDkWMdmtJysSj07qZDuIHJq2ADV9HmktCcS6SdeL76BRvcqR4Ed4L1z97cuFLeB5lzzKMBlcK01lJm8P74PGhzHl3Q2nCHxfijmVLXi~7HqLa483Z6I0JHZd1Jg__&Key-Pair-Id=K1VGYTHIYLM9UM
+THUMB: https://assets.meshy.ai/8d4320d1-3e6b-4ae6-a775-7c5db5a7f36c/tasks/01a08348-ed48-755f-a7b2-bea929efacab/output/preview.png?Expires=4942425600&Signature=ENGL2eX98XJYHcS6PJfjxMgFPWD3dIzp2TVZOL8lfTU6mQafTx3ZZBldRlEZQSI23erwFtSW6EijEB3nQquU0I0iTGjsWGwkWzg5jEU0EfNTHErEfkb~vl533SDJ1pqzlhxnNeK2Y0Ft4kos3dyjWu5wfhGBlBT0L50KliqD~408G02ZTsGFB2jZhtwY9UY0P60c6wo1eLm7Lu5gHdDItSmE4l1vrOQUUaiwkQgqk-jWTDh8MMjCiN6S-puCtUGT-NmVCFO2qWo~0oMxi6HzJ9XpC6BLhmDF0bR6-G4gAf8nTrVzgbl4NLsKzudSOWbvntyyfF178v-knWtEONH2TA__&Key-Pair-Id=K1VGYTHIYLM9UM

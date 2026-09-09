@@ -1,0 +1,34 @@
+{
+ "id": "01a0835d-e997-740e-b56d-c3002a7e209b",
+ "type": "text-to-3d-refine",
+ "mode": "refine",
+ "name": "",
+ "model_type": "standard",
+ "seed": 2916578651,
+ "art_style": "realistic",
+ "texture_richness": "high",
+ "prompt": "small stylized arena podium for a fitness game: low circular training stage with two steps, subtle neon rim light strip around the edge, dark rubber floor texture, clean simple game environment asset, no characters, no text, centred composition",
+ "negative_prompt": "",
+ "texture_prompt": "",
+ "texture_image_url": "",
+ "status": "SUCCEEDED",
+ "created_at": 1788910365093,
+ "progress": 100,
+ "started_at": 1788910365098,
+ "finished_at": 1788910416410,
+ "task_error": null,
+ "model_urls": {
+  "glb": "https://assets.meshy.ai/8d4320d1-3e6b-4ae6-a775-7c5db5a7f36c/tasks/01a0835d-e997-740e-b56d-c3002a7e209b/output/model.glb?Expires=4942425600&Signature=UmlAri8SnUJU3Of1oSdXuaCjD9emiOpAin4pqmjvdHsliYaHWHXoCapBu6T8wVOwT4-qwUqKXik5S1-QZtSYxU8MVkTePTcv5a~DaUaTVdJt7pHekFXHQNi6VxBgphQwXEJRhLCy1LKZKlMlr3PVYR~IhnGmXn7hRdrDLO71sBXJjYuSmf37d2ZenuMGroMw1A2Ewfe1U0bYKdd3SOXgkTHyZnnjpZIsLHdEsnb7K4jHA7Xbw2MF6YRPipMeMpJ75YB96zBtJvBG~w2aTpWbYJCpFUKErnUGKkSV73x5GgycEnPTOn98cCGOcoWIH6fjP1q1f1RkZnaQKjJrnotU~g__&Key-Pair-Id=K1VGYTHIYLM9UM"
+ },
+ "thumbnail_url": "https://assets.meshy.ai/8d4320d1-3e6b-4ae6-a775-7c5db5a7f36c/tasks/01a0835d-e997-740e-b56d-c3002a7e209b/output/preview.png?Expires=4942425600&Signature=VVJj9hGf-NhapDVYczTkJ6sGv27EvWL47afPRfEz-He4XMUuy1LDShgc487MqsAcDwOIqJusxorDD1azL1rvZY77YNEbn0A3Ix2DNNKdHfDyYvLmpxqds9yjE~GMn3fLXFflEBRRX4LE~rjs6HgyMXvnRsmJqlAS2tKOlQFZ7IIlBbnEbL96BYxYzd0MSwn2ktW1gf6YrZXaDjjsMGGgxfBWYh2Z~JUSO4Y4SeCNfYSDpJaHqgaegYqZRPK2FRkfmr~O-EcUwrUH3i~yrr15nRzmrYfYUDuACGqt6qgi6iHdBYk-cVOhQvdN~OwOFtGkSmAqG9R9kNuWIzZLnpYKNQ__&Key-Pair-Id=K1VGYTHIYLM9UM",
+ "video_url": "",
+ "texture_urls": [
+  {
+   "base_color": "https://assets.meshy.ai/8d4320d1-3e6b-4ae6-a775-7c5db5a7f36c/tasks/01a0835d-e997-740e-b56d-c3002a7e209b/output/texture_0.png?Expires=4942425600&Signature=DGf5Wilr0iZxhdjFu5BSaJM2gq-SvVEp06eakyZWD71LO~wAREdPP1aXOPJPe7v0fxKruDgv7GUA7qHMuUUclcGYIC92-awS9t~rLEmB0~L~l6Q3ihsYoDthEocUnb0OnpaFI77nTFjidELi72tqzjDDcJIh-UGGDg6PXcwf2xfc6WN3QHDwVlBgs7ut4No7k-nq3QadmWKYF20qIP-Z3~ZxJCPrNPIKW3s~g0YuXgDu177LMJAzwbMPQUCSwrijnTJkxldKUDwS1kamNeJdt02UahL9WtjvMejcZrsvMavuZRzYfBA-fJqFEK5Eid~MU81J7cgZiKW7kLKx~bwofA__&Key-Pair-Id=K1VGYTHIYLM9UM",
+   "metallic": "https://assets.meshy.ai/8d4320d1-3e6b-4ae6-a775-7c5db5a7f36c/tasks/01a0835d-e997-740e-b56d-c3002a7e209b/output/texture_0_metallic.png?Expires=4942425600&Signature=LllkdqxXNSFQfxhs4dJ5g1lk8aSskYzbAIVClzPx6QCQuNQE6rahYpMlGsq0SvGJe9q5zMY45sfkqxqQn8CfA4Qw3YL2~NWDdjnUM5UrmIwbKEqoeDHFW3-C23RuH8lG-YwcPlytkuaSy-t~6OSYit-GNP4Bo6lajIMhn25QGXYjbAiTRK9Uq6OH4uuCoA0I2U6XbPnqnnPjDkbnypQZv---6zzXZXmqu6Dv5qWxpd2kYcw7Q~ISDOJoqnbgAnpLJmA6cKQi48PVKZATjD6j0u1TaIwnEQQ-rFJXO7Lo~9paM~t5l3tR8JQCIw~AoskWOiS8L7xXvJDdlSTF7MYxEg__&Key-Pair-Id=K1VGYTHIYLM9UM",
+   "roughness": "https://assets.meshy.ai/8d4320d1-3e6b-4ae6-a775-7c5db5a7f36c/tasks/01a0835d-e997-740e-b56d-c3002a7e209b/output/texture_0_roughness.png?Expires=4942425600&Signature=lOP5xtoH~o7pBI61z8NPkpPaliO1MAtJZlWN-aXl9IDcezjSlozlvIkDI890yrOJ75E4cNFo0zr~X00JpVylI2HqbX5baQOs2hbRzRYCiIaUfTdIT1yHVR1LCr0PetIzIj1wuxSy7WKuGOzVJbk8mVRXwTQcyD7BKdu-WGg-vX9vGWZyOnwFa0W078QttUaCVjkuL-vxCXUVtXGmQNM2VzlzCkvRGtV~6KIJlO-caqmRrESAxHybynPXuTPHBdH90oGY9i2OajCOZ8~iiIFaNd9SOgdQiCawB0L2MCx7A9SwVJmfOO3Dz2P18fAvJrbaoQiIjfYmubzjCgxqHAeE0g__&Key-Pair-Id=K1VGYTHIYLM9UM",
+   "normal": "https://assets.meshy.ai/8d4320d1-3e6b-4ae6-a775-7c5db5a7f36c/tasks/01a0835d-e997-740e-b56d-c3002a7e209b/output/texture_0_normal.png?Expires=4942425600&Signature=VIJvLHcs5VOTbNMrJFjNSJIK5h2sY40YXsanpcAznZR6YceY462p7tTBHLOY2Uyi1EXI-y8EKIURonFZXq0G3ATwXyLn5nTfGKYCsL5zvPW3NsvFYoCzygn-H-pX-Ix2NykV0WdF8MpDzGx9H1RaFD9F-Exjqk2M2MIOvfewWLXGg8Irzd5vFwLtPOJkyj9TRipnACIpsl9Q88EM8~vlpzSVmOJK7BR-HwfH9NcFLqYWN5eZtOYduCc7~2G-mKdtreWkEttijHgPuGHelpi5dyqJj6tbnAkEUHF-ZllxvG8HcDAPG1pLNeQ5mB3uyqNXdbPwBrZQfmRk2RDWtrzCgg__&Key-Pair-Id=K1VGYTHIYLM9UM"
+  }
+ ],
+ "consumed_credits": 10
+}

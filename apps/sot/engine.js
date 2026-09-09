@@ -141,14 +141,31 @@ let state = null;
 const listeners = new Set();
 function emit() { for (const fn of listeners) { try { fn(state); } catch (e) { console.warn("SoT listener", e); } } }
 
+function blankState() { return { v: 1, onboarded: false, me: null, groups: {}, activeGroupId: null }; }
 function load() {
-  try { state = JSON.parse(localStorage.getItem(STORE_KEY) || "null"); } catch { state = null; }
-  if (!state || state.v !== 1) state = { v: 1, onboarded: false, me: null, groups: {}, activeGroupId: null };
+  try { state = JSON.parse(localStorage.getItem(storeKey) || "null"); } catch { state = null; }
+  if (!state || state.v !== 1) state = blankState();
   return state;
 }
 function save() {
-  try { localStorage.setItem(STORE_KEY, JSON.stringify(state)); } catch (e) { console.warn("SoT save failed", e); }
+  try { localStorage.setItem(storeKey, JSON.stringify(state)); } catch (e) { console.warn("SoT save failed", e); }
   emit();
+}
+
+/* ── shadow state (the guided demo's safety net, v1 demo-driver pattern) ──
+   useKey(DEMO_KEY) swaps persistence to a throwaway key so the demo can
+   seed a full live battle WITHOUT touching the real save; useKey(null)
+   returns to the real key (exitDemo restores the snapshot itself). */
+let storeKey = STORE_KEY;
+function useKey(key) {
+  const next = key || STORE_KEY;
+  if (next === storeKey) { emit(); return state; }
+  try { if (state) localStorage.setItem(storeKey, JSON.stringify(state)); } catch (e) { /* best-effort */ }
+  storeKey = next;
+  try { state = JSON.parse(localStorage.getItem(storeKey) || "null"); } catch { state = null; }
+  if (!state || state.v !== 1) state = blankState();
+  emit();
+  return state;
 }
 
 const uid = (p) => p + "_" + Math.random().toString(36).slice(2, 9);
@@ -1137,6 +1154,8 @@ function resetAll() {
 load();
 const SoT = {
   TIERS, EXERCISES, CARDS, CHARITIES, DAY_NAMES, COLORS,
+  REAL_KEY: STORE_KEY, DEMO_KEY: "rwf.sot.demo.v1",
+  useKey, blankState,
   get state() { return state; },
   get engine() { return Core; },
   load, save, setMe, subscribe(fn) { listeners.add(fn); return () => listeners.delete(fn); },

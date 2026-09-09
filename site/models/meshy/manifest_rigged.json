@@ -1,0 +1,74 @@
+{
+  "experiment": "Meshy.ai commercial-safe rigged characters — closing the Geno licence gap",
+  "date": "2026-09-08/09",
+  "mission": "Founder: meshy subscription + 'the Geno MESH is research-only' (docs/20 §6). Generate stylized athletic characters, auto-rig to mixamo, verify our mocap clips play by world-position deltas, put them on /avatars as the commercial-safe base.",
+  "balance_before": 1920,
+  "balance_after": 1785,
+  "credits_spent_total": 135,
+  "session_cap": "~150 (per brief) — 135 used: 4 previews ×20 + 4 refines ×10 + 3 rigs ×5",
+  "api": "https://api.meshy.ai/openapi/v2 (text-to-3d) + /openapi/v1 (rigging, balance). Harness: meshy.py (reused from the 08-31 frog experiment).",
+  "api_notes": [
+    "art_style is DEPRECATED (docs.meshy.ai): only realistic/sculpture, ignored by Meshy-6+. 'Stylized' was therefore carried in the PROMPT wording, not art_style.",
+    "pose_mode 't-pose' works; should_remesh:true + target_polycount:100000 bakes the remesh into the preview (rig needs ≤320k faces) — one step fewer than the 08-31 pipeline (which needed a separate /v1/remesh call).",
+    "Rig output: standard mixamo skeleton + basic walk/run GLBs (basic_animations) — same shape as the frog run."
+  ],
+  "generations": {
+    "athlete_primary": {
+      "task_ids": { "preview": "01a08345-6549-74f0-8ba2-9bf2de5760b1", "refine": "01a08348-ed48-755f-a7b2-bea929efacab", "rig": "01a0834d-7e2a-725c-b47f-9135ddc9f18f" },
+      "prompt": "athletic game character, full body T-pose, neutral sportswear, clean topology. Stylized video game character asset: athletic humanoid with balanced proportioned muscles, plain grey training t-shirt, dark neutral shorts, simple trainers, neutral confident stance, arms straight out in a T pose, clean smooth game-ready shapes, clean silhouette, full body visible",
+      "params": "ai_model=latest, pose_mode=t-pose, should_remesh=true, target_polycount=100000, target_formats=[glb], alpha_thumbnail=true",
+      "credits": "20 preview + 10 refine + 5 rig = 35",
+      "installed": "../meshy_rigged_01.glb (12.4 MB, rename_bones.py: Spine01→Spine1, Spine02→Spine2, neck→Neck; 22/22 logical bones resolve)",
+      "verification": {
+        "walk": "22/22 joint pairs; two-frame world-position deltas t=0→0.5s max 0.158 m, t=0→1.0s max 0.206 m; 0 NaN; minY 0.09 (above ground)",
+        "run": "22/22; max delta 0.372 m @0.5s; 0 NaN",
+        "squat_pose": "phase 0.1→0.85: hips −4.4 cm, hands ±5 cm, feet 0 (planted); 0 NaN",
+        "card": "/avatars card 19 ok:true, BVH walk playing (page-truth via __rwfModels), shots/meshy_athlete_card_meshy2.png"
+      }
+    },
+    "heavy_build": {
+      "task_ids": { "preview": "01a08349-14af-76f6-83db-188058651508", "refine": "01a0834d-4c8c-707a-ab83-b84782747c4f", "rig": "01a0835b-25b0-7062-b9a1-a6d9a9171f6e" },
+      "prompt": "heavy strongman game character, big powerful bulk build, full body T-pose, neutral sportswear, clean topology. Stylized video game character asset: thick-set heavyweight humanoid, broad shoulders and barrel chest, plain tank top, dark shorts, simple trainers, neutral stance, arms out in a T pose, clean smooth game-ready shapes, clean silhouette, full body visible",
+      "credits": "35",
+      "installed": "../meshy_rigged_02.glb (11.8 MB, renamed 3 nodes)",
+      "verification": { "walk": "max delta 0.184 m; 0 NaN", "run": "max 0.420 m; 0 NaN", "squat_pose": "hips −34.8 cm, feet 0 (planted)", "card": "card 20 ok:true, BVH playing" }
+    },
+    "slim_build": {
+      "task_ids": { "preview": "01a08349-2685-75c3-b639-88367f7fcd7f", "refine": "01a0834d-5a7b-76a1-933f-33b986208247", "rig": "01a0835b-42c9-7774-ae46-ee2ea2151342" },
+      "prompt": "slim lean runner game character, wiry lightweight build, full body T-pose, neutral sportswear, clean topology. Stylized video game character asset: tall slender humanoid, narrow shoulders, long limbs, plain fitted training top, dark shorts, simple racing shoes, neutral stance, arms out in a T pose, clean smooth game-ready shapes, clean silhouette, full body visible",
+      "credits": "35",
+      "installed": "../meshy_rigged_03.glb (12.0 MB, renamed 3 nodes)",
+      "verification": { "walk": "max delta 0.195 m; 0 NaN", "run": "max 0.358 m; 0 NaN", "squat_pose": "hips −34.8 cm, feet 0 (planted)", "card": "card 21 ok:true, BVH playing" }
+    },
+    "arena_podium": {
+      "task_ids": { "preview": "01a0835b-52e2-7270-ae1c-4d6c3f3acac5", "refine": "01a0835d-e997-740e-b56d-c3002a7e209b" },
+      "prompt": "small stylized arena podium for a fitness game: low circular training stage with two steps, subtle neon rim light strip around the edge, dark rubber floor texture, clean simple game environment asset, no characters, no text, centred composition",
+      "params": "ai_model=latest, should_remesh=true, target_polycount=30000 (environment — no rig)",
+      "credits": "30",
+      "installed": "../meshy_podium.glb (5.6 MB) — MODELS card id meshy-arena (creature:true, display-only)"
+    }
+  },
+  "integration": {
+    "models_registry": "site/model-avatars.js MODELS: meshy-athlete / meshy-heavy / meshy-slim (rig mixamo, bvh mocap list, bvhAuto walk — same card treatment as meshy-frog; cards + lazy WebGL contexts are built automatically by apps/avatars/avatars.js) + meshy-arena.",
+    "atelier_note_card": "apps/atelier/index.html story panel (.story-note): 'Commercial-safe base — replaces research-licensed Geno' with links to /avatars + this manifest.",
+    "retargeter": "site/model-avatars.js BVHPlayer is name-based; the three characters needed exactly the standard Meshy rename (rename_bones.py) — no other mapping."
+  },
+  "regression_fix": {
+    "what": "rename_bones.py wrote the GLB JSON chunk with chunkLength = raw bytes and placed the 0x20 alignment padding AFTER the declared chunk. three.js walks chunks strictly sequentially (skip 8+chunkLength), so the BIN header was read 1–3 bytes early, body stayed null, and EVERY load rejected with \"Cannot read properties of null (reading 'slice')\".",
+    "impact": "site/models/meshy_frog_full.glb was corrupt the same way since 2026-08-31 — the /avatars 'Frog — meshy.ai rigged' card has been silently BLANK since the last session (loadModel promise rejects; the card builder has no catch). The 08-31 manifest's 'card renders + poses' claim predates the rename install or was taken from a cached pre-rename build — this session re-verified from scratch.",
+    "fix": "padding is now INSIDE the declared chunkLength (+ 4-alignment assert). Original script archived at meshy/archive/rename_bones_pre_fix_20260908.py. meshy_frog_full.glb regenerated from the untouched A_rigged.glb.",
+    "post_fix_proof": "browser load ok:true for frog + all three new characters; frog card ok:true with BVH walk playing (bvhT 0.82); /avatars + /atelier console errors = 0."
+  },
+  "evidence": {
+    "cards": "apps/avatars/screenshots/meshy_{athlete,heavy,slim,frog,arena}_card_meshy2.png (page-space clips, geno_shot.ts pattern)",
+    "story": "apps/atelier/shots/atelier_story_{collapsed,open_top,gens,instruments_mocap,note}.png",
+    "harnesses": ["apps/avatars/test/meshy2_verify.ts (two-frame world-position deltas per clip + NaN gate + pose phases)", "apps/avatars/test/meshy2_shots.ts (card inventory via __rwfModels + shots + console watch)", "apps/atelier/test/story_shots.ts"]
+  },
+  "notes": [
+    "Rigged GLBs carry Meshy's own walk/run ('Armature|clip0|baselayer') — unused; our BVH/JSON mocap retargets by joint name onto the mixamo skeleton.",
+    "Characters are textured, NOT tinted (real PBR, like the frog) — no palette treatment.",
+    "Heavyweight/sprinter ship with 8-clip mocap lists (walk/run/idle/demo_walk/sprint/swagger/agree/sad) — the full 16-clip Geno list can be added per card later; exercise poses ride ModelAvatar.pose for every mixamo card already ('exercise' button).",
+    "Console: 0 errors on /avatars and /atelier after the fix (CDP Runtime.consoleAPICalled + Log.entryAdded + exceptionThrown capture).",
+    "Meshy asset retention: task outputs expire (signed URLs) — local GLBs in site/models/ are canonical now."
+  ]
+}

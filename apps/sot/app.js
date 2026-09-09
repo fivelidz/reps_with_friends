@@ -217,6 +217,8 @@
       case "start": appEl.append(scrStart()); break;
       case "join": appEl.append(scrJoin()); break;
       case "create": appEl.append(scrCreate()); break;
+      case "howitworks": appEl.append(scrHowItWorks()); break;
+      case "cardsheet": appEl.append(scrCardSheet()); break;
       default:
         if (!st.onboarded || !st.me || !st.me.name) { App.view = "welcome"; return render(); }
         if (!st.activeGroupId || !st.groups[st.activeGroupId]) { App.view = "start"; return render(); }
@@ -240,7 +242,11 @@
       ),
       el("div", { style: "position:absolute;bottom:34px;left:16px;right:16px" },
         el("button", { class: "btn", onclick: () => { sfx("primary"); App.explainIdx = 0; go("explain"); } }, "Let's go"),
-        el("button", { class: "btn ghost", style: "margin-top:10px", onclick: () => { sfx("deal"); jumpToDemo(); } }, "⚡ Jump into a live demo battle"),
+        el("button", { class: "btn ghost", style: "margin-top:10px", id: "tut-watch", onclick: () => { sfx("deal"); if (window.RWFTutorial) window.RWFTutorial.startDemo(); } }, `▶ Watch how it works — ${window.RWFTutorial ? Math.round(window.RWFTutorial.scriptTotal1xMs / 1000 / 5) * 5 : 90} seconds`),
+        el("div", { class: "btn-row", style: "margin-top:10px" },
+          el("button", { class: "btn ghost sm", style: "flex:1", id: "tut-howto", onclick: () => { sfx("tap"); go("howitworks"); } }, "📖 How it works"),
+          el("button", { class: "btn ghost sm", style: "flex:1", id: "tut-cards", onclick: () => { sfx("tap"); go("cardsheet"); } }, "🃏 The card sheet")),
+        el("button", { class: "btn ghost sm", style: "margin-top:10px", onclick: () => { sfx("deal"); jumpToDemo(); } }, "⚡ Jump into a live demo battle"),
         el("p", { class: "tiny", style: "text-align:center;margin-top:12px" }, "V4 · Source of Truth build · local demo")));
   }
 
@@ -1299,7 +1305,8 @@
     const cap = SoT.engine.HAND_CAP;
     const scr = el("div", { class: "screen on" },
       el("h1", { class: "display", style: "font-size:30px" }, "THE STACK"),
-      el("p", { class: "sub" }, `Each battle day opens with a deal — three face-down, pick one. Halfway earns a bonus deal. Hold up to ${cap}.`));
+      el("p", { class: "sub" }, `Each battle day opens with a deal — three face-down, pick one. Halfway earns a bonus deal. Hold up to ${cap}.`),
+      el("button", { class: "btn ghost sm", style: "width:100%;margin:-4px 0 12px", id: "tut-cardsheet-link", onclick: () => { sfx("tap"); go("cardsheet"); } }, "📖 The full card sheet — all 21 cards →"));
     if (snap.myDraft) {
       scr.append(el("div", { class: "card gold tight", style: "cursor:pointer", id: "deal-waiting", onclick: () => { sfx("deal"); App.overlay = { kind: "deal" }; render(); } },
         el("div", { style: "display:flex;align-items:center;gap:10px" },
@@ -1351,6 +1358,164 @@
   }
   function cardIcon(id) { const c = SoT.CARDS[id]; return (c && c.icon) || { lightning: "⚡", steal: "🥷", shield: "🛡️", freeze: "❄️", surprise_bomb: "💣", rescue_rope: "🪢", combo_boost: "🔥", double_down: "🎲", assist_boost: "🤝", shield_bash: "🔨" }[id] || "🃏"; }
 
+  /* ══ HOW IT WORKS (the one-scroll spec overview) ═══════════════════
+     Phone-first visual tour of the Source of Truth: the loop as a styled
+     diagram · the handicap with worked numbers · the four stakes · modes
+     + the dual-surface rule. Two-to-three sentences + one visual each,
+     all in "reps" language. Lives at App.view "howitworks" — reached from
+     the welcome screen and Profile. */
+  const FAMILIES = [
+    { id: "canon", label: "Launch Four", ico: "⚔️", blurb: "SOT canon — the cards the spec launches with." },
+    { id: "post-launch", label: "Post-Launch", ico: "🚀", blurb: "Specced in the same breath — bombs, ropes, boosts." },
+    { id: "exercise", label: "Exercise", ico: "🏋️", blurb: "Making an exercise worth more — the founder's own lane." },
+    { id: "rivalry", label: "Rivalry", ico: "🤜", blurb: "Making a relationship worth more — rivals and mates." },
+    { id: "proof", label: "Proof", ico: "📋", blurb: "Integrity cards — trust is the game (SOT §2.11)." },
+    { id: "catch-up", label: "Catch-Up", ico: "💨", blurb: "The comeback lane — never shame, always a route back." },
+  ];
+  function tutBack() {
+    const st = SoT.state;
+    if (st.onboarded && st.me && st.activeGroupId && st.groups[st.activeGroupId]) { App.tab = "profile"; App.seasonView = false; go("app"); }
+    else go("welcome");
+  }
+  function tutTopbar(title) {
+    return el("div", { class: "topbar" },
+      el("button", { class: "icon-btn", title: "Back", onclick: () => { sfx("tap"); tutBack(); } }, "←"),
+      el("div", { style: "flex:1;min-width:0" },
+        el("div", { class: "g-name" }, title),
+        el("div", { class: "g-sub" }, "the source-of-truth walkthrough")),
+      el("div", { class: "avatar sm", style: "background:var(--gold-dim)" }, "📖"));
+  }
+  function scrHowItWorks() {
+    const E = SoT.engine;
+    const target = E.DEFAULT_DAILY_TARGET_RUF;
+    const adjusted = (m) => E.dailyTargetAdjusted(target, m);
+    // THE LOOP — the daily→weekly cycle as a styled vertical diagram
+    const LOOP = [
+      { ico: "🏋️", t: "LOG REPS", s: "Any mix, any time before the clock — the log is one thumb, three taps." },
+      { ico: "⚔️", t: "DAILY BATTLE — " + target + " ADJUSTED", s: "Each battle day the crew races the same " + target + "-adjusted target. Handicap-set, not fitness-set." },
+      { ico: "👑", t: "FIRST TO TARGET = DAILY WIN", s: "The first player across takes the Daily Win — one season point, crown on the board." },
+      { ico: "✅", t: "EVERYONE ELSE BANKS THE DAY", s: "The battle keeps going: finish the target later and the day BANKS — streak safe, history kept." },
+      { ico: "🏁", t: "WINS STACK INTO THE WEEK", s: "One week, one standings board. Banked days keep your streak alive; only wins score points." },
+      { ico: "⚖️", t: "THE STAKE SETTLES AT SEASON END", s: "Terms are locked before the season — nothing is owed until the final day is played out." },
+      { ico: "🧬", t: "YOUR REPS BECOME YOUR NAME", s: "Streaks, wins and lifetime reps — the leaderboard remembers what the couch never could." },
+    ];
+    const scr = el("div", { class: "screen on", id: "howitworks" },
+      tutTopbar("HOW IT WORKS"),
+      el("p", { class: "sub", style: "margin-top:2px" }, "The whole game on one scroll — what a rep is worth, what a day is, and what a week decides."));
+    // 1 · THE LOOP
+    scr.append(el("h3", { class: "row" }, "1 · THE LOOP"));
+    scr.append(el("div", { class: "card gold" },
+      el("div", { class: "tut-loop", id: "tut-loop" }, LOOP.map((n, i) =>
+        el("div", { class: "tut-loop__node" + (i === 2 ? " hot" : "") },
+          el("div", { class: "tut-loop__ico" }, n.ico),
+          el("div", { class: "tut-loop__body" },
+            el("div", { class: "tut-loop__t" }, n.t),
+            el("div", { class: "tut-loop__s" }, n.s)),
+          i < LOOP.length - 1 ? el("div", { class: "tut-loop__arrow" }, "↓") : null))),
+      el("p", { class: "tiny", style: "margin-top:10px" }, "One rep → one day → one week → one name. That's the whole shape of the game.")));
+    // 2 · THE HANDICAP
+    scr.append(el("h3", { class: "row" }, "2 · THE HANDICAP"));
+    scr.append(el("div", { class: "card" },
+      el("p", { class: "sub", style: "margin-bottom:10px" }, `The tier changes what a rep is WORTH, not the target. Everyone chases ${target} adjusted reps — the couch gets there in fewer, the athlete earns every one.`),
+      el("div", { class: "tut-tiers", id: "tut-tiers" },
+        el("div", { class: "tut-tier tut-tier--head" },
+          el("div", null, "TIER"), el("div", null, "WORTH"), el("div", null, "PHYSICAL REPS TO " + target)),
+        SoT.TIERS.map((t, i) => el("div", { class: "tut-tier" + (i === 0 ? " hot" : "") },
+          el("div", null, el("b", null, t.label)),
+          el("div", { class: "gold-t" }, "×" + t.mult),
+          el("div", { class: "tut-tier__n" }, String(adjusted(t.mult)) + " reps")))),
+      el("p", { class: "tiny", style: "margin-top:10px" }, `Worked example: Jack from the couch logs ${adjusted(1.5)} reps for the same ${target} that costs Priya the athlete-buster ${adjusted(0.85)}. Fair is not the same as identical.`)));
+    // 3 · THE FOUR STAKES
+    scr.append(el("h3", { class: "row" }, "3 · THE FOUR STAKES"));
+    const STAKES = [
+      { ico: "🍽️", t: "Dinner", s: "Loser shouts the winner a meal — capped, agreed, delicious motivation." },
+      { ico: "🎭", t: "Dare", s: "The dare is locked before the season — no negotiating after losing." },
+      { ico: "🧾", t: "Deliverable", s: "Loser owes something real: a favour, a chore, a hand-delivered coffee." },
+      { ico: "❤️", t: "Charity Pot", s: `Everyone chips in; the winner directs the pot — disclosed platform fee, receipt in the feed.` },
+    ];
+    scr.append(el("div", { class: "grid2", id: "tut-stakes" }, STAKES.map((x) =>
+      el("div", { class: "pick", style: "cursor:default" },
+        el("div", { class: "p-ico" }, x.ico),
+        el("div", { class: "p-name" }, x.t),
+        el("div", { class: "p-sub" }, x.s)))));
+    scr.append(el("p", { class: "tiny", style: "margin-top:8px" }, "One stake per season, agreed before battle one. Pride settles daily; stakes settle weekly."));
+    // 4 · MODES + DUAL SURFACE
+    scr.append(el("h3", { class: "row" }, "4 · MODES & WHERE IT LIVES"));
+    scr.append(el("div", { class: "card" },
+      el("div", { class: "chip-row", id: "tut-modes" },
+        el("span", { class: "chip gold" }, "Individual"),
+        el("span", { class: "chip" }, "Team — min 2 a side, 3v2 fine"),
+        el("span", { class: "chip" }, "Corporate")),
+      el("p", { class: "sub", style: "margin:10px 0 8px" }, "The app is home base and the rulebook — it's authoritative. The battle ALSO lives in your group chat: updates, warnings, winner calls. No second app to install; the chat is where it lives, the app is where it's decided."),
+      el("div", { class: "share-card" },
+        el("div", { class: "sc-k" }, "💬 ⚔️"),
+        el("div", { class: "sc-s" }, "Chat = the arena noise. App = the ledger. Same battle, both surfaces, one truth."))));
+    // footer — into the card sheet + back
+    scr.append(el("div", { class: "card gold", style: "text-align:center", id: "tut-to-cards" },
+      el("div", { class: "display", style: "font-size:20px" }, "21 CARDS. ONE STACK."),
+      el("p", { class: "sub", style: "margin:6px 0 12px" }, "Every deal, every family, every expiry — the full card sheet."),
+      el("button", { class: "btn", onclick: () => { sfx("deal"); go("cardsheet"); } }, "Open the card sheet →")),
+      el("button", { class: "btn ghost", style: "margin-top:12px", onclick: () => { sfx("tap"); tutBack(); } }, "Back"));
+    return scr;
+  }
+
+  /* ══ THE CARD SHEET (all 21, grouped by family) ════════════════════
+     Every face readable: name, rarity chip, one-line effect, target,
+     expiry. Draft rules + the proof flow below. Family filter chips.
+     Reached from Power-Ups, the How-It-Works screen and the tutorial. */
+  function scrCardSheet() {
+    const rarChip = { legendary: "gold", epic: "purple", rare: "blue", common: "" };
+    const fam = App.cardFilter || "all";
+    const scr = el("div", { class: "screen on", id: "cardsheet" },
+      tutTopbar("THE CARD SHEET"),
+      el("p", { class: "sub", style: "margin-top:2px" }, `${Object.keys(SoT.CARDS).length} cards, six families. Dealt 3, pick 1 — the deck leans toward whoever's behind.`));
+    // family filter chips
+    scr.append(el("div", { class: "strip tut-filters", id: "card-filters" },
+      [{ id: "all", label: "All 21", ico: "🃏" }].concat(FAMILIES).map((f) =>
+        el("button", { class: "chip tut-filter" + (fam === f.id ? " on" : ""), "data-fam": f.id, onclick: () => { sfx("tap"); App.cardFilter = f.id; render(); } },
+          f.ico + " " + f.label))));
+    // the cards, grouped by family (skip filtered-out families)
+    for (const f of FAMILIES) {
+      if (fam !== "all" && fam !== f.id) continue;
+      const cards = Object.values(SoT.CARDS).filter((c) => c.family === f.id);
+      if (!cards.length) continue;
+      scr.append(el("h3", { class: "row", style: "margin-top:16px" }, f.ico + " " + f.label.toUpperCase() + ` · ${cards.length}`));
+      scr.append(el("p", { class: "tiny", style: "margin:-4px 0 8px" }, f.blurb));
+      const grid = el("div", { class: "tut-cards" });
+      for (const c of cards) {
+        grid.append(el("div", { class: "tut-cardface rarity-" + c.rarity },
+          el("div", { class: "tut-cardface__ico" }, c.icon || cardIcon(c.id)),
+          el("div", { class: "tut-cardface__body" },
+            el("div", { class: "tut-cardface__top" },
+              el("div", { class: "tut-cardface__name" }, c.name.toUpperCase()),
+              el("span", { class: "chip rar-" + c.rarity + " tut-rarchip" }, c.rarity)),
+            el("div", { class: "tut-cardface__blurb" }, c.blurb),
+            el("div", { class: "chip-row" },
+              el("span", { class: "chip" }, "🎯 " + (c.target || "self")),
+              el("span", { class: "chip" }, "⏳ " + (c.expiry || "today"))))));
+      }
+      scr.append(grid);
+    }
+    // THE DRAFT RULES
+    scr.append(el("h3", { class: "row" }, "THE DRAFT RULES"));
+    scr.append(el("div", { class: "card gold", id: "tut-draft-rules" },
+      el("div", { class: "tut-rule" }, el("b", null, "🃏 Deal 3, pick 1"), el("span", null, "Every battle day opens with three face-down cards. Take one into your hand.")),
+      el("div", { class: "tut-rule" }, el("b", null, "🙌 Hand cap 3"), el("span", null, `Hold up to ${SoT.engine.HAND_CAP} cards — play one before the next deal lands.`)),
+      el("div", { class: "tut-rule" }, el("b", null, "📈 Catch-up weighting"), el("span", null, "Deals run 50/30/15/5 common→legendary. Fully behind? Your odds shift to 10/50/27/13 — the comeback is dealt, not gifted.")),
+      el("div", { class: "tut-rule" }, el("b", null, "🔄 Reroll to the pot"), el("span", null, "Don't like the three? Reroll — 50, then 100, then 200 points, all paid INTO the crew pot.")),
+      el("div", { class: "tut-rule" }, el("b", null, "🏃 The halfway bonus"), el("span", null, "Hit 50% of target and a bonus deal lands — earned, once a day.")),
+      el("p", { class: "tiny", style: "margin-top:8px" }, "Expired cards sweep at the close. Nothing hoards, everything matters.")));
+    // THE PROOF FLOW
+    scr.append(el("h3", { class: "row" }, "THE PROOF FLOW"));
+    scr.append(el("div", { class: "card", id: "tut-proof-flow" },
+      el("div", { class: "tut-rule" }, el("b", null, "📋 Prove It / Spot Check"), el("span", null, "Proof cards put a set in front of the crew — flag it before or after the log.")),
+      el("div", { class: "tut-rule" }, el("b", null, "✅ Verify = +15"), el("span", null, "Camera or timer evidence pays the TARGET +15 reps — honesty is a stat, not a tax.")),
+      el("div", { class: "tut-rule" }, el("b", null, "⚖️ Contested = 0, but banks"), el("span", null, "The crew votes. A contested set scores zero — yet the day still banks. One rep never sinks your week.")),
+      el("p", { class: "tiny", style: "margin-top:8px" }, "Verified sets are immune to Spot Check. Trust is the game.")));
+    scr.append(el("button", { class: "btn ghost", style: "margin:12px 0 4px", onclick: () => { sfx("tap"); tutBack(); } }, "Back"));
+    return scr;
+  }
+
   /* ══ PROFILE (#245+) ═════════════════════════════════════════════ */
   function scrProfile() {
     const st = SoT.state;
@@ -1389,6 +1554,9 @@
       // settings
       scr.append(el("h3", { class: "row" }, "Settings"));
       scr.append(el("div", { class: "card" },
+        el("div", { class: "toggle-row", id: "profile-howto", style: "cursor:pointer", onclick: () => { sfx("tap"); go("howitworks"); } },
+          el("div", null, el("div", { class: "t-name" }, "How the game works"), el("div", { class: "t-sub" }, "the loop, the handicap, the stakes — one scroll")),
+          el("span", { class: "tiny" }, "→")),
         el("div", { class: "toggle-row" },
           el("div", null, el("div", { class: "t-name" }, "Tone"), el("div", { class: "t-sub" }, "how the app talks to the crew")),
           el("select", { style: "width:150px", onchange: (e) => { SoT.setMe({ tone: e.target.value }); render(); } },
@@ -1412,9 +1580,10 @@
             SoT.TIERS.map((t) => el("option", { value: t.id, selected: me.tier === t.id ? "" : null }, t.label + " ×" + t.mult))))));
       scr.append(el("h3", { class: "row" }, "Demo data"));
       scr.append(el("div", { class: "card" },
+        el("button", { class: "btn ghost sm", style: "margin-right:8px", id: "profile-tour", onclick: () => { sfx("deal"); if (window.RWFTutorial) window.RWFTutorial.startDemo(); else toast("Demo module not loaded"); } }, "▶ Watch the tour"),
         el("button", { class: "btn ghost sm", style: "margin-right:8px", onclick: () => { sfx("tap"); SoT.resetProfile(); App.tab = "battle"; App.view = "welcome"; render(); } }, "Switch player"),
         el("button", { class: "btn ghost sm", style: "color:var(--bad);border-color:rgba(255,107,122,.4)", onclick: () => { sfx("tap"); SoT.resetAll(); App.tab = "battle"; App.view = "welcome"; render(); } }, "Reset demo"),
-        el("p", { class: "tiny", style: "margin:10px 2px 0" }, "Switch player keeps groups (you become a house ghost); reset clears everything.")));
+        el("p", { class: "tiny", style: "margin:10px 2px 0" }, "The tour runs on a shadow copy — your real save is untouched.")));
     }
     return scr;
   }
@@ -2101,6 +2270,11 @@
   Conn.load();
   window.__rwfConn = Conn; // test/drive handle (read-only by convention)
   window.__rwfV4 = App; // test/drive handle (e2e + page-driving; read-only by convention)
+  // tutorial/demo drive handles (window.RWFTutorial in tutorial.js + e2e-tutorial.mjs)
+  window.__rwfGo = (v) => { App.view = v; App.seasonView = false; render(); };
+  window.__rwfTabTo = (t) => { App.view = "app"; App.seasonView = false; tab(t); };
+  window.__rwfOverlay = (ov) => { App.overlay = ov; render(); };
+  window.__rwfSeason = (v) => { App.seasonView = !!v; render(); };
   detectMoments();
   render();
   if (Conn.queue.length && Conn.mode === "online") {

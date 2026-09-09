@@ -1,0 +1,34 @@
+{
+ "id": "01a0834d-5a7b-76a1-933f-33b986208247",
+ "type": "text-to-3d-refine",
+ "mode": "refine",
+ "name": "",
+ "model_type": "standard",
+ "seed": 1427294860,
+ "art_style": "realistic",
+ "texture_richness": "high",
+ "prompt": "slim lean runner game character, wiry lightweight build, full body T-pose, neutral sportswear, clean topology. Stylized video game character asset: tall slender humanoid, narrow shoulders, long limbs, plain fitted training top, dark shorts, simple racing shoes, neutral stance, arms out in a T pose, clean smooth game-ready shapes, clean silhouette, full body visible",
+ "negative_prompt": "",
+ "texture_prompt": "",
+ "texture_image_url": "",
+ "status": "SUCCEEDED",
+ "created_at": 1788909279878,
+ "progress": 100,
+ "started_at": 1788909279883,
+ "finished_at": 1788909330666,
+ "task_error": null,
+ "model_urls": {
+  "glb": "https://assets.meshy.ai/8d4320d1-3e6b-4ae6-a775-7c5db5a7f36c/tasks/01a0834d-5a7b-76a1-933f-33b986208247/output/model.glb?Expires=4942425600&Signature=lzLD2rwSH2qtNiIIU8i6qPOZt5yNiaIghkECGFmkykTIm8DUSpAlY~0ZpWOsNXRho6fr8fj~GWYH8nWGlI3FZF13hKlnAmf~hZAj3k241hNW8IQ8gmoBWbv-eAnOLwOPGgT8VFk6WnE7KDtFSJLnvv3LFSbTZzoFIPy9p~iK-z-VLLnAXsW4wRpMilmStd4Wj7fXqrYwjTT6rdRu~78h2d3gaLv0ZccG-T~sxlv7w24y509EKfE7SyXbgekZHs40tnydM143uOxnblu5F8dqM-gEzqDPovVlZxoxbAoaNlJUS62N794JqWFiRnciAmzpIOW~JKz4m~dLtPvn82iLow__&Key-Pair-Id=K1VGYTHIYLM9UM"
+ },
+ "thumbnail_url": "https://assets.meshy.ai/8d4320d1-3e6b-4ae6-a775-7c5db5a7f36c/tasks/01a0834d-5a7b-76a1-933f-33b986208247/output/preview.png?Expires=4942425600&Signature=iIIMhIMju9nvVfH768miUg6Xp6FoH3OlSelhicTaNCoOj7p~6Ji5eQPmgXrVbdugQ~Bc8BVhJM7vuH6XlAwPasSCR8d~C2lNjt0Nd2ZhdwfocTOt5ZQ8ancdxLFdxwmYW-3q~m3wX88-fnfWTU56ww1l9wkfim9DYLg~D1JNgnUwGmqYgrz~tPhvnyZtT2hSytcCkM6Tg~ZtIX9bjM3L8FQVAH~t~ycPEsO7nkbv7AR~Kq20AJjHLrHC-PMZe8dd8TqirabqdzTov0csMVU~SEE8HEarXE3O1YozNERIllq5ve6oyCF2RcDDk1ZSE7JqUJpp9WsqMtUATx9NXTsewA__&Key-Pair-Id=K1VGYTHIYLM9UM",
+ "video_url": "",
+ "texture_urls": [
+  {
+   "base_color": "https://assets.meshy.ai/8d4320d1-3e6b-4ae6-a775-7c5db5a7f36c/tasks/01a0834d-5a7b-76a1-933f-33b986208247/output/texture_0.png?Expires=4942425600&Signature=kwey4r3peTsPTChgf4-Na69VwcGs4F2N9TSaIe0nxS~v3b8OF1q-zAKWzwIDK6-74k1zZuyQQSs70gqYA8ynUOO~Tks4qd0xlpG8KK0ox96WnEiQvIhYce2-6wtge3fudXcXU~QnBYb8KkWT~-Ua9DROaw0hsvfi074vuPRB2RUlH4dmtTrC30LjgJewTh6podEsFZVt6X9o0NQc9ll60AB7lQUaOJgvjyTwH67-7wpZuQ55JuCVq0xf~ayr4HsU48~RoCh8Z2XmhcDFv4c~ANa9AEr2qzNwQukL28j6Jx3ion5rpiLaXfsHb3-LCOMd45gVP2WQMepv454XirbVaQ__&Key-Pair-Id=K1VGYTHIYLM9UM",
+   "metallic": "https://assets.meshy.ai/8d4320d1-3e6b-4ae6-a775-7c5db5a7f36c/tasks/01a0834d-5a7b-76a1-933f-33b986208247/output/texture_0_metallic.png?Expires=4942425600&Signature=mcKAb8K9Pnc1VANBSja-9oEdzcsJGYzX3hAzM8f0unKFqlYJ1OPu03r6qCR8wJAttPqQ6rp3niIwou5a2Dn7n7fEwQi94hdnsKFirXQLHsOghjdt6p5WhJWaeD--MN0lorJkapq8JOF3rftG6nFPTKOsPlA10KRPXJZ8ndGCJKkgWFY~uCBNIX-sWx~56a9tbhjsxsPA7GOv49XZWfPs-tFkMv7XmHCKTalgr59aMmHThybWFv8xlWoKNzfSQVrLFd2pCpCL82RgbEw0O2hif6-RzcoXqxOjB3o0VcFLxXdcRFaa85IcVVNrmg1YWHZwdFp507jS-kNDRIdyzOGyig__&Key-Pair-Id=K1VGYTHIYLM9UM",
+   "roughness": "https://assets.meshy.ai/8d4320d1-3e6b-4ae6-a775-7c5db5a7f36c/tasks/01a0834d-5a7b-76a1-933f-33b986208247/output/texture_0_roughness.png?Expires=4942425600&Signature=OfPQwqdx3zM-sAyPjL16j-57CVUoDSC27ZFWreGMeHsWEGYMqdVfP5GwWx9ABsHA-~mBrkYkXA3ChGSP-nSvW3OjfqhawpqNNK63Mx40Yw5J2HQBOvvvE4ZYAQ8jSKLqVywbdYNpAYGoQi9-QmQ-TJoFKG2U5EyeCRtx7WcXYsKac~ZpKuzK42mwVkxADSBq3nVVImfBFTk3pegottpUoGMIgKR3NPe9RmY6253sOUMIGtl4MX2GK8xImBnJUIuFREpWmaHkKu2LX2rkY6O8gCKbFB~6gU4e33Le-nq10CXwKXTaaON9kS3iU9MlY9GteCmm6FDuWNJH2Hi7~JfnQQ__&Key-Pair-Id=K1VGYTHIYLM9UM",
+   "normal": "https://assets.meshy.ai/8d4320d1-3e6b-4ae6-a775-7c5db5a7f36c/tasks/01a0834d-5a7b-76a1-933f-33b986208247/output/texture_0_normal.png?Expires=4942425600&Signature=OpCvDEPjTVlTl9xiZFVeROfbzA0kDEVQaPA5~~tcO~fQW9sPB-g5Dr2CosEjy310wTTeiIwx2WLWMNpT6o~egOSiKHVNZZlCbJqWix6iuWohPZ~ZFvila7Y9z1-ZlTRBYe~t-Ke6WJUKTgJ6Irsyz417Of7AwbYvtywSpp7i7gPIkl9bwkxE-amEr63A6BXsnxBiD1b3K-ksvlUYQtRSQUJNuJcKrT49K1X2I6YR4J-spIzSuSB905-OaGgJLXAqFXFxeQmg5zISaDvaYCtfRJ0KHjppefK8muzmgl3KucRwpajUkvUo~MVErbiKJ8Nq9XTVCnL6EQ-BkUVGlkRW2w__&Key-Pair-Id=K1VGYTHIYLM9UM"
+  }
+ ],
+ "consumed_credits": 10
+}

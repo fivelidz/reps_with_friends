@@ -1,0 +1,6 @@
+... IN_PROGRESS 42%
+... IN_PROGRESS 74%
+... IN_PROGRESS 90%
+TERMINAL SUCCEEDED credits: 5
+RIGGED_GLB: https://assets.meshy.ai/8d4320d1-3e6b-4ae6-a775-7c5db5a7f36c/tasks/01a0835b-42c9-7774-ae46-ee2ea2151342/output/Character_output.glb?Expires=1789169434&Signature=TRJ-gqnro~uhhY2gs3wb4d1CdEOu~b6jblkj1xOuXX4RtC6HaNyWbuo16MuaNtht8jR6np34dN8rK5b--T6a8hFsZg3DQeOBfWf0w5KSTqGKnRzqrn-NfEN3ljsy8a7vTnUZKttsxMbfZCBhtHbPWAOeldLXllPipyag8~AKiWARkU1Owr0Hm03Y8LeqvWYNK9VulrsLkUUxnbkBjHsa6m60U~UOVWY1SKsYN0MpjDmuuaTVC1bQ6k2aj5CYECrNl7gHKRnIG9fonheySGWmkE5lYfesSY~Pox3clxndFzmkTkW44c2FnrtOwKOP~NkDNKAk6TFwbS3VxGsp~Fwc~Q__&Key-Pair-Id=K1VGYTHIYLM9UM
+WALK: https://assets.meshy.ai/8d4320d1-3e6b-4ae6-a775-7c5db5a7f36c/tasks/01a0835b-42c9-7774-ae46-ee2ea2151342/output/Animation_Walking_withSkin.glb?Expires=1789169434&Signature=MgMWekIf3y2Q6MXdc5MeqX-7HmBoCPApdTImwth19uwB6SVnWmQz2x7Guw6Xqz~CAiDm8FGLd5WjWpHIZPzrHsVxEFF4krs5fS2RHQAbMQJJKxVmxlVLegWiRsLrsEJoUggyNGxoOEJmemvSx6Pwhj3Rbkm0as-VSybmqCi-KQaagG-33y5EY3Hvl~rLWfhAOjm~~iP402UicoGOq0F2PXMCu8Jl-piWe98XFsi3uzUg4H1IvUAgt6-vD43BFgv4vqR7Nv18BptqGPahhZlX3j6-9N~OhBikuYavbdC5syOZoGSOS6qoUIbHJkWxmf3wPfKrgT9YHmI2cKoGBVkgzg__&Key-Pair-Id=K1VGYTHIYLM9UM

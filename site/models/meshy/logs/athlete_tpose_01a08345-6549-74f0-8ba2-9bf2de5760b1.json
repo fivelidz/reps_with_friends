@@ -1,0 +1,18 @@
+{
+ "request": {
+  "mode": "preview",
+  "prompt": "athletic game character, full body T-pose, neutral sportswear, clean topology. Stylized video game character asset: athletic humanoid with balanced proportioned muscles, plain grey training t-shirt, dark neutral shorts, simple trainers, neutral confident stance, arms straight out in a T pose, clean smooth game-ready shapes, clean silhouette, full body visible",
+  "ai_model": "latest",
+  "pose_mode": "t-pose",
+  "should_remesh": true,
+  "target_polycount": 100000,
+  "target_formats": [
+   "glb"
+  ],
+  "alpha_thumbnail": true
+ },
+ "status_code": 202,
+ "response": {
+  "result": "01a08345-6549-74f0-8ba2-9bf2de5760b1"
+ }
+}

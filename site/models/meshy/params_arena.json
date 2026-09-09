@@ -1,0 +1,9 @@
+{
+  "mode": "preview",
+  "prompt": "small stylized arena podium for a fitness game: low circular training stage with two steps, subtle neon rim light strip around the edge, dark rubber floor texture, clean simple game environment asset, no characters, no text, centred composition",
+  "ai_model": "latest",
+  "should_remesh": true,
+  "target_polycount": 30000,
+  "target_formats": ["glb"],
+  "alpha_thumbnail": true
+}

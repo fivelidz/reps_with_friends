@@ -86,6 +86,17 @@ export const MODELS = [
   // meshy/rename_bones.py so BVH retargeting pairs with Geno's captures).
   // Real PBR textures — NO tint/palette treatment. 26 joints, no fingers.
   { id: 'meshy-frog', name: 'Frog — meshy.ai rigged', file: '/models/meshy_frog_full.glb', rig: 'mixamo', native: [], bvh: ['walk', 'run', 'idle', 'demo_walk', 'sprint', 'swagger', 'agree', 'sad'], bvhAuto: 'walk' },
+  // ── Meshy rigged humans (meshy.ai 2026-09-08, site/models/meshy/manifest_rigged.json):
+  // COMMERCIAL-SAFE characters — the strategic close of the Geno licence gap
+  // (docs/20 §6: the Geno MESH is research-only; its CC-BY motions are fine
+  // and retarget onto these rigs unchanged). Same bone pipeline as the frog:
+  // rename_bones.py folds Meshy's Spine01/Spine02/neck onto the mixamo names
+  // BVHPlayer matches. Real PBR textures — no tint/palette treatment.
+  { id: 'meshy-athlete', name: 'Athlete — meshy.ai rigged · commercial-safe', file: '/models/meshy_rigged_01.glb', rig: 'mixamo', native: [], bvh: ['walk', 'run', 'idle', 'demo_walk', 'sprint', 'swagger', 'agree', 'sad'], bvhAuto: 'walk' },
+  { id: 'meshy-heavy', name: 'Heavyweight — meshy.ai rigged · commercial-safe', file: '/models/meshy_rigged_02.glb', rig: 'mixamo', native: [], bvh: ['walk', 'run', 'idle', 'demo_walk', 'sprint', 'swagger', 'agree', 'sad'], bvhAuto: 'walk' },
+  { id: 'meshy-slim', name: 'Sprinter — meshy.ai rigged · commercial-safe', file: '/models/meshy_rigged_03.glb', rig: 'mixamo', native: [], bvh: ['walk', 'run', 'idle', 'demo_walk', 'sprint', 'swagger', 'agree', 'sad'], bvhAuto: 'walk' },
+  // Arena podium (environment piece, not a character) — display-only card.
+  { id: 'meshy-arena', name: 'Arena podium — meshy.ai environment', file: '/models/meshy_podium.glb', rig: 'anycreature', native: [], creature: true },
   { id: 'geno-goblinhead', name: 'Geno Goblin — species head', file: '/models/Geno.glb', rig: 'mixamo', native: [], tint: 'goblin', head: 'goblin' },
   { id: 'geno-robot', name: 'Geno Robot — species head', file: '/models/Geno.glb', rig: 'mixamo', native: [], tint: '#c9ced4', head: 'robot' },
   { id: 'geno-fullkit', name: 'Geno Full Kit — crowned frog, mocap', file: '/models/Geno.glb', rig: 'mixamo', native: [], tint: '#86c05a', head: 'frog-crown', wardrobe: 'full', bvh: ['walk', 'run', 'idle', 'demo_walk', 'sprint', 'swagger', 'agree', 'sad', 'goblin_walk', 'goblin_combat'], bvhAuto: 'walk' },

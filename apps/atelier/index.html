@@ -46,6 +46,113 @@
   </div>
 </header>
 
+<!-- ══ HOW THIS WAS BUILT — the garment saga, told honestly ══════════════════ -->
+<details class="at-story" id="story">
+  <summary>
+    <span class="story-title">HOW THIS WAS BUILT</span>
+    <span class="story-sub">the garment saga: five generations from armour to fabric-flow · where the motion comes from · what the instruments prove</span>
+    <span class="story-caret" aria-hidden="true">▾</span>
+  </summary>
+
+  <div class="story-body">
+
+    <ol class="story-gens">
+      <li class="gen">
+        <div class="gen-head"><span class="gen-no">①</span><h3>Fitted rings <span class="hud-dim">· v4 · geno-outfit.js</span></h3></div>
+        <svg class="gen-svg" viewBox="0 0 150 78" role="img" aria-label="cross-section: rigid ring around a body, gaps uneven">
+          <path class="sv-body" d="M75 14 C 96 14 106 28 106 42 C 106 58 94 66 75 66 C 56 66 44 58 44 42 C 44 28 54 14 75 14 Z"/>
+          <ellipse class="sv-ring" cx="75" cy="40" rx="44" ry="30"/>
+          <path class="sv-gap" d="M117 34 L 127 28 M33 34 L 23 28"/>
+          <text class="sv-tag" x="75" y="76">gap = armour · touch = swallowed</text>
+        </svg>
+        <p>Garments authored as fitted ring meshes wrapped around each body part, sized by hand in bind pose. Two failure modes, no middle: off the skin it <b>gaped</b> (holes at the armpits), on the skin the body <b>swallowed</b> it — and padding it out to stop the swallowing read as American-football armour. <span class="hud-dim">(The founder's verdict, verbatim, is quoted in geno-cloth.js.)</span></p>
+      </li>
+
+      <li class="gen">
+        <div class="gen-head"><span class="gen-no">②</span><h3>Full cloth-sim <span class="hud-dim">· geno-cloth.js — retired</span></h3></div>
+        <svg class="gen-svg" viewBox="0 0 150 78" role="img" aria-label="cross-section: cloth lattice jittering over a body">
+          <path class="sv-body" d="M75 16 C 94 16 102 30 102 42 C 102 56 92 64 75 64 C 58 64 48 56 48 42 C 48 30 56 16 75 16 Z"/>
+          <path class="sv-cloth" d="M40 26 Q 58 18 75 22 T 110 26 M38 40 Q 60 32 76 38 T 112 40 M42 54 Q 62 46 76 52 T 108 54 M55 64 L 54 70 M75 62 L 76 71 M95 63 L 94 70"/>
+          <circle class="sv-jitter" cx="54" cy="70" r="2.4"/><circle class="sv-jitter" cx="76" cy="71" r="2.4"/><circle class="sv-jitter" cx="94" cy="70" r="2.4"/>
+          <text class="sv-tag" x="75" y="76">draped — then jitter + idle CPU burn</text>
+        </svg>
+        <p>The textbook answer: real PBD cloth at 1/240 s substeps, capsule colliders rebuilt from the body every substep, waistbands pinned to bones. It draped beautifully — and <b>jittered at stride extremes</b>, and <b>burned CPU while the avatar stood still</b>. The sizing war was lost differently: collision replaced sizing but brought its own chaos. Kept in the repo, retired from this UI.</p>
+      </li>
+
+      <li class="gen gen--turn">
+        <div class="gen-head"><span class="gen-no">③</span><h3>SKIN-DERIVED <span class="hud-dim">· the turn · v5 · geno-derived.js</span></h3></div>
+        <svg class="gen-svg" viewBox="0 0 150 78" role="img" aria-label="cross-section: garment contour parallel to the body at 6 mm">
+          <path class="sv-body" d="M75 16 C 94 16 103 30 103 42 C 103 57 92 65 75 65 C 58 65 47 57 47 42 C 47 30 56 16 75 16 Z"/>
+          <path class="sv-parallel" d="M75 10 C 98 10 109 27 109 42 C 109 61 96 71 75 71 C 54 71 41 61 41 42 C 41 27 52 10 75 10 Z"/>
+          <path class="sv-gap" d="M108 38 L 116 34"/>
+          <text class="sv-tag sv-tag--lime" x="75" y="76">body + 6 mm — can't sink, can't bulk</text>
+        </svg>
+        <p>The founder's insight: <b>“you know the dimensions of the body.”</b> A garment is the body's <b>own triangles</b> — whole triangles, so the topology is inherited and cannot tear — pushed +6 mm along their own normals, wearing the body's own skin weights. It cannot be inside the flesh (it <i>is</i> the flesh, offset) and cannot billow into armour. Zero solver: skinning is the only per-frame cost.</p>
+      </li>
+
+      <li class="gen">
+        <div class="gen-head"><span class="gen-no">④</span><h3>Contour hems + graded hang <span class="hud-dim">· v6 → v7</span></h3></div>
+        <svg class="gen-svg" viewBox="0 0 150 78" role="img" aria-label="cross-section: graded offset, thicker at the hem">
+          <path class="sv-body" d="M75 14 C 93 14 101 28 101 40 C 101 55 91 63 75 63 C 59 63 49 55 49 40 C 49 28 57 14 75 14 Z"/>
+          <path class="sv-parallel sv-thin" d="M75 9 C 96 9 106 26 106 38 C 106 44 104 49 101 53"/>
+          <path class="sv-hemband" d="M101 53 C 98 61 88 69 75 69 C 62 69 52 61 49 53"/>
+          <path class="sv-gap" d="M60 16 L 58 8 M102 34 L 110 30"/>
+          <text class="sv-tag sv-tag--lime" x="75" y="76">+6 collar → +18 hem · contour + band</text>
+        </svg>
+        <p>Body-derived alone left jagged frontier hems — the “apocalypse survivor” cut. v6 cuts every opening on a smooth plane and zips the boundary to a regular 64-sample contour ring; a finished-edge band (+2.2 mm, vertex-tinted) makes it read as a hem. v7 grades the hang — collar +6 mm → chest +12 → hem +18 mm — with baked pleats and sag: loose, never armour, zero runtime cost.</p>
+      </li>
+
+      <li class="gen">
+        <div class="gen-head"><span class="gen-no">⑤</span><h3>Fabric-flow <span class="hud-dim">· v8 → v9 · today's default</span></h3></div>
+        <svg class="gen-svg" viewBox="0 0 150 78" role="img" aria-label="cross-section: hem with sway arrows, settles">
+          <path class="sv-body" d="M75 15 C 93 15 101 29 101 41 C 101 55 91 63 75 63 C 59 63 49 55 49 41 C 49 29 57 15 75 15 Z"/>
+          <path class="sv-parallel" d="M75 10 C 96 10 106 27 106 41 C 106 56 95 69 75 69 C 55 69 44 56 44 41 C 44 27 54 10 75 10 Z"/>
+          <path class="sv-sway" d="M36 52 Q 30 58 36 64 M114 52 Q 120 58 114 64"/>
+          <text class="sv-tag sv-tag--lime" x="75" y="76">sway with velocity · settles &lt;1 s</text>
+        </svg>
+        <p>v8 rebuilt shirt + shorts as ring-lattice <b>fabric</b> with their own topology — clothing patterns hung straight from the chest, regularised sections smoothing the anatomy (no body print). v9 adds “easy physics”: spring-dampers on the free hem rings only (~770 verts), world-space, capsule push-out so hems never tunnel. Fabric sways with velocity, settles in under a second, costs nothing at rest — and the FROG rides the Head bone through all of it.</p>
+      </li>
+    </ol>
+
+    <div class="story-cols">
+      <section class="story-instruments">
+        <h3>The instruments — what each one proves</h3>
+        <dl class="inst-list">
+          <div class="inst"><dt>👁 X-ray</dt><dd>Garments at 30% opacity (+ optional body wireframe). Proves seams track the body <b>through</b> the fabric — the human-eye check the founder asked for.</dd></div>
+          <div class="inst"><dt>🌡 Seam heatmap</dt><dd>Every garment vertex false-coloured by <b>live</b> distance to the body surface: green &lt;2 cm (hug) · amber &lt;5 cm (drift) · red &gt;5 cm (float) · white-cored red = <b>inside the body</b> (swallowed). Turns the graded-hang millimetres into something you can see.</dd></div>
+          <div class="inst"><dt>▶ Attachment probe</dt><dd>The numbers, not the eyes: poses every clip × 4 phases + every exercise × 3 phases, then measures garment→body distance, inside-body count (bar: 0), Δsource (garment verts must ride their body verts), silhouette bulk ≤ body +1.5 cm (<b>the armour detector</b>) and hem regularity (<b>the torn-end detector</b>).</dd></div>
+        </dl>
+      </section>
+
+      <aside class="story-mocap">
+        <h3>Mocap — where the motion comes from</h3>
+        <ul>
+          <li><b>Geno is the demo biped of Meta's ai4animationpy</b> — the character from the founder's Unity game jam; 23-joint mixamo-family skeleton.</li>
+          <li>The five <code>goblin_*.bvh</code> files were a <b>mislabelled demo capture</b> — no goblins; they ship honestly as “stick walk / limp / drag (old)”.</li>
+          <li><b>16 real clips</b> (100STYLE subjects, CC BY 4.0) retargeted <b>world-quaternion → joint name</b> in <code>BVHPlayer</code>.</li>
+          <li><b>Soldier walk/run/idle preferred</b> for neutral locomotion; aim walk / floor scoot / get down are flavour.</li>
+          <li>Licence split (docs/20 §6): motions CC BY — fine. The Geno <b>mesh is research-only</b> → the commercial-safe swap lives on the <a href="/avatars" target="_blank" rel="noopener">/avatars</a> Meshy cards.</li>
+        </ul>
+      </aside>
+    </div>
+
+    <section class="story-note" aria-label="commercial-safe base note">
+      <span class="note-badge">NEW</span>
+      <p><b>Commercial-safe base — replaces research-licensed Geno.</b> The Geno <i>mesh</i> is
+        non-commercial research-only (docs/20 §6); its CC-BY <i>motions</i> are fine and retarget
+        unchanged. Meshy.ai text-to-3D + auto-rig now provides a mixamo-named skeleton family:
+        <code>meshy_rigged_01.glb</code> (athlete), <code>_02</code> (heavyweight), <code>_03</code>
+        (sprinter) + an arena podium — walk/run/squat verified by two-frame world-position deltas.
+        Cards on <a href="/avatars" target="_blank" rel="noopener">/avatars</a>; build record in
+        <code>site/models/meshy/manifest_rigged.json</code>.</p>
+    </section>
+
+    <footer class="story-src">
+      Sources: <code>geno-cloth.js</code> + <code>geno-derived.js</code> header changelogs (the full v4→v9 record) · docs/20 (licence verdict) · docs/23 (photo→3D context) · docs/31 (the avatar epic, 2026-08-28→09-01) · agents/_handovers/2026-09-02-*. This page is the instrument the saga was judged with.
+    </footer>
+  </div>
+</details>
+
 <main class="at-main">
 
   <!-- ══ THE VIEWPORT — one avatar, one WebGL context ════════════════════ -->

@@ -1,0 +1,28 @@
+{
+ "id": "01a08349-2685-75c3-b639-88367f7fcd7f",
+ "type": "text-to-3d-preview",
+ "mode": "preview",
+ "name": "",
+ "model_type": "standard",
+ "seed": 1427294860,
+ "art_style": "realistic",
+ "texture_richness": "",
+ "prompt": "slim lean runner game character, wiry lightweight build, full body T-pose, neutral sportswear, clean topology. Stylized video game character asset: tall slender humanoid, narrow shoulders, long limbs, plain fitted training top, dark shorts, simple racing shoes, neutral stance, arms out in a T pose, clean smooth game-ready shapes, clean silhouette, full body visible",
+ "negative_prompt": "",
+ "texture_prompt": "",
+ "texture_image_url": "",
+ "status": "SUCCEEDED",
+ "created_at": 1788909005564,
+ "progress": 100,
+ "started_at": 1788909005568,
+ "finished_at": 1788909079840,
+ "task_error": null,
+ "model_urls": {
+  "glb": "https://assets.meshy.ai/8d4320d1-3e6b-4ae6-a775-7c5db5a7f36c/tasks/01a08349-2685-75c3-b639-88367f7fcd7f/output/model.glb?Expires=4942425600&Signature=mE0Vhq8AhvtHE9I5fY38qz05GEy6NDxSWTwzQlohZK90BcdtX7eZz4kvN95ZdL0dvhdNI5XW-YQg0NbGZ3kbbRG7kHpqR92i-yxoTGRqvMM4PziJdqXCP6iT1omEvEXOoe-yCFN3ihOJXisprTwZiFZIviHC1IQQpsykMPrvHExUdjfqpROgYSWV7SMAg-OQB2JRKZbNZeV9t1g8t0bb-AHzAaEurxMiw4-jgErCYMAaZJFOBp83oCNmngiv0KAx2-3im59yOVDmLd9qKoUHHo~0W1KjB6O1wC8MU23t1Trj-vds39gNrQqimr-~fwUwO1qzrW7oOlJc-WVMfFs-JA__&Key-Pair-Id=K1VGYTHIYLM9UM"
+ },
+ "thumbnail_url": "https://assets.meshy.ai/8d4320d1-3e6b-4ae6-a775-7c5db5a7f36c/tasks/01a08349-2685-75c3-b639-88367f7fcd7f/output/preview.png?Expires=4942425600&Signature=P7zdSvkRC2zO6aUBmr2g88B3tDbtsEBLi6wnuIcpCb48dgOR3sRlDtrFESXgcwyMzpc1akotBl4bmPxb0Rap3UerGUOWPGDR7XDBmJC1g~eK5BWk5qK0tibc~yXL6Fo-UPC7Vrk4msJp7vmQSTjNBOHw2IX4nDqF26Z6JnVatljMsRetigFyFTxGSL5bFWwh1XiIHBryX1MeUKsNRWPBoEbYAdyEAey0S2PvvHvRSUth6QExYj3F-20tf7wYwI1fCG12foy3tgclMUp0iahq~mSDbbSnxwmXafRK0BPXWF3wPAh0yThtb1ZcLzUwqGFkgYYOpKZ95Lbm4ssSN-M17Q__&Key-Pair-Id=K1VGYTHIYLM9UM",
+ "alpha_thumbnail_url": "https://assets.meshy.ai/8d4320d1-3e6b-4ae6-a775-7c5db5a7f36c/tasks/01a08349-2685-75c3-b639-88367f7fcd7f/output/preview_alpha.png?Expires=4942425600&Signature=WIKNTGODjUQG02QYZ20E9nabw-FU9j1c2icfUZqOA5y6MLi-QHfXMG7DWthQRADh-b9ctJyuEmlUe1xzMGxJda8OOcyTd2J0WDRG9U4DvdWTQCYyghWRjt0OLrjplxOi-xti9ntMZ~-cCgBrjckA2uDU7Zmn2Louz~h6WsQkXEWAWMBEKCrUTQR-45bJ-C~5PtlbU4GqhvoIYj1afWgLQIkmHDmPuFLk7rc~6l~QYZbh-1fch1UZv8TB4EFNLqVszIwg-OoYJPEG0dR3Q7SjzpXjGDHZNXmWYoUijXRNAkXx7lz~OCfp4iKQTc8p63Xi0-eFi0cE2TFzUxBRIPpz1Q__&Key-Pair-Id=K1VGYTHIYLM9UM",
+ "video_url": "",
+ "texture_urls": [],
+ "consumed_credits": 20
+}
