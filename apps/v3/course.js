@@ -106,6 +106,82 @@ function glowTexture() {
   return _glowTex;
 }
 
+let _confettiTex = null;
+function confettiTexture() {
+  if (_confettiTex) return _confettiTex;
+  const c = document.createElement("canvas");
+  c.width = c.height = 32;
+  const g = c.getContext("2d");
+  g.fillStyle = "#fff";
+  g.fillRect(4, 4, 24, 24);
+  _confettiTex = new THREE.CanvasTexture(c);
+  _confettiTex.colorSpace = THREE.SRGBColorSpace;
+  return _confettiTex;
+}
+
+let _crownTex = null;
+function crownTexture() {
+  if (_crownTex) return _crownTex;
+  const c = document.createElement("canvas");
+  c.width = c.height = 96;
+  const g = c.getContext("2d");
+  g.shadowColor = "rgba(255,201,65,0.9)";
+  g.shadowBlur = 14;
+  g.fillStyle = "#ffc941";
+  g.strokeStyle = "#271b04";
+  g.lineWidth = 5;
+  g.beginPath();
+  g.moveTo(12, 64);
+  g.lineTo(20, 30);
+  g.lineTo(38, 50);
+  g.lineTo(48, 22);
+  g.lineTo(58, 50);
+  g.lineTo(76, 30);
+  g.lineTo(84, 64);
+  g.closePath();
+  g.fill(); g.stroke();
+  g.fillStyle = "#fff2a8";
+  g.fillRect(20, 66, 56, 9);
+  _crownTex = new THREE.CanvasTexture(c);
+  _crownTex.colorSpace = THREE.SRGBColorSpace;
+  return _crownTex;
+}
+
+function laneStripeTexture(hex, idx) {
+  const c = document.createElement("canvas");
+  c.width = 96; c.height = 512;
+  const g = c.getContext("2d");
+  const col = new THREE.Color(hex);
+  const deep = `#${col.clone().multiplyScalar(0.24).getHexString()}`;
+  const mid = `#${col.clone().multiplyScalar(0.46).lerp(new THREE.Color(0x33383f), 0.34).getHexString()}`;
+  const hot = `#${col.clone().multiplyScalar(0.95).getHexString()}`;
+  const grad = g.createLinearGradient(0, 0, 96, 0);
+  grad.addColorStop(0, deep);
+  grad.addColorStop(0.5, mid);
+  grad.addColorStop(1, deep);
+  g.fillStyle = grad;
+  g.fillRect(0, 0, 96, 512);
+  g.fillStyle = "rgba(255,255,255,0.10)";
+  for (let y = -80 + idx * 17; y < 560; y += 118) {
+    g.save();
+    g.translate(48, y);
+    g.rotate(-0.32);
+    g.fillRect(-70, -7, 140, 14);
+    g.restore();
+  }
+  g.fillStyle = hot;
+  g.globalAlpha = 0.36;
+  g.fillRect(8, 0, 3, 512);
+  g.fillRect(85, 0, 3, 512);
+  g.globalAlpha = 1;
+  const tex = new THREE.CanvasTexture(c);
+  tex.colorSpace = THREE.SRGBColorSpace;
+  tex.wrapS = tex.wrapT = THREE.RepeatWrapping;
+  tex.repeat.set(1, 3.2);
+  tex.anisotropy = 4;
+  return tex;
+}
+
 /** rounded-rect card face texture for the power-up billboards */
 function cardTexture(name, glyph, rarHex) {
   const W = 256, H = 352;
@@ -123,12 +199,27 @@ function cardTexture(name, glyph, rarHex) {
   };
   // face
   const grad = g.createLinearGradient(0, 0, W, H);
-  grad.addColorStop(0, "#23262e");
-  grad.addColorStop(0.55, "#1a1d23");
-  grad.addColorStop(1, "#101216");
+  grad.addColorStop(0, "#30343e");
+  grad.addColorStop(0.38, "#1b2028");
+  grad.addColorStop(1, "#0b0d12");
   g.fillStyle = grad;
   rr(6, 6, W - 12, H - 12, 26); g.fill();
+  g.save();
+  g.clip();
+  g.strokeStyle = "rgba(255,255,255,0.09)";
+  g.lineWidth = 3;
+  for (let y = -H; y < H * 1.4; y += 28) {
+    g.beginPath();
+    g.moveTo(-20, y);
+    g.lineTo(W + 20, y + W * 0.45);
+    g.stroke();
+  }
+  g.restore();
+  g.shadowColor = rarHex;
+  g.shadowBlur = 18;
   g.lineWidth = 8; g.strokeStyle = rarHex; g.stroke();
+  g.shadowBlur = 0;
+  g.lineWidth = 2; g.strokeStyle = "rgba(255,255,255,0.32)"; g.stroke();
   // rarity strip
   g.fillStyle = rarHex;
   rr(22, 24, 86, 30, 8); g.fill();
@@ -138,8 +229,11 @@ function cardTexture(name, glyph, rarHex) {
   // icon glyph
   g.font = "400 128px system-ui, sans-serif";
   g.textAlign = "center"; g.textBaseline = "middle";
+  g.shadowColor = rarHex;
+  g.shadowBlur = 20;
   g.fillStyle = rarHex;
   g.fillText(glyph, W / 2, H * 0.48);
+  g.shadowBlur = 0;
   // name
   g.font = "700 30px system-ui, sans-serif";
   g.fillStyle = "#e8eaed";
@@ -216,6 +310,7 @@ export class Course3D {
     this.tierHex = opts.tierHex ?? (() => "#c6f32e");
     this.rarHex = opts.rarHex ?? (() => "#c6f32e");
     this.reduced = !!opts.reducedMotion;
+    this.onModelsReady = opts.onModelsReady;
     this.runners = new Map();      // pid → runner state
     this.fx = [];                  // transient sprites {spr, vel, t, dur, kind}
     this.trail = [];               // lightning trail sprites
@@ -260,16 +355,19 @@ export class Course3D {
     scene.add(sky);
     // fog tuned for the TABLE distance (~30–45 units): the whole course stays
     // crisp, only the far hills breathe out
-    scene.fog = new THREE.Fog(0x1c3247, 62, 240);
+    scene.fog = new THREE.Fog(0x102134, 42, 180);
 
-    const hemi = new THREE.HemisphereLight(0x8fb6ff, 0x24422b, 1.05);
-    scene.add(hemi);
-    const sun = new THREE.DirectionalLight(0xfff2d8, 1.85);
-    sun.position.set(-14, 22, 10);
-    scene.add(sun);
-    const rim = new THREE.DirectionalLight(0xc6f32e, 0.35);
-    rim.position.set(10, 6, -18);
+    const ambient = new THREE.HemisphereLight(0x8fb6ff, 0x132318, 0.74);
+    scene.add(ambient);
+    const key = new THREE.DirectionalLight(0xffd7a3, 2.35);
+    key.position.set(-16, 24, 11);
+    scene.add(key);
+    const rim = new THREE.DirectionalLight(0x82d5ff, 1.08);
+    rim.position.set(13, 8, -18);
     scene.add(rim);
+    const turfBounce = new THREE.PointLight(0xc6f32e, 0.9, 32, 2.1);
+    turfBounce.position.set(0, 3.2, START_Z - COURSE_LEN * 0.45);
+    scene.add(turfBounce);
 
     this.scene = scene;
     this.camera = new THREE.PerspectiveCamera(46, 1, 0.1, 600);
@@ -284,6 +382,8 @@ export class Course3D {
     this.renderer = new THREE.WebGLRenderer({ antialias: true, powerPreference: "high-performance" });
     this.renderer.setPixelRatio(Math.min(window.devicePixelRatio || 1, 2));
     this.renderer.outputColorSpace = THREE.SRGBColorSpace;
+    this.renderer.toneMapping = THREE.ACESFilmicToneMapping;
+    this.renderer.toneMappingExposure = 1.04;
     this.renderer.domElement.style.touchAction = "none";
     this.host.appendChild(this.renderer.domElement);
     this._resize();
@@ -447,6 +547,34 @@ export class Course3D {
       W.add(hill);
     }
 
+    // low-poly stadium bowl: far enough to read as atmosphere, cheap enough for phone.
+    const standMats = [
+      new THREE.MeshLambertMaterial({ color: 0x182231 }),
+      new THREE.MeshLambertMaterial({ color: 0x222c3d }),
+      new THREE.MeshLambertMaterial({ color: 0x293448 }),
+    ];
+    for (const side of [-1, 1]) {
+      for (let i = 0; i < 8; i++) {
+        const tier = i % 3;
+        const block = new THREE.Mesh(
+          new THREE.BoxGeometry(8.8, 0.55 + tier * 0.18, 3.2),
+          standMats[tier]
+        );
+        block.position.set(side * (15.5 + tier * 1.15), 0.55 + tier * 0.28, START_Z - 2.5 - i * 4.2);
+        block.rotation.y = side * THREE.MathUtils.degToRad(5 + i * 0.55);
+        W.add(block);
+      }
+    }
+    const lightMat = new THREE.MeshBasicMaterial({ color: 0xaedcff, transparent: true, opacity: 0.42 });
+    for (const x of [-13.8, 13.8]) for (const z of [START_Z - 2, START_Z - 15, START_Z - 28]) {
+      const mast = new THREE.Mesh(new THREE.CylinderGeometry(0.045, 0.06, 5.6, 6), new THREE.MeshLambertMaterial({ color: 0x1c222b }));
+      mast.position.set(x, 2.8, z);
+      const lamp = new THREE.Mesh(new THREE.BoxGeometry(0.65, 0.16, 0.28), lightMat);
+      lamp.position.set(x, 5.7, z);
+      lamp.rotation.y = x < 0 ? -0.35 : 0.35;
+      W.add(mast, lamp);
+    }
+
     // trees + rocks — kept clear of the track corridor
     const trunkMat = new THREE.MeshLambertMaterial({ color: 0x4a3627 });
     const leafMat = new THREE.MeshLambertMaterial({ color: 0x2e5236 });
@@ -491,19 +619,23 @@ export class Course3D {
     // base slab
     const slab = new THREE.Mesh(
       new THREE.BoxGeometry(totalW + 2.4, TRACK_H, COURSE_LEN + 10),
-      new THREE.MeshLambertMaterial({ color: 0x33383f })
+      new THREE.MeshStandardMaterial({ color: 0x303844, roughness: 0.82, metalness: 0.04 })
     );
     slab.position.set(0, TRACK_TOP - TRACK_H / 2, START_Z - COURSE_LEN / 2 + 2);
     track.add(slab);
 
     // one lane strip per player, tier-tinted (subtle — reads as colour, not noise)
     players.forEach((p, i) => {
-      const hex = new THREE.Color(this.tierHex(p.tier, p.isYou));
-      hex.multiplyScalar(0.62);
-      hex.lerp(new THREE.Color(0x33383f), 0.45);
+      const base = this.tierHex(p.tier, p.isYou);
       const strip = new THREE.Mesh(
         new THREE.BoxGeometry(LANE_W - 0.12, TRACK_H * 0.55, COURSE_LEN + 8),
-        new THREE.MeshLambertMaterial({ color: hex })
+        new THREE.MeshStandardMaterial({
+          map: laneStripeTexture(base, i),
+          color: 0xffffff,
+          roughness: 0.74,
+          metalness: 0.02,
+          emissive: new THREE.Color(base).multiplyScalar(0.05),
+        })
       );
       strip.position.set(this.laneX(i), TRACK_TOP + 0.004, START_Z - COURSE_LEN / 2 + 2);
       track.add(strip);
@@ -744,7 +876,12 @@ export class Course3D {
         // placeholder capsule (until Geno streams in)
         const ph = new THREE.Mesh(
           new THREE.CapsuleGeometry(0.26, 0.8, 4, 10),
-          new THREE.MeshLambertMaterial({ color: new THREE.Color(this.tierHex(p.tier, p.isYou)).multiplyScalar(0.9) })
+          new THREE.MeshStandardMaterial({
+            color: new THREE.Color(this.tierHex(p.tier, p.isYou)).multiplyScalar(0.92),
+            roughness: 0.54,
+            metalness: 0.04,
+            emissive: new THREE.Color(this.tierHex(p.tier, p.isYou)).multiplyScalar(0.16),
+          })
         );
         ph.position.y = 0.72;
         ph.name = "placeholder";
@@ -759,14 +896,37 @@ export class Course3D {
         shadow.position.y = 0.015;
         group.add(shadow);
 
+        // tier-coloured silhouette glow behind the figure for TABLE legibility
+        const glow = new THREE.Sprite(new THREE.SpriteMaterial({
+          map: glowTexture(),
+          color: this.tierHex(p.tier, p.isYou),
+          transparent: true,
+          opacity: p.isYou ? 0.52 : 0.34,
+          depthWrite: false,
+          blending: THREE.AdditiveBlending,
+        }));
+        glow.scale.set(1.25, 2.2, 1);
+        glow.position.y = 1.02;
+        group.add(glow);
+
         // name tag
         const tag = new THREE.Sprite(new THREE.SpriteMaterial({
           map: labelTexture([p.name.toUpperCase()], { accent: this.tierHex(p.tier, p.isYou), bg: "rgba(10,11,13,0.66)" }),
           transparent: true, depthWrite: false,
         }));
-        tag.scale.set(2.35, 0.56, 1);
-        tag.position.y = 2.16;
+        tag.scale.set(2.45, 0.58, 1);
+        tag.position.y = 2.25;
         group.add(tag);
+
+        const crown = new THREE.Sprite(new THREE.SpriteMaterial({
+          map: crownTexture(),
+          transparent: true,
+          depthWrite: false,
+          opacity: 0,
+        }));
+        crown.scale.set(0.74, 0.74, 1);
+        crown.position.y = 2.88;
+        group.add(crown);
 
         // comeback ring (gold, at the feet)
         const ring = new THREE.Mesh(
@@ -789,8 +949,9 @@ export class Course3D {
 
         r = {
           id: p.id, name: p.name, tier: p.tier, isYou: !!p.isYou, lane: i,
-          group, tag, ring, shield, avatar: null, players: {}, clip: null,
-          t: 0, target: 0, speed: 0, bobPhase: Math.random() * Math.PI * 2,
+          group, glow, tag, crown, ring, shield, avatar: null, players: {}, clip: null,
+          t: 0, target: 0, fromT: 0, moveElapsed: 0, moveDur: 0,
+          speed: 0, bobPhase: Math.random() * Math.PI * 2,
           cards: [], cardsGroup: new THREE.Group(),
         };
         r.cardsGroup.position.y = 2.75;
@@ -808,7 +969,15 @@ export class Course3D {
     for (const row of rows) {
       const r = this.runners.get(row.player.id);
       if (!r) continue;
-      r.target = Math.min(1, (row.rawReps ?? 0) / (this.targetReps || 1));
+      const next = Math.min(1, (row.rawReps ?? 0) / (this.targetReps || 1));
+      if (Math.abs(next - r.target) > 0.0005) {
+        r.fromT = r.t;
+        r.target = next;
+        r.moveElapsed = 0;
+        r.moveDur = THREE.MathUtils.clamp(0.7 + Math.abs(next - r.t) * 2.4, 0.78, 1.25);
+      } else {
+        r.target = next;
+      }
     }
     this.dirty = true;
   }
@@ -862,6 +1031,58 @@ export class Course3D {
     spr.position.set(r.group.position.x, 3.0, r.group.position.z);
     this.scene.add(spr);
     this.fx.push({ spr, t: 0, dur: 0.85, kind: "cardup", vel: new THREE.Vector3(0, 2.6, 0) });
+    this.dirty = true;
+  }
+
+  repsBurst(pid, reps, accent = "#c6f32e") {
+    const r = this.runners.get(pid);
+    if (!r) return;
+    const spr = new THREE.Sprite(new THREE.SpriteMaterial({
+      map: labelTexture([`+${reps} REPS`], {
+        accent,
+        fg: "#ffffff",
+        bg: "rgba(8,10,13,0.72)",
+        font: 800,
+      }),
+      transparent: true,
+      depthWrite: false,
+    }));
+    spr.scale.set(2.15, 0.48, 1);
+    spr.position.set(r.group.position.x, 2.85, r.group.position.z - 0.25);
+    this.scene.add(spr);
+    this.fx.push({
+      spr, t: 0, dur: 1.05, kind: "textburst",
+      vel: new THREE.Vector3(0, 1.05, -0.12),
+    });
+    this.dirty = true;
+  }
+
+  dailyWinFx(origin = null) {
+    const p = origin ?? new THREE.Vector3(0, 2.4, START_Z - COURSE_LEN * 0.38);
+    const cols = [0xc6f32e, 0xffc941, 0x6ec1ff, 0xff5c38, 0xb78cff];
+    for (let i = 0; i < 34; i++) {
+      const mat = new THREE.SpriteMaterial({
+        map: confettiTexture(),
+        color: cols[i % cols.length],
+        transparent: true,
+        opacity: 0.96,
+        depthWrite: false,
+      });
+      mat.rotation = Math.random() * Math.PI;
+      const spr = new THREE.Sprite(mat);
+      spr.scale.set(0.09 + Math.random() * 0.09, 0.18 + Math.random() * 0.14, 1);
+      spr.position.copy(p);
+      spr.position.x += (Math.random() - 0.5) * 2.2;
+      spr.position.z += (Math.random() - 0.5) * 1.4;
+      this.scene.add(spr);
+      const a = Math.random() * Math.PI * 2;
+      const v = 1.6 + Math.random() * 2.2;
+      this.fx.push({
+        spr, t: 0, dur: 1.4 + Math.random() * 0.6, kind: "confetti",
+        vel: new THREE.Vector3(Math.cos(a) * v, 2.2 + Math.random() * 2.4, Math.sin(a) * v),
+        spin: (Math.random() - 0.5) * 6,
+      });
+    }
     this.dirty = true;
   }
 
@@ -925,6 +1146,7 @@ export class Course3D {
     this.controls.autoRotate = !this.reduced;
     this.controls.autoRotateSpeed = 1.1;
     this.controls.update();
+    if (!this.reduced) this.dailyWinFx(new THREE.Vector3(0, 3.2, POT_Z + 3.2));
     this.dirty = true;
   }
 
@@ -1057,13 +1279,21 @@ export class Course3D {
     // runner at its target instead of lerping (ease would be 1-e^0 = 0 and
     // the runner would freeze at the start line forever). Static means
     // "correctly positioned, no glide", not "frozen".
-    const ease = this.reduced ? 1 : 1 - Math.exp(-dt * 2.4);
     let leader = null;
 
     for (const [, r] of this.runners) {
       const prevT = r.t;
-      r.t += (r.target - r.t) * ease;
-      if (Math.abs(r.target - r.t) < 0.0012) r.t = r.target;
+      if (this.reduced) {
+        r.t = r.target;
+      } else if (r.moveElapsed < r.moveDur && Math.abs(r.target - r.fromT) > 0.0005) {
+        r.moveElapsed += dt;
+        const p = THREE.MathUtils.clamp(r.moveElapsed / r.moveDur, 0, 1);
+        const s = p * p * (3 - 2 * p); // smoothstep: accelerate, then settle.
+        r.t = THREE.MathUtils.lerp(r.fromT, r.target, s);
+        if (p >= 1 || Math.abs(r.target - r.t) < 0.0012) r.t = r.target;
+      } else {
+        r.t = r.target;
+      }
       r.speed = dt > 0 ? Math.abs(r.t - prevT) / dt : 0;
       r.moving = Math.abs(r.target - r.t) > 0.0025;
 
@@ -1081,6 +1311,18 @@ export class Course3D {
         // (BVHPlayer owns its clock — desync via per-runner start offsets is enough)
       }
 
+      // start-line / idle breathing lives inside the figure, not on the group,
+      // so the debug world position remains the exact ground-plane anchor.
+      if (!this.reduced) {
+        const breathe = Math.sin(now * (r.moving ? 8.0 : 2.8) + r.bobPhase);
+        const lift = (r.moving ? 0.04 : 0.022) * Math.max(0, breathe);
+        const ph = r.group.getObjectByName("placeholder");
+        if (ph) ph.position.y = 0.72 + lift;
+        if (r.avatar?.root) r.avatar.root.position.y = lift;
+        r.glow.scale.set(1.18 + lift * 2.2, 2.12 + lift * 3.2, 1);
+        r.glow.material.opacity = (r.isYou ? 0.48 : 0.31) + (r.moving ? 0.08 : 0.02) * Math.max(0, breathe);
+      }
+
       // ring spin / shield pulse
       if (r.ring.visible) {
         r.ring.rotation.z = now * 1.8;
@@ -1094,6 +1336,7 @@ export class Course3D {
       // cards bob
       for (const c of r.cards) {
         c.position.y = Math.sin(now * 2.1 + c.userData.phase) * 0.07;
+        c.material.rotation = Math.sin(now * 1.35 + c.userData.phase) * 0.055;
       }
 
       // lightning live → gold trail
@@ -1115,6 +1358,14 @@ export class Course3D {
       }
 
       if (!leader || r.t > leader.t) leader = r;
+    }
+
+    for (const [, r] of this.runners) {
+      const isLeader = leader && r.id === leader.id;
+      r.crown.material.opacity = isLeader ? 1 : 0;
+      r.crown.position.y = 2.9 + (this.reduced ? 0 : Math.sin(now * 2.4 + r.bobPhase) * 0.06);
+      r.glow.material.color.set(this.tierHex(r.tier, r.isYou));
+      if (isLeader) r.glow.material.opacity = Math.max(r.glow.material.opacity, 0.62);
     }
 
     // ── the POV rig ──────────────────────────────────────────────────────
@@ -1172,6 +1423,26 @@ export class Course3D {
         f.spr.material.opacity = 0.95 * (1 - p);
         const s = 0.16 * (1 - p * 0.6);
         f.spr.scale.setScalar(s);
+        if (p >= 1) {
+          f.spr.material.dispose();
+          this.scene.remove(f.spr);
+          this.fx.splice(i, 1);
+        }
+      } else if (f.kind === "textburst") {
+        f.spr.position.addScaledVector(f.vel, dt);
+        f.spr.material.opacity = 1 - p * p;
+        const s = 1 + Math.sin(p * Math.PI) * 0.16;
+        f.spr.scale.set(2.15 * s, 0.48 * s, 1);
+        if (p >= 1) {
+          f.spr.material.map?.dispose(); f.spr.material.dispose();
+          this.scene.remove(f.spr);
+          this.fx.splice(i, 1);
+        }
+      } else if (f.kind === "confetti") {
+        f.spr.position.addScaledVector(f.vel, dt);
+        f.vel.y -= 4.6 * dt;
+        f.spr.material.rotation += f.spin * dt;
+        f.spr.material.opacity = 0.96 * (1 - p);
         if (p >= 1) {
           f.spr.material.dispose();
           this.scene.remove(f.spr);
@@ -1312,6 +1583,9 @@ export class Course3D {
         for (const m of mats) { m.map?.dispose?.(); m.dispose?.(); }
       }
     });
+    _glowTex = null;
+    _confettiTex = null;
+    _crownTex = null;
     this.scene = null;
   }
 }

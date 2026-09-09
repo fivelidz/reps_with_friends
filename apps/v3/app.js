@@ -514,8 +514,11 @@ function renderBattle(state, matchIn) {
     sfx("tap");
     const r = S.simMates(match.config.id);
     const m2 = S.matchById(match.config.id);
-    r.logged.forEach((l) =>
-      feedPush(match.config.id, `<b>${esc(nameOf(m2, l.playerId))}</b> logs ${l.reps} ${esc(l.exercise)}`));
+    r.logged.forEach((l) => {
+      feedPush(match.config.id, `<b>${esc(nameOf(m2, l.playerId))}</b> logs ${l.reps} ${esc(l.exercise)}`);
+      const p = m2?.players.find((x) => x.id === l.playerId);
+      course?.repsBurst(l.playerId, l.reps, tierHex(p?.tier, false));
+    });
     r.played?.forEach((p) => feedPush(match.config.id, powerLine(m2, p)));
     if (r.logged.length) course?.potBump();
     afterAction(match.config.id);
@@ -526,6 +529,7 @@ function renderBattle(state, matchIn) {
     if (g) {
       toast(`Dealt: ${E.POWER_UPS[g.kind].name} (${g.rarity})`, "ok");
       feedPush(match.config.id, `<b>DEALT</b> — you draw ${esc(E.POWER_UPS[g.kind].name)}`);
+      course?.dailyWinFx();
     }
     afterAction(match.config.id, { newCard: g?.kind });
   };
@@ -836,6 +840,7 @@ function openLogSheet(matchId, pid = null) {
         `<b>${esc(runner.name)}</b> logs ${step} ${esc(exName(match, exercise))}` +
         (r.comeback ? ` · <b>⚡ comeback ×1.2</b>` : "") +
         (r.lightning ? ` · <b>⚡×3 lightning</b>` : ""));
+      course?.repsBurst(runnerId, step, tierHex(runner.tier, runnerId === you.id));
       course?.potBump();
       closeSheet();
       afterAction(matchId);
@@ -1107,6 +1112,7 @@ window.__rwfV3 = {
       `<b>${esc(state.player.name)}</b> logs ${reps} ${esc(exName(m, ex))}` +
       (r.comeback ? ` · <b>⚡ comeback ×1.2</b>` : "") +
       (r.lightning ? ` · <b>⚡×3 lightning</b>` : ""));
+    course?.repsBurst(state.player.id, reps, tierHex(state.player.tier, true));
     course?.potBump();
     afterAction(m.config.id);
     return { ok: true, closed: r.closed, comeback: r.comeback, lightning: r.lightning };
@@ -1117,7 +1123,11 @@ window.__rwfV3 = {
     if (!m) return { logged: [] };
     const r = S.simMates(m.config.id);
     const m2 = S.matchById(m.config.id);
-    r.logged.forEach((l) => feedPush(m.config.id, `<b>${esc(nameOf(m2, l.playerId))}</b> logs ${l.reps} ${esc(l.exercise)}`));
+    r.logged.forEach((l) => {
+      feedPush(m.config.id, `<b>${esc(nameOf(m2, l.playerId))}</b> logs ${l.reps} ${esc(l.exercise)}`);
+      const p = m2?.players.find((x) => x.id === l.playerId);
+      course?.repsBurst(l.playerId, l.reps, tierHex(p?.tier, false));
+    });
     if (r.logged.length) course?.potBump();
     afterAction(m.config.id);
     return r;
