@@ -257,7 +257,7 @@ await waitFor(async () => {
   CODE = await A.evalJs(`(() => { const s = RWFSoT.state; const g = s.groups[s.activeGroupId]; return g && g.cloud ? g.cloud.code : null; })()`);
   return !!CODE;
 }, { timeout: 15000, every: 250, label: "cloud group created on the API" });
-ok(/^[A-Z2-9]{5}$/.test(CODE), `cloud group ${CODE} registered on apps/api (join code works on any phone)`);
+ok(/^[A-Z2-9]{26}$/.test(CODE), `cloud group ${CODE} registered on apps/api (join code works on any phone)`);
 const apiMeta = await fetch(`${API_BASE}/sot/groups/${CODE}`).then((r) => r.json());
 ok(apiMeta.players.length === 4, `API group roster = 4 (Alexei + 3 house bots registered as players)`);
 

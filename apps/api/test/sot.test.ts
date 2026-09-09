@@ -29,6 +29,8 @@ const post = (path: string, body: unknown): Promise<any> =>
     body: JSON.stringify(body),
   }).then(j);
 const get = (path: string): Promise<any> => fetch(`${base}${path}`).then(j);
+const state = (code: string, token: string, since?: number): Promise<any> =>
+  get(`/sot/groups/${code}/state?playerToken=${encodeURIComponent(token)}${since == null ? "" : `&since=${since}`}`);
 
 // a group where every weekday is a play day and the window is 2h — nothing
 // in this suite should ever hit the deadline naturally
@@ -46,7 +48,7 @@ async function makeGroup(name = "Test Crew") {
       dayWindowMs: 2 * 3600_000,
     },
   });
-  expect(g.code).toMatch(/^[A-Z2-9]{5}$/);
+  expect(g.code).toMatch(/^[A-Z2-9]{26}$/);
   return g.code as string;
 }
 
@@ -135,6 +137,28 @@ describe("SOT groups — logging (the optimistic-client pattern)", () => {
     const r2 = await post(`/sot/groups/${code}/cmd`, { playerToken: null, text: "standings" });
     expect(r2.error).toContain("unknown playerToken");
   });
+
+  test("state is token-gated: unauthenticated reads get preview only", async () => {
+    const code = await makeGroup("Preview Crew");
+    const a = await join(code, "Alex");
+    const preview = await get(`/sot/groups/${code}/state`);
+    expect(preview).toMatchObject({ code, name: "Preview Crew", playerCount: 1, hasLiveDay: true });
+    expect(preview.day).toBeUndefined();
+    const full = await state(code, a.playerToken);
+    expect(full.day.status).toBe("live");
+    expect(full.players).toHaveLength(1);
+  });
+
+  test("clientLogId dedupes log retries per player/group", async () => {
+    const code = await makeGroup("Dedupe Crew");
+    const a = await join(code, "Alex", "fit");
+    const body = { playerToken: a.playerToken, exercise: "pushups", reps: 25, clientLogId: "log_retry_001" };
+    const first = await post(`/sot/groups/${code}/log`, body);
+    const second = await post(`/sot/groups/${code}/log`, body);
+    expect(first.ok).toBe(true);
+    expect(second.duplicate).toBe(true);
+    expect(second.state.day.entries.filter((e: any) => e.playerId === a.playerId)).toHaveLength(1);
+  });
 });
 
 describe("SOT groups — two phones, one truth", () => {
@@ -145,20 +169,20 @@ describe("SOT groups — two phones, one truth", () => {
 
     // B polls once and goes idle, remembering the seq it saw (its own join
     // response already includes both joins — so this poll is caught up)
-    const bView1 = await get(`/sot/groups/${code}/state?since=${b.state.seq}`);
+    const bView1 = await state(code, b.playerToken, b.state.seq);
     expect(bView1.unchanged).toBe(true);
     const bSeq = bView1.seq;
 
     // A logs; B just polls again
     await post(`/sot/groups/${code}/log`, { playerToken: a.playerToken, exercise: "burpees", reps: 50 });
-    const bView2 = await get(`/sot/groups/${code}/state?since=${bSeq}`);
+    const bView2 = await state(code, b.playerToken, bSeq);
     expect(bView2.unchanged).toBeUndefined();
     expect(bView2.seq).toBeGreaterThan(bSeq);
     const alex = bView2.board.find((r: any) => r.name === "Alex");
     expect(alex.progress).toBe(50); // fit ×1.0
 
     // cheap poll: caught up → unchanged, no payload
-    const bView3 = await get(`/sot/groups/${code}/state?since=${bView2.seq}`);
+    const bView3 = await state(code, b.playerToken, bView2.seq);
     expect(bView3.unchanged).toBe(true);
     expect(bView3.board).toBeUndefined();
   });
@@ -172,6 +196,14 @@ describe("SOT groups — two phones, one truth", () => {
     seqs.push((await post(`/sot/groups/${code}/cmd`, { playerToken: b.playerToken, text: "log squats 20" })).state.seq);
     seqs.push((await post(`/sot/groups/${code}/cmd`, { playerToken: b.playerToken, text: "standings" })).state.seq); // read-only still advances
     for (let i = 1; i < seqs.length; i++) expect(seqs[i]).toBeGreaterThan(seqs[i - 1]);
+  });
+
+  test("duplicate proposed player id is rejected as a claim conflict", async () => {
+    const code = await makeGroup("Claim Crew");
+    const a = await post(`/sot/groups/${code}/players`, { name: "Alex", tier: "fit", id: "device_local_me" });
+    expect(a.playerId).toBe("device_local_me");
+    const b = await post(`/sot/groups/${code}/players`, { name: "Alex Again", tier: "fit", id: "device_local_me" });
+    expect(b.error).toContain("already claimed");
   });
 });
 
@@ -218,9 +250,21 @@ describe("SOT groups — the cmd endpoint (bots + app, one brain)", () => {
     await post(`/sot/groups/${code}/cmd`, { playerToken: a.playerToken, text: "stake dinner Loser shouts the ramen" });
     await post(`/sot/groups/${code}/cmd`, { playerToken: a.playerToken, text: "agree" });
     await post(`/sot/groups/${code}/cmd`, { playerToken: b.playerToken, text: "agree" });
-    const st = await get(`/sot/groups/${code}/state`);
+    const st = await state(code, b.playerToken);
     expect(st.stake?.type).toBe("dinner");
     expect(st.stake.status).toBe("active");
+  });
+
+  test("creator-only commands are enforced at the API bus", async () => {
+    const code = await makeGroup("Role Crew");
+    const creator = await join(code, "Alex");
+    const other = await join(code, "Bea");
+    const blockedClose = await post(`/sot/groups/${code}/cmd`, { playerToken: other.playerToken, text: "day close force" });
+    expect(blockedClose.error).toContain("creator-only");
+    const okClose = await post(`/sot/groups/${code}/cmd`, { playerToken: creator.playerToken, text: "day close force" });
+    expect(okClose.ok).toBe(true);
+    const blockedEnd = await post(`/sot/groups/${code}/cmd`, { playerToken: other.playerToken, text: "season end" });
+    expect(blockedEnd.error).toContain("creator-only");
   });
 });
 
@@ -230,9 +274,9 @@ describe("SOT groups — deadline auto-close + bot personas", () => {
       name: "Auto Crew 2",
       config: { targetReps: 200, playDays: [0, 1, 2, 3, 4, 5, 6], dayWindowMs: 1200 }, // 1.2s test window
     });
-    await join(g2.code, "Xavier");
+    const x = await join(g2.code, "Xavier");
     await new Promise((r) => setTimeout(r, 1600));
-    const st = await get(`/sot/groups/${g2.code}/state`);
+    const st = await state(g2.code, x.playerToken);
     expect(st.day.status).toBe("closed");
     expect(st.events.some((e: any) => e.kind === "day_close")).toBe(true);
   });
@@ -248,7 +292,7 @@ describe("SOT groups — deadline auto-close + bot personas", () => {
     const human = await join(code, "Alex");
     const botLog = await post(`/sot/groups/${code}/cmd`, { playerToken: r.botTokens[0].playerToken, text: "log pushups 100" });
     expect(botLog.reply).toContain("Coach");
-    const st = await get(`/sot/groups/${code}/state`);
+    const st = await state(code, human.playerToken);
     expect(st.players.map((p: any) => p.name).sort()).toEqual(["Alex", "Coach"]);
     expect(st.board.find((x: any) => x.name === "Coach").progress).toBe(100);
   });

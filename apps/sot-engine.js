@@ -271,14 +271,15 @@ export function activatePowerUp(day, playerId, kind, opts = {}) {
     const gain = stealPreview(day, playerId, targetId);
     if (gain <= 0) return fail(`${targetId} has no completed score to skim yet`);
     const t = day.progress[playerId];
+    const state = maybeCompleteAndWin({
+      ...day,
+      progress: { ...day.progress, [playerId]: { ...t, bonusRuf: roundRuf(t.bonusRuf + gain) } },
+      stealUsed: { ...day.stealUsed, [playerId]: true },
+      inventory: spend(),
+      powerLog: log({ kind, playerId, at, detail: { targetId, gain, targetKept: true } }),
+    }, playerId, at).state;
     return {
-      state: {
-        ...day,
-        progress: { ...day.progress, [playerId]: { ...t, bonusRuf: roundRuf(t.bonusRuf + gain) } },
-        stealUsed: { ...day.stealUsed, [playerId]: true },
-        inventory: spend(),
-        powerLog: log({ kind, playerId, at, detail: { targetId, gain, targetKept: true } }),
-      },
+      state,
       result: { ok: true, kind, playerId, targetId, gain, targetKept: true },
     };
   }
@@ -305,6 +306,7 @@ export function activatePowerUp(day, playerId, kind, opts = {}) {
     if (combos.length === 0) return fail("no prescribed combo configured for today");
     if (day.comboArmed[playerId]) return fail("a combo is already armed");
     const combo = combos.find((c) => c.id === (opts.comboId ?? combos[0].id));
+    if (!combo) return fail(`unknown combo ${opts.comboId}`);
     return {
       state: { ...day, comboArmed: { ...day.comboArmed, [playerId]: { comboId: combo.id, progressed: 0 } }, inventory: spend(), powerLog: log({ kind, playerId, at, detail: { comboId: combo.id, sequence: combo.sequence, bonusRuf: combo.bonusRuf } }) },
       result: { ok: true, kind, playerId, comboId: combo.id, sequence: combo.sequence, bonusRuf: combo.bonusRuf },
@@ -372,7 +374,7 @@ export function activatePowerUp(day, playerId, kind, opts = {}) {
   }
 
   if (kind === "shield_bash") {
-    if (!day.groupShield || day.groupShield.consumedAt == null) return fail("no armed shield to bash");
+    if (!day.groupShield || day.groupShield.consumedAt != null) return fail("no armed shield to bash");
     return {
       state: { ...day, groupShield: { ...day.groupShield, consumedAt: at, consumedKind: "bash" }, inventory: spend(), powerLog: log({ kind, playerId, at, detail: { bashed: day.groupShield.armedBy } }) },
       result: { ok: true, kind, playerId, bashed: day.groupShield.armedBy },
@@ -435,7 +437,7 @@ export function activatePowerUp(day, playerId, kind, opts = {}) {
 
   if (kind === "pack_bond") {
     if (day.packBond) return fail("the pack is already bonded today");
-    const members = (opts.memberIds ?? []).filter((id) => day.players.some((p) => p.id === id));
+    const members = [...new Set(opts.memberIds ?? [])].filter((id) => day.players.some((p) => p.id === id));
     if (members.length < 2) return fail("team card — pick your pack (2+ members)");
     return {
       state: { ...day, packBond: { by: playerId, memberIds: members, at, thresholdRuf: PACK_BOND_THRESHOLD_RUF, share: PACK_BOND_SHARE }, inventory: spend(), powerLog: log({ kind, playerId, at, detail: { members, thresholdRuf: PACK_BOND_THRESHOLD_RUF, share: PACK_BOND_SHARE } }) },
@@ -967,14 +969,11 @@ export function logSet(day, input) {
   if (bombHitAfter && bombHitBefore !== bombHitAfter) bonusRuf += SURPRISE_BOMB_BONUS_RUF;
 
   // Completion (bank the day)…
-  const target = effectiveTargetOf(state, input.playerId);
-  const progress = targetProgressOf(state, input.playerId);
-  const p = state.progress[input.playerId];
-  let completed = false;
+  const completion = maybeCompleteAndWin(state, input.playerId, input.at, { assignWin: false });
+  state = completion.state;
+  let completed = completion.completed;
   let wonDay = false;
-  if (p.completedAt == null && progress >= target) {
-    completed = true;
-    state = { ...state, progress: { ...state.progress, [input.playerId]: { ...p, completedAt: input.at } } };
+  if (completed) {
     // Assist Boost: rewards BOTH when the assisted mate finishes in-window.
     for (const a of state.assists) {
       if (a.toId === input.playerId && a.resolved == null && a.until > input.at) {
@@ -997,7 +996,7 @@ export function logSet(day, input) {
     ? roundRuf(baseTargetOf(state) * dd.targetMultiplier)
     : baseTargetOf(state);
   const progressNow = targetProgressOf(state, input.playerId);
-  if (state.winnerId == null && progressNow >= winBar && progressNow >= target) {
+  if (state.winnerId == null && progressNow >= winBar && progressNow >= effectiveTargetOf(state, input.playerId) && !hasPendingProofCredit(state, input.playerId)) {
     wonDay = true;
     state = { ...state, winnerId: input.playerId, wonAt: input.at };
   }
@@ -1010,7 +1009,6 @@ export function closeDay(day, at) {
   if (at < effectiveDeadline(day)) throw new Error("deadline not reached yet");
 
   let state = resolveExpiredBombs(day, at);
-  state = { ...state, status: "closed", closedAt: at };
 
   // Sweep-completions: a defused bomb may carry a player over the line
   // without another log — honour the completion, never a retroactive win.
@@ -1024,9 +1022,11 @@ export function closeDay(day, at) {
   // Card-stack resolutions (all lazy — untouched days stay untouched, and
   // the TS-core parity digest never sees these fields).
   state = resolveRivalries(state, at);
-  state = settleProofs(state, at);   // contested entries score 0 — completion stands (never shame)
+  state = settleProofs(state, at);   // contested entries score 0; provisional completions can drop
   state = resolvePartnerships(state, at);
   state = resolvePackBond(state, at);
+  state = recomputeLiveWinner(state);
+  state = { ...state, status: "closed", closedAt: at };
 
   const outcomes = {};
   const failures = [];
@@ -1077,6 +1077,61 @@ export function closeDay(day, at) {
 }
 
 /* ── card-stack close-out helpers (all lazy: no card state → same state) ── */
+
+function winBarOf(day, playerId) {
+  const dd = day.doubleDowns?.[playerId];
+  return dd && day.config.flags?.doubleDownAffectsDailyWin
+    ? roundRuf(baseTargetOf(day) * dd.targetMultiplier)
+    : baseTargetOf(day);
+}
+
+function hasPendingProofCredit(day, playerId) {
+  const proofs = day.proofs ?? [];
+  return proofs.some((p) => p.targetId === playerId && p.status === "review");
+}
+
+function maybeCompleteAndWin(day, playerId, at, opts = {}) {
+  const progress = targetProgressOf(day, playerId);
+  const target = effectiveTargetOf(day, playerId);
+  const p = day.progress[playerId];
+  let state = day;
+  let completed = false;
+  let wonDay = false;
+  if (p.completedAt == null && progress >= target) {
+    completed = true;
+    state = { ...state, progress: { ...state.progress, [playerId]: { ...p, completedAt: at } } };
+  }
+  const canAssignWin = opts.assignWin !== false && state.winnerId == null &&
+    progress >= target && progress >= winBarOf(state, playerId) &&
+    !hasPendingProofCredit(state, playerId);
+  if (canAssignWin) {
+    wonDay = true;
+    state = { ...state, winnerId: playerId, wonAt: at };
+  }
+  return { state, completed, wonDay };
+}
+
+function recomputeLiveWinner(day) {
+  let state = day;
+  if (state.winnerId != null) {
+    const progress = targetProgressOf(state, state.winnerId);
+    if (progress < effectiveTargetOf(state, state.winnerId) || progress < winBarOf(state, state.winnerId) || hasPendingProofCredit(state, state.winnerId)) {
+      state = { ...state, winnerId: null, wonAt: null };
+    }
+  }
+  if (state.status !== "live" || state.winnerId != null) return state;
+  const eligible = state.players
+    .map((p) => ({ id: p.id, at: state.progress[p.id]?.completedAt }))
+    .filter((r) => r.at != null)
+    .sort((a, b) => a.at - b.at || a.id.localeCompare(b.id));
+  for (const row of eligible) {
+    const progress = targetProgressOf(state, row.id);
+    if (progress >= effectiveTargetOf(state, row.id) && progress >= winBarOf(state, row.id) && !hasPendingProofCredit(state, row.id)) {
+      return { ...state, winnerId: row.id, wonAt: row.at };
+    }
+  }
+  return state;
+}
 
 /** Rivalries settle at the close: whoever logged more today banks the bonus
  *  (bonusRuf — counts toward the target only under stealCanTriggerWin).
@@ -1134,20 +1189,42 @@ export function voteProof(day, proofId, voterId, vote) {
 function applyProofSettlement(state, proof, outcome, at) {
   const entry = state.entries[proof.entryIndex];
   let out = state;
+  let contestedDroppedBelow = false;
   if (outcome === "contested" && entry) {
     const burn = entry.ruf;
     const p = out.progress[proof.targetId];
+    const nextRuf = roundRuf(Math.max(0, p.ruf - burn));
+    const nextProgress = roundRuf(nextRuf + p.creditRuf + (out.config.flags?.stealCanTriggerWin === true ? p.bonusRuf : 0));
+    const dropsBelow = nextProgress < effectiveTargetOf(out, proof.targetId);
+    contestedDroppedBelow = dropsBelow;
+    const nextPlayerProgress = { ...p, ruf: nextRuf };
+    if (dropsBelow) delete nextPlayerProgress.completedAt;
     out = {
       ...out,
       entries: out.entries.map((e, i) => (i === proof.entryIndex ? { ...e, ruf: 0, origRuf: burn, proofZeroed: proof.id } : e)),
-      progress: { ...out.progress, [proof.targetId]: { ...p, ruf: roundRuf(Math.max(0, p.ruf - burn)) } },
+      progress: { ...out.progress, [proof.targetId]: nextPlayerProgress },
     };
   }
   out = {
     ...out,
     proofs: out.proofs.map((p) => (p.id === proof.id ? { ...p, status: outcome, settledAt: at } : p)),
-    powerLog: [...out.powerLog, { kind: "spot_check", playerId: proof.fromId, at, detail: { targetId: proof.targetId, outcome, entryRuf: entry ? (outcome === "contested" ? (entry.origRuf ?? entry.ruf) : entry.ruf) : 0, dayStillBanks: true } }],
+    powerLog: [...out.powerLog, { kind: "spot_check", playerId: proof.fromId, at, detail: { targetId: proof.targetId, outcome, entryRuf: entry ? (outcome === "contested" ? (entry.origRuf ?? entry.ruf) : entry.ruf) : 0 } }],
   };
+  if (outcome === "accepted") out = maybeCompleteAndWin(out, proof.targetId, entry?.at ?? at).state;
+  if (outcome === "contested") {
+    out = out.status === "live"
+      ? recomputeLiveWinner(out)
+      : (contestedDroppedBelow && out.winnerId === proof.targetId ? {
+          ...out,
+          winnerId: null,
+          wonAt: null,
+          outcomes: out.outcomes ? {
+            ...out.outcomes,
+            [proof.targetId]: { outcome: "failed", completed: false, streakPreserved: false },
+          } : out.outcomes,
+          proofCorrection: { kind: "win_revoked", proofId: proof.id, playerId: proof.targetId, at },
+        } : out);
+  }
   return out;
 }
 

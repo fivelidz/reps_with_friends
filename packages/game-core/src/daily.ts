@@ -199,6 +199,36 @@ export function targetProgressOf(day: DailyBattleState, playerId: string): numbe
   return roundRuf(p.ruf + p.creditRuf + (stealCounts ? p.bonusRuf : 0));
 }
 
+function winBarOf(day: DailyBattleState, playerId: string): number {
+  const dd = day.doubleDowns[playerId];
+  return dd && day.config.flags?.doubleDownAffectsDailyWin
+    ? roundRuf(baseTargetOf(day) * dd.targetMultiplier)
+    : baseTargetOf(day);
+}
+
+export function maybeCompleteAndWin(
+  day: DailyBattleState,
+  playerId: string,
+  at: number,
+  opts: { assignWin?: boolean } = {}
+): { state: DailyBattleState; completed: boolean; wonDay: boolean } {
+  const progress = targetProgressOf(day, playerId);
+  const target = effectiveTargetOf(day, playerId);
+  const p = day.progress[playerId];
+  let state = day;
+  let completed = false;
+  let wonDay = false;
+  if (p.completedAt == null && progress >= target) {
+    completed = true;
+    state = { ...state, progress: { ...day.progress, [playerId]: { ...p, completedAt: at } } };
+  }
+  if (opts.assignWin !== false && state.winnerId == null && progress >= target && progress >= winBarOf(state, playerId)) {
+    wonDay = true;
+    state = { ...state, winnerId: playerId, wonAt: at };
+  }
+  return { state, completed, wonDay };
+}
+
 /** Deadline including Time Freeze extensions. */
 export function effectiveDeadline(day: DailyBattleState): number {
   return day.config.deadlineAt + day.freezesMs;
@@ -317,14 +347,11 @@ export function logSet(day: DailyBattleState, input: LogSetInput): LogSetResult 
 
   // Completion / Daily Win detection (after ALL earned credit this set).
   // Completion = crossing the effective target: the day is BANKED.
-  const target = effectiveTargetOf(state, input.playerId);
-  const progress = targetProgressOf(state, input.playerId);
-  const p = state.progress[input.playerId];
-  let completed = false;
+  const completion = maybeCompleteAndWin(state, input.playerId, input.at, { assignWin: false });
+  state = completion.state;
+  let completed = completion.completed;
   let wonDay = false;
-  if (p.completedAt == null && progress >= target) {
-    completed = true;
-    state = { ...state, progress: { ...state.progress, [input.playerId]: { ...p, completedAt: input.at } } };
+  if (completed) {
     // Assist Boost: a live assist aimed at the finisher rewards BOTH players.
     for (const a of state.assists) {
       if (a.toId === input.playerId && a.resolved == null && a.until > input.at) {
@@ -343,12 +370,8 @@ export function logSet(day: DailyBattleState, input: LogSetInput): LogSetResult 
   // Daily Win = FIRST ELIGIBLE player to the win bar. The bar is the base
   // target, EXCEPT a Double Down volunteer under the Q244 flag (default
   // off: eligibility untouched, the 2× is a reward-side quest).
-  const dd = state.doubleDowns[input.playerId];
-  const winBar = dd && state.config.flags?.doubleDownAffectsDailyWin
-    ? roundRuf(baseTargetOf(state) * dd.targetMultiplier)
-    : baseTargetOf(state);
   const progressNow = targetProgressOf(state, input.playerId);
-  if (state.winnerId == null && progressNow >= winBar && progressNow >= target) {
+  if (state.winnerId == null && progressNow >= winBarOf(state, input.playerId) && progressNow >= effectiveTargetOf(state, input.playerId)) {
     wonDay = true;
     state = { ...state, winnerId: input.playerId, wonAt: input.at };
   }

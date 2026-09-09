@@ -17,7 +17,7 @@ function corsHeaders(req: Request): Record<string, string> {
   const origin = req.headers.get("origin") ?? "";
   const headers: Record<string, string> = {
     "access-control-allow-methods": "GET, POST, OPTIONS",
-    "access-control-allow-headers": "content-type",
+    "access-control-allow-headers": "content-type, x-rwf-player-token",
     "access-control-max-age": "86400",
     vary: "origin",
   };
@@ -36,32 +36,40 @@ const withCors = (req: Request, res: Response): Response => {
 };
 
 export function startServer(port: number): Bun.Server {
-  return Bun.serve({
-    port,
-    async fetch(req) {
-      const url = new URL(req.url);
+  const fetch = async (req: Request) => {
+    const url = new URL(req.url);
 
-      if (req.method === "OPTIONS") {
-        return withCors(req, new Response(null, { status: 204 }));
-      }
+    if (req.method === "OPTIONS") {
+      return withCors(req, new Response(null, { status: 204 }));
+    }
 
-      if (url.pathname === "/health") {
-        return withCors(
-          req,
-          Response.json({
-            ok: true,
-            service: "rwf-api",
-            db: dbPath(),
-            crews: loadDb().crews.length,
-            sotGroups: sotGroupCount(),
-            time: new Date().toISOString(),
-          })
-        );
-      }
+    if (url.pathname === "/health") {
+      return withCors(
+        req,
+        Response.json({
+          ok: true,
+          service: "rwf-api",
+          db: dbPath(),
+          crews: loadDb().crews.length,
+          sotGroups: sotGroupCount(),
+          time: new Date().toISOString(),
+        })
+      );
+    }
 
-      return withCors(req, await handleRequest(req));
-    },
-  });
+    return withCors(req, await handleRequest(req));
+  };
+  if (port !== 0) return Bun.serve({ port, fetch });
+  let last: unknown;
+  for (let i = 0; i < 30; i++) {
+    const candidate = 45_000 + Math.floor(Math.random() * 10_000);
+    try {
+      return Bun.serve({ port: candidate, fetch });
+    } catch (err) {
+      last = err;
+    }
+  }
+  throw last;
 }
 
 if (import.meta.main) {

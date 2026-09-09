@@ -27,7 +27,7 @@
 
 import type { Player } from "./types.ts";
 import { effortMultiplier } from "./handicap.ts";
-import { roundRuf } from "./ruf.ts";
+import { DEFAULT_DAILY_TARGET_RUF, roundRuf } from "./ruf.ts";
 import type {
   DailyBattleState,
   LogSetInput,
@@ -209,14 +209,25 @@ export function activatePowerUp(
     const gain = stealPreview(day, playerId, targetId!);
     if (gain <= 0) return fail(`${targetId} has no completed score to skim yet`);
     const t = day.progress[playerId];
+    let state: DailyBattleState = {
+      ...day,
+      progress: { ...day.progress, [playerId]: { ...t, bonusRuf: roundRuf(t.bonusRuf + gain) } },
+      stealUsed: { ...day.stealUsed, [playerId]: true },
+      inventory: spend(),
+      powerLog: log({ kind, playerId, at, detail: { targetId, gain, targetKept: true } }),
+    };
+    const progress = roundRuf(state.progress[playerId].ruf + state.progress[playerId].creditRuf + (state.config.flags?.stealCanTriggerWin === true ? state.progress[playerId].bonusRuf : 0));
+    const target = state.config.targetReps ?? DEFAULT_DAILY_TARGET_RUF;
+    const dd = state.doubleDowns[playerId];
+    const winBar = dd && state.config.flags?.doubleDownAffectsDailyWin ? roundRuf(target * dd.targetMultiplier) : target;
+    if (state.progress[playerId].completedAt == null && progress >= target) {
+      state = { ...state, progress: { ...state.progress, [playerId]: { ...state.progress[playerId], completedAt: at } } };
+    }
+    if (state.winnerId == null && progress >= target && progress >= winBar) {
+      state = { ...state, winnerId: playerId, wonAt: at };
+    }
     return {
-      state: {
-        ...day,
-        progress: { ...day.progress, [playerId]: { ...t, bonusRuf: roundRuf(t.bonusRuf + gain) } },
-        stealUsed: { ...day.stealUsed, [playerId]: true },
-        inventory: spend(),
-        powerLog: log({ kind, playerId, at, detail: { targetId, gain, targetKept: true } }),
-      },
+      state,
       result: { ok: true, kind, playerId, targetId, gain, targetKept: true },
     };
   }
@@ -245,7 +256,8 @@ export function activatePowerUp(
     const combos = day.config.combos ?? [];
     if (combos.length === 0) return fail("no prescribed combo configured for today");
     if (day.comboArmed[playerId]) return fail("a combo is already armed");
-    const combo = combos.find((c) => c.id === (opts.comboId ?? combos[0].id))!;
+    const combo = combos.find((c) => c.id === (opts.comboId ?? combos[0].id));
+    if (!combo) return fail(`unknown combo ${opts.comboId}`);
     return {
       state: { ...day, comboArmed: { ...day.comboArmed, [playerId]: { comboId: combo.id, progressed: 0 } }, inventory: spend(), powerLog: log({ kind, playerId, at, detail: { comboId: combo.id, sequence: combo.sequence, bonusRuf: combo.bonusRuf } }) },
       result: { ok: true, kind, playerId, comboId: combo.id, sequence: combo.sequence, bonusRuf: combo.bonusRuf },

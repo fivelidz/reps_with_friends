@@ -102,6 +102,17 @@ describe("v4 power-ups — Rep Steal is a PURE GAIN (target keeps theirs)", () =
     expect(a.wonDay).toBe(true);
   });
 
+  test("flag on: steal itself can complete and win", () => {
+    let d = day([P("a"), P("b")], { flags: { stealCanTriggerWin: true } });
+    d = log(d, "a", 180, T0 + 500).state;
+    d = log(d, "b", 200, T0 + 1000).state;
+    d = { ...d, winnerId: undefined, wonAt: undefined };
+    d = grantPowerUp(d, "a", "steal");
+    const r = activatePowerUp(d, "a", "steal", { at: T0 + 2000, targetId: "b" });
+    expect(r.state.progress.a.completedAt).toBe(T0 + 2000);
+    expect(r.state.winnerId).toBe("a");
+  });
+
   test("guard rails: nothing to skim, self-target, one per day", () => {
     let d = day([P("a"), P("b")]);
     d = grantPowerUp(d, "a", "steal");
@@ -297,5 +308,16 @@ describe("v4 power-ups — Combo Boost (prescribed sequence)", () => {
     const r = activatePowerUp(d, "a", "combo_boost", { at: T0 + 1 });
     expect(r.result.ok).toBe(false);
     expect(r.result.reason).toMatch(/no prescribed combo/);
+  });
+
+  test("unknown prescribed combo id → activation refused", () => {
+    let d = createDay(
+      { id: "d1", playDays: [1], deadlineAt: T0 + DAY_MS, combos: [{ id: "power3", sequence: ["pushup"], bonusRuf: 30 }] },
+      [P("a")]
+    );
+    d = grantPowerUp(d, "a", "combo_boost");
+    const r = activatePowerUp(d, "a", "combo_boost", { at: T0 + 1, comboId: "ghost" });
+    expect(r.result.ok).toBe(false);
+    expect(r.result.reason).toMatch(/unknown combo/);
   });
 });

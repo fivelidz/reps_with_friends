@@ -719,12 +719,16 @@ function voteProof(gRaw, proofId, voterId, vote) {
   const ret = Core.voteProof(b.core, proofId, voterId, vote);
   if (!ret.result.ok) return { error: ret.result.reason };
   b.core = ret.state;
+  reconcileProofSettlement(g, s, b);
   const voter = memberById(g, voterId);
   if (ret.result.settled) {
     const proof = Core.proofsOf(b.core).find((p) => p.id === proofId);
     const tgt = proof ? memberById(g, proof.targetId) : null;
     if (ret.result.outcome === "contested") {
-      pushEvent(g, { type: "proof_contested", battle: b.idx, text: `📋 the crew CONTESTED ${tgt ? firstName(g, tgt) : "the set"} — it scores 0, but the day still banks. Onward.` });
+      pushEvent(g, { type: "proof_contested", battle: b.idx, text: `📋 the crew CONTESTED ${tgt ? firstName(g, tgt) : "the set"} — it scores 0; any provisional win is corrected.` });
+      if (b.core.proofCorrection?.kind === "win_revoked") {
+        pushEvent(g, { type: "proof_contested", battle: b.idx, text: `📋 Daily Win correction — ${tgt ? firstName(g, tgt) : "the player"} drops below target, so the win and season point are revoked.` });
+      }
     } else {
       pushEvent(g, { type: "proof_accepted", battle: b.idx, text: `📋 the crew ACCEPTED ${tgt ? firstName(g, tgt) : "the set"} — reps stand. Trust is the game.` });
     }
@@ -733,6 +737,30 @@ function voteProof(gRaw, proofId, voterId, vote) {
   }
   save();
   return { ok: true, ...ret.result };
+}
+
+function reconcileProofSettlement(g, s, b) {
+  if (!b.core) return;
+  for (const m of g.members) {
+    const p = b.core.progress?.[m.id];
+    if (p && p.completedAt == null && b.completions?.[m.id]) {
+      delete b.completions[m.id];
+      m.completions = Math.max(0, (m.completions || 0) - 1);
+      m.streak = Math.max(0, (m.streak || 0) - 1);
+    }
+  }
+  b.winnerId = b.core.winnerId || null;
+  if (!b.winnerId) b.winnerAtMs = null;
+  const c = b.core.proofCorrection;
+  if (!c || c.kind !== "win_revoked" || !s.core) return;
+  const date = dateLabel(b, s);
+  const day = (s.core.days || []).find((d) => d.date === date);
+  if (day && (day.winnerIds || []).includes(c.playerId)) {
+    day.winnerIds = day.winnerIds.filter((id) => id !== c.playerId);
+    s.core = { ...s.core, points: { ...s.core.points, [c.playerId]: Math.max(0, (s.core.points[c.playerId] || 0) - 1) } };
+    const m = memberById(g, c.playerId);
+    if (m) m.dailyWins = Math.max(0, (m.dailyWins || 0) - 1);
+  }
 }
 
 /* ── e2e / driver affordances (same engine APIs the UI drives) ─────── */
@@ -845,7 +873,7 @@ function resolveBattle(g, s, b) {
   const proofEvents = Core.proofsOf(b.core).filter((p) => p.status === "contested");
   for (const p of proofEvents) {
     const tgt = memberById(g, p.targetId);
-    pushEvent(g, { type: "proof_contested", battle: b.idx, text: `📋 the crew CONTESTED ${tgt ? firstName(g, tgt) : "the set"} at the close — it scores 0, but the day still banks. Onward.` });
+    pushEvent(g, { type: "proof_contested", battle: b.idx, text: `📋 the crew CONTESTED ${tgt ? firstName(g, tgt) : "the set"} at the close — it scores 0 and the recap reflects the corrected result.` });
   }
   // fold the day into the engine season record (points + engine streaks)
   try {

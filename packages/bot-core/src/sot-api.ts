@@ -10,14 +10,12 @@
 //
 // · groups are auto-created per chatId and players auto-joined (auth-lite:
 //   the API mints a playerToken, cached in a small local session file)
-// · when the API is NOT reachable, the handler falls back to the exact
-//   today behaviour: local file store + local bus (the P1 file fallback —
-//   nothing breaks when the server is down).
+// · once a chat has a server session, API outages fail closed: commands are
+//   queued and replayed against the server, never applied to a local store.
 
 import { readFileSync, writeFileSync, mkdirSync } from "node:fs";
 import { dirname } from "node:path";
 import type { InboundMessage } from "./bus.ts";
-import { SotCommandBus, SotStore } from "./sot-bus.ts";
 
 const DEFAULT_BASE = process.env.RWF_API_URL ?? "http://127.0.0.1:4174";
 
@@ -44,8 +42,7 @@ export class SotApiSession {
   private f: typeof fetch;
   private timeoutMs: number;
   private chats = new Map<string, ChatSession>();
-  /** Local fallback (P1 semantics) — used only when the API is unreachable. */
-  private fallback = new SotCommandBus(new SotStore(".data/sot-groups.json"));
+  private pending = new Map<string, InboundMessage[]>();
 
   constructor(opts: SotApiSessionOptions = {}) {
     this.baseUrl = (opts.apiUrl ?? DEFAULT_BASE).replace(/\/+$/, "");
@@ -106,7 +103,7 @@ export class SotApiSession {
         if (meta.status === 404) {
           this.chats.delete(chatId); // server lost the group — recreate below
           s = undefined;
-        } else return null; // server down → caller falls back
+        } else return null; // server down → caller queues/fails closed
       }
     }
     if (!s) {
@@ -135,26 +132,52 @@ export class SotApiSession {
   }
 
   /**
-   * Handle one inbound message through the SERVER's bus. Falls back to the
-   * local bus (file store) when the API is unreachable — the bot keeps
-   * working offline, exactly like the P1 mirror seam.
+   * Handle one inbound message through the SERVER's bus. Established chats
+   * queue during outages and replay on reconnect; no local store is allowed
+   * to become a second authority.
    */
   async handle(msg: InboundMessage): Promise<string> {
     // first message sets the tier when the grammar carries one (`join fit`)
     const tierHint = tierFromText(msg.text);
     const s = await this.ensure(msg.chatId, msg.playerId, msg.playerName, tierHint);
     if (!s) {
-      return this.fallback.handle(msg);
+      if (this.chats.has(msg.chatId)) return this.queue(msg);
+      return "⚠️ Reps With Friends can't reach the game server right now. Try again in a moment.";
     }
+    await this.replay(msg.chatId, s);
     const r = await this.call("POST", `/sot/groups/${s.code}/cmd`, {
       playerToken: s.tokens[msg.playerId],
       text: msg.text,
     });
     if (!r.ok) {
-      if (r.status === 0) return this.fallback.handle(msg); // transport down
+      if (r.status === 0) return this.queue(msg); // transport down
       return `⚠️ ${r.data?.error ?? `API error ${r.status}`}`;
     }
     return String(r.data.reply ?? "…");
+  }
+
+  private queue(msg: InboundMessage): string {
+    const q = this.pending.get(msg.chatId) ?? [];
+    q.push(msg);
+    this.pending.set(msg.chatId, q.slice(-50));
+    return `⚠️ Game server is offline. I queued this command and will replay it when the connection is back. (${this.pending.get(msg.chatId)!.length} pending)`;
+  }
+
+  private async replay(chatId: string, s: ChatSession): Promise<void> {
+    const q = this.pending.get(chatId);
+    if (!q?.length) return;
+    const rest: InboundMessage[] = [];
+    for (const msg of q) {
+      const token = s.tokens[msg.playerId];
+      if (!token) { rest.push(msg); continue; }
+      const r = await this.call("POST", `/sot/groups/${s.code}/cmd`, {
+        playerToken: token,
+        text: msg.text,
+      });
+      if (!r.ok) { rest.push(msg); break; }
+    }
+    if (rest.length) this.pending.set(chatId, rest);
+    else this.pending.delete(chatId);
   }
 }
 

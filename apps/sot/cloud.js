@@ -110,7 +110,7 @@
     /* ── preview a code (join flow) ──────────────────────────────────── */
     async lookup(code) {
       const c = String(code || "").trim().toUpperCase();
-      if (!/^[A-Z2-9]{5}$/.test(c)) return { error: "codes are 5 letters/digits" };
+      if (!/^[A-Z2-9]{5,32}$/.test(c)) return { error: "that code doesn't look right" };
       const r = await api("GET", `/sot/groups/${c}`);
       if (r.error) return r;
       return {
@@ -191,13 +191,13 @@
     },
 
     /* ── the optimistic-log follow-up (called after a local log lands) ── */
-    async afterLocalLog(groupId, exerciseId, physical, verified) {
+    async afterLocalLog(groupId, exerciseId, physical, verified, clientLogId) {
       const bind = bindingFor(groupId);
       if (!bind || !this.enabled()) return { skipped: true };
       const { g, b } = bind;
       const reps = toEngineReps(exerciseId, physical);
       const r = await api("POST", `/sot/groups/${g.cloud.code}/log`, {
-        playerToken: b.token, exercise: exerciseId, reps, ...(verified ? { verified: true } : {}),
+        playerToken: b.token, exercise: exerciseId, reps, ...(verified ? { verified: true } : {}), ...(clientLogId ? { clientLogId } : {}),
       });
       if (r.error) { noteFail(r.error); return r; }
       mergeState(g, r.state);
@@ -209,7 +209,7 @@
       const bind = bindingFor(groupId);
       if (!bind) return { error: "not a cloud group" };
       const { g, b } = bind;
-      const r = await api("POST", `/sot/groups/${g.cloud.code}/cmd`, { playerToken: b.token, text });
+      const r = await api("POST", `/sot/groups/${g.cloud.code}/cmd`, { playerToken: b.token, text, clientCmdId: "cmd_" + Date.now().toString(36) + "_" + Math.random().toString(36).slice(2, 8) });
       if (r.error) { noteFail(r.error); return r; }
       mergeState(g, r.state);
       return r;
@@ -229,7 +229,7 @@
       if (Date.now() - lastFailAt < FAIL_COOLDOWN_MS) return { skipped: true, cooling: true };
       const { g, b } = bind;
       const since = (cfg.groups[g.cloud.code] || {}).since || 0;
-      const r = await api("GET", `/sot/groups/${g.cloud.code}/state?since=${since}`);
+      const r = await api("GET", `/sot/groups/${g.cloud.code}/state?since=${since}&playerToken=${encodeURIComponent(b.token)}`);
       if (r.error) { noteFail(r.error); return r; }
       if (r.unchanged) return { ok: true, unchanged: true, seq: r.seq };
       cfg.groups[g.cloud.code].since = r.seq;

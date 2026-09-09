@@ -18,6 +18,7 @@
 // endpoints (create/players/log/state) share the very same objects.
 
 import { existsSync, mkdirSync, readFileSync, renameSync, writeFileSync } from "node:fs";
+import { randomBytes, randomInt, randomUUID } from "node:crypto";
 import { dirname, resolve } from "node:path";
 
 import {
@@ -79,6 +80,8 @@ export interface ServerSotGroup {
   seq: number;
   events: SotEvent[];
   creatorPlayerId?: string;
+  clientLogIds?: Record<string, string[]>;
+  clientCmdIds?: Record<string, string[]>;
 }
 
 // ── store (.data/sot-api.json — atomic writes; Postgres later per docs/22) ──
@@ -145,10 +148,9 @@ export class SotError extends Error {
 
 const CODE_ALPHABET = "ABCDEFGHJKLMNPQRSTUVWXYZ23456789"; // no 0/O/1/I
 
-const newToken = (): string =>
-  Array.from({ length: 24 }, () => Math.floor(Math.random() * 16).toString(16)).join("");
+const newToken = (): string => randomBytes(32).toString("base64url");
 
-const newPid = (): string => `p_${crypto.randomUUID().slice(0, 8)}`;
+const newPid = (): string => `p_${randomUUID().slice(0, 8)}`;
 
 function isoDate(ms: number): string {
   const d = new Date(ms);
@@ -192,7 +194,7 @@ export function createSotGroup(
   const db = loadSotDb();
   let code = "";
   do {
-    code = Array.from({ length: 5 }, () => CODE_ALPHABET[Math.floor(Math.random() * CODE_ALPHABET.length)]).join("");
+    code = Array.from({ length: 26 }, () => CODE_ALPHABET[randomInt(CODE_ALPHABET.length)]).join("");
   } while (db.groups[code]);
   const now = Date.now();
   const g: ServerSotGroup = {
@@ -220,6 +222,10 @@ export function createSotGroup(
   g.season = null;
   // pre-registered non-device players (house crew / coach bots) — their tokens
   // come back ONCE on the create response; the creator's client keeps them.
+  // bots must NOT claim group creatorship — the first HUMAN joiner
+  // (POST /players, the group's actual owner) takes creatorPlayerId, so
+  // creator-gated commands (day close force, season end) stay with the human.
+  const creatorId = g.creatorPlayerId;
   const botTokens: { name: string; playerId: string; playerToken: string }[] = [];
   for (const b of bots.slice(0, 8)) {
     const tier = (TIERS as string[]).includes(b.tier ?? "") ? (b.tier as FitnessTier) : "casual";
@@ -229,6 +235,7 @@ export function createSotGroup(
     }, now, { silent: true });
     botTokens.push({ name: joined.player.name, playerId: joined.playerId, playerToken: joined.playerToken });
   }
+  g.creatorPlayerId = creatorId; // restore — bots joined but own nothing
   db.groups[code] = g;
   saveSotDb(db);
   return { code, group: g, botTokens };
@@ -248,7 +255,10 @@ export function joinPlayer(
   // the client proposes its id (the app's local member id) so engine days hold
   // the SAME ids on both sides — the token stays the actual authority
   let id = newPid();
-  if (typeof ident.id === "string" && /^[a-z0-9_:-]{2,40}$/i.test(ident.id) && !g.players.some((p) => p.id === ident.id)) {
+  if (typeof ident.id === "string" && /^[a-z0-9_:-]{2,40}$/i.test(ident.id)) {
+    if (g.players.some((p) => p.id === ident.id)) {
+      throw new SotError(409, "that player id is already claimed — choose 'I already have a player' and enter your code/token, or pick a new name");
+    }
     id = ident.id;
   }
   const player: Player = { id, name, tier };
@@ -367,6 +377,7 @@ export interface SotLogInput {
   reps: number;
   verified?: boolean;
   at?: number;
+  clientLogId?: string;
 }
 
 /**
@@ -374,11 +385,15 @@ export interface SotLogInput {
  * physical reps — the client applies its exercise-value conversion first,
  * exactly like the app's engine.js does before Core.logSet).
  */
-export function applyLog(g: ServerSotGroup, input: SotLogInput): { ruf: number; completed: boolean; wonDay: boolean; bonusRuf: number } {
+export function applyLog(g: ServerSotGroup, input: SotLogInput): { ruf: number; completed: boolean; wonDay: boolean; bonusRuf: number; duplicate?: boolean } {
   advanceGroup(g, input.at ?? Date.now());
   if (!g.day || g.day.status !== "live") throw new SotError(400, "no battle open — the day is closed (new day opens on the next play day via `start`)");
   const player = g.players.find((p) => p.id === input.playerId);
   if (!player) throw new SotError(403, "player not in this group");
+  const clientLogId = cleanClientId(input.clientLogId);
+  if (clientLogId && (g.clientLogIds?.[player.id] ?? []).includes(clientLogId)) {
+    return { ruf: 0, completed: false, wonDay: false, bonusRuf: 0, duplicate: true } as any;
+  }
   const ex = resolveExercise(g, input.exercise);
   const reps = Math.round(Number(input.reps));
   if (!Number.isInteger(reps) || reps <= 0) throw new SotError(400, "reps must be a positive integer");
@@ -395,6 +410,10 @@ export function applyLog(g: ServerSotGroup, input: SotLogInput): { ruf: number; 
     throw new SotError(400, e instanceof Error ? e.message : String(e));
   }
   g.day = ret.state;
+  if (clientLogId) {
+    const ids = (g.clientLogIds?.[player.id] ?? []).concat(clientLogId).slice(-200);
+    g.clientLogIds = { ...(g.clientLogIds ?? {}), [player.id]: ids };
+  }
   bump(g);
   const target = (E as any).effectiveTargetOf(g.day, player.id);
   const progress = (E as any).targetProgressOf(g.day, player.id);
@@ -472,12 +491,43 @@ export function runCommand(g: ServerSotGroup, playerId: string, text: string): {
   advanceGroup(g);
   const player = g.players.find((p) => p.id === playerId);
   if (!player) throw new SotError(403, "player not in this group");
+  enforceCommandRole(g, playerId, text);
   const bus = busFor(g);
   const before = g.seq;
   const reply = bus.handle({ chatId: g.code, playerId: player.id, playerName: player.name, text: String(text ?? "").slice(0, 400) });
   if (g.seq === before) bump(g); // every cmd is state-visible: read-only cmds still advance the poll cursor
   pushEvent(g, "cmd", `🤖 ${player.name}: \`${String(text).trim()}\``, player.id);
   return { reply };
+}
+
+export function runIdempotentCommand(g: ServerSotGroup, playerId: string, text: string, clientCmdId?: string): { reply: string; duplicate?: boolean } {
+  const id = cleanClientId(clientCmdId);
+  if (id && (g.clientCmdIds?.[playerId] ?? []).includes(id)) return { reply: "✅ Already handled that command.", duplicate: true };
+  const out = runCommand(g, playerId, text);
+  if (id) {
+    const ids = (g.clientCmdIds?.[playerId] ?? []).concat(id).slice(-200);
+    g.clientCmdIds = { ...(g.clientCmdIds ?? {}), [playerId]: ids };
+  }
+  return out;
+}
+
+function cleanClientId(id: unknown): string | undefined {
+  if (typeof id !== "string") return undefined;
+  const s = id.trim();
+  return /^[A-Za-z0-9_.:-]{6,120}$/.test(s) ? s : undefined;
+}
+
+function enforceCommandRole(g: ServerSotGroup, playerId: string, text: string): void {
+  const parsed = parseSot(text);
+  if (!parsed) return;
+  const sub = (parsed.args[0] ?? "").toLowerCase();
+  const creatorOnly =
+    parsed.cmd === "new" ||
+    (parsed.cmd === "day" && sub === "close" && (parsed.args[1] ?? "").toLowerCase() === "force") ||
+    (parsed.cmd === "season" && sub === "end");
+  if (creatorOnly && g.creatorPlayerId && g.creatorPlayerId !== playerId) {
+    throw new SotError(403, "creator-only command — ask the group creator to run that");
+  }
 }
 
 // ── the state payload (GET /state — the app's poll shape) ───────────────────

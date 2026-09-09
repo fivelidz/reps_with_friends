@@ -105,6 +105,15 @@ describe("sot errors (friendly cards, never throws)", () => {
     openDay();
     expect(bus.handle(msg("u-zoe", "Zoe", "join fit"))).toContain("in for the next one");
   });
+
+  test("creator-only commands are enforced by the bus", () => {
+    openDay();
+    expect(bus.handle(dave("day close force"))).toContain("creator-only");
+    expect(bus.handle(dave("season end"))).toContain("creator-only");
+    t += 7 * HOUR;
+    expect(bus.handle(ben("day close force"))).toContain("Day closed");
+    expect(bus.handle(dave("new"))).toContain("creator-only");
+  });
 });
 
 describe("sot full day arc: new → join → start → WIN → BANK → close → ladder", () => {

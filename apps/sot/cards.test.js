@@ -326,6 +326,38 @@ describe("card stack — rivalry family", () => {
     expect(closed.outcomes.a.packBondPaid).toBe(true);
     expect(closed.outcomes.b.packBondPaid).toBeUndefined();
   });
+
+  test("Pack Bond dedupes members and requires two unique valid players", () => {
+    let d = newDay();
+    const bad = act(grant(d, "a", "pack_bond"), "a", "pack_bond", { memberIds: ["a", "a", "ghost"] });
+    expect(bad.result.ok).toBe(false);
+    d = act(grant(d, "a", "pack_bond"), "a", "pack_bond", { memberIds: ["a", "b", "b"] }).state;
+    expect(d.packBond.memberIds).toEqual(["a", "b"]);
+  });
+});
+
+describe("card stack — steal completion", () => {
+  test("steal itself completes and wins when stealCanTriggerWin is flagged", () => {
+    let d = newDay({ target: 200, flags: { stealCanTriggerWin: true } });
+    d = log(d, "a", "pushups", 180, T0 + 10).state;
+    d = log(d, "b", "pushups", 200, T0 + 20).state;
+    d = { ...d, winnerId: undefined, wonAt: undefined };
+    d = grant(d, "a", "steal");
+    const r = act(d, "a", "steal", { targetId: "b", at: T0 + 30 });
+    expect(r.state.progress.a.completedAt).toBe(T0 + 30);
+    expect(r.state.winnerId).toBe("a");
+  });
+});
+
+describe("card stack — Combo Boost validation", () => {
+  test("unknown combo id returns ok:false", () => {
+    let d = newDay({ exercises: [{ id: "pushups" }], flags: {}, target: 200 });
+    d = { ...d, config: { ...d.config, combos: [{ id: "known", sequence: ["pushups"], bonusRuf: 30 }] } };
+    d = grant(d, "a", "combo_boost");
+    const r = act(d, "a", "combo_boost", { comboId: "ghost" });
+    expect(r.result.ok).toBe(false);
+    expect(r.result.reason).toContain("unknown combo");
+  });
 });
 
 describe("card stack — proof flow (Prove It / Spot Check)", () => {
@@ -364,7 +396,7 @@ describe("card stack — proof flow (Prove It / Spot Check)", () => {
     expect(v3.state.entries[0].ruf).toBe(20);
   });
 
-  test("contested path: majority contests → entry scores 0, completion still banks the day", () => {
+  test("contested path: majority contests → entry scores 0, provisional completion is removed", () => {
     let d = newDay({ target: 100 });
     d = log(d, "b", "pushups", 60, T0 + 10).state; // b at 60/100
     d = act(grant(d, "a", "prove_it"), "a", "prove_it", { targetId: "b" }).state;
@@ -383,11 +415,49 @@ describe("card stack — proof flow (Prove It / Spot Check)", () => {
     expect(after.entries[1].origRuf).toBe(50);
     expect(after.entries[1].proofZeroed).toBe(proof.id);
     expect(E.targetProgressOf(after, "b")).toBe(60); // progress dropped
-    // but the completion STANDS — the day still banks (never shame)
-    expect(after.progress.b.completedAt).not.toBeNull();
+    expect(after.progress.b.completedAt).toBeUndefined();
     const closed = E.closeDay(after, T0 + DAY_MS + 60_000);
-    expect(closed.outcomes.b.completed).toBe(true);
-    expect(closed.outcomes.b.outcome).toBe("win");
+    expect(closed.outcomes.b.completed).toBe(false);
+    expect(closed.outcomes.b.outcome).toBe("failed");
+  });
+
+  test("contested before close transfers Daily Win to the first eligible completer", () => {
+    let d = newDay({ target: 100 });
+    d = log(d, "b", "pushups", 60, T0 + 10).state;
+    d = act(grant(d, "a", "prove_it"), "a", "prove_it", { targetId: "b" }).state;
+    d = log(d, "b", "pushups", 50, T0 + 20).state;
+    expect(d.progress.b.completedAt).toBe(T0 + 20);
+    expect(d.winnerId).toBeUndefined();
+    d = log(d, "c", "pushups", 100, T0 + 30).state;
+    expect(d.winnerId).toBe("c");
+    const proof = E.proofsOf(d)[0];
+    let s = E.voteProof(d, proof.id, "a", "contest").state;
+    s = E.voteProof(s, proof.id, "c", "contest").state;
+    expect(s.progress.b.completedAt).toBeUndefined();
+    expect(s.winnerId).toBe("c");
+    expect(s.wonAt).toBe(T0 + 30);
+  });
+
+  test("contested after close revokes the Daily Win without transferring it", () => {
+    let d = newDay({ target: 100 });
+    d = log(d, "b", "pushups", 100, T0 + 10).state;
+    d = log(d, "c", "pushups", 100, T0 + 20).state;
+    d = { ...d, status: "closed", closedAt: T0 + DAY_MS, outcomes: {
+      b: { outcome: "win", completed: true, streakPreserved: true },
+      c: { outcome: "completed", completed: true, streakPreserved: true },
+      a: { outcome: "failed", completed: false, streakPreserved: false },
+    } };
+    d = {
+      ...d,
+      entries: d.entries.map((e, i) => i === 0 ? { ...e, underReview: "proof-after-close" } : e),
+      proofs: [{ id: "proof-after-close", fromId: "a", targetId: "b", issuedAt: T0, status: "review", entryIndex: 0, votes: {}, bonusRuf: E.PROVE_IT_BONUS_RUF }],
+    };
+    let s = E.voteProof(d, "proof-after-close", "a", "contest").state;
+    s = E.voteProof(s, "proof-after-close", "c", "contest").state;
+    expect(s.winnerId).toBeNull();
+    expect(s.proofCorrection).toMatchObject({ kind: "win_revoked", playerId: "b", proofId: "proof-after-close" });
+    expect(s.progress.b.completedAt).toBeUndefined();
+    expect(s.progress.c.completedAt).toBe(T0 + 20);
   });
 
   test("close-day settlement: no votes → accepted; awaiting-log never triggered → expired", () => {

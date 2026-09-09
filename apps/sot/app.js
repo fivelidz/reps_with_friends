@@ -146,7 +146,7 @@
     },
     save() { try { localStorage.setItem(CONN_KEY, JSON.stringify({ v: 1, queue: this.queue })); } catch (e) { /* private mode */ } },
     enqueue(exerciseId, amount) {
-      const entry = { id: "q_" + Math.random().toString(36).slice(2, 9), exerciseId, amount, queuedAt: Date.now() };
+      const entry = { id: clientLogId(), exerciseId, amount, queuedAt: Date.now() };
       this.queue.push(entry); this.save(); return entry;
     },
     remove(id) { this.queue = this.queue.filter((e) => e.id !== id); this.save(); },
@@ -158,7 +158,7 @@
     Conn.mode = "reconnecting"; render();
     setTimeout(() => replayQueuedLogs(), 1100);
   }
-  function replayQueuedLogs() {
+  async function replayQueuedLogs() {
     let synced = 0, dropped = 0, conflicts = [];
     const snap = SoT.snapshot();
     if (snap && Conn.queue.length) {
@@ -167,11 +167,12 @@
         if (dup) { conflicts.push({ q, dup }); continue; }   // #105 — resolve by hand
         const r = SoT.logReps(snap.group.id, snap.me.id, q.exerciseId, q.amount);
         if (r.error) { Conn.remove(q.id); dropped++; continue; }
-        Conn.remove(q.id); synced++;
         // cloud pilot (M1): replayed sets land on the shared API too
         if (window.RWFCloud && window.RWFCloud.enabled() && window.RWFCloud.isCloudGroup(snap.group.id)) {
-          window.RWFCloud.afterLocalLog(snap.group.id, q.exerciseId, q.amount).catch(() => {});
+          const cr = await window.RWFCloud.afterLocalLog(snap.group.id, q.exerciseId, q.amount, false, q.id).catch((e) => ({ error: e && e.message || "cloud sync failed" }));
+          if (cr && cr.error && !cr.skipped) { noteCloudQueueFailure(cr.error); continue; }
         }
+        Conn.remove(q.id); synced++;
       }
     }
     Conn.mode = "online";
@@ -183,6 +184,17 @@
     } else {
       toast("Back online");
     }
+  }
+  function clientLogId() {
+    if (window.crypto && window.crypto.getRandomValues) {
+      const bytes = new Uint8Array(16);
+      window.crypto.getRandomValues(bytes);
+      return "log_" + Array.from(bytes, (b) => b.toString(16).padStart(2, "0")).join("");
+    }
+    return "log_" + Date.now().toString(36) + "_" + Math.random().toString(36).slice(2, 12);
+  }
+  function noteCloudQueueFailure(err) {
+    if (window.RWFCloud && window.RWFCloud.noteFail) window.RWFCloud.noteFail(err);
   }
   /* duplicate detection (#119): same exercise + same reps (post-conversion)
      by me within 60s → warn before it lands. Reads FRESH state so replay
@@ -471,7 +483,14 @@
             sfx("primary");
             J.step = "cloudJoining"; render();
             const r = await window.RWFCloud.confirmJoin(J.code);
-            if (r.error) { sfx("error"); toast(r.error); J.step = "enter"; render(); return; }
+            if (r.error) {
+              sfx("error");
+              J.claimError = /already claimed/i.test(r.error)
+                ? "That player is already claimed. Choose I already have a player and enter your code/token, or change your profile name before joining."
+                : r.error;
+              toast(J.claimError);
+              J.step = "enter"; render(); return;
+            }
             J.step = "done"; render();
           } }, "I'm in — join the shared game"),
           el("button", { class: "btn ghost sm", style: "margin-top:10px", onclick: () => { sfx("tap"); J.step = "enter"; render(); } }, "Back")));
@@ -481,6 +500,9 @@
         el("div", { class: "ex-ill" }, "☁️"),
         el("h1", { class: "display" }, "JOINING…"),
         el("p", { class: "sub" }, "Claiming your seat on the crew server"));
+    }
+    if (J.claimError) {
+      setTimeout(() => { J.claimError = null; render(); }, 4000);
     }
     if (J.step === "cloudMiss") {
       return el("div", { class: "screen on" },
@@ -1358,7 +1380,7 @@
       // cloud pilot (M1): the local log is optimistic truth — push it to the
       // shared API and merge the server reply (server wins on conflict)
       if (window.RWFCloud && window.RWFCloud.enabled() && window.RWFCloud.isCloudGroup(snap.group.id)) {
-        window.RWFCloud.afterLocalLog(snap.group.id, F.exerciseId, F.amount, verified).then((cr) => {
+        window.RWFCloud.afterLocalLog(snap.group.id, F.exerciseId, F.amount, verified, clientLogId()).then((cr) => {
           if (cr && cr.error && !cr.skipped) toast(`☁️ set is local-only for now (${cr.error})`);
         }).catch(() => {});
       }

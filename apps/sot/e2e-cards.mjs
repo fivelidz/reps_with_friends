@@ -357,7 +357,7 @@ st = await snapState();
 ok(st.proofs.length === 0, "the review settled (card left the feed)");
 okBody("CONTESTED", "the feed records the crew's call");
 okBody("scores 0", "contested messaging: the set scores 0");
-okBody("day still banks", "the never-shame ruling is right in the feed");
+okBody("provisional win is corrected", "the never-shame ruling holds (contested = zeroed, banks, provisional win corrected)");
 const marcoRow = st.board.find((r) => r.id === marco.id);
 ok(marcoRow.adjusted === 200, `Marco back to 200 (contested set zeroed: ${marcoRow.adjusted})`);
 ok(marcoRow.completed === true, "…and his day STILL BANKS (completion stands)");

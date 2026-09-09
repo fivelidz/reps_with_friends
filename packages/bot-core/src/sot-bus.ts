@@ -120,6 +120,7 @@ export interface StoredSotGroup {
   config: SotGroupConfig;
   players: Player[];
   season: BattleSeasonState;
+  creatorPlayerId?: string;
   /** Today's battle — live or the last closed one. */
   day?: DailyBattleState;
   /** Local ISO date (YYYY-MM-DD) the day opened — its season identity. */
@@ -378,6 +379,7 @@ export class SotCommandBus {
       target = n;
     }
     const existing = this.store.get(msg.chatId);
+    if (existing) this.requireCreator(existing, msg.playerId);
     if (existing?.day?.status === "live")
       throw new Error(`today's battle is still live — \`s\` for standings, \`day close\` when it's done`);
     // Creator rides along as casual (re-tier with `join <tier>` before `start`).
@@ -392,6 +394,7 @@ export class SotCommandBus {
         exercises: DEFAULT_SOT_EXERCISES,
       },
       players: [creator],
+      creatorPlayerId: existing?.creatorPlayerId ?? creator.id,
       season: createBattleSeason(
         {
           id: `season-${msg.chatId}-${now.toString(36)}`,
@@ -581,6 +584,7 @@ export class SotCommandBus {
       return "✅ The day is already closed — recap is above, `season ladder` for the table, `start` for the next battle.";
     const now = this.now();
     const deadline = effectiveDeadline(g.day);
+    if (norm(args[1] ?? "") === "force") this.requireCreator(g, msg.playerId);
     if (now < deadline && norm(args[1] ?? "") !== "force")
       throw new Error(`the deadline hasn't hit yet — battle runs to *${new Date(deadline).toLocaleTimeString("en-AU", { hour: "2-digit", minute: "2-digit", hour12: false })}* (\`day close force\` settles it now, ops/demo)`);
     return this.closeDayAndRecord(msg.chatId, g, Math.max(now, deadline));
@@ -638,6 +642,7 @@ export class SotCommandBus {
     const names = new Map(g.players.map((p) => [p.id, p.name]));
     if (sub === "ladder") return this.ladderCard(g);
     if (sub === "end") {
+      this.requireCreator(g, msg.playerId);
       if (g.season.endedAt != null)
         return `${sotSeasonCard({
           name: g.season.config.name,
@@ -701,6 +706,12 @@ export class SotCommandBus {
 
   private ladderCardIfAny(g: StoredSotGroup): string {
     return g.season.days.length > 0 ? this.ladderCard(g) : "No days battled yet this season.";
+  }
+
+  private requireCreator(g: StoredSotGroup, playerId: string): void {
+    if (g.creatorPlayerId && g.creatorPlayerId !== playerId) {
+      throw new Error("creator-only command — ask the group creator to run that");
+    }
   }
 
   // ── stakes + charity pot ──────────────────────────────────────────────────

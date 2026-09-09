@@ -35,7 +35,7 @@ import {
   mutateGroup,
   openDay,
   playerIdForToken,
-  runCommand,
+  runIdempotentCommand,
   SotError,
   statePayload,
   type SotExerciseDef,
@@ -47,6 +47,7 @@ export interface RouteCtx {
   params: Record<string, string>;
   body: any;
   url: URL;
+  req: Request;
 }
 
 type Handler = (ctx: RouteCtx) => Response;
@@ -103,6 +104,8 @@ export class HttpError extends Error {
 export async function handleRequest(req: Request): Promise<Response> {
   const url = new URL(req.url);
   try {
+    const limited = rateLimitSot(req, url);
+    if (limited) return limited;
     for (const route of routes) {
       if (route.method !== req.method) continue;
       const m = compile(route.path).exec(url.pathname);
@@ -116,7 +119,7 @@ export async function handleRequest(req: Request): Promise<Response> {
       segs.forEach((seg) => {
         if (seg.startsWith(":")) params[seg.slice(1)] = decodeURIComponent(m[++group]);
       });
-      return route.handler({ params, body: await readBody(req), url });
+      return route.handler({ params, body: await readBody(req), url, req });
     }
     return bad(`no route for ${req.method} ${url.pathname}`, 404);
   } catch (e) {
@@ -126,6 +129,22 @@ export async function handleRequest(req: Request): Promise<Response> {
     const msg = e instanceof Error ? e.message : String(e);
     return bad(msg, 400);
   }
+}
+
+const sotRateBuckets = new Map<string, { resetAt: number; count: number }>();
+
+function rateLimitSot(req: Request, url: URL): Response | null {
+  if (!url.pathname.startsWith("/sot/")) return null;
+  const ip = req.headers.get("x-forwarded-for")?.split(",")[0]?.trim() ||
+    req.headers.get("cf-connecting-ip") ||
+    "local";
+  const now = Date.now();
+  const key = `${ip}:${url.pathname.split("/").slice(0, 4).join("/")}`;
+  const cur = sotRateBuckets.get(key);
+  const bucket = cur && cur.resetAt > now ? cur : { resetAt: now + 60_000, count: 0 };
+  bucket.count += 1;
+  sotRateBuckets.set(key, bucket);
+  return bucket.count > 240 ? bad("rate limit exceeded", 429) : null;
 }
 
 // ── Validation helpers ──────────────────────────────────────────────────────
@@ -197,6 +216,8 @@ const parseSotExercises = (raw: unknown): SotExerciseDef[] | undefined => {
   });
 };
 
+const isSotPlayDay = (playDays: number[], date: Date): boolean => playDays.includes(date.getDay());
+
 // ── Routes ──────────────────────────────────────────────────────────────────
 
 export const routes: Route[] = [
@@ -230,9 +251,10 @@ export const routes: Route[] = [
     method: "GET",
     path: "/sot/groups/:code",
     handler: ({ params }) => {
-      const g = findSotGroup(params.code);
-      if (!g) throw new HttpError(404, `no SOT group with code ${params.code.toUpperCase()}`);
-      advanceGroup(g);
+      const g = mutateGroup(params.code, (group) => {
+        advanceGroup(group);
+        return group;
+      });
       return json({
         code: g.code,
         name: g.name,
@@ -254,7 +276,7 @@ export const routes: Route[] = [
       const out = mutateGroup(params.code, (g) => {
         advanceGroup(g);
         const joined = joinPlayer(g, { name, tier: body?.tier, ...(typeof body?.id === "string" ? { id: body.id } : {}) });
-        if (!g.day) openDay(g, Date.now()); // first join auto-opens battle day 1 (never overwrites a closed day)
+        if (!g.day && isSotPlayDay(g.config.playDays, new Date())) openDay(g, Date.now()); // first join auto-opens battle day 1 on play days
         return joined;
       });
       const state = findSotGroup(params.code)!;
@@ -265,11 +287,21 @@ export const routes: Route[] = [
   {
     method: "GET",
     path: "/sot/groups/:code/state",
-    handler: ({ params, url }) => {
+    handler: ({ params, url, req }) => {
       const since = Number(url.searchParams.get("since") ?? "-1");
-      const g = findSotGroup(params.code);
-      if (!g) throw new HttpError(404, `no SOT group with code ${params.code.toUpperCase()}`);
-      advanceGroup(g);
+      const g = mutateGroup(params.code, (group) => {
+        advanceGroup(group);
+        return group;
+      });
+      const token = url.searchParams.get("playerToken") ?? req.headers.get("x-rwf-player-token");
+      if (!token || !g.tokens[token]) {
+        return json({
+          code: g.code,
+          name: g.name,
+          playerCount: g.players.length,
+          hasLiveDay: !!g.day && g.day.status === "live",
+        });
+      }
       if (Number.isInteger(since) && since >= g.seq) return json({ seq: g.seq, unchanged: true });
       return json(statePayload(g));
     },
@@ -286,6 +318,7 @@ export const routes: Route[] = [
           exercise: String(body?.exercise ?? ""),
           reps: Number(body?.reps),
           ...(body?.verified ? { verified: true } : {}),
+          ...(typeof body?.clientLogId === "string" ? { clientLogId: body.clientLogId } : {}),
         });
       });
       const state = statePayload(findSotGroup(params.code)!);
@@ -300,7 +333,7 @@ export const routes: Route[] = [
       const text = requireStr(body, "text", 400);
       const out = mutateGroup(params.code, (g) => {
         const playerId = playerIdForToken(g, body?.playerToken);
-        return runCommand(g, playerId, text);
+        return runIdempotentCommand(g, playerId, text, body?.clientLogId ?? body?.clientCmdId);
       });
       const state = statePayload(findSotGroup(params.code)!);
       return json({ ok: true, reply: out.reply, seq: state.seq, state });
