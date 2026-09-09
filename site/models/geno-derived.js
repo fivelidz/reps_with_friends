@@ -132,7 +132,7 @@ export const DERIVED_SPEC = {
   // v7 height-graded offsets (mm) — "all clothes should hang or be loose like
   // fabric": collar +6 → chest +12 → hem +18 (v6 was 5/9/12). Anti-armour
   // still holds: chest 12 mm + ≤1.8 mm of wrinkle crest < the +15 mm bar.
-  shirt: { collarMm: 6, chestMm: 12, hemMm: 18 },   // a tee hangs looser lower
+  shirt: { collarMm: 12, chestMm: 12, hemMm: 18 },  // neckline clears the animated neck/trap envelope
   sleeve: { topMm: 8, hemMm: 12 },                  // grade along the arm
   shorts: { waistMm: 10, hemMm: 16 },               // graded slack down the leg
   // v9 FIX 2c ("the band never reads at stand"): the v8 12/13 mm band face sat
@@ -141,7 +141,7 @@ export const DERIVED_SPEC = {
   // column read shirt→coral with no charcoal at all (pixel-measured). 15/16
   // puts the band face a decisive 4-5 mm in front of both: shirt lip →
   // CHARCOAL BAND → coral shorts, from any camera angle.
-  band: { topMm: 15, bottomMm: 16 },                // decisively PROUD of the 10-12 mm neighbours
+  band: { topMm: 22, bottomMm: 23 },                // clear the animated shirt/shorts lips at every sampled pose
   // contour-hem construction
   ringSamples: 64,       // uniform angular samples per ring
   contourBins: 64,       // polar bins for the smoothed cross-section profile
@@ -160,9 +160,9 @@ export const DERIVED_SPEC = {
   bandTint: 1,           // v7: the waistband is a SOLID charcoal — no vertex
   //                         tint (the old 0.82 tint over a near-body white
   //                         read as flesh; see colors.waistband below)
-  collarRibMm: 3.0,      // ribbed collar band offset
+  collarRibMm: 10.0,     // keep the rib outside the animated neck instead of exposing white wedges
   collarRibStepMm: 0.4,  // alternating rib bulge
-  collarRibHcm: 1.5,     // rib band height (3 rings up the neck line)
+  collarRibHcm: 3.0,     // cover the exposed neck-base crescent below the oversized heads
   ribTint: 0.86,
   // v7 FIX 1: the collar is cut at the MEASURED NECK BASE — the narrow flesh
   // ring above the trapezius flare (profiled from the body's own
@@ -215,7 +215,7 @@ export const DERIVED_SPEC = {
       shinH: 0.030,            // the ankle cut (×H above the Foot joint)
       collarDropCm: 1.0,       // the collar band rises above the cut
       collarMm: 4,
-      wallHeelCm: 3.4, wallMidCm: 1.5, wallToeCm: 2.6,
+      wallHeelCm: 2.4, wallMidCm: 1.3, wallToeCm: 1.3,
       soleSamples: 40,
     },
     // v9 sleeves: ARM-HUGGING sections. The v8 sleeve sampled body plane∩
@@ -295,7 +295,10 @@ export const DERIVED_SPEC = {
     sleepVelMs: 0.025,     // m/s — ≈0.4 mm/frame: below this the layer sleeps
     substepHz: 60,         // fixed physics substep (accumulator, ≤4 per frame)
     padCm: { thigh: 0.2, arm: 0.3, pelvis: 0.5 },   // collider inflation (slim: hems rest 1.5-3 cm off the flesh)
-    ringLoose: [0.2, 0.5, 1.0],   // last-3-rings looseness gradient into the garment
+    // The skin-weighted lattice already supplies garment motion. Per-vertex
+    // secondary motion still pulled isolated triangles across the band in the
+    // identical standing/walk/curl captures, so keep the finish rings coherent.
+    ringLoose: [0, 0, 0],
   },
 };
 
@@ -1341,13 +1344,16 @@ function buildFabricShirt(body, anc, mat) {
 
   // ── the ring stack (one tube: collar ribs → torso → hem band; no seams)
   const rings = [];
-  for (let k = 0; k < 4; k++) {                       // ribbed collar (snug)
+  // Emit top → base so the lattice continues monotonically down the torso.
+  // The old base → top order then connected back to yTop, folding the seam
+  // through itself and exposing white crescents/lime wedges at the traps.
+  for (let k = 3; k >= 0; k--) {                      // ribbed collar (snug)
     const y = anc.collarY + k * (S.collarRibHcm / 3) * anc.cm;
     const s = sectionAt(y);
     const prof = fabricSection(s.raw, (S.collarRibMm + (k % 2 ? S.collarRibStepMm : 0)) * anc.mm, F.sectionPasses);
     rings.push({ pts: fabricRingPts(s.c, up.e1, up.e2, prof, ST), c: s.c, tint: S.ribTint });
   }
-  for (let i = 0; i < N; i++) {                       // torso (pleated drape)
+  for (let i = 0; i < N; i++) {                       // torso (ring 0 shares the collar base)
     const y = ys[i], env = envAt(y);
     rings.push({
       pts: fabricRingPts(secs[i].c, up.e1, up.e2, secs[i].reg, ST, {
@@ -1710,6 +1716,34 @@ function buildFabricShirt(body, anc, mat) {
   return mesh;
 }
 
+/** Closed regular waistband shell: no inherited body seams or missing front
+ * triangles, and both neighbouring garments overlap it vertically. */
+function buildFabricWaistband(body, anc, mat) {
+  const S = DERIVED_SPEC, bins = S.contourBins, samples = S.fabric.torsoSamples;
+  const basis = planeBasis(UP.clone());
+  const stations = [
+    { y: anc.bandTop + 0.15 * anc.cm, mm: S.band.topMm },
+    { y: anc.bandTop - 0.35 * anc.cm, mm: S.band.topMm },
+    { y: anc.bandBot, mm: S.band.bottomMm },
+    { y: anc.bandBot - S.lipDropCm * anc.cm, mm: S.band.bottomMm + S.bandExtraMm },
+  ];
+  const rings = stations.map((s) => {
+    const c = anc.spineAnchor(s.y);
+    const raw = sectionProfile(body.geometry, new THREE.Vector3(c.x, s.y, c.z), UP, c,
+      basis.e1, basis.e2, bins, 'nearest');
+    const prof = fabricSection(raw, s.mm * anc.mm, S.fabric.sectionPasses);
+    return { pts: fabricRingPts(c, basis.e1, basis.e2, prof, samples), c, tint: 1 };
+  });
+  const { mesh, ringStarts } = fabricLattice(body, 'waistband', mat,
+    [{ rings, axis: UP.clone() }], 1);
+  const d = mesh.userData.rwfDerived;
+  const lip = rings[rings.length - 1];
+  d.openings = [fabricOpening('band-lip', nearestBodyVert(body, lip.c), lip.c,
+    ringStarts[0][rings.length - 2], 2, lip.pts, lip.c, basis.e1, basis.e2)];
+  d.fabric = { waistband: true, rings: rings.length, samples, continuous: true };
+  return mesh;
+}
+
 /**
  * FABRIC SHORTS — a pelvis shell of UNION sections (bridges both thighs at
  * the crotch — the horseshoe covered, gusset lip at the bottom) plus one
@@ -1766,7 +1800,9 @@ function buildFabricShorts(body, anc, mat) {
       return new THREE.Vector3().lerpVectors(l0, l1, tc);
     };
     const signX = Math.sign(l0.x) || 1;
-    const boundX = -signX * 0.015;
+    // Stop each leg on its own side of centre. The pelvis flap remains the
+    // deliberate crotch bridge; the tubes no longer overlap into a skirt.
+    const boundX = signX * 0.008;
     // v9 FIX ("invisible band under the band"): the top rings must reach UP
     // INSIDE the waistband shell (bandTop − 1 mm). The v8 code took
     // min(l0.y + 3.2 cm, bandTop − 0.1 cm) — for Geno the hip-joint branch
@@ -3071,7 +3107,9 @@ export function attachDerivedOutfit(avatar, opts = {}) {
     shirtMesh = extractGarment(body, inShirtAll, { vertRole: shirtRole, openings: shirtOpenings, territory: shirtTerritory, wrinkleAt: shirtWrinkleAt }, 'tshirt', lam(colors.tshirt), ctx);
     shortsMesh = extractGarment(body, inShorts, { vertRole: shortsRole, openings: shortsOpenings, territory: shortsTerritory, wrinkleAt: shortsWrinkleAt }, 'shorts', lam(colors.shorts), ctx);
   }
-  const bandMesh = extractGarment(body, inBand, { vertRole: bandRole, openings: bandOpenings, territory: bandTerritory }, 'waistband', lam(colors.waistband), ctx);
+  const bandMesh = garmentMode === 'fabric'
+    ? buildFabricWaistband(body, anc, lam(colors.waistband))
+    : extractGarment(body, inBand, { vertRole: bandRole, openings: bandOpenings, territory: bandTerritory }, 'waistband', lam(colors.waistband), ctx);
   // v8 sneakers: foot's own triangles + a real sole slab (both modes — the
   // v4 ring shoes are retired; buildSneakers stays in geno-outfit.js).
   const sneakers = buildDerivedSneakers(body, anc, lam(colors.sneakers), lam(OUTFIT_TOKENS.white));

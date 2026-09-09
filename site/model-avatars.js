@@ -598,16 +598,18 @@ export class ModelAvatar {
       this.prone.rotation.set(theta, Math.PI / 2, 0);
       // position so the toe mid-point stays on the ground at x = −span/2
       // (keeps the prone figure centred on the origin for the camera)
-      const target = new THREE.Vector3(-span * 0.5, 0.02 * this.H, 0);
+      // Toe pivot sits high enough for the frog cranium/crown envelope, not
+      // merely the Head bone, to clear the floor throughout the repetition.
+      const target = new THREE.Vector3(-span * 0.5, 0.065 * this.H, 0);
       this.prone.position.copy(toe).applyQuaternion(this.prone.quaternion).multiplyScalar(-1).add(target);
       this.prone.updateMatrix();
     };
     let theta = thetaTop + (Math.PI / 2 - thetaTop) * d;
     setProne(theta);
     // ground clearance: the body has thickness — if any key joint (the body
-    // axis) would sit under ~6% of height, relax θ (tipping back about the
+    // axis) would sit under the accessory-safe margin, relax θ (tipping back about the
     // toes lifts the body) until it clears.
-    const clear = 0.06 * this.H;
+    const clear = 0.11 * this.H;
     const keys = [rig.B.hips, rig.B.spine2, rig.B.head, rig.B.upLegL, rig.B.upLegR, rig.B.legL, rig.B.legR].filter(Boolean);
     let minY = Math.min(...keys.map((b) => rig.pt(b, _v1).y));
     if (minY < clear) {

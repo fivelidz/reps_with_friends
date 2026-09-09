@@ -115,8 +115,8 @@ function headUp(avatar) {
 // ── face surface query — where does the face END at (x, y)? ─────────────────
 // Two ellipsoids: the cranium and the snout. The mouth line rides the MAX of
 // the two (+ a proud offset), so it wraps the muzzle instead of burying in it.
-const SKULL = { cx: 0, cy: 0.062, cz: 0.005, rx: 0.1275, ry: 0.1003, rz: 0.1037 };
-const SNOUT = { cx: 0, cy: 0.020, cz: 0.058, rx: 0.0754, ry: 0.0286, rz: 0.0458 };
+const SKULL = { cx: 0, cy: 0.062, cz: 0.005, rx: 0.113, ry: 0.103, rz: 0.106 };
+const SNOUT = { cx: 0, cy: 0.020, cz: 0.061, rx: 0.068, ry: 0.032, rz: 0.048 };
 function ellipsoidZ(e, x, y) {
   const t = 1 - ((x - e.cx) / e.rx) ** 2 - ((y - e.cy) / e.ry) ** 2;
   return t <= 0 ? -Infinity : e.cz + e.rz * Math.sqrt(t);
@@ -126,8 +126,8 @@ function faceZ(x, y) {
 }
 
 // turret + brow anchors (×H)
-const EYE_X = 0.098, EYE_Y = 0.148, EYE_Y_LIFT = 0.013;  // side+1 rides higher
-const BROW_Y = 0.168, BROW_Z = 0.058;
+const EYE_X = 0.083, EYE_Y = 0.145, EYE_Y_LIFT = 0.008;  // compact face; slight character asymmetry
+const BROW_Y = 0.157, BROW_Z = 0.052;
 
 // ── expression table ─────────────────────────────────────────────────────────
 // lids:   [side+1, side-1] coverage 0..1 (negative = retracted wide). Lid =
@@ -268,11 +268,13 @@ export function createFrogHead(avatar, opts = {}) {
     const bulb = m(new THREE.SphereGeometry(0.036 * H, 14, 10), bulbMat);
     turret.add(bulb);
 
-    const dir = new THREE.Vector3(0.42 * side, 0.55, 0.72).normalize();
-    const pupil = m(new THREE.SphereGeometry(0.030 * H, 12, 8), pupilMat);
+    // Both eyes converge on the same forward/up target; the previous mirrored
+    // outward vectors made the frog appear wall-eyed.
+    const dir = new THREE.Vector3(-0.04 * side, 0.16, 0.986).normalize();
+    const pupil = m(new THREE.SphereGeometry(0.0175 * H, 12, 8), pupilMat);
     pupil.quaternion.setFromUnitVectors(UP, dir);
     pupil.scale.set(1, 0.6, 1);
-    pupil.position.copy(dir).multiplyScalar(0.027 * H);
+    pupil.position.copy(dir).multiplyScalar(0.033 * H);
     turret.add(pupil);
 
     const glint = m(new THREE.SphereGeometry(0.006 * H, 6, 6), glintMat);
@@ -285,7 +287,7 @@ export function createFrogHead(avatar, opts = {}) {
     // setSkin recolours alongside the base skin.
     const lid = new THREE.Group();
     const cap = m(
-      new THREE.SphereGeometry(0.0376 * H, 16, 8, 0, Math.PI * 2, 0, Math.PI * 0.60),
+      new THREE.SphereGeometry(0.0368 * H, 16, 8, 0, Math.PI * 2, 0, Math.PI * 0.48),
       lidMat);
     lid.add(cap);
     turret.add(lid);
@@ -300,7 +302,7 @@ export function createFrogHead(avatar, opts = {}) {
   for (let i = 0; i < 2; i++) {
     const side = SIDES[i];
     const arc = Math.PI * 0.66;
-    const brow = m(new THREE.TorusGeometry(0.030 * H, 0.0085 * H, 6, 14, arc), skinDarkMat);
+    const brow = m(new THREE.TorusGeometry(0.027 * H, 0.0055 * H, 6, 14, arc), skinDarkMat);
     brow.rotation.z = Math.PI / 2 - arc / 2;   // arc centred at local +Y (⌢)
     const holder = new THREE.Group();
     holder.position.set(EYE_X * H * side, BROW_Y * H, BROW_Z * H);
@@ -347,7 +349,7 @@ export function createFrogHead(avatar, opts = {}) {
       2 * (spec.mid * H) - 0.5 * (p0.y + p2.y),
       2 * zm - 0.5 * (p0.z + p2.z));
     const curve = new THREE.QuadraticBezierCurve3(p0, p1, p2);
-    const tube = m(new THREE.TubeGeometry(curve, 22, 0.0115 * H, 6), inkMat);
+    const tube = m(new THREE.TubeGeometry(curve, 22, 0.0062 * H, 6), inkMat);
     mouthGroup.add(tube);
     mouthMeshes.push(tube);
   }
