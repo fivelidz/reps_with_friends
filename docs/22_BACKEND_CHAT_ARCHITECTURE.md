@@ -203,3 +203,118 @@ Sim needs none of this: `bun packages/bot-core/src/transports/beeper-cli.ts --si
 - docs/15_BLOCKERS.md — T1 Slack app, T2 Cloud API groups, T3 always-on host, T4 auth, T5 state split (§6 above closes it)
 - docs/18_MESSAGING_PLATFORMS.md — WhatsApp Groups API status detail
 - Code: `packages/bot-core/src/transports/` (Beeper + ChatTransport + mock + harness) · `packages/bot-core/src/api-sync.ts` (P1 mirror) · `apps/api/src/routes.ts` (`/bots/state`) · `apps/web/src/sync.ts` (app side)
+
+---
+
+## 10. M1 — the shared backend is LIVE (2026-09-09): SOT groups + clients
+
+**The founder question this section answers:** *"why do the bots have to run
+on my system? Surely the reads should come from the app for each user."*
+Answer: they don't. **apps/api is the game-state authority; apps are
+clients; bots are integrations** — everything below is shipped and tested.
+
+### What landed
+
+- **`apps/api` v2 — SOT groups** (`src/sot.ts`, endpoints `/sot/*`): the v4
+  daily-battle model server-side, running the app's OWN engine
+  (`apps/sot-engine.js` imported directly — pure ES module, Bun runs it
+  natively; one engine everywhere: app, API, bots, tests). Groups persist in
+  `.data/sot-api.json` (atomic writes; the `db.ts` interface is the Postgres
+  seam). Endpoints: create group (+join code) · join (auth-lite
+  playerToken, client-proposed ids so engine state matches on both sides) ·
+  `log` (engine reps; tiers apply server-side) · `state?since=<seq>`
+  (monotonic seq — cheap polling) · **`cmd`** (the REAL `SotCommandBus`
+  runs server-side, so bots and the app share literally one brain).
+  Past-deadline days auto-close + record into the season. The old
+  crews/matches endpoints are untouched (24 legacy tests still green; 16 new
+  SOT tests cover the two-phone + seq + bus flows).
+- **The v4 app is a client** (`apps/sot/cloud.js`, `window.RWFCloud`):
+  Settings row **Sync: Local / Cloud (pilot)** (also on the start screen).
+  Cloud mode: optimistic local logs POST to `/log` (server truth merged on
+  reply, conflict = server wins with a toast), a 5s `state?since` poll (plus
+  visibilitychange) makes other phones' logs appear LIVE, and join-by-code
+  finds groups that aren't on-device. Local mode is unchanged (offline stays
+  first-class; the Conn shim's queue replays to the API on reconnect).
+  Local mirror groups are marked `g.cloud` — the engine's `tick` never
+  auto-opens their next battle locally (the server opens days; the poll
+  merge follows). Demo seeder stays local-only.
+- **Bots are clients** (`packages/bot-core/src/sot-api.ts`,
+  `SotApiSession`/`createSotHandler`): the same text grammar piped to
+  `/cmd`; auto-creates the chat's server group + the sender's seat (tier
+  from `join <tier>`); tokens cached in `.data/sot-api-session.json`;
+  **file-fallback** to the local bus when the API is unreachable (P1
+  semantics — nothing breaks when the server is down). The WhatsApp bot's
+  `--sim --sot --api <url>` runs a full day against the live API.
+- **The two-phone test** (`apps/sot/e2e-cloud.mjs`, 24 checks, two real
+  browser contexts, ZERO console errors): A creates a cloud group, B joins
+  by code, A logs → B's standings update from the poll alone, B logs → A
+  sees it, a "bot" logs via `/cmd` → BOTH phones see it, the day closes for
+  both, both see the SAME winner with the same season point. Shots:
+  `apps/sot/shots/*_cloud.png` incl. `99-two-phones-sync_cloud.png`
+  (side-by-side frames mid-sync).
+
+### Deployment path (the ~€4/month pilot)
+
+Where apps/api runs — **Hetzner CX22 (~€4.5/mo)** or **Oracle Cloud free ARM
+A1** (4 OCPU/24GB free tier; the gmktec pattern's systemd units in
+`scripts/hosting/` adapt directly):
+
+```bash
+# on the box (any Debian/Ubuntu ARM or x86):
+curl -fsSL https://bun.sh/install | bash                 # bun
+git clone <repo> /srv/rwf && cd /srv/rwf
+# apps/api has zero npm deps — no install step
+```
+
+`/etc/systemd/system/rwf-api.service` (adapted from
+`scripts/hosting/rwf-serve.service`):
+
+```ini
+[Unit]
+Description=RWF API — game-state authority (crews + SOT groups)
+After=network-online.target
+
+[Service]
+User=www-data
+WorkingDirectory=/srv/rwf
+ExecStart=/root/.bun/bin/bun apps/api/src/main.ts
+Environment=PORT=4174
+Environment=RWF_API_DB=/srv/rwf/.data/api-db.json
+Environment=RWF_SOT_DB=/srv/rwf/.data/sot-api.json
+Restart=always
+RestartSec=3
+
+[Install]
+WantedBy=multi-user.target
+```
+
+`systemctl enable --now rwf-api` → the API listens on 127.0.0.1:4174. The
+bots deploy the same way (one 20-line service each, `--live --sot`, beside
+the API on the same box — **the founder's machine is optional**). The JSON
+stores live in `/srv/rwf/.data/` — back that directory up and you're done.
+
+**How the app points at it:** the Settings → Sync row carries the API base.
+- Same-origin (default in prod): reverse-proxy the app's origin so
+  `https://rwf.qalarc.com/sot/*` → `127.0.0.1:4174` (Caddy:
+  `handle_path /sot/* { reverse_proxy 127.0.0.1:4174 }`; nginx:
+  `location /sot/ { proxy_pass http://127.0.0.1:4174/; }`). The app's
+  default `apiBase` is `""` → same-origin `/sot/...` — no CORS anywhere.
+- Dev: `serve.ts` (4173) defaults the base to `http://localhost:4174`
+  (CORS already allows any localhost/127.0.0.1 origin).
+
+**What changes for stores: nothing.** A store "join" is still a code; a log
+is still a log — the app just fetches instead of only writing localStorage.
+The localStorage copy remains the offline cache (first-class offline), the
+API is the shared truth. No accounts, no logins — codes + tokens only.
+
+### What M1 deliberately is NOT (the scale backend stays Phase 3)
+
+- Still JSON-file persistence (Postgres swap per §5 keeps route shapes).
+- No websocket push — the 5s poll is plenty for a crew of 2-8 and needs zero
+  infra; SSE/WS is the obvious upgrade when it matters.
+- No multi-writer safety beyond single-process ordering (one API process).
+- Auth is honest-prototype: group codes + per-player tokens; no accounts
+  until the Workers/Postgres phase.
+- The v4 card-stack deals (draft/reroll/proofs) are app-local; server groups
+  grant the canon day-kit via `/cmd` power-up verbs. Syncing the full card
+  economy is the next seam if wanted.

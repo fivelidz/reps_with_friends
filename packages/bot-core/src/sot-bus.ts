@@ -408,6 +408,12 @@ export class SotCommandBus {
 
   private cmdJoin(msg: InboundMessage, args: string[]): string {
     const g = this.mustGroup(msg.chatId);
+    const already = g.players.find((p) => p.id === msg.playerId);
+    // An existing player asking to `join` during a live day is NOT a new
+    // joiner — the API auto-opens days on first seat, so phrase it kindly
+    // (M1: the app's server groups always have a live day running).
+    if (already && g.day?.status === "live")
+      return `✅ *${already.name}* is already in today's battle — re-tier with \`join <tier>\` before the next day opens (\`day close\` first)`;
     if (g.day?.status === "live")
       throw new Error("the day is already open — new joiners are in for the next one (`day close` first)");
     if (g.season.endedAt != null) throw new Error("that season is over — `new` starts the next week");
@@ -415,7 +421,6 @@ export class SotCommandBus {
     const tier = (tierArg === "" ? "casual" : ((TIERS as string[]).includes(tierArg) ? tierArg : null)) as FitnessTier | null;
     if (!tier)
       throw new Error(`unknown tier "${args[0]}" — pick one: couch / casual / fit / athlete`);
-    const already = g.players.find((p) => p.id === msg.playerId);
     if (already) {
       if (already.tier === tier)
         return `✅ *${already.name}* is already in as *${tier}* — ${g.players.length} in the crew.`;

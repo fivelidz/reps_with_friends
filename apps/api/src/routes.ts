@@ -26,6 +26,20 @@ import {
   type FitnessTier,
   type Player,
 } from "../../../packages/game-core/src/index.ts";
+import {
+  advanceGroup,
+  applyLog,
+  createSotGroup,
+  findSotGroup,
+  joinPlayer,
+  mutateGroup,
+  openDay,
+  playerIdForToken,
+  runCommand,
+  SotError,
+  statePayload,
+  type SotExerciseDef,
+} from "./sot.ts";
 
 // ── Router ──────────────────────────────────────────────────────────────────
 
@@ -107,6 +121,7 @@ export async function handleRequest(req: Request): Promise<Response> {
     return bad(`no route for ${req.method} ${url.pathname}`, 404);
   } catch (e) {
     if (e instanceof HttpError) return bad(e.message, e.status);
+    if (e instanceof SotError) return bad(e.message, e.status);
     // Engine errors (invalid log, season over, …) are client errors.
     const msg = e instanceof Error ? e.message : String(e);
     return bad(msg, 400);
@@ -163,9 +178,135 @@ const parsePlayDays = (body: any): number[] => {
   return raw;
 };
 
+/* ── SOT config parsers (lenient by design — the app sends its wizard cfg) ── */
+
+const parseSotPlayDays = (raw: unknown): number[] | undefined => {
+  if (raw == null) return undefined;
+  if (!Array.isArray(raw) || raw.some((d: any) => !Number.isInteger(d) || d < 0 || d > 6))
+    throw new HttpError(400, "config.playDays must be integers 0–6 (0=Sunday)");
+  return raw as number[];
+};
+
+const parseSotExercises = (raw: unknown): SotExerciseDef[] | undefined => {
+  if (raw == null) return undefined;
+  if (!Array.isArray(raw) || raw.length === 0) throw new HttpError(400, "config.exercises must be a non-empty array");
+  return raw.slice(0, 24).map((e: any, i: number) => {
+    if (typeof e === "string") return { id: e.toLowerCase().replace(/[^a-z0-9]+/g, "").slice(0, 20) || `ex${i}`, name: e };
+    if (e && typeof e.id === "string" && e.id.trim()) return { id: e.id.trim().slice(0, 24), ...(e.name ? { name: String(e.name).slice(0, 24) } : {}) };
+    throw new HttpError(400, `config.exercises[${i}] needs an id`);
+  });
+};
+
 // ── Routes ──────────────────────────────────────────────────────────────────
 
 export const routes: Route[] = [
+  // ── SOT groups (M1 — the v4 daily-battle authority; apps/sot + bots) ──
+
+  {
+    method: "POST",
+    path: "/sot/groups",
+    handler: ({ body }) => {
+      const name = requireStr(body, "name", 60);
+      const cfg = body?.config ?? {};
+      const bots = Array.isArray(body?.bots) ? body.bots : [];
+      const { code, group, botTokens } = createSotGroup(
+        name,
+        {
+          targetReps: cfg.targetReps,
+          playDays: parseSotPlayDays(cfg.playDays),
+          exercises: parseSotExercises(cfg.exercises),
+          ...(Number.isFinite(Number(cfg.dayWindowMs)) && Number(cfg.dayWindowMs) > 0
+            ? { dayWindowMs: Number(cfg.dayWindowMs) }
+            : {}),
+          ...(cfg.flags && typeof cfg.flags === "object" ? { flags: cfg.flags } : {}),
+        },
+        bots
+      );
+      return json({ code, groupId: group.config.id, botTokens }, 201);
+    },
+  },
+
+  {
+    method: "GET",
+    path: "/sot/groups/:code",
+    handler: ({ params }) => {
+      const g = findSotGroup(params.code);
+      if (!g) throw new HttpError(404, `no SOT group with code ${params.code.toUpperCase()}`);
+      advanceGroup(g);
+      return json({
+        code: g.code,
+        name: g.name,
+        config: g.config,
+        players: g.players.map((p) => ({ id: p.id, name: p.name, tier: p.tier })),
+        playerCount: g.players.length,
+        hasLiveDay: !!g.day && g.day.status === "live",
+        dayDate: g.dayDate,
+        seq: g.seq,
+      });
+    },
+  },
+
+  {
+    method: "POST",
+    path: "/sot/groups/:code/players",
+    handler: ({ params, body }) => {
+      const name = requireStr(body, "name", 40);
+      const out = mutateGroup(params.code, (g) => {
+        advanceGroup(g);
+        const joined = joinPlayer(g, { name, tier: body?.tier, ...(typeof body?.id === "string" ? { id: body.id } : {}) });
+        if (!g.day) openDay(g, Date.now()); // first join auto-opens battle day 1 (never overwrites a closed day)
+        return joined;
+      });
+      const state = findSotGroup(params.code)!;
+      return json({ ...out, state: statePayload(state) }, 201);
+    },
+  },
+
+  {
+    method: "GET",
+    path: "/sot/groups/:code/state",
+    handler: ({ params, url }) => {
+      const since = Number(url.searchParams.get("since") ?? "-1");
+      const g = findSotGroup(params.code);
+      if (!g) throw new HttpError(404, `no SOT group with code ${params.code.toUpperCase()}`);
+      advanceGroup(g);
+      if (Number.isInteger(since) && since >= g.seq) return json({ seq: g.seq, unchanged: true });
+      return json(statePayload(g));
+    },
+  },
+
+  {
+    method: "POST",
+    path: "/sot/groups/:code/log",
+    handler: ({ params, body }) => {
+      const out = mutateGroup(params.code, (g) => {
+        const playerId = playerIdForToken(g, body?.playerToken);
+        return applyLog(g, {
+          playerId,
+          exercise: String(body?.exercise ?? ""),
+          reps: Number(body?.reps),
+          ...(body?.verified ? { verified: true } : {}),
+        });
+      });
+      const state = statePayload(findSotGroup(params.code)!);
+      return json({ ok: true, ...out, seq: state.seq, state });
+    },
+  },
+
+  {
+    method: "POST",
+    path: "/sot/groups/:code/cmd",
+    handler: ({ params, body }) => {
+      const text = requireStr(body, "text", 400);
+      const out = mutateGroup(params.code, (g) => {
+        const playerId = playerIdForToken(g, body?.playerToken);
+        return runCommand(g, playerId, text);
+      });
+      const state = statePayload(findSotGroup(params.code)!);
+      return json({ ok: true, reply: out.reply, seq: state.seq, state });
+    },
+  },
+
   // ── Crews ─────────────────────────────────────────────────────────────
 
   {

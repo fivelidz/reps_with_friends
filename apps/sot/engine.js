@@ -794,7 +794,10 @@ function tick(gRaw) {
       changed = true;
     }
   }
-  for (const b of s.battles) {
+  // cloud-bound groups (apps/sot/cloud.js): the SERVER opens days — the local
+  // mirror never auto-opens a scheduled battle (the poll merge does it when
+  // the server day exists). The live battle's clock/bombs still tick above.
+  if (!g.cloud) for (const b of s.battles) {
     if (b.status === "scheduled" && b.startMs && Date.now() >= b.startMs) {
       b.status = "live";
       createEngineDay(g, s, b);
@@ -861,11 +864,13 @@ function resolveBattle(g, s, b) {
     : `Battle ${b.idx} (${b.dayName}) done — NOBODY reached target. No Daily Win awarded.` });
 
   const next = s.battles.find((x) => x.status === "scheduled");
-  if (next) {
+  if (next && !g.cloud) {
     beginBattle(g, s, next);
-  } else {
+  } else if (!next) {
     endSeason(g, s);
   }
+  // cloud groups: the next battle stays scheduled here — the server opens it
+  // (bot `start` / next play day) and the poll merge flips the local mirror.
 }
 
 function dateLabel(b, s) {

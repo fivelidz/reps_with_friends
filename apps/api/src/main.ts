@@ -3,6 +3,7 @@
 
 import { handleRequest } from "./routes.ts";
 import { dbPath, loadDb } from "./db.ts";
+import { sotDbPath, sotGroupCount } from "./sot.ts";
 
 const PORT = Number(process.env.PORT ?? 4174);
 
@@ -20,7 +21,9 @@ function corsHeaders(req: Request): Record<string, string> {
     "access-control-max-age": "86400",
     vary: "origin",
   };
-  if (ALLOWED_ORIGINS.has(origin)) {
+  // prod origins exactly; any local dev port (the pilot's two-phone world —
+  // the app on :4194/4195 talks to the API on :4174 or an ephemeral test port)
+  if (ALLOWED_ORIGINS.has(origin) || /^https?:\/\/(localhost|127\.0\.0\.1):\d+$/.test(origin)) {
     headers["access-control-allow-origin"] = origin;
   }
   return headers;
@@ -50,6 +53,7 @@ export function startServer(port: number): Bun.Server {
             service: "rwf-api",
             db: dbPath(),
             crews: loadDb().crews.length,
+            sotGroups: sotGroupCount(),
             time: new Date().toISOString(),
           })
         );

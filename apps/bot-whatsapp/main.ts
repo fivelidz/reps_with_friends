@@ -313,6 +313,70 @@ async function sotSim(): Promise<void> {
   console.log(`=== SOT sim done — store: ${simFile} ===`);
 }
 
+// ── SOT sim, but the bot is a CLIENT of apps/api (M1) ────────────────────────
+// `bun apps/bot-whatsapp/main.ts --sim --sot --api http://localhost:4174`
+// The SAME story beats run through POST /sot/groups/:code — the bus executes
+// server-side, so the v4 app (and any other phone) polls the very same day.
+// Real clock here: the group is created with a 4h window and the day is
+// force-closed like an ops demo would.
+
+async function sotSimApi(apiUrl: string): Promise<void> {
+  const { SotApiSession } = await import("../../packages/bot-core/src/index.ts");
+  const session = new SotApiSession({
+    apiUrl,
+    sessionFile: join(DATA, "sot-api-sim-session.json"),
+  });
+  const up = await session.health();
+  if (!up) {
+    console.error(`API not reachable at ${apiUrl} — start it with: bun apps/api/src/main.ts`);
+    process.exit(1);
+  }
+  console.log(`=== RWF WhatsApp bot — SOT API SIM (bus runs on ${apiUrl}, bots are clients) ===\n`);
+
+  const created = await fetch(`${apiUrl.replace(/\/+$/, "")}/sot/groups`, {
+    method: "POST",
+    headers: { "content-type": "application/json" },
+    body: JSON.stringify({
+      name: "wa group-sot (api sim)",
+      config: { targetReps: 200, playDays: [0, 1, 2, 3, 4, 5, 6], dayWindowMs: 4 * 3600_000 },
+    }),
+  }).then((r) => r.json());
+  const code = created.code as string;
+  console.log(`server group ${code} created — the app can join with this code\n`);
+
+  const ben = (s: string) => ({ chatId: `api:${code}`, playerId: "wa:+614111111111", playerName: "Ben", text: s });
+  const dave = (s: string) => ({ chatId: `api:${code}`, playerId: "wa:+614222222222", playerName: "Dave", text: s });
+  const nico = (s: string) => ({ chatId: `api:${code}`, playerId: "wa:+614333333333", playerName: "Nico", text: s });
+
+  const script: { m: ReturnType<typeof ben>; note?: string }[] = [
+    { m: ben("join athlete"), note: "auto-creates the chat's seat on the server" },
+    { m: dave("join couch") },
+    { m: nico("join fit") },
+    { m: ben("stake charity Everyone stumps 100 points — the season winner directs the pot") },
+    { m: ben("agree") },
+    { m: dave("agree") },
+    { m: nico("agree") },
+    { m: ben("start"), note: "start refuses — day 1 already opened when the first player joined" },
+    { m: dave("log pushups 50") },
+    { m: ben("log burpees 100") },
+    { m: dave("log squats 50") },
+    { m: ben("log pushups 100") },
+    { m: nico("log squats 60") },
+    { m: ben("log burpees 36"), note: "🏆 the Daily Win lands in shared state" },
+    { m: dave("log lunges 34") },
+    { m: nico("s") },
+    { m: nico("day close force"), note: "ops/demo: settle now at deadline terms" },
+    { m: dave("season ladder") },
+  ];
+  for (const step of script) {
+    if (step.note) console.log(`ℹ️  ${step.note}`);
+    console.log(`▸ ${step.m.playerName}: ${step.m.text}`);
+    console.log(await session.handle(step.m));
+    console.log("");
+  }
+  console.log(`=== SOT API sim done — group ${code} keeps the state; GET /sot/groups/${code}/state sees it ===`);
+}
+
 // ── live mode ───────────────────────────────────────────────────────────────
 
 interface HubMessage {
@@ -443,6 +507,8 @@ async function live(): Promise<void> {
 
 const args = process.argv.slice(2);
 const sotMode = args.includes("--sot");
+const apiIdx = args.indexOf("--api");
+const apiUrl = apiIdx >= 0 ? args[apiIdx + 1] : undefined;
 const mode = args.find((a) => a === "--sim" || a === "--live") ?? "--sim";
 if (mode === "--live") {
   if (sotMode) {
@@ -451,8 +517,9 @@ if (mode === "--live") {
   }
   await live();
 } else if (mode === "--sim") {
-  await sotMode ? sotSim() : sim();
+  if (sotMode && apiUrl) await sotSimApi(apiUrl);
+  else await sotMode ? sotSim() : sim();
 } else {
-  console.error("usage: bun apps/bot-whatsapp/main.ts [--sim|--live] [--sot]");
+  console.error("usage: bun apps/bot-whatsapp/main.ts [--sim|--live] [--sot] [--api <url>]");
   process.exit(1);
 }

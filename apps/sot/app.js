@@ -168,6 +168,10 @@
         const r = SoT.logReps(snap.group.id, snap.me.id, q.exerciseId, q.amount);
         if (r.error) { Conn.remove(q.id); dropped++; continue; }
         Conn.remove(q.id); synced++;
+        // cloud pilot (M1): replayed sets land on the shared API too
+        if (window.RWFCloud && window.RWFCloud.enabled() && window.RWFCloud.isCloudGroup(snap.group.id)) {
+          window.RWFCloud.afterLocalLog(snap.group.id, q.exerciseId, q.amount).catch(() => {});
+        }
       }
     }
     Conn.mode = "online";
@@ -353,13 +357,29 @@
                 el("div", { class: "tiny" }, SoT.curSeasonOf(g) ? SoT.curSeasonOf(g).label + " · live" : "season ended")),
               el("span", { class: "chip" }, g.members.length + " players")))))
       : null;
+    const cloud = window.RWFCloud;
+    const syncRow = cloud ? el("div", { class: "card tight", style: "margin-top:14px" },
+      el("div", { class: "toggle-row" },
+        el("div", null,
+          el("div", { class: "t-name" }, "Sync"),
+          el("div", { class: "t-sub" }, cloud.mode() === "cloud"
+            ? "cloud pilot — this phone shares one live game with the crew"
+            : "local — your game lives on this device only")),
+        el("select", { id: "sync-mode-start", style: "width:150px", onchange: (e) => {
+          cloud.setMode(e.target.value);
+          toast(e.target.value === "cloud" ? "☁️ Cloud pilot on — new groups sync via the API" : "Local mode — nothing leaves this device");
+          render();
+        } },
+          [["local", "Local"], ["cloud", "Cloud (pilot)"]].map((o) =>
+            el("option", { value: o[0], selected: cloud.mode() === o[0] ? "" : null }, o[1]))))) : null;
     return el("div", { class: "screen on" },
       el("h1", { class: "display" }, "JOIN THE BATTLE.", el("br"), el("span", { class: "gold-t" }, "WIN THE DAY.")),
       el("p", { class: "sub" }, "Start a crew or jump into one with a code."),
       el("button", { class: "btn", style: "margin-bottom:12px", onclick: () => { sfx("primary"); startWizard(); } }, "⚔️ Create a group"),
       el("button", { class: "btn purple", onclick: () => { sfx("primary"); App.join = { code: "", step: "enter" }; go("join"); } }, "🎟️ Join with a code"),
       el("button", { class: "btn ghost", style: "margin-top:10px", onclick: () => { sfx("deal"); jumpToDemo(); } }, "⚡ Watch a live demo battle", el("span", { class: "demo-chip" }, "demo")),
-      list);
+      list,
+      syncRow);
   }
 
   /* ══ JOIN FLOW (§4.2) ═════════════════════════════════════════════ */
@@ -372,11 +392,20 @@
         el("h1", { class: "display" }, "ENTER INVITE CODE"),
         el("p", { class: "sub" }, "Got a code or deep link from the creator? Drop it in."),
         el("div", { class: "card" }, inp),
-        el("button", { class: "btn", onclick: () => {
+        el("button", { class: "btn", onclick: async () => {
           const code = inp.value.trim().toUpperCase();
           const g = SoT.groupByCode(code);
-          if (!g) { sfx("error"); toast("No group with that code on this device"); return; }
-          sfx("primary"); J.code = code; J.step = "preview"; render();
+          if (g) { sfx("primary"); J.code = code; J.step = "preview"; render(); return; }
+          // not on this device — cloud pilot: ask the shared API (M1)
+          if (window.RWFCloud && window.RWFCloud.enabled()) {
+            sfx("tap"); J.code = code; J.step = "cloudLoading"; render();
+            const prev = await window.RWFCloud.lookup(code);
+            if (prev && prev.ok) { J.cloudPreview = prev; J.step = "cloudPreview"; }
+            else { J.cloudMiss = (prev && prev.error) || "not found"; J.step = "cloudMiss"; }
+            render();
+            return;
+          }
+          sfx("error"); toast("No group with that code on this device"); return;
         } }, "Preview group"),
         el("button", { class: "btn ghost", style: "margin-top:10px", onclick: () => { sfx("tap"); go("start"); } }, "Back"));
     }
@@ -417,6 +446,49 @@
           el("p", { class: "sub", style: "margin:12px 2px 0" }, `You contribute ${money(g.stake.perPersonCents)} to the season pot (plus ${money(fee)} disclosed platform fee). No cash to the winner — the winner directs the pot to an eligible charity of their choice.`)),
         el("div", { style: "position:absolute;bottom:34px;left:16px;right:16px" },
           el("button", { class: "btn purple", onclick: () => { sfx("pot"); acceptJoin(); } }, `Agree & contribute ${money(g.stake.perPersonCents + fee)}`)));
+    }
+    if (J.step === "cloudLoading") {
+      return el("div", { class: "screen on" },
+        el("h1", { class: "display" }, "LOOKING…"),
+        el("p", { class: "sub" }, "Asking the crew server for " + (J.code || "that code") + "…"),
+        el("div", { class: "card", style: "text-align:center" }, el("span", { class: "tiny" }, "☁️ cloud pilot — groups can live on the API, not just this device")));
+    }
+    if (J.step === "cloudPreview") {
+      const p = J.cloudPreview || {};
+      const names = (p.players || []).map((x) => x.name).join(", ") || "nobody yet";
+      return el("div", { class: "screen on" },
+        el("h1", { class: "display" }, (p.name || "THE CREW").toUpperCase()),
+        el("p", { class: "sub" }, "☁️ Live on the crew server — every phone here sees the same battle."),
+        el("div", { class: "card" }, [
+          ["Daily target", (p.config && p.config.targetReps || 200) + " adjusted reps"],
+          ["Battle days", ((p.config && p.config.playDays) || []).length + " days/week"],
+          ["In the crew", names],
+        ].map((r) => el("div", { class: "toggle-row" },
+          el("span", { class: "t-sub", style: "text-transform:uppercase;letter-spacing:.12em" }, r[0]),
+          el("span", { class: "t-name" }, r[1])))),
+        el("div", { style: "position:absolute;bottom:34px;left:16px;right:16px" },
+          el("button", { class: "btn", id: "cloud-join-go", onclick: async () => {
+            sfx("primary");
+            J.step = "cloudJoining"; render();
+            const r = await window.RWFCloud.confirmJoin(J.code);
+            if (r.error) { sfx("error"); toast(r.error); J.step = "enter"; render(); return; }
+            J.step = "done"; render();
+          } }, "I'm in — join the shared game"),
+          el("button", { class: "btn ghost sm", style: "margin-top:10px", onclick: () => { sfx("tap"); J.step = "enter"; render(); } }, "Back")));
+    }
+    if (J.step === "cloudJoining") {
+      return el("div", { class: "screen on", style: "text-align:center;padding-top:80px" },
+        el("div", { class: "ex-ill" }, "☁️"),
+        el("h1", { class: "display" }, "JOINING…"),
+        el("p", { class: "sub" }, "Claiming your seat on the crew server"));
+    }
+    if (J.step === "cloudMiss") {
+      return el("div", { class: "screen on" },
+        el("h1", { class: "display" }, "NOT FOUND"),
+        el("p", { class: "sub" }, "No group with code " + (J.code || "—") + " on this device or on the crew server."),
+        el("div", { class: "card" }, el("p", { class: "tiny", style: "margin:0" }, (J.cloudMiss || "").toString())),
+        el("div", { style: "position:absolute;bottom:34px;left:16px;right:16px" },
+          el("button", { class: "btn ghost", onclick: () => { sfx("tap"); J.step = "enter"; render(); } }, "Try another code")));
     }
     if (J.step === "done") {
       const g = SoT.groupByCode(J.code);
@@ -671,6 +743,15 @@
     });
     if (g.stake.type === "charity") SoT.agreeStake(g.id, SoT.state.me.id);
     App.wiz = null;
+    // cloud pilot (M1): the group is born local-first; when Sync is on the
+    // same crew gets a twin on apps/api and the battle syncs both ways
+    if (window.RWFCloud && window.RWFCloud.enabled()) {
+      window.RWFCloud.createForLocalGroup(g).then((r) => {
+        if (r && r.error) toast(`☁️ Cloud sync failed — playing local (${r.error})`);
+        else if (r && r.ok) toast(`☁️ Synced — code ${r.code} works on any phone`);
+        render();
+      }).catch(() => toast("☁️ Cloud sync failed — playing local"));
+    }
     App.overlay = { kind: "created", groupId: g.id };
     App.view = "app"; App.tab = "battle";
     render();
@@ -1274,6 +1355,13 @@
       const verified = !!F.verified;
       const r = SoT.logReps(snap.group.id, snap.me.id, F.exerciseId, F.amount, verified ? { verified: true } : {});
       if (r.error) { sfx("error"); toast(r.error); return; }
+      // cloud pilot (M1): the local log is optimistic truth — push it to the
+      // shared API and merge the server reply (server wins on conflict)
+      if (window.RWFCloud && window.RWFCloud.enabled() && window.RWFCloud.isCloudGroup(snap.group.id)) {
+        window.RWFCloud.afterLocalLog(snap.group.id, F.exerciseId, F.amount, verified).then((cr) => {
+          if (cr && cr.error && !cr.skipped) toast(`☁️ set is local-only for now (${cr.error})`);
+        }).catch(() => {});
+      }
       F.result = r;
       if (r.completion && r.completion.kind === "win") {
         sfx("win");
@@ -1574,6 +1662,29 @@
         el("div", { class: "toggle-row" },
           el("div", null, el("div", { class: "t-name" }, "Simulate offline"), el("div", { class: "t-sub" }, "demo the offline banner, queued logs + sync states")),
           switchEl(Conn.mode !== "online" && Conn.mode !== "reconnecting", (v) => setSimulateOffline(v), "offline-toggle")),
+        (() => {
+          const cloud = window.RWFCloud;
+          if (!cloud) return null;
+          const code = cloud.groupCode();
+          return el("div", { class: "toggle-row", id: "sync-row" },
+            el("div", null,
+              el("div", { class: "t-name" }, "Sync"),
+              el("div", { class: "t-sub" }, cloud.mode() === "cloud"
+                ? (code ? `☁️ this crew lives on the API — code ${code}` : "cloud pilot — new groups get a shared server twin")
+                : "local — your game lives on this device only"),
+              cloud.mode() === "cloud" ? el("input", {
+                type: "text", value: cloud.apiBase(), style: "width:100%;margin-top:6px;padding:8px;font-size:12px",
+                placeholder: "API base (default: same origin /sot)",
+                onchange: (e) => { cloud.setApiBase(e.target.value); toast("API base saved"); render(); },
+              }) : null),
+            el("select", { id: "sync-mode", style: "width:150px", onchange: (e) => {
+              cloud.setMode(e.target.value);
+              toast(e.target.value === "cloud" ? "☁️ Cloud pilot on — new groups sync via the API" : "Local mode — nothing leaves this device");
+              render();
+            } },
+              [["local", "Local"], ["cloud", "Cloud (pilot)"]].map((o) =>
+                el("option", { value: o[0], selected: cloud.mode() === o[0] ? "" : null }, o[1]))));
+        })(),
         el("div", { class: "toggle-row" },
           el("div", null, el("div", { class: "t-name" }, "Handicap tier"), el("div", { class: "t-sub" }, "changes what your reps are worth")),
           el("select", { style: "width:130px", onchange: (e) => { SoT.setMe({ tier: e.target.value }); render(); } },
@@ -2270,6 +2381,8 @@
   Conn.load();
   window.__rwfConn = Conn; // test/drive handle (read-only by convention)
   window.__rwfV4 = App; // test/drive handle (e2e + page-driving; read-only by convention)
+  // cloud pilot (M1): a poll merge means someone ELSE moved the board — redraw
+  window.addEventListener("rwf-cloud-sync", () => { if (App.view === "app") { detectMoments(); render(); } });
   // tutorial/demo drive handles (window.RWFTutorial in tutorial.js + e2e-tutorial.mjs)
   window.__rwfGo = (v) => { App.view = v; App.seasonView = false; render(); };
   window.__rwfTabTo = (t) => { App.view = "app"; App.seasonView = false; tab(t); };
