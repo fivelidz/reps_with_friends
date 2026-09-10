@@ -1,0 +1,14 @@
+[Unit]
+Description=RWF shared game API (apps/api — the SOT state authority, docs/22)
+After=network-online.target
+
+[Service]
+Type=simple
+WorkingDirectory=%h/reps_with_friends/apps/api
+ExecStart=%h/.bun/bin/bun src/main.ts
+Restart=always
+RestartSec=5
+Environment=PORT=4174
+
+[Install]
+WantedBy=default.target

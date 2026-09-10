@@ -205,11 +205,13 @@
     },
 
     /* ── any chat command, from the app (same brain the bots use) ─────── */
-    async cmd(groupId, text) {
+    async cmd(groupId, text, clientCmdId) {
       const bind = bindingFor(groupId);
       if (!bind) return { error: "not a cloud group" };
       const { g, b } = bind;
-      const r = await api("POST", `/sot/groups/${g.cloud.code}/cmd`, { playerToken: b.token, text, clientCmdId: "cmd_" + Date.now().toString(36) + "_" + Math.random().toString(36).slice(2, 8) });
+      // caller-supplied id (offline queue replay) → idempotent: a retry that
+      // raced the first send lands once ("✅ Already handled that command.")
+      const r = await api("POST", `/sot/groups/${g.cloud.code}/cmd`, { playerToken: b.token, text, clientCmdId: clientCmdId || ("cmd_" + Date.now().toString(36) + "_" + Math.random().toString(36).slice(2, 8)) });
       if (r.error) { noteFail(r.error); return r; }
       mergeState(g, r.state);
       return r;
@@ -238,6 +240,18 @@
       save();
       mergeState(g, r);
       return { ok: true, seq: r.seq };
+    },
+    /* full re-sync: forget the poll cursor and pull the WHOLE server state.
+       The joiner's first sync does this implicitly (since: 0); the creator's
+       mirror needs it after startSeason — the join snapshot that set the
+       cursor already contains the opened day, so the poll would answer
+       "unchanged" and the server day would never merge into the mirror. */
+    async resync(groupId) {
+      const bind = bindingFor(groupId);
+      if (!bind) return { skipped: true };
+      const b = cfg.groups[bind.g.cloud.code];
+      if (b) { b.since = 0; save(); }
+      return this.syncNow(groupId);
     },
   };
 

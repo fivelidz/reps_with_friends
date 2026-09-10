@@ -302,3 +302,18 @@ collar and adjacent shirt surface remain outside the animated neck/trap
 envelope, replacing the persistent white throat/shoulder wedges with a
 continuous lime neckline in stand, walk, curl, jack, squat, and front idle
 views without disturbing the six areas that already pass.
+
+---
+
+## ORCHESTRATOR NOTE — 11 Sep (final round queued)
+
+Codex usage limit hit (resets 03:56). State at pause:
+- Round 2 verdicts: shoes ✓ shorts ✓ push-up ✓; stronger collar/waistband/hem
+  follow-ups applied but UNJUDGED (evidence3 captured, frog expressions now
+  front-view after Codex caught the rear-view capture).
+- derived_v6 probe: 17/18 — "graded offsets wired" FAILS after the
+  hem-secondary-motion disable (the drape grading may be collateral — judge
+  whether the founder-approved "hanging loose" survived). Also note the
+  walk-50% shoe/toe region numbers (lifted-foot case, historically ungated).
+- FINAL ROUND (when Codex resets): judge evidence3, verdict all 7 areas,
+  resolve the graded-offsets question, then sign-off or one more fix.

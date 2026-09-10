@@ -134,19 +134,31 @@
      The app is local-first; this shim models the hero-app ↔ server link
      the SOT describes: an offline banner, a queued-log badge on the LOG
      button, and replay-on-reconnect with duplicate/sync-conflict
-     resolution (#105 + #119 sheets). Demo-toggleable from Settings — the
-     app never touches a real socket, so the whole surface is testable. */
+     resolution (#105 + #119 sheets). The queue carries BOTH kinds of
+     offline move: sets (logs) and cloud card plays (cmds — the exact chat
+     command the bots send, replayed through RWFCloud.cmd). Demo-toggleable
+     from Settings — the app never touches a real socket, so the whole
+     surface is testable. */
   const CONN_KEY = "rwf.sot.conn.v1";
   const Conn = {
     mode: "online",            // online | offline | reconnecting
-    queue: [],                 // [{id, exerciseId, amount, queuedAt}]
+    queue: [],                 // log items {kind:"log", id, exerciseId, amount, queuedAt}
+                               // + cmd items {kind:"cmd", id, clientCmdId, text, label, code, queuedAt}
+                               // (entries from before cmds existed carry no kind — replay reads them as logs)
     load() {
       try { const j = JSON.parse(localStorage.getItem(CONN_KEY) || "null"); if (j && Array.isArray(j.queue)) this.queue = j.queue; } catch (e) { /* fresh device */ }
       this.save();
     },
     save() { try { localStorage.setItem(CONN_KEY, JSON.stringify({ v: 1, queue: this.queue })); } catch (e) { /* private mode */ } },
     enqueue(exerciseId, amount) {
-      const entry = { id: clientLogId(), exerciseId, amount, queuedAt: Date.now() };
+      const entry = { id: clientLogId(), kind: "log", exerciseId, amount, queuedAt: Date.now() };
+      this.queue.push(entry); this.save(); return entry;
+    },
+    // cloud card plays queue as the SAME chat command the bots send — replayed
+    // verbatim through RWFCloud.cmd on reconnect (idempotent via clientCmdId)
+    enqueueCmd(text, label, code) {
+      const cid = clientCmdId();
+      const entry = { id: cid, kind: "cmd", clientCmdId: cid, text, label, code: code || null, queuedAt: Date.now() };
       this.queue.push(entry); this.save(); return entry;
     },
     remove(id) { this.queue = this.queue.filter((e) => e.id !== id); this.save(); },
@@ -160,9 +172,13 @@
   }
   async function replayQueuedLogs() {
     let synced = 0, dropped = 0, conflicts = [];
+    const cardsPlayed = [], cardsDropped = [];
     const snap = SoT.snapshot();
     if (snap && Conn.queue.length) {
-      for (const q of Conn.queue.slice()) {
+      const items = Conn.queue.slice();
+      const logs = items.filter((q) => (q.kind || "log") === "log");
+      const cmds = items.filter((q) => q.kind === "cmd"); // cmds replay AFTER the logs
+      for (const q of logs) {
         const dup = duplicateLogOf(q.exerciseId, q.amount);
         if (dup) { conflicts.push({ q, dup }); continue; }   // #105 — resolve by hand
         const r = SoT.logReps(snap.group.id, snap.me.id, q.exerciseId, q.amount);
@@ -174,13 +190,40 @@
         }
         Conn.remove(q.id); synced++;
       }
+      for (const q of cmds) {
+        if (!window.RWFCloud || !window.RWFCloud.enabled()) break; // no cloud client — stay queued
+        // replay against the crew it was queued for (never whatever group is
+        // active today) — the server is the authority, nothing played locally
+        const g = (snap.group.cloud && snap.group.cloud.code === q.code) ? snap.group
+          : Object.values(SoT.state.groups).find((x) => x.cloud && x.cloud.code === q.code);
+        if (!g) { Conn.remove(q.id); cardsDropped.push({ q, reason: "that crew is gone" }); continue; }
+        const cr = await window.RWFCloud.cmd(g.id, q.text, q.clientCmdId).catch((e) => ({ error: (e && e.message) || "cloud sync failed" }));
+        if (cr && cr.error && !cr.skipped) { noteCloudQueueFailure(cr.error); continue; } // network: stays queued
+        // the bus answers refusals with a ⚠️ card (expired day, spent card,
+        // unknown verb) — HTTP said ok, the play did NOT land: drop honestly
+        if (cr && cr.reply && (String(cr.reply).startsWith("⚠️") || /Unknown command/.test(String(cr.reply)))) {
+          Conn.remove(q.id);
+          cardsDropped.push({ q, reason: cmdFailReason(cr.reply) });
+          continue;
+        }
+        Conn.remove(q.id);
+        cardsPlayed.push(q);
+      }
     }
     Conn.mode = "online";
     render();
+    const playedBits = cardsPlayed.map((q) => `${q.label} played`);
+    const droppedBits = cardsDropped.map((d) => `${d.q.label} ${d.reason} — dropped`);
     if (conflicts.length) {
       App.overlay = { kind: "syncConflict", conflicts, synced, dropped }; render();
-    } else if (synced || dropped) {
-      toast(`Back online — ${synced} queued set${synced === 1 ? "" : "s"} synced${dropped ? `, ${dropped} dropped` : ""}`);
+    } else if (synced || dropped || playedBits.length || droppedBits.length) {
+      const bits = [];
+      if (synced) bits.push(`${synced} queued set${synced === 1 ? "" : "s"} synced`);
+      bits.push(...playedBits);
+      if (dropped) bits.push(`${dropped} dropped`);
+      let msg = `Back online — ${bits.join(" · ")}`;
+      if (droppedBits.length) msg += `${bits.length ? " · " : ""}${droppedBits.join(" · ")}`;
+      toast(msg);
     } else {
       toast("Back online");
     }
@@ -192,6 +235,32 @@
       return "log_" + Array.from(bytes, (b) => b.toString(16).padStart(2, "0")).join("");
     }
     return "log_" + Date.now().toString(36) + "_" + Math.random().toString(36).slice(2, 12);
+  }
+  function clientCmdId() {
+    if (window.crypto && window.crypto.getRandomValues) {
+      const bytes = new Uint8Array(16);
+      window.crypto.getRandomValues(bytes);
+      return "cmd_" + Array.from(bytes, (b) => b.toString(16).padStart(2, "0")).join("");
+    }
+    return "cmd_" + Date.now().toString(36) + "_" + Math.random().toString(36).slice(2, 12);
+  }
+  /* Cloud card plays travel as the SAME text commands the bots use —
+     SotCommandBus is the one server brain (M1). Canon cards map to their chat
+     verbs; anything the bus can't express still queues and drops honestly on
+     replay (the server is the authority — we never fake a local play). */
+  const CARD_CMDS = { lightning: "lightning", shield: "shield", freeze: "freeze", steal: "steal", surprise_bomb: "bomb", rescue_rope: "rope" };
+  function cardCmdText(cardId, targetName) {
+    const verb = CARD_CMDS[cardId] || cardId;
+    return verb + (targetName ? " @" + String(targetName).split(" ")[0] : "");
+  }
+  /* A replayed card cmd the server refused (day closed offline, card already
+     spent, verb unknown) → a human reason for the drop toast. */
+  function cmdFailReason(reply) {
+    const raw = String(reply || "");
+    const r = raw.replace(/^⚠️\s*/, "").replace(/\s*[—-]\s*`cards` to check your hand\.?\s*$/, "").trim();
+    if (/no battle open|closed|not live/i.test(r)) return "expired while offline";
+    if (/Unknown command/i.test(raw)) return "the crew server can't play that card yet";
+    return r || "refused by the crew server";
   }
   function noteCloudQueueFailure(err) {
     if (window.RWFCloud && window.RWFCloud.noteFail) window.RWFCloud.noteFail(err);
@@ -1682,7 +1751,7 @@
             try { window.rwfSfx.setMuted(!v); } catch (e) {}
           }, "sfx-toggle")),
         el("div", { class: "toggle-row" },
-          el("div", null, el("div", { class: "t-name" }, "Simulate offline"), el("div", { class: "t-sub" }, "demo the offline banner, queued logs + sync states")),
+          el("div", null, el("div", { class: "t-name" }, "Simulate offline"), el("div", { class: "t-sub" }, "demo the offline banner, queued logs & card plays + sync states")),
           switchEl(Conn.mode !== "online" && Conn.mode !== "reconnecting", (v) => setSimulateOffline(v), "offline-toggle")),
         (() => {
           const cloud = window.RWFCloud;
@@ -2112,6 +2181,18 @@
         el("p", { class: "tiny" }, "No take-backs — the whole crew sees it."),
         btnRow(() => { App.overlay = { kind: "card", cardId: ov.cardId }; render(); }, "Cancel", () => {
           const snap = SoT.snapshot();
+          // OFFLINE × CLOUD: the server is the authority for card plays in a
+          // cloud group — a local effect the server never saw would be wiped
+          // by the next poll merge (stale-hand divergence). Queue the exact
+          // chat command the bots send; it plays on reconnect, and a server
+          // refusal drops with an honest toast (replayQueuedLogs).
+          if (Conn.mode !== "online" && window.RWFCloud && window.RWFCloud.enabled() && window.RWFCloud.isCloudGroup(snap.group.id)) {
+            const card = SoT.CARDS[ov.cardId] || {};
+            const entry = Conn.enqueueCmd(cardCmdText(ov.cardId, ov.targetName), card.name || ov.cardId, snap.group.cloud.code);
+            sfx("tap");
+            App.overlay = { kind: "cardQueued", cardId: ov.cardId, qid: entry.id };
+            render(); return;
+          }
           const r = SoT.activateCard(snap.group.id, snap.me.id, ov.cardId, ov.targetId, {
             ...(ov.exerciseId ? { exerciseId: ov.exerciseId } : {}),
             ...(ov.memberIds ? { memberIds: ov.memberIds } : {}),
@@ -2127,6 +2208,24 @@
               : { kind: "cardResult", result: r, cardId: ov.cardId };
           render();
         }, "Confirm")));
+      return layer;
+    }
+    if (ov.kind === "cardQueued") {
+      // OFFLINE × CLOUD: the queued-card moment — the card-play variant of the
+      // queued-set step (#104 family). No local effect happened: the card is
+      // untouched in the hand and plays on the crew server at replay.
+      const card = SoT.CARDS[ov.cardId] || {};
+      layer.append(el("div", { class: "oval" },
+        el("div", { class: "o-kicker" }, "OFFLINE — SAVED ON THIS DEVICE"),
+        el("div", { style: "font-size:52px;margin:8px 0" }, card.icon || cardIcon(ov.cardId)),
+        el("div", { class: "o-title", style: "font-size:26px" }, "QUEUED — PLAYS WHEN YOU RECONNECT"),
+        el("p", { class: "o-sub" }, `${card.name || "This card"} waits with your other offline moves and plays on the crew server the moment you're back — the whole crew sees it then.`),
+        el("div", { class: "chip-row" },
+          el("span", { class: "chip bad" }, "📶 offline"),
+          el("span", { class: "chip gold" }, `${Conn.queue.length} in queue`)),
+        el("div", { style: "margin-top:12px" },
+          el("button", { class: "btn ghost sm", onclick: () => { sfx("tap"); if (Conn.byId(ov.qid)) { Conn.remove(ov.qid); toast("Removed from the sync queue"); } App.overlay = null; render(); } }, "↩ Remove from queue"),
+          el("button", { class: "btn", style: "margin-left:8px", onclick: () => { sfx("tap"); App.overlay = null; render(); } }, "Done"))));
       return layer;
     }
     if (ov.kind === "lightning") {

@@ -1,6 +1,6 @@
 /* ═══════════════════════════════════════════════════════════════════════
    RWF V4 SoT APP — CRITICAL STATES e2e (headless chromium + CDP, no deps)
-   ┄┄┄┄┄┄┄┄┄┄┄┄┄┄┄┄┄┄┄┄┄┄┄┄┄┄┄┄┄┄┄┄┄┄┄┄┄┄┄┄┄┄┄┄┄┄┄┄┄┄┄┄┄┄┄┄┄┄┄┄┄┄┄┄┄┄┄┄
+   ┄┄┄┄┄┄┄┄┄┄┄┄┄┄┄┄┄┄┄┄┄┄┄┄┄┄┄┄┄┄┄┄┄┄┄┄┄┄┄┄┄┄┄┄┄┄┄┄┄┄┄┄┄┄┄┄┄┄┄┄┄┄┄┄┄┄┄┄┄┄
    The SOT's designed critical states, on the real app (seeded demo crew):
      1 · OFFLINE / RECONNECTING (#103 + #104 + #120) — the connection
          shim: settings toggle "simulate offline" → banner → logs queue
@@ -13,8 +13,13 @@
          messaging, next battle day + countdown.
      4 · BATTLE COMPLETE BUT SEASON LIVE (#102) — winner-known
          transition with tomorrow framing (live + ended halves).
+     5 · OFFLINE CARD QUEUE (cloud groups) — a card played offline in a
+         CLOUD group queues as its chat command (kind:"cmd") instead of
+         erroring or playing locally; on reconnect it replays through
+         RWFCloud.cmd and the server state reflects it; a card whose day
+         closed while offline drops with an honest toast.
    Zero console errors. Shots → apps/sot/shots/*_states.png (390×844 @2x).
-   Run: bun apps/sot/e2e-states.mjs      (self-contained temp server)
+   Run: bun apps/sot/e2e-states.mjs      (self-contained temp server + API)
    ═══════════════════════════════════════════════════════════════════════ */
 import { spawn } from "node:child_process";
 import { mkdirSync, writeFileSync, rmSync } from "node:fs";
@@ -354,6 +359,128 @@ await shot("battle-complete");
 st = await snapState();
 ok(st.battle && st.battle.idx === 2 && st.battle.status === "live", "battle 2 opened — the season rolls on");
 
+/* ══ 5 · OFFLINE CARD QUEUE — CLOUD GROUPS ═════════════════════════ */
+console.log("— OFFLINE CARD QUEUE: power-ups queue in a CLOUD group and play on reconnect");
+// the shared API (same in-process pattern as e2e-cloud.mjs) — a real crew
+// server for the card cmds to land on / be refused by
+process.env.RWF_API_DB = `/tmp/rwf-states-api-${Date.now()}.json`;
+process.env.RWF_SOT_DB = `/tmp/rwf-states-sot-${Date.now()}.json`;
+const { startServer } = await import("../api/src/main.ts");
+const api = startServer(0);
+const API_BASE = `http://127.0.0.1:${api.port}`;
+
+// bind a fresh local group to a real API crew (the same seam the wizard's
+// "Sync: Cloud" uses), start the season, let the server day merge in
+const cloud = await evalJs(`(async () => {
+  RWFCloud.setMode("cloud");
+  RWFCloud.setApiBase(${JSON.stringify(API_BASE)});
+  const g = RWFSoT.createGroup({ mode: "individual", name: "Cloud Crew", icon: "⚡", color: "#a06bff",
+    activeDays: [0, 1, 2, 3, 4, 5, 6], target: 200, clockMode: "duration", durationMin: 60,
+    stake: { type: "none" },
+    housePlayers: [{ name: "Marco", tier: "casual" }, { name: "Priya", tier: "fit" }, { name: "Jack", tier: "couch" }] });
+  const made = await RWFCloud.createForLocalGroup(g);
+  if (made && made.error) return { error: made.error };
+  RWFSoT.startSeason(g.id);
+  await RWFCloud.resync(g.id);   // pull the server day (join snapshot's cursor already covers it)
+  RWFSoT.state.activeGroupId = g.id; RWFSoT.save();
+  return { code: g.cloud.code, gid: g.id };
+})()`);
+ok(cloud && cloud.code && !cloud.error, `cloud crew bound to the API (${cloud && (cloud.code || cloud.error)})`);
+const cloudCode = cloud.code, cloudGid = cloud.gid;
+await clickText("Battle");
+await sleep(300);
+await waitFor(() => evalJs(`(() => { const s = RWFSoT.snapshot(); return s.battle && s.battle.status === "live" && s.board.length === 4 && (s.me.inventory || []).includes("lightning"); })()`).catch(() => false),
+  { label: "cloud battle live with the server kit in hand", timeout: 12000 });
+ok(true, "cloud battle live — server day merged, canon kit (6 cards) in hand");
+await shot("cloud-crew-live");
+
+console.log("— play a card OFFLINE in the cloud group → it QUEUES, never errors, never plays locally");
+await clickText("Profile");
+await click("#offline-toggle");                                 // simulate offline
+await sleep(300);
+ok(await exists("#conn-banner"), "offline banner up in the cloud group");
+await evalJs(`window.__rwfTabTo('powerups')`);
+await sleep(300);
+await click(".pu-card");                                        // first card = Lightning Round (kit order)
+await sleep(400);                                               // flip
+await click(".pu-card");                                        // open the card sheet
+await sleep(300);
+await clickText("Play Lightning Round");
+await sleep(250);
+await clickText("Confirm");
+await waitFor(() => evalJs(`(document.body.innerText || '').includes('QUEUED — PLAYS WHEN YOU RECONNECT')`).catch(() => false), { label: "queued-card sheet", timeout: 6000 });
+okBody("QUEUED — PLAYS WHEN YOU RECONNECT", "offline card play queues instead of erroring");
+okBody("Lightning Round", "queued sheet names the card");
+ok((await text("#queue-badge")) === "1", "queue badge counts the queued card cmd");
+await shot("offline-card-queued");
+const q1 = await evalJs(`window.__rwfConn.queue[0] || null`);
+ok(!!q1 && q1.kind === "cmd" && q1.text === "lightning" && typeof q1.clientCmdId === "string"
+  && q1.label === "Lightning Round" && q1.code === cloudCode,
+  `queue holds a proper cmd item {kind:"cmd", text:"lightning", clientCmdId, label:"Lightning Round", code}`);
+ok(await evalJs(`(() => { const s = RWFSoT.snapshot(); return !(s.battle.core.lightning || {})[s.me.id] && (s.me.inventory || []).includes("lightning"); })()`),
+  "card NOT played locally — no storm, card still in the hand (server is the authority)");
+
+console.log("— reconnect → the queued card replays onto the crew server");
+await clickText("Done");
+await clickText("Profile");
+await click("#offline-toggle");                                 // → RECONNECTING beat → replay
+await sleep(200);
+await waitFor(() => bodyHas("Lightning Round played").catch(() => false), { label: "card-played toast", timeout: 12000 });
+okBody("Lightning Round played", "replay toast reports the card landing");
+ok((await evalJs(`window.__rwfConn.queue.length`)) === 0, "queue empty after the replay");
+ok(await evalJs(`window.__rwfConn.mode`) === "online", "back online");
+const mirror = await evalJs(`(() => { const s = RWFSoT.snapshot(); return { bolt: (s.battle.core.lightning || {})[s.me.id] || 0, held: (s.me.inventory || []).includes("lightning") }; })()`);
+ok(mirror.bolt > Date.now() && !mirror.held, "mirror reflects the play: ×3 storm live, Lightning spent");
+await shot("cloud-card-played");
+// the authoritative check: the SERVER day carries the lightning window
+const tok = await evalJs(`(JSON.parse(localStorage.getItem("rwf.cloud.v1") || "{}").groups[${JSON.stringify(cloudCode)}] || {}).token`);
+const pid = await evalJs(`RWFSoT.state.groups[${JSON.stringify(cloudGid)}].cloud.pid`);
+const srv1 = await fetch(`${API_BASE}/sot/groups/${cloudCode}/state?since=0&playerToken=${encodeURIComponent(tok)}`).then((r) => r.json());
+ok(srv1.day && srv1.day.status === "live" && ((srv1.day.lightning || {})[pid] || 0) > Date.now()
+  && !((srv1.day.inventory || {})[pid] || []).includes("lightning"),
+  "SERVER truth: lightning live for me on the API day, card spent from the server hand");
+ok(await exists("#conn-banner") === false, "banner gone — fully reconnected");
+
+console.log("— EXPIRY DROP: the day closes while offline → the queued card drops gracefully");
+await clickText("Profile");
+await click("#offline-toggle");                                 // offline again
+await sleep(300);
+ok(await exists("#conn-banner"), "offline again for the expiry case");
+await evalJs(`window.__rwfTabTo('powerups')`);
+await sleep(300);
+const flip = (i) => evalJs(`(() => { const c = document.querySelectorAll('.pu-card')[${i}]; if (!c) return 'missing'; c.click(); return 'ok'; })()`);
+ok((await flip(1)) === "ok", "second card found (steal spent nothing — shield is next in the kit)");  // reveal shield
+await sleep(400);
+ok((await flip(1)) === "ok", "shield card opened");
+await sleep(300);
+await clickText("Play Group Shield");
+await sleep(250);
+await clickText("Confirm");
+await waitFor(() => evalJs(`(document.body.innerText || '').includes('QUEUED — PLAYS WHEN YOU RECONNECT')`).catch(() => false), { label: "shield queued sheet", timeout: 6000 });
+ok((await evalJs(`(window.__rwfConn.queue[0] || {}).text`)) === "shield", "shield cmd queued offline");
+await clickText("Done");
+// the world moves on while we're away: the creator force-closes the day on
+// the server (the same ops verb closeDay uses) — the day-scoped card dies
+// with it, and the replay must be REFUSED and drop with an honest toast
+const closeRes = await fetch(`${API_BASE}/sot/groups/${cloudCode}/cmd`, {
+  method: "POST", headers: { "content-type": "application/json" },
+  body: JSON.stringify({ playerToken: tok, text: "day close force" }),
+}).then((r) => r.json());
+ok(!closeRes.error && !String(closeRes.reply || "").startsWith("⚠️"), "day force-closed server-side while the app was offline");
+await clickText("Profile");
+await click("#offline-toggle");                                 // → reconnect → replay the shield cmd
+await sleep(200);
+await waitFor(() => bodyHas("Group Shield expired while offline").catch(() => false), { label: "graceful drop toast", timeout: 12000 });
+okBody("Group Shield expired while offline", "drop toast explains the refusal honestly");
+ok((await evalJs(`window.__rwfConn.queue.length`)) === 0, "the refused cmd left the queue (dropped, not stuck)");
+ok(await evalJs(`(() => { const s = RWFSoT.snapshot(); const c = s.battle && s.battle.core; return c ? !c.groupShield : true; })()`),
+  "no local shield effect ever existed (nothing was faked offline)");
+const srv2 = await fetch(`${API_BASE}/sot/groups/${cloudCode}/state?since=0&playerToken=${encodeURIComponent(tok)}`).then((r) => r.json());
+ok(srv2.day && srv2.day.status !== "live" && ((srv2.day.inventory || {})[pid] || []).includes("shield"),
+  "SERVER truth: the day is closed and the shield card was never spent");
+if (await exists(".oval")) { await clickText("Close"); await sleep(200); }   // clear any day-close moment for the gate
+await shot("cloud-card-dropped");
+
 /* ── gates ──────────────────────────────────────────────────────────── */
 console.log("— CONSOLE GATE");
 ok(consoleErrors.length === 0, `zero console errors (got ${consoleErrors.length}${consoleErrors.length ? ": " + consoleErrors[0] : ""})`);
@@ -362,6 +489,7 @@ consoleErrors.slice(0, 5).forEach((e) => console.log("    ·", e));
 /* ── teardown ───────────────────────────────────────────────────────── */
 console.log(`\n${passed}/${step} checks passed`);
 server.stop(true);
+try { api && api.stop(true); } catch {}   // the section-5 crew server
 try { proc.kill("SIGTERM"); } catch {}
 await sleep(400);
 if (failures.length) {
