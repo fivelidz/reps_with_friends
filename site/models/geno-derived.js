@@ -167,7 +167,11 @@ export const DERIVED_SPEC = {
   // v7 FIX 1: the collar is cut at the MEASURED NECK BASE — the narrow flesh
   // ring above the trapezius flare (profiled from the body's own
   // cross-sections at build) — plus this much clearance above the flare line.
-  collarRiseCm: 0.4,
+  // Final collar QA: start the shirt/rib stack 8 mm below the measured flare
+  // boundary.  The former +4 mm start left a 12 mm-high strip of animated
+  // throat/trapezius between the shoulder shell and the rib in deep neck
+  // pitch (visible as white wedges in stand and jumping-jack).
+  collarRiseCm: -0.8,
   // v7 FIX 3: DRAPE WRINKLES — purely geometric, baked into the bind offset
   // (zero runtime cost, inherited skinning unchanged). Low-frequency vertical
   // pleats: radial sin around the garment axis, amplitude deeper near the hem

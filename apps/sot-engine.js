@@ -99,6 +99,22 @@
        processCharityDonation(s, at?) → donation = pot − disclosed fee
        markStakeFulfilled(s, playerId, evidence?)
 
+    CREW GIVING (docs/32 ADDENDUM — the giving-circle reframe; NO real
+      money moves — settlement is "web checkout pending", web rails only)
+      giveConfig on the season: { enabled, monthlyCentsPerMember (500),
+        selection: "winner"|"crew-vote", causes: [{playerId, charityName,
+        abn?}], optedIn: [playerIds] } — pass as config.giving
+      normalizeGiving(giving) → clamped/defaults-applied copy
+      givingPoolCents(season) → optedIn × monthly
+      endBattleSeason extends: giving on + unique champion →
+        season.givingResolution = { charityName, causeOwnerId,
+        directedByPlayerId, amountCents, receipt, settlement:
+        "web_checkout_pending" } recorded with the season; crew-vote mode →
+        season.givingVote = { open, votes } instead
+      castGivingVote(s, playerId, causeOwnerId) → settles on strict majority
+        of season players or all-voted (ties → earliest-nominated cause)
+      givingVoteTally(s) → { open, tally, votes, settledCauseId }
+
    TEAMS  (scaffold — SOT Q229-231 scoring left open)
      MIN_TEAM_SIZE (2/side, uneven 3v2 ALLOWED), validateTeamMode(cfg),
      teamScores(day, {teams, scoringRule:'pooled'|'average'|'quota',
@@ -1481,9 +1497,14 @@ export function endBattleSeason(s, at = Date.now()) {
   if (s.endedAt != null) return s;
   const rows = battleStandings(s);
   const top = rows.filter((r) => r.points === rows[0].points);
-  return top.length === 1
+  const ended = top.length === 1
     ? { ...s, champion: top[0].playerId, tie: false, endedAt: at }
     : { ...s, tie: true, endedAt: at };
+  // Crew Giving (docs/32 ADDENDUM): when giving is on and a champion
+  // exists, the season close records the givingResolution (winner mode) or
+  // opens the crew vote (crew-vote mode). Tie seasons stay unresolved —
+  // Q224 still open, and a split season directs nothing.
+  return resolveGivingAtClose(ended, at);
 }
 
 export function proposeStake(s, input, participants, stakeId = `${s.config.id}-stake`) {
@@ -1634,6 +1655,127 @@ export function markStakeFulfilled(s, playerId, evidence) {
       fulfilment: { ...stake.fulfilment, [playerId]: { state: "fulfilled", ...(evidence ? { evidence } : {}), at: Date.now() } },
     },
   };
+}
+
+/* ── Crew Giving (docs/32 ADDENDUM — the giving-circle reframe, 10 Sep) ──
+   "A group subscription model where they choose where the money goes."
+   The crew subscribes together to collective giving: each member commits a
+   monthly amount, the crew picks its causes (or each member nominates one),
+   and the season's results steer which cause the pool supports. Winning
+   determines the DESTINATION, never the recipient of money — a player's
+   contribution never depends on their result (no stake, no prize, no wager).
+   NO REAL MONEY MOVES HERE: amounts are displayed, settlement is marked
+   "web checkout pending" (the honest placeholder — money is never handled
+   in-app; contributions happen on the web at season close).
+
+   Wording table is load-bearing (docs/32): the money is the crew's GIVING
+   POOL / monthly pool — never pot/kitty/winnings; members SUBSCRIBE /
+   CONTRIBUTE / chip in — never wager/bet/stake; the season DIRECTS the
+   pool — never wins it.
+
+   giveConfig: { enabled, monthlyCentsPerMember (default 500 = $5),
+     selection: "winner" (season champion's cause) | "crew-vote" (majority
+     of season players at close), causes: [{playerId, charityName, abn?}],
+     optedIn: [playerIds] }                                              */
+
+export const GIVING_MONTHLY_DEFAULT_CENTS = 500; // $5/month per member
+
+export function normalizeGiving(giving) {
+  const g = giving && typeof giving === "object" ? giving : {};
+  const cents = Math.max(0, Math.floor(Number(g.monthlyCentsPerMember)));
+  const causes = Array.isArray(g.causes) ? g.causes
+    .filter((c) => c && typeof c.charityName === "string" && c.charityName.trim() && c.playerId != null)
+    .map((c) => ({ playerId: c.playerId, charityName: c.charityName.trim(), ...(c.abn ? { abn: String(c.abn).trim() } : {}) }))
+    : [];
+  const optedIn = Array.isArray(g.optedIn) ? [...new Set(g.optedIn)] : [];
+  return {
+    enabled: !!g.enabled,
+    monthlyCentsPerMember: Number.isFinite(cents) && cents > 0 ? cents : GIVING_MONTHLY_DEFAULT_CENTS,
+    selection: g.selection === "crew-vote" ? "crew-vote" : "winner",
+    causes,
+    optedIn,
+  };
+}
+
+/** The crew's monthly giving pool: opted-in members × their monthly amount. */
+export function givingPoolCents(s) {
+  const g = s.config.giving;
+  if (!g || !g.enabled) return 0;
+  return g.optedIn.length * g.monthlyCentsPerMember;
+}
+
+/* resolution is RECORDED with the season — no money moves; settlement stays
+   "web checkout pending" with a placeholder link until the web rails land */
+function givingResolutionFor(s, cause, directorId, at) {
+  return {
+    charityName: cause.charityName,
+    ...(cause.abn ? { abn: cause.abn } : {}),
+    causeOwnerId: cause.playerId,
+    directedByPlayerId: directorId,
+    amountCents: givingPoolCents(s),
+    receipt: "RWFG-" + s.config.id + "-" + new Date(at).toISOString().slice(0, 10),
+    settlement: {
+      status: "web_checkout_pending",
+      checkoutUrl: "https://rwf.qalarc.com/giving/checkout/" + s.config.id,
+      note: "money is never handled in-app — contributions happen on the web at season close",
+    },
+    resolvedAt: at,
+  };
+}
+
+function resolveGivingAtClose(s, at) {
+  const giving = s.config.giving;
+  if (!giving || !giving.enabled || s.champion == null) return s;
+  if (giving.selection === "crew-vote") {
+    // the crew votes in the feed at season end (proof-vote UI pattern);
+    // majority cause wins — castGivingVote settles it into a resolution
+    if (!giving.causes.length) return s;
+    return { ...s, givingVote: { open: true, votes: {}, openedAt: at } };
+  }
+  // winner mode: the champion's season directs the pool to their cause
+  // (the champion-of-your-cause moment — docs/32 §1). If the champion never
+  // nominated, the earliest-nominated crew cause receives the pool.
+  const cause = giving.causes.find((c) => c.playerId === s.champion) || giving.causes[0];
+  if (!cause) return s;
+  return { ...s, givingResolution: givingResolutionFor(s, cause, s.champion, at) };
+}
+
+/** Crew-vote mode: cast a vote for a cause (majority of season players). */
+export function castGivingVote(s, playerId, causeOwnerId, at = Date.now()) {
+  const vote = s.givingVote;
+  if (!vote || !vote.open) throw new Error("no open crew vote");
+  if (!s.players.some((p) => p.id === playerId)) throw new Error(`${playerId} is not in this season`);
+  if (vote.votes[playerId] != null) throw new Error(`${playerId} already voted`);
+  const cause = (s.config.giving.causes || []).find((c) => c.playerId === causeOwnerId);
+  if (!cause) throw new Error("unknown cause");
+  const votes = { ...vote.votes, [playerId]: causeOwnerId };
+  // settles on a strict majority of season players (proof-vote pattern),
+  // or when everyone has voted — ties go to the earliest-nominated cause
+  const players = s.players.map((p) => p.id);
+  const order = new Map(s.config.giving.causes.map((c, i) => [c.playerId, i]));
+  const need = Math.floor(players.length / 2) + 1;
+  const tally = {};
+  for (const v of Object.values(votes)) tally[v] = (tally[v] || 0) + 1;
+  const leader = Object.entries(tally)
+    .sort((a, b) => b[1] - a[1] || (order.get(a[0]) ?? 99) - (order.get(b[0]) ?? 99))[0];
+  const majority = leader && leader[1] >= need;
+  const allVoted = players.every((id) => votes[id] != null);
+  if (!majority && !allVoted) return { ...s, givingVote: { ...vote, votes } };
+  const winCause = s.config.giving.causes.find((c) => c.playerId === leader[0]);
+  return {
+    ...s,
+    givingVote: { ...vote, votes, open: false, settledCauseId: leader[0], settledAt: at },
+    givingResolution: givingResolutionFor(s, winCause, s.champion ?? null, at),
+  };
+}
+
+/** Read helper for the UI: live tallies while the crew vote is open. */
+export function givingVoteTally(s) {
+  const vote = s.givingVote;
+  if (!vote) return null;
+  const tally = {};
+  for (const v of Object.values(vote.votes)) tally[v] = (tally[v] || 0) + 1;
+  return { open: !!vote.open, tally, votes: { ...vote.votes }, settledCauseId: vote.settledCauseId ?? null };
 }
 
 /* ── Team mode scaffold (spec: game-core/src/teams.ts) ──────────────────── */

@@ -722,3 +722,17 @@ label.f { display: block; font-size: 12px; letter-spacing: 0.14em; text-transfor
   font-weight: 700; cursor: pointer; text-transform: uppercase; letter-spacing: 0.08em;
 }
 .tut-endcard__note { font-size: 10.5px; color: var(--ink-faint); margin-top: 14px; }
+
+/* ── Crew Giving (docs/32 ADDENDUM — the giving-circle reframe) ─────── */
+/* subtle 💙 marker on leaderboard rows: this member nominated a cause */
+.cause-chip {
+  font-size: 11px; line-height: 1; padding: 2px 4px; border-radius: 6px;
+  background: rgba(160, 107, 255, 0.14); border: 1px solid rgba(160, 107, 255, 0.3);
+  flex: 0 0 auto;
+}
+/* giving vote card rides the proof-card pattern (same family, purple tilt) */
+#giving-vote { border-color: rgba(160, 107, 255, 0.4); }
+#giving-vote .proof-actions .btn { flex: 1; font-size: 12px; }
+/* receipt checkout link inside the pool resolution cards */
+#giving-card .share-card a.btn,
+.overlay .share-card a.btn { text-decoration: none; }

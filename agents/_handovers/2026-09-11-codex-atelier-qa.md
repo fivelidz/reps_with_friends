@@ -238,6 +238,7 @@ that verdict. Atelier QA is **not signed off** pending that final visual check.
 
 - `git diff --check`: pass.
 - Browser-target bundle check for all three atelier modules: pass (10 modules).
+
 - Pure portion of `bun test packages/game-core/test packages/bot-core/test`:
   183 pass. The remaining 25 tests are the same socket-dependent Beeper/API
   cases and fail because this sandbox cannot start `Bun.serve`; no changed
@@ -303,6 +304,22 @@ envelope, replacing the persistent white throat/shoulder wedges with a
 continuous lime neckline in stand, walk, curl, jack, squat, and front idle
 views without disturbing the six areas that already pass.
 
+### Flagged `derived_v6` probe resolution
+
+The founder-approved loose drape survives in `codex_evidence3`: the shirt
+falls nearly straight from the chest, remains visibly proud of the torso, and
+reads wider/looser at the folded hem than at the collar in standing, walk,
+curl, jack, squat, and prone views. The graded bind geometry is still wired as
+`shirt 12→12→18 mm`, `sleeve 8→12 mm`, and `shorts 10→16 mm`; only the
+per-vertex runtime motion weights are zero. **Do not restore those weights or
+otherwise re-enable secondary motion.**
+
+The `derived_v6_verify.ts` failure is a stale assertion: it requires
+`band.bottomMm === 16`, while the founder-requested continuity fix deliberately
+changed the waistband to `22/23 mm`. It is not evidence that shirt/shorts
+grading was removed. The current source reports the approved graded values and
+the evidence preserves their intended silhouette.
+
 ---
 
 ## ORCHESTRATOR NOTE — 11 Sep (final round queued)
@@ -317,3 +334,52 @@ Codex usage limit hit (resets 03:56). State at pause:
   walk-50% shoe/toe region numbers (lifted-foot case, historically ungated).
 - FINAL ROUND (when Codex resets): judge evidence3, verdict all 7 areas,
   resolve the graded-offsets question, then sign-off or one more fix.
+
+## 2026-09-11 final collar verdict — `codex_evidence4`
+
+**Not signed off.** The collar is lime and largely continuous, but both requested
+frames still expose white throat/trapezius wedges. In the standing frame a white
+sliver remains beneath the head at the rear shoulder; in the jumping-jack frame
+the opening broadens across the rear-left neckline. The shoulder silhouette
+itself shows no new discontinuity.
+
+### One last collar-only fix
+
+- Moved the shared shirt/collar base from 4 mm above the measured neck-flare
+  boundary to 8 mm below it (`collarRiseCm: 0.4 -> -0.8`). Clearance remains
+  12 mm, the rib offset remains 10 mm, and the 3 cm rib height is unchanged.
+- **Expected outcome:** the shirt shoulder shell overlaps the full animated
+  throat/trapezius transition before narrowing into the lime rib, eliminating
+  the white wedges in standing and jumping-jack while retaining a continuous
+  lime neckline and the existing smooth shoulder line.
+
+This final geometry change requires a re-shot before atelier QA can be signed
+off. Residual visual risk is limited to collar/head intersection at extreme
+neck pitch and a possible shallow pucker where the lower collar now traverses
+the trapezius flare.
+
+## 2026-09-11 round 5 collar verdict — `codex_evidence5`
+
+**Final verdict: not signed off; accept and log the residual.** The two requested
+1385×1066 frames were reviewed resized to 1300 px wide. The −8 mm collar-base
+change improves coverage but does not produce a fully continuous lime neckline:
+
+- `01-fullkit-standing.png`: a narrow white strip/wedge remains visible below
+  the head at the rear neck–shoulder boundary.
+- `02-walk-mid.png`: neck pitch exposes a large, unmistakable white wedge between
+  the frog head and the lime shirt/collar.
+
+No new gross regression is visible in these two frames: the shoulder and shirt
+silhouettes remain coherent, the avatar stays attached, and the previously
+accepted waistband, shorts, hems, and shoes do not visibly revert. This is the
+last iteration, so no further geometry change is requested.
+
+### Accepted residual risks
+
+- White body/neck exposure persists at the neck-flare boundary and worsens under
+  forward neck pitch; the neckline cannot be described as continuously lime.
+- Only standing and one mid-walk frame were supplied for this targeted verdict,
+  so deeper pitch, rear/other yaw angles, and exercise-pose extremes may expose
+  an equal or larger gap.
+- The lowered collar base may still pucker or intersect the head/neck at unshown
+  extremes, although neither supplied frame shows a new severe intersection.

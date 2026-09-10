@@ -38,6 +38,8 @@
     joinByCode/agreeStake · snapshot · logReps/undoLast/activateCard/tick ·
     pickDraft/rerollDeal/voteProof/debugGrant (the v4.1 card stack) ·
     resolveCharity/markObligationFulfilled/react · resetProfile/resetAll ·
+    setCause/setGivingOptIn/updateGiving/voteGiving (Crew Giving — docs/32
+    ADDENDUM: the giving-circle reframe; no money moves in-app) ·
     EXERCISES/CARDS/CHARITIES/TIERS… (see the bottom export).
    ═══════════════════════════════════════════════════════════════════════ */
 
@@ -210,12 +212,17 @@ function createGroup(cfg) {
       mapLegacyPowerUps(cfg.powerUps || {})),
     members: [], seasons: [], currentSeasonId: null,
     events: [], createdAt: Date.now(),
+    giving: null, // Crew Giving — applied below once the roster exists
   };
   addMemberTo(g, { id: state.me.id, name: state.me.name, initials: state.me.initials, color: state.me.color, tier: state.me.tier, isHouse: false, joinedAt: Date.now() });
   for (const h of cfg.housePlayers || []) {
     addMemberTo(g, { id: uid("m"), name: h.name, initials: h.name.slice(0, 2).toUpperCase(), color: COLORS[rnd(COLORS.length)], tier: h.tier, isHouse: true, joinedAt: Date.now() });
   }
   if (cfg.teams && cfg.mode === "team") g.teams = cfg.teams;
+  g.giving = applyGiving(g, cfg.giving);
+  // the crew creator's nominated cause carries onto their member record
+  const myCause = state.me && state.me.cause;
+  if (myCause && myCause.charityName) memberById(g, state.me.id).cause = { ...myCause };
   // the stake was agreed at creation — the initial roster counts as in
   // (joiners agree explicitly through the join flow; SOT §4.2 acceptance)
   if (g.stake.type !== "none") for (const m of g.members) m.stakeAgreed = true;
@@ -242,8 +249,50 @@ function normalizeStake(s) {
   return base;
 }
 
+/* ── Crew Giving (docs/32 ADDENDUM — the giving-circle reframe) ──────
+   g.giving = { enabled, monthlyCentsPerMember, selection: "winner"|
+   "crew-vote", causes: [{playerId, charityName, abn?}], optedIn: [ids] }.
+   NO real money moves — amounts display, settlement stays "web checkout
+   pending" (contributions happen on the web at season close). Wording
+   table is binding: giving pool / subscribe / contribute / directs. */
+function defaultGiving() {
+  return Core.normalizeGiving({ enabled: false });
+}
+/* wizard cfg may carry opt-in markers ("me" / house NAMES) — resolve them
+   against the freshly-built roster (member ids don't exist at wizard time) */
+function applyGiving(g, cfg) {
+  if (!cfg) return defaultGiving();
+  const giving = Core.normalizeGiving({ ...cfg, optedIn: [], causes: [] });
+  const resolveId = (id) => {
+    if (id === "me") return state.me ? state.me.id : null;
+    if (g.members.some((m) => m.id === id)) return id;
+    const byName = g.members.find((m) => m.name === id);
+    return byName ? byName.id : null;
+  };
+  for (const entry of cfg.optedIn || []) {
+    const id = resolveId(entry);
+    if (id && !giving.optedIn.includes(id)) giving.optedIn.push(id);
+  }
+  for (const c of cfg.causes || []) {
+    const id = resolveId(c.playerId);
+    if (id && c.charityName && c.charityName.trim()) {
+      giving.causes.push({ playerId: id, charityName: c.charityName.trim(), ...(c.abn ? { abn: String(c.abn).trim() } : {}) });
+    }
+  }
+  return giving;
+}
+/* an active season froze its giving snapshot at start — refresh the engine
+   season config from the group so mid-season changes stay deliberate */
+function syncSeasonGiving(g) {
+  const s = curSeason(g);
+  if (s && s.core && s.status === "active") {
+    s.giving = JSON.parse(JSON.stringify(g.giving));
+    s.core = { ...s.core, config: { ...s.core.config, giving: JSON.parse(JSON.stringify(g.giving)) } };
+  }
+}
+
 function addMemberTo(g, m) {
-  g.members.push(Object.assign({ teamId: null, streak: 0, bestStreak: 0, lifetimeReps: 0, dailyWins: 0, completions: 0, failedDays: 0, stakeAgreed: false }, m));
+  g.members.push(Object.assign({ teamId: null, streak: 0, bestStreak: 0, lifetimeReps: 0, dailyWins: 0, completions: 0, failedDays: 0, stakeAgreed: false, cause: null }, m));
 }
 
 /* ── engine-player view of a member ────────────────────────────────── */
@@ -264,7 +313,11 @@ function startSeason(gRaw) {
   if (!g) return null;
   const idx = g.seasons.length + 1;
   const roster = g.members.map(enginePlayer);
-  const core = Core.createBattleSeason({ id: uid("s"), name: `Season ${idx}`, length: g.seasonLength === "monthly" ? "monthly" : "weekly", playDays: g.activeDays, targetReps: g.target }, roster);
+  // the season FREEZES the giving snapshot (pool members + causes) at
+  // start — mid-season joiners nominate but wait for the next pool
+  // (docs/32 §1 caveat); the engine close reads this frozen copy
+  const givingFrozen = g.giving && g.giving.enabled ? JSON.parse(JSON.stringify(g.giving)) : null;
+  const core = Core.createBattleSeason({ id: uid("s"), name: `Season ${idx}`, length: g.seasonLength === "monthly" ? "monthly" : "weekly", playDays: g.activeDays, targetReps: g.target, ...(givingFrozen ? { giving: givingFrozen } : {}) }, roster);
   const s = {
     id: core.config.id, idx, label: `Season ${idx}`, length: g.seasonLength,
     status: "active", startedAt: Date.now(), endedAt: null,
@@ -272,6 +325,7 @@ function startSeason(gRaw) {
     winnerId: null, loserIds: [],
     stake: JSON.parse(JSON.stringify(g.stake)),
     stakeResolution: { status: g.stake.type === "none" ? "none" : "pending" },
+    giving: givingFrozen,
   };
   // stake lifecycle on the engine object (points = trial currency; the
   // charity demo displays 1 point as $1)
@@ -311,7 +365,7 @@ function stakeDeclaration(g) {
   if (s.type === "dinner") return `Loser shouts the meal — ${s.description || "agreed dinner"} (cap $${((s.capCents || 0) / 100).toFixed(0)})`;
   if (s.type === "dare") return `The dare, locked before the season: ${s.dareText}`;
   if (s.type === "deliverable") return `Loser owes the favour: ${s.description}`;
-  if (s.type === "charity") return `Charity pot — everyone contributes, the winner directs the donation (${s.feePct}% disclosed platform fee)`;
+  if (s.type === "charity") return `Contribution pool — everyone contributes, the winner directs the donation (${s.feePct}% disclosed platform fee)`;
   return "Pride only";
 }
 
@@ -944,7 +998,19 @@ function endSeason(g, s) {
     ? `🏁 ${s.label} over — ${firstName(g, w)} takes the season with ${s.core.points[s.winnerId] || 0} Daily Win${(s.core.points[s.winnerId] || 0) === 1 ? "" : "s"}`
     : `${s.label} over` });
   if (stake.type !== "none") {
-    pushEvent(g, { type: "stake_due", text: stake.type === "charity" ? `Charity pot stands at $${((s.stakeResolution.potCents || 0) / 100).toFixed(2)} — the winner chooses where it goes` : `Stake is due: ${stakeLabel(stake)}` });
+    pushEvent(g, { type: "stake_due", text: stake.type === "charity" ? `Contribution pool stands at $${((s.stakeResolution.potCents || 0) / 100).toFixed(2)} — the winner chooses where it goes` : `Stake is due: ${stakeLabel(stake)}` });
+  }
+  // Crew Giving close (docs/32 ADDENDUM): the monthly moment. The engine
+  // recorded givingResolution (winner mode) or opened the crew vote —
+  // mirror both into feed events. No money moves; web checkout pending.
+  if (s.core.givingResolution) {
+    const r = s.core.givingResolution;
+    const owner = memberById(g, r.causeOwnerId);
+    const director = memberById(g, r.directedByPlayerId);
+    const month = new Date(r.resolvedAt).toLocaleString("en-AU", { month: "long" });
+    pushEvent(g, { type: "giving_directed", text: `💙 Your crew's ${month} pool — $${(r.amountCents / 100).toFixed(2)} to ${r.charityName}${owner ? ", " + firstName(g, owner) + "'s cause" : ""}${director ? ", directed by " + firstName(g, director) + "'s season" : ""}. Receipt ${r.receipt} · web checkout pending.` });
+  } else if (s.core.givingVote && s.core.givingVote.open) {
+    pushEvent(g, { type: "giving_vote_open", text: `🗳️ The crew votes: where does ${s.label}'s pool go? Majority cause wins — cast your vote in the feed.` });
   }
 }
 
@@ -952,7 +1018,7 @@ function stakeLabel(stake) {
   if (stake.type === "dinner") return `Loser shouts dinner${stake.description ? " — " + stake.description : ""}`;
   if (stake.type === "dare") return `Loser owes the dare: ${stake.dareText}`;
   if (stake.type === "deliverable") return `Loser owes: ${stake.description}`;
-  if (stake.type === "charity") return `Charity pot — winner directs the donation`;
+  if (stake.type === "charity") return `Contribution pool — winner directs the donation`;
   return "No stake";
 }
 
@@ -974,9 +1040,83 @@ function resolveCharity(gRaw, charityId) {
   s.stakeResolution = { status: "donated", charityId, charityName: ch.name, donatedAt: Date.now(),
     potCents: Core.charityPotTotal(s.core.stake) * 100, feeCents: charity.feePoints * 100, donateCents: charity.donationPoints * 100,
     receipt: "RWFD-" + g.code + "-" + s.idx };
-  pushEvent(g, { type: "charity_donated", text: `❤️ pot of $${((s.stakeResolution.potCents) / 100).toFixed(2)} directed to ${ch.name} (after $${((s.stakeResolution.feeCents) / 100).toFixed(2)} disclosed platform fee)` });
+  pushEvent(g, { type: "charity_donated", text: `❤️ pool of $${((s.stakeResolution.potCents) / 100).toFixed(2)} directed to ${ch.name} (after $${((s.stakeResolution.feeCents) / 100).toFixed(2)} disclosed platform fee)` });
   save();
   return { ok: true, resolution: s.stakeResolution };
+}
+
+/* ── Crew Giving (docs/32 ADDENDUM): cause nomination, opt-in, settings,
+   and the season-end crew vote. Money is NEVER handled here — the pool is
+   a display quantity, settlement is "web checkout pending". */
+function setCause(gRaw, memberId, cause) {
+  const g = asGroup(gRaw);
+  if (!g) return { error: "no group" };
+  const m = memberById(g, memberId);
+  if (!m) return { error: "unknown member" };
+  const name = String((cause && cause.charityName) || "").trim();
+  if (!name) return { error: "name your cause first" };
+  const record = { charityName: name.slice(0, 80), ...(cause && cause.abn ? { abn: String(cause.abn).trim().slice(0, 16) } : {}) };
+  m.cause = record;
+  if (memberId === (state.me && state.me.id)) state.me.cause = { ...record };
+  if (!g.giving) g.giving = defaultGiving();
+  g.giving.causes = (g.giving.causes || []).filter((c) => c.playerId !== memberId);
+  g.giving.causes.push({ playerId: memberId, ...record });
+  syncSeasonGiving(g);
+  pushEvent(g, { type: "cause_nominated", memberId, quiet: m.isHouse, text: `💙 ${firstName(g, m)} is giving for ${record.charityName}` });
+  save();
+  return { ok: true, cause: record };
+}
+
+function setGivingOptIn(gRaw, memberId, on) {
+  const g = asGroup(gRaw);
+  if (!g) return { error: "no group" };
+  if (!g.giving) g.giving = defaultGiving();
+  const list = new Set(g.giving.optedIn || []);
+  if (on) list.add(memberId); else list.delete(memberId);
+  g.giving.optedIn = [...list];
+  syncSeasonGiving(g);
+  const m = memberById(g, memberId);
+  pushEvent(g, { type: "giving_optin", memberId, quiet: true, text: m ? `${firstName(g, m)} ${on ? "joined" : "left"} the crew's monthly giving pool` : "giving pool updated" });
+  save();
+  return { ok: true, optedIn: g.giving.optedIn };
+}
+
+function updateGiving(gRaw, patch) {
+  const g = asGroup(gRaw);
+  if (!g) return { error: "no group" };
+  if (!g.giving) g.giving = defaultGiving();
+  const next = Core.normalizeGiving({ ...g.giving, ...(patch || {}) });
+  // normalizeGiving resets arrays — keep the live ones
+  next.causes = g.giving.causes || [];
+  next.optedIn = g.giving.optedIn || [];
+  g.giving = next;
+  syncSeasonGiving(g);
+  save();
+  return { ok: true, giving: g.giving };
+}
+
+function voteGiving(gRaw, causeOwnerId, voterId) {
+  const g = asGroup(gRaw);
+  if (!g) return { error: "no group" };
+  const s = curSeason(g) || g.seasons[g.seasons.length - 1];
+  if (!s || !s.core || !s.core.givingVote) return { error: "no crew vote" };
+  const voter = voterId || (state.me && state.me.id);
+  if (!voter) return { error: "no voter" };
+  try {
+    s.core = Core.castGivingVote(s.core, voter, causeOwnerId);
+  } catch (e) {
+    return { error: String(e.message || e) };
+  }
+  const voterM = memberById(g, voter);
+  pushEvent(g, { type: "giving_vote", memberId: voter, quiet: true, text: voterM ? `🗳️ ${firstName(g, voterM)} voted` : "a vote was cast" });
+  if (s.core.givingVote && !s.core.givingVote.open && s.core.givingResolution) {
+    const r = s.core.givingResolution;
+    const owner = memberById(g, r.causeOwnerId);
+    const month = new Date(r.resolvedAt).toLocaleString("en-AU", { month: "long" });
+    pushEvent(g, { type: "giving_directed", text: `💙 The crew has spoken — ${month}'s pool of $${(r.amountCents / 100).toFixed(2)} goes to ${r.charityName}${owner ? ", " + firstName(g, owner) + "'s cause" : ""}. Receipt ${r.receipt} · web checkout pending.` });
+  }
+  save();
+  return { ok: true, settled: !(s.core.givingVote && s.core.givingVote.open), resolution: s.core.givingResolution || null };
 }
 
 function markObligationFulfilled(gRaw) {
@@ -1014,6 +1154,9 @@ function joinByCode(code) {
   addMemberTo(g, { id: state.me.id, name: state.me.name, initials: state.me.initials, color: state.me.color, tier: state.me.tier, isHouse: false, joinedAt: Date.now() });
   const m = memberById(g, state.me.id);
   m.stakeAgreed = true;
+  // a cause nominated on the profile carries into the crew's giving circle
+  const profileCause = state.me.cause;
+  if (profileCause && profileCause.charityName) m.cause = { ...profileCause };
   state.activeGroupId = g.id;
   const s = curSeason(g);
   if (s) {
@@ -1121,7 +1264,40 @@ function snapshot(groupId) {
   return { group: g, season: s, battle: b, me: meM, board, myRow, clock, danger, closeCall, streakAtRisk, teams, feed,
     stakeLabel: stakeLabel(g.stake), exerciseList: g.exerciseIds.map(exerciseById).filter(Boolean),
     myDraft, points: b && b.core ? Core.pointsOf(b.core, meM ? meM.id : "") : Core.STARTING_POINTS,
-    pot: b && b.core ? Core.potTotal(b.core) : 0, openProofs };
+    pot: b && b.core ? Core.potTotal(b.core) : 0, openProofs, giving: givingInfo(g, s, meM) };
+}
+
+/* ── Crew Giving view-model (docs/32 ADDENDUM wording throughout) ──── */
+function givingInfo(g, s, meM) {
+  // the giving circle outlives the season: read the FROZEN season snapshot
+  // while it's live, the LAST season's resolution after close (stakeCard
+  // pattern), and fall back to the group's evergreen setting
+  const sAny = s || (g.seasons.length ? g.seasons[g.seasons.length - 1] : null);
+  const cfg = (sAny && sAny.giving) || g.giving || null;
+  if (!cfg || !cfg.enabled) return null;
+  const meId = meM ? meM.id : "";
+  const nameOf = (id) => { const m = memberById(g, id); return m ? m.name.split(" ")[0] : id; };
+  const causes = (cfg.causes || []).map((c) => ({ ...c, ownerName: nameOf(c.playerId) }));
+  const core = sAny ? sAny.core : null;
+  const resolution = (core && core.givingResolution) || null;
+  const voteRaw = (core && core.givingVote) || null;
+  const vote = voteRaw ? {
+    open: !!voteRaw.open,
+    myVote: voteRaw.votes[meId] || null,
+    settledCauseId: voteRaw.settledCauseId || null,
+    causes: causes.map((c) => ({ playerId: c.playerId, charityName: c.charityName, ownerName: c.ownerName,
+      votes: Object.values(voteRaw.votes).filter((v) => v === c.playerId).length })),
+  } : null;
+  return {
+    monthlyCentsPerMember: cfg.monthlyCentsPerMember,
+    selection: cfg.selection,
+    optedIn: cfg.optedIn || [],
+    causes,
+    poolCents: Core.givingPoolCents({ config: { giving: cfg } }),
+    meIn: (cfg.optedIn || []).includes(meId),
+    myCause: causes.find((c) => c.playerId === meId) || null,
+    resolution, vote,
+  };
 }
 
 /* ── demo seeder — a live mid-battle, instantly (v1's demo crew pattern).
@@ -1196,6 +1372,7 @@ const SoT = {
   snapshot, logReps, undoLast, activateCard, tick, seedDemo,
   pickDraft, rerollDeal, voteProof, debugGrant,
   resolveCharity, markObligationFulfilled, react,
+  setCause, setGivingOptIn, updateGiving, voteGiving,
   resetProfile, resetAll,
   curSeasonOf: curSeason, curBattleOf: curBattle,
   totalsFor, dayTargetFor, tierOf, exerciseById, stakeLabel,
@@ -1203,6 +1380,9 @@ const SoT = {
   logRepsAs(groupId, memberId, exerciseId, physical, verified) { return logReps(groupId, memberId, exerciseId, physical, verified ? { verified: true } : {}); },
   pickDraftAs(groupId, memberId, kind) { return pickDraft(groupId, memberId, kind); },
   voteProofAs(groupId, proofId, voterId, vote) { return voteProof(groupId, proofId, voterId, vote); },
+  setCauseAs(groupId, memberId, cause) { return setCause(groupId, memberId, cause); },
+  setGivingOptInAs(groupId, memberId, on) { return setGivingOptIn(groupId, memberId, on); },
+  voteGivingAs(groupId, causeOwnerId, voterId) { return voteGiving(groupId, causeOwnerId, voterId); },
   groupByCode(code) { return Object.values(state.groups).find((x) => x.code === String(code).trim().toUpperCase()) || null; },
 };
 window.RWFSoT = SoT;

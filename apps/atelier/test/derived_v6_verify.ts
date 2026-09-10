@@ -68,7 +68,8 @@ step('degenerate triangles ≤ 6', degens <= 6, { degenerates: degens });
 // v9.1: band bottomMm 13 → 16 (topMm 12 → 15) — the band must sit a decisive
 // 4-5 mm proud of the shirt lip (+11) and pelvis flap (+12); at 12/13 the front
 // column pixel-read shirt→coral with no charcoal at all (z-fight, camera lost).
-step('graded offsets wired', stats.gradedOffsetsMm.shirt.hemMm === 18 && stats.gradedOffsetsMm.band.bottomMm === 16, stats.gradedOffsetsMm);
+// v11 (2026-09-11): band bottom 16 -> 23 per the Codex QA round-2 approval (continuous band); shirt hem stays 18
+step('graded offsets wired', stats.gradedOffsetsMm.shirt.hemMm === 18 && stats.gradedOffsetsMm.band.bottomMm === 23, stats.gradedOffsetsMm);
 step('frog head default', stats.head.species === 'frog', stats.head);
 
 // 2. THE FULL 32-CASE PROBE (5 clips × 4 + 4 poses × 3): attachment bars,

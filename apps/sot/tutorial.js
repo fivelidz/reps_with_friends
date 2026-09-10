@@ -223,7 +223,7 @@
     {
       id: "stake",
       cap: "THE STAKE SETTLES AT SEASON END — NEVER DAILY.",
-      sub: "Dinner, a dare, a deliverable, or the charity pot. Terms locked before the season — nothing owed till it's over.",
+      sub: "Dinner, a dare, a deliverable — or Crew Giving, the crew's monthly pool. Terms locked before the season — nothing owed till it's over.",
       dwell: 7000,
       re: true,
       run: async () => { seasonView(true); await sleep(200); },

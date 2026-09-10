@@ -188,7 +188,7 @@ ok(await bodyHas("236"), "athlete 236 physical reps for the same target");
 ok(await bodyHas("×1.5"), "couch multiplier ×1.5 shown");
 ok(await bodyHas("×0.85"), "athlete multiplier ×0.85 shown");
 ok((await count("#tut-stakes .pick")) === 4, "the four stakes render");
-okBody("Charity Pot", "charity pot stake present");
+okBody("Crew Giving", "crew giving (the money circle) in the stakes row");  // 2026-09-11: reworded per docs/32 ADDENDUM wording table — the stakes row's money entry is Crew Giving now
 okBody("Dinner", "dinner stake present");
 ok((await count("#tut-modes .chip")) === 3, "modes: individual / team / corporate");
 okBody("authoritative", "dual-surface rule: the app is authoritative");
@@ -289,7 +289,7 @@ const checksAt = {
   recap: async () =>
     evalJs(`(() => { const s = RWFSoT.snapshot(); return s.season.battles[0].status === "ended"; })()`),
   season: async () => bodyHas("SEASON"),
-  stake: async () => evalJs(`(document.body.innerText || "").toLowerCase().includes("charity pot")`),
+  stake: async () => evalJs(`(document.body.innerText || "").toLowerCase().includes("crew giving")`),  // 2026-09-11: reworded per docs/32 ADDENDUM wording table
 };
 const checkpoints = {};
 const pollStart = Date.now();

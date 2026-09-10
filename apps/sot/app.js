@@ -97,6 +97,57 @@
     } catch (e) { return null; }
   }
 
+  /* ── impact-card canvas (Crew Giving resolution → PNG, like the win card)
+       The monthly moment: "Your crew's September pool — $38 to Beyond Blue,
+       Dave's cause, directed by Alexei's season" (docs/32 ADDENDUM). ── */
+  function givingCardPng(snap) {
+    try {
+      const gv = snap.giving;
+      const r = gv && gv.resolution;
+      if (!gv || !r) return null;
+      const W = 780, H = 936;
+      const c = document.createElement("canvas"); c.width = W; c.height = H;
+      const x = c.getContext("2d"); if (!x) return null;
+      const cardPath = (px) => { x.beginPath(); x.roundRect ? x.roundRect(px, px, W - px * 2, H - px * 2, 44) : x.rect(px, px, W - px * 2, H - px * 2); };
+      x.fillStyle = "#07070c"; cardPath(0); x.fill();
+      x.strokeStyle = "rgba(160,107,255,.5)"; x.lineWidth = 3; cardPath(16); x.stroke();
+      x.strokeStyle = "rgba(160,107,255,.16)"; x.lineWidth = 2; cardPath(30); x.stroke();
+      x.textAlign = "center";
+      x.fillStyle = "#a06bff";
+      x.font = "600 26px system-ui, sans-serif";
+      x.fillText("R E P S   W I T H   F R I E N D S", W / 2, 118);
+      x.font = "600 30px system-ui, sans-serif";
+      x.fillStyle = "rgba(255,255,255,.85)";
+      const month = new Date(r.resolvedAt || Date.now()).toLocaleString("en-AU", { month: "long" });
+      x.fillText(("YOUR CREW'S " + month + " POOL").toUpperCase(), W / 2, 196);
+      x.fillStyle = "#f5c445";
+      x.font = "128px Anton, 'Arial Black', system-ui, sans-serif";
+      x.fillText("$" + (r.amountCents / 100).toFixed(2), W / 2, 356);
+      x.font = "76px Anton, 'Arial Black', system-ui, sans-serif";
+      x.fillStyle = "#4fd1c5";
+      x.fillText("→ " + r.charityName.toUpperCase().slice(0, 16), W / 2, 470);
+      x.fillStyle = "rgba(255,255,255,.85)";
+      x.font = "600 28px system-ui, sans-serif";
+      const owner = gv.causes.find((cz) => cz.playerId === r.causeOwnerId);
+      const director = snap.group.members.find((m) => m.id === r.directedByPlayerId);
+      x.fillText(owner ? (owner.ownerName + "'S CAUSE").toUpperCase() : "CREW CAUSE", W / 2, 566);
+      x.fillStyle = "rgba(255,255,255,.55)";
+      x.font = "24px system-ui, sans-serif";
+      x.fillText(director ? "directed by " + director.name.split(" ")[0] + "'s season" : "directed by the crew's vote", W / 2, 612);
+      x.fillStyle = "#f5c445";
+      x.font = "600 26px system-ui, sans-serif";
+      x.fillText("Receipt " + r.receipt, W / 2, 700);
+      x.fillStyle = "rgba(255,255,255,.45)";
+      x.font = "22px system-ui, sans-serif";
+      x.fillText("a giving circle — money is never handled in-app", W / 2, 748);
+      x.fillText("contributions happen on the web at season close", W / 2, 780);
+      x.fillStyle = "#a06bff";
+      x.font = "24px system-ui, sans-serif";
+      x.fillText("Win the day. Give the month.", W / 2, 848);
+      return c.toDataURL("image/png");
+    } catch (e) { return null; }
+  }
+
   /* ── tone-aware copy (cheeky / neutral / corporate-safe) ──────────── */
   const TONE = {
     winTitle: { cheeky: "YOU WON THE DAY", neutral: "YOU WON THE DAY", corporate: "DAILY WIN SECURED" },
@@ -346,7 +397,7 @@
 
   const EXPLAINS = [
     { ico: "⚔️", t: "THE DAILY BATTLE", s: "Each battle day you get a target — 200 adjusted reps to start. Everyone races. First to target takes the Daily Win." },
-    { ico: "📅", t: "SEASONS & STAKES", s: "Daily Wins stack into a weekly season. Season ends, stakes settle — a dinner, a dare, or a charity pot." },
+    { ico: "📅", t: "SEASONS & STAKES", s: "Daily Wins stack into a weekly season. Season ends, stakes settle — a dinner, a dare, or the crew's giving pool." },
     { ico: "💬", t: "APP + CHAT", s: "The app is home base. The battle also lives in your group chat — updates, warnings and winner calls." },
   ];
   function scrExplain() {
@@ -502,29 +553,63 @@
         ["Season", s ? s.label + " (weekly)" : "Weekly"],
         ["Players", g.members.length + " in the crew"],
       ];
+      const givingOn = g.giving && g.giving.enabled;
       return el("div", { class: "screen on" },
         el("h1", { class: "display" }, g.name.toUpperCase()),
         el("p", { class: "sub" }, "Check the rules before you commit."),
         el("div", { class: "card" }, rows.map((r) => el("div", { class: "toggle-row" },
           el("span", { class: "t-sub", style: "text-transform:uppercase;letter-spacing:.12em" }, r[0]),
           el("span", { class: "t-name" }, r[1])))),
+        givingOn ? el("div", { class: "card purple" },
+          el("h2", { class: "display", style: "font-size:18px" }, "💙 CREW GIVING"),
+          el("p", { class: "sub", style: "margin:6px 0 0" }, `${g.name} pools ${money(g.giving.monthlyCentsPerMember)} monthly per member for collective giving — the season's results direct the pool to a nominated cause. Opting in is the crew's shared choice, never required to play. Money is never handled in-app.`)) : null,
         g.stake.type !== "none" ? el("div", { class: "card purple" },
           el("h2", { class: "display", style: "font-size:18px" }, "STAKE — " + stakeName(g.stake.type).toUpperCase()),
           el("p", { class: "sub", style: "margin:6px 0 0" }, stakeBlurb(g))) : null,
         el("div", { style: "position:absolute;bottom:34px;left:16px;right:16px" },
-          g.stake.type === "charity" ? el("button", { class: "btn purple", onclick: () => { sfx("primary"); J.step = "stake"; render(); } }, "Review stake →") :
+          givingOn ? el("button", { class: "btn purple", onclick: () => { sfx("primary"); J.step = "giving"; render(); } }, "Review giving →") :
+            g.stake.type === "charity" ? el("button", { class: "btn purple", onclick: () => { sfx("primary"); J.step = "stake"; render(); } }, "Review stake →") :
             el("button", { class: "btn", onclick: () => { sfx("primary"); acceptJoin(); } }, "I'm in — accept rules")));
+    }
+    if (J.step === "giving") {
+      const g = SoT.groupByCode(J.code);
+      if (!g || !g.giving || !g.giving.enabled) { J.step = "preview"; return scrJoin(); }
+      if (J.giveOptIn == null) J.giveOptIn = true;
+      const causes = (g.giving.causes || []).map((c) => {
+        const mm = g.members.find((x) => x.id === c.playerId);
+        return c.charityName + (mm ? " — " + mm.name.split(" ")[0] + "'s cause" : "");
+      });
+      return el("div", { class: "screen on" },
+        el("h1", { class: "display" }, "CREW GIVING"),
+        el("p", { class: "sub" }, "A group subscription where the crew chooses where the money goes."),
+        el("div", { class: "card purple" },
+          el("div", { class: "stat-grid" },
+            el("div", { class: "stat-box" }, el("div", { class: "v" }, money(g.giving.monthlyCentsPerMember)), el("div", { class: "l" }, "Monthly, per member")),
+            el("div", { class: "stat-box" }, el("div", { class: "v" }, g.giving.selection === "winner" ? "Winner" : "Crew vote"), el("div", { class: "l" }, "Directs the pool"))),
+          causes.length ? el("p", { class: "tiny", style: "margin:10px 2px 0" }, "💙 This season's causes: " + causes.join(" · ")) : null,
+          el("div", { class: "toggle-row", style: "margin-top:10px" },
+            el("div", null, el("div", { class: "t-name" }, "Chip in monthly"), el("div", { class: "t-sub" }, "the game is free — giving is always opt-in")),
+            switchEl(J.giveOptIn, (v) => { J.giveOptIn = v; }, "join-give-optin"))),
+        J.giveOptIn ? el("div", { class: "card" },
+          el("label", { class: "f" }, "Your cause (for crew giving)"),
+          el("input", { type: "text", placeholder: "e.g. Starlight Children's Foundation", maxlength: "80", value: J.giveCause || "", oninput: (e) => { J.giveCause = e.target.value; } }),
+          el("label", { class: "f" }, "ABN (optional)"),
+          el("input", { type: "text", placeholder: "ABN (optional)", maxlength: "16", value: J.giveAbn || "", oninput: (e) => { J.giveAbn = e.target.value; } }),
+          el("p", { class: "tiny", style: "margin:8px 2px 0" }, "Win the season and the pool goes to the cause you nominated — you become your cause's champion."),
+          el("p", { class: "tiny", style: "margin:6px 2px 0" }, "ℹ️ Money is never handled in-app — contributions happen on the web at season close.")) : null,
+        el("div", { style: "position:absolute;bottom:34px;left:16px;right:16px" },
+          el("button", { class: "btn purple", onclick: () => { sfx("pot"); acceptJoin(); } }, J.giveOptIn ? `Agree & chip in ${money(g.giving.monthlyCentsPerMember)}/month` : "I'm in — play free")));
     }
     if (J.step === "stake") {
       const g = SoT.groupByCode(J.code);
       const fee = Math.round(g.stake.perPersonCents * (g.stake.feePct / 100));
       return el("div", { class: "screen on" },
-        el("h1", { class: "display" }, "CHARITY POT"),
+        el("h1", { class: "display" }, "CONTRIBUTION POOL"),
         el("div", { class: "card purple" },
           el("div", { class: "stat-grid" },
             el("div", { class: "stat-box" }, el("div", { class: "v" }, money(g.stake.perPersonCents)), el("div", { class: "l" }, "Your contribution")),
             el("div", { class: "stat-box" }, el("div", { class: "v" }, g.stake.feePct + "%"), el("div", { class: "l" }, "Disclosed platform fee"))),
-          el("p", { class: "sub", style: "margin:12px 2px 0" }, `You contribute ${money(g.stake.perPersonCents)} to the season pot (plus ${money(fee)} disclosed platform fee). No cash to the winner — the winner directs the pot to an eligible charity of their choice.`)),
+          el("p", { class: "sub", style: "margin:12px 2px 0" }, `You contribute ${money(g.stake.perPersonCents)} to the season's contribution pool (plus ${money(fee)} disclosed platform fee). No cash to the winner — the winner directs the pool to an eligible charity of their choice.`)),
         el("div", { style: "position:absolute;bottom:34px;left:16px;right:16px" },
           el("button", { class: "btn purple", onclick: () => { sfx("pot"); acceptJoin(); } }, `Agree & contribute ${money(g.stake.perPersonCents + fee)}`)));
     }
@@ -595,18 +680,27 @@
       if (r.error) { sfx("error"); toast(r.error); return; }
       const g = r.group;
       if (g.stake.type === "charity") SoT.agreeStake(g.id, SoT.state.me.id);
+      // Crew Giving: apply the joiner's opt-in + nominated cause (the
+      // champion mechanic — a season win directs the pool to their cause)
+      if (g.giving && g.giving.enabled) {
+        const optIn = App.join.giveOptIn !== false;
+        SoT.setGivingOptIn(g.id, SoT.state.me.id, optIn);
+        if (optIn && (App.join.giveCause || "").trim()) {
+          SoT.setCause(g.id, SoT.state.me.id, { charityName: App.join.giveCause, ...(App.join.giveAbn ? { abn: App.join.giveAbn } : {}) });
+        }
+      }
       App.join.step = "done"; render();
     }
     return el("div", { class: "screen on" });
   }
 
-  function stakeName(t) { return { none: "No stake", dinner: "Dinner", dare: "Dare", deliverable: "Deliverable", charity: "Charity pot" }[t] || t; }
+  function stakeName(t) { return { none: "No stake", dinner: "Dinner", dare: "Dare", deliverable: "Deliverable", charity: "Contribution pool" }[t] || t; }
   function stakeBlurb(g) {
     const s = g.stake;
     if (s.type === "dinner") return `Loser shouts the meal${s.description ? " — " + s.description : ""}. Cap ${money(s.capCents)}.`;
     if (s.type === "dare") return `The dare is locked before the season: "${s.dareText}". No negotiating after losing.`;
     if (s.type === "deliverable") return `Loser owes a favour: ${s.description}.`;
-    if (s.type === "charity") return `Everyone contributes ${money(s.perPersonCents)}; the winner directs the whole pot to charity (${s.feePct}% disclosed platform fee).`;
+    if (s.type === "charity") return `Everyone contributes ${money(s.perPersonCents)} to the pool; the winner directs it to charity (${s.feePct}% disclosed platform fee).`;
     return "Nothing on the line but pride.";
   }
 
@@ -618,6 +712,15 @@
       houseCrew: true, activeDays: [1, 2], target: 200, clockMode: "duration", durationMin: 1,
       tiers: {}, exercises: SoT.EXERCISES.map((e) => e.id),
       seasonLength: "weekly", stake: { type: "charity", perPersonCents: 1000, feePct: 5, description: "", dareText: "", capCents: 8000 },
+      // Crew Giving (docs/32 ADDENDUM) — the primary money path: the crew
+      // subscribes monthly to collective giving. "giving" is the wizard's
+      // stakeChoice; the old charity stake (points trial) stays available.
+      stakeChoice: "giving",
+      giving: {
+        enabled: true, monthlyCentsPerMember: 500, selection: "winner",
+        causeName: "", causeAbn: "",
+        optIn: { me: true, Marco: true, Priya: true, Jack: true }, // resolved to ids in the engine
+      },
       // the full card stack is on by default; shield_bash stays opt-in
       powerUps: Object.fromEntries(Object.values(SoT.CARDS).map((c) => [c.id, c.id !== "shield_bash"])),
     };
@@ -728,17 +831,50 @@
           pickCard(w.seasonLength === "weekly", "📅", "Weekly", "Rapid resets — the default", () => { w.seasonLength = "weekly"; rerender(); }),
           pickCard(w.seasonLength === "monthly", "🗓️", "Monthly", "Longer war for settled crews", () => { w.seasonLength = "monthly"; rerender(); })),
         el("p", { class: "tiny" }, `A weekly season = ${w.activeDays.length} battles. 1 Daily Win = 1 season point.`),
-        el("h3", { class: "row" }, "Stake — what's on the line at season end"),
+        el("h3", { class: "row" }, "Stakes — forfeits & the giving circle"),
         el("div", { class: "seg", style: "flex-wrap:wrap" },
+          el("button", { class: w.stakeChoice === "giving" ? "on" : "", onclick: () => { w.stakeChoice = "giving"; sfx("tap"); rerender(); } }, "💙 Crew Giving"),
           ["none", "dinner", "dare", "deliverable", "charity"].map((t) =>
-            el("button", { class: w.stake.type === t ? "on" : "", onclick: () => { w.stake.type = t; sfx("tap"); rerender(); } }, stakeName(t)))),
+            el("button", { class: w.stakeChoice === "stake" && w.stake.type === t ? "on" : "", onclick: () => { w.stakeChoice = "stake"; w.stake.type = t; sfx("tap"); rerender(); } }, stakeName(t)))),
+        el("p", { class: "tiny", style: "margin-top:8px" }, "Crew Giving: the crew subscribes monthly to collective giving — the season directs the pool. Dinner/dare/deliverable stay as the losers' forfeits. One stake per season."),
       ],
       stake: () => {
         const s = w.stake;
+        if (w.stakeChoice === "giving") {
+          const gv = w.giving;
+          const roster = [{ key: "me", name: (SoT.state.me && SoT.state.me.name) || "You" }].concat(w.houseCrew ? [{ key: "Marco", name: "Marco" }, { key: "Priya", name: "Priya" }, { key: "Jack", name: "Jack" }] : []);
+          return [el("h1", { class: "display" }, "CREW GIVING"),
+            el("p", { class: "sub" }, "A group subscription where the crew chooses where the money goes: everyone chips in monthly, and the season's results direct the pool to a nominated cause."),
+            el("div", { class: "card purple" },
+              el("label", { class: "f" }, "Monthly amount per member"),
+              el("div", { class: "seg", style: "margin-bottom:10px" }, [200, 500, 1000].map((c) =>
+                el("button", { class: gv.monthlyCentsPerMember === c && !gv.customAmount ? "on" : "", onclick: () => { gv.monthlyCentsPerMember = c; gv.customAmount = false; sfx("tap"); rerender(); } }, money(c)))),
+              el("div", { class: "toggle-row" },
+                el("input", { type: "number", min: "1", placeholder: "custom", value: gv.customAmount ? String(gv.monthlyCentsPerMember / 100) : "", style: "width:110px;text-align:center", oninput: (e) => { const v = Math.max(1, Math.round((parseFloat(e.target.value) || 0) * 100)); gv.monthlyCentsPerMember = v; gv.customAmount = true; } }),
+                el("div", { class: "t-sub" }, "custom monthly amount ($, per member)")),
+              el("label", { class: "f", style: "margin-top:12px" }, "Who directs the pool at season close?"),
+              el("div", { class: "seg", style: "margin-bottom:6px" },
+                el("button", { class: gv.selection === "winner" ? "on" : "", onclick: () => { gv.selection = "winner"; sfx("tap"); rerender(); } }, "Season winner's cause"),
+                el("button", { class: gv.selection === "crew-vote" ? "on" : "", onclick: () => { gv.selection = "crew-vote"; sfx("tap"); rerender(); } }, "Crew vote")),
+              el("p", { class: "tiny", style: "margin:4px 2px 0" }, gv.selection === "winner"
+                ? "The champion-of-your-cause moment: win the season and the pool goes to the cause you nominated."
+                : "The crew votes in the feed at season close — majority cause wins (good for workplace crews).")),
+            el("div", { class: "card" },
+              el("label", { class: "f" }, "Your cause (for crew giving)"),
+              el("input", { type: "text", placeholder: "e.g. Beyond Blue · RSPCA", maxlength: "80", value: gv.causeName, oninput: (e) => { gv.causeName = e.target.value; } }),
+              el("label", { class: "f" }, "ABN (optional)"),
+              el("input", { type: "text", placeholder: "ABN (optional)", maxlength: "16", value: gv.causeAbn, oninput: (e) => { gv.causeAbn = e.target.value; } }),
+              el("label", { class: "f", style: "margin-top:12px" }, "Who's in the monthly pool?"),
+              roster.map((r) => el("div", { class: "toggle-row" },
+                el("div", { style: "flex:1" }, el("div", { class: "t-name" }, r.name + (r.key === "me" ? " (you)" : "")),
+                  el("div", { class: "t-sub" }, r.key === "me" ? "giving is the crew's shared choice — never required to play" : "house rival")),
+                switchEl(gv.optIn[r.key] !== false, (v) => { gv.optIn[r.key] = v; }, "givin-" + r.key)))),
+            el("p", { class: "tiny", style: "margin-top:10px" }, "ℹ️ Money is never handled in-app — contributions happen on the web at season close. The game is free; giving is the crew's opt-in layer.")];
+        }
         if (s.type === "none") return [el("h1", { class: "display" }, "NO STAKE"), el("p", { class: "sub" }, "Pride only. You can add a stake when the next season starts."),];
         if (s.type === "dinner") { const inp = el("input", { type: "text", value: s.description || "Loser shouts the post-season dinner", oninput: (e) => { s.description = e.target.value; } });
           return [el("h1", { class: "display" }, "DINNER STAKE"),
-            el("p", { class: "sub" }, "Season loser pays for the agreed meal."),
+            el("p", { class: "sub" }, "Season loser pays for the agreed meal — the crew's forfeit."),
             el("div", { class: "card" }, el("label", { class: "f" }, "Meal description"), inp,
               el("label", { class: "f" }, "Spend cap"), el("input", { type: "number", value: String(s.capCents / 100), oninput: (e) => { s.capCents = Math.max(0, (parseFloat(e.target.value) || 0) * 100); } }))]; }
         if (s.type === "dare") { const inp = el("textarea", { rows: "3", oninput: (e) => { s.dareText = e.target.value; } }, s.dareText || "");
@@ -750,9 +886,10 @@
           return [el("h1", { class: "display" }, "DELIVERABLE"),
             el("p", { class: "sub" }, "A practical favour the loser owes."),
             el("div", { class: "card" }, el("label", { class: "f" }, "The favour"), inp)]; }
-        // charity
-        return [el("h1", { class: "display" }, "CHARITY POT"),
-          el("p", { class: "sub" }, "The preferred money mechanic: everyone contributes, the winner directs the pot to charity. No cash to the winner."),
+        // contribution pool (points trial) — the charity stake's copy speaks
+        // giving-pool language, never pot/wager terms (docs/32 wording table)
+        return [el("h1", { class: "display" }, "CONTRIBUTION POOL"),
+          el("p", { class: "sub" }, "The points trial of the giving circle: everyone contributes, the winner directs the pool to charity. No cash to the winner."),
           el("div", { class: "card purple" },
             el("label", { class: "f" }, "Contribution per player"),
             el("div", { class: "seg", style: "margin-bottom:12px" }, [500, 1000, 2000].map((c) =>
@@ -760,7 +897,7 @@
             el("div", { class: "toggle-row" },
               el("div", null, el("div", { class: "t-name" }, "Disclosed platform fee"), el("div", { class: "t-sub" }, "covers payment processing")),
               el("span", { class: "chip gold" }, s.feePct + "%"))),
-          el("p", { class: "tiny" }, "Contributions are agreed up-front; the pot resolves at season end (SOT §4.15).")];
+          el("p", { class: "tiny" }, "Contributions are agreed up-front; the pool resolves at season end (SOT §4.15).")];
       },
       powerups: () => [
         el("h1", { class: "display" }, "CARD SETTINGS"),
@@ -780,7 +917,9 @@
           ["Battle days", w.activeDays.map((d) => SoT.DAY_NAMES[d]).join(" · ")],
           ["Daily target", w.target + " adjusted reps · " + (w.clockMode === "window" ? "all day → 10pm" : w.durationMin + "-minute sprints")],
           ["Season", w.seasonLength + " · " + w.activeDays.length + " battles"],
-          ["Stake", stakeName(w.stake.type)],
+          w.stakeChoice === "giving"
+            ? ["Crew Giving", money(w.giving.monthlyCentsPerMember) + "/month · " + (w.giving.selection === "winner" ? "winner's cause" : "crew vote") + " · " + Object.entries(w.giving.optIn).filter(([k, v]) => v && (k === "me" || w.houseCrew)).length + " in the pool"]
+            : ["Stake", stakeName(w.stake.type)],
           ["Power-ups", Object.keys(w.powerUps).filter((k) => w.powerUps[k]).length + " cards enabled"],
           ["Crew size", (w.houseCrew ? 4 : 1) + " players"],
         ].map((r) => el("div", { class: "toggle-row" },
@@ -822,10 +961,22 @@
   function finishWizard() {
     const w = App.wiz;
     sfx("deal");
+    const givingOn = w.stakeChoice === "giving";
+    const stake = givingOn ? { type: "none" } : w.stake;
+    // the creator's nominated cause rides the profile so every future crew
+    // carries it (the champion mechanic — docs/32 §1)
+    if (givingOn && w.giving.causeName.trim()) {
+      SoT.setMe({ cause: { charityName: w.giving.causeName.trim(), ...(w.giving.causeAbn.trim() ? { abn: w.giving.causeAbn.trim() } : {}) } });
+    }
     const g = SoT.createGroup({
       mode: w.mode, name: w.name.trim() || "The Crew", icon: w.icon, color: w.color,
       activeDays: w.activeDays, seasonLength: w.seasonLength, target: w.target, clockMode: w.clockMode, durationMin: w.durationMin,
-      exerciseIds: w.exercises, stake: w.stake, powerUps: w.powerUps,
+      exerciseIds: w.exercises, stake, powerUps: w.powerUps,
+      giving: givingOn ? {
+        enabled: true, monthlyCentsPerMember: w.giving.monthlyCentsPerMember, selection: w.giving.selection,
+        optedIn: Object.entries(w.giving.optIn).filter(([k, v]) => v).map(([k]) => k),
+        causes: w.giving.causeName.trim() ? [{ playerId: "me", charityName: w.giving.causeName.trim(), ...(w.giving.causeAbn.trim() ? { abn: w.giving.causeAbn.trim() } : {}) }] : [],
+      } : null,
       housePlayers: w.houseCrew ? [{ name: "Marco", tier: "casual" }, { name: "Priya", tier: "fit" }, { name: "Jack", tier: "couch" }] : [],
       teams: w.mode === "team" ? [
         { id: "t1", name: "Gold Coasters", color: "#f5c445", memberIds: [] },
@@ -1151,6 +1302,7 @@
           el("div", { class: "avatar sm", style: "background:" + m.color }, m.initials || m.name.slice(0, 2)),
           el("div", { class: "lb-body" },
             el("div", { class: "lb-top" }, el("span", { class: "lb-name" }, m.name + (isMe ? " (you)" : "")),
+              m.cause && m.cause.charityName ? el("span", { class: "cause-chip", title: "giving for " + m.cause.charityName }, "💙") : null,
               el("span", { class: "lb-adj" }, row.adjusted + " / " + row.dayTarget)),
             el("div", { class: "lb-bar" }, el("i", { style: "width:" + Math.min(100, Math.round(row.pct * 100)) + "%" + (isMe ? "" : "") })),
             (row.hand && row.hand.length) ? el("div", { class: "lb-hand" }, row.hand.map((k) => {
@@ -1174,12 +1326,31 @@
   }
 
   /* ══ FEED ════════════════════════════════════════════════════════ */
-  const FEED_ICO = { log: "📝", win: "🏆", bank: "✅", card: "🃏", steal: "🥷", bomb: "💣", bomb_defused: "✂️", bomb_detonated: "💥", milestone: "📈", join: "➕", season_start: "🏁", season_end: "🏁", stake_due: "⚖️", charity_donated: "❤️", recap: "📊", group_created: "⚔️", battle_start: "🔔", undo: "↩️", shield_used: "🛡️", deal: "🎴", deal_pick: "🃏", deal_reroll: "🔄", proof_request: "📋", proof_verified: "📋", proof_review: "⚖️", proof_accepted: "✅", proof_contested: "❌", proof_vote: "🗳️" };
+  const FEED_ICO = { log: "📝", win: "🏆", bank: "✅", card: "🃏", steal: "🥷", bomb: "💣", bomb_defused: "✂️", bomb_detonated: "💥", milestone: "📈", join: "➕", season_start: "🏁", season_end: "🏁", stake_due: "⚖️", charity_donated: "❤️", recap: "📊", group_created: "⚔️", battle_start: "🔔", undo: "↩️", shield_used: "🛡️", deal: "🎴", deal_pick: "🃏", deal_reroll: "🔄", proof_request: "📋", proof_verified: "📋", proof_review: "⚖️", proof_accepted: "✅", proof_contested: "❌", proof_vote: "🗳️", giving_directed: "💙", giving_vote_open: "🗳️", giving_vote: "🗳️", cause_nominated: "💙", giving_optin: "💙" };
   function scrFeed() {
     const snap = SoT.snapshot();
     const scr = el("div", { class: "screen on" },
       el("h1", { class: "display", style: "font-size:30px" }, "THE FEED"),
       el("p", { class: "sub" }, "Every rep, win, card and proof call in the crew."));
+    // THE CREW VOTE (Crew Giving, crew-vote mode): at season close the feed
+    // hosts the vote moment — same group-review UI pattern as the proofs.
+    // Majority cause wins and directs the monthly pool.
+    if (snap.giving && snap.giving.vote && snap.giving.vote.open) {
+      const gv = snap.giving;
+      const voted = gv.vote.myVote != null;
+      scr.append(el("div", { class: "proof-card", id: "giving-vote" },
+        el("div", { class: "proof-head" },
+          el("span", { class: "p-ico" }, "🗳️"),
+          el("div", { style: "flex:1" },
+            el("div", { style: "font-weight:700" }, "Where does the crew's pool go?"),
+            el("div", { class: "tiny" }, `${money(gv.poolCents)} monthly pool · majority cause wins · your season directed the battle, the crew directs the giving`))),
+        el("div", { class: "proof-votes" },
+        gv.vote.causes.map((c) => el("span", { class: "chip" + (gv.vote.settledCauseId === c.playerId ? " gold" : "") }, "💙 " + c.charityName + " · " + c.votes))),
+        !voted ? el("div", { class: "proof-actions" },
+          gv.vote.causes.map((c) => el("button", { class: "btn sm", onclick: () => voteGiving(c.playerId) }, "💙 " + c.charityName))) :
+          el("div", { class: "tiny", style: "margin-top:8px" }, voted ? "You voted — thank you. Settles at majority." : ""),
+        el("div", { class: "tiny", style: "margin-top:6px;color:var(--ink-faint)" }, "Every crew member votes — the majority cause directs the pool. Money is never handled in-app; contributions happen on the web at season close.")));
+    }
     // GROUP REVIEW CARDS (v4.1): open Prove It / Spot Check reviews ride the
     // top of the feed — the crew accepts or contests, right here
     for (const p of (snap.openProofs || []).filter((x) => x.status === "review")) {
@@ -1217,6 +1388,13 @@
       const r = SoT.voteProof(snap.group.id, proofId, snap.me.id, vote);
       if (r.error) { sfx("error"); toast(r.error); return; }
       toast(r.settled ? (r.outcome === "contested" ? "Contested — the set scores 0" : "Accepted — the reps stand") : "Vote in");
+      render();
+    }
+    function voteGiving(causeOwnerId) {
+      sfx("tap");
+      const r = SoT.voteGiving(snap.group.id, causeOwnerId);
+      if (r.error) { sfx("error"); toast(r.error); return; }
+      toast(r.settled ? "💙 The crew has spoken — the pool is directed" : "Vote in — majority directs the pool");
       render();
     }
   }
@@ -1610,7 +1788,7 @@
       { ico: "🍽️", t: "Dinner", s: "Loser shouts the winner a meal — capped, agreed, delicious motivation." },
       { ico: "🎭", t: "Dare", s: "The dare is locked before the season — no negotiating after losing." },
       { ico: "🧾", t: "Deliverable", s: "Loser owes something real: a favour, a chore, a hand-delivered coffee." },
-      { ico: "❤️", t: "Charity Pot", s: `Everyone chips in; the winner directs the pot — disclosed platform fee, receipt in the feed.` },
+      { ico: "💙", t: "Crew Giving", s: `The crew subscribes monthly to collective giving; the season directs the pool to a nominated cause — receipt in the feed.` },
     ];
     scr.append(el("div", { class: "grid2", id: "tut-stakes" }, STAKES.map((x) =>
       el("div", { class: "pick", style: "cursor:default" },
@@ -1732,6 +1910,23 @@
       }
       // settings
       scr.append(el("h3", { class: "row" }, "Settings"));
+      // personal cause nomination (the champion mechanic, docs/32 §1):
+      // free text + optional ABN — a season win directs the giving pool here
+      const causeVals = me.cause || { charityName: "", abn: "" };
+      scr.append(el("div", { class: "card", id: "cause-card" },
+        el("div", { class: "toggle-row", style: "flex-direction:column;align-items:stretch;gap:8px" },
+          el("div", null, el("div", { class: "t-name" }, "Your cause (for crew giving)"),
+            el("div", { class: "t-sub" }, "win a season and its giving pool goes here — you become the cause's champion")),
+          el("input", { id: "cause-name", type: "text", placeholder: "e.g. Beyond Blue", maxlength: "80", value: causeVals.charityName || "", oninput: (e) => { causeVals.charityName = e.target.value; } }),
+          el("input", { id: "cause-abn", type: "text", placeholder: "ABN (optional)", maxlength: "16", value: causeVals.abn || "", oninput: (e) => { causeVals.abn = e.target.value; } }),
+          el("button", { class: "btn sm", style: "align-self:flex-start", onclick: () => {
+            if (!(causeVals.charityName || "").trim()) { toast("Name your cause first"); sfx("error"); return; }
+            SoT.setMe({ cause: { charityName: causeVals.charityName.trim(), ...(causeVals.abn ? { abn: causeVals.abn.trim() } : {}) } });
+            const g = snap ? snap.group : null;
+            if (g && g.giving && g.giving.enabled) SoT.setCause(g.id, me.id, me.cause);
+            sfx("pot"); toast("💙 Cause saved — giving circles you join will carry it");
+            render();
+          } }, "Save cause"))));
       scr.append(el("div", { class: "card" },
         el("div", { class: "toggle-row", id: "profile-howto", style: "cursor:pointer", onclick: () => { sfx("tap"); go("howitworks"); } },
           el("div", null, el("div", { class: "t-name" }, "How the game works"), el("div", { class: "t-sub" }, "the loop, the handicap, the stakes — one scroll")),
@@ -1804,6 +1999,7 @@
       scr.append(el("p", { class: "sub" }, last ? last.label + " is finished." : "No seasons yet."));
       if (last) scr.append(seasonCard(snap, last));
       scr.append(stakeCard(snap));                            // stake outcome stays visible post-season
+      const gv0 = givingCard(snap); if (gv0) scr.append(gv0); // Crew Giving — settable from the hub
       scr.append(el("button", { class: "btn", onclick: () => { sfx("deal"); SoT.startNextSeason(g.id); App.seasonView = false; render(); } }, "Start next season"));
       return scr;
     }
@@ -1827,6 +2023,9 @@
           el("div", { style: "font-weight:700" }, b.dayName), el("div", { style: "font-size:10px" }, b.status === "ended" ? (b.winnerId ? "W" : "–") : "live"));
       }),
       el("div", { class: "tiny", style: "grid-column:" + Math.min(7, s.battles.length) + "/-1;margin-top:6px" }, "🏆 won · ✓ banked · ✗ missed"))));
+    // Crew Giving — the giving circle lives on the hub (pool, causes, opt-in)
+    const gvCard = givingCard(snap);
+    if (gvCard) scr.append(gvCard);
     // stake status
     scr.append(el("h3", { class: "row" }, "Season stake"));
     scr.append(stakeCard(snap));
@@ -1850,6 +2049,86 @@
       el("div", { class: "s-wins" }, String(r.pts))));
   }
 
+  /* ── CREW GIVING card (season hub) — the giving circle lives here: the
+       monthly pool, this season's causes, per-member opt-in, and the
+       season-close moment (resolution receipt or the crew vote). ── */
+  function givingCard(snap) {
+    const { group: g, giving: gv, me } = snap;
+    if (!gv) return null;
+    // resolution states live on the LAST season once the season is over
+    const s = snap.season || (g.seasons.length ? g.seasons[g.seasons.length - 1] : null);
+    const box = el("div", { class: "card purple", id: "giving-card" },
+      el("h2", { class: "display", style: "font-size:18px" }, "💙 CREW GIVING"),
+      el("p", { class: "sub", style: "margin:6px 0 10px" }, "The crew subscribes together to collective giving — the season's results direct the pool. Money is never handled in-app; contributions happen on the web at season close."));
+    // the monthly pool
+    box.append(el("div", { class: "stat-grid" },
+      el("div", { class: "stat-box" }, el("div", { class: "v" }, money(gv.poolCents)), el("div", { class: "l" }, "Monthly pool (" + gv.optedIn.length + " in)")),
+      el("div", { class: "stat-box" }, el("div", { class: "v" }, gv.selection === "winner" ? "Winner" : "Crew vote"), el("div", { class: "l" }, "Directs the pool"))));
+    // this season's causes
+    if (gv.causes.length) {
+      box.append(el("h3", { class: "row", style: "margin:12px 2px 6px;font-size:13px" }, "This season's causes"));
+      box.append(el("div", { class: "card tight", style: "background:rgba(160,107,255,.06)" },
+        gv.causes.map((c) => el("div", { class: "toggle-row" },
+          el("div", { style: "flex:1" },
+            el("div", { class: "t-name" }, "💙 " + c.charityName),
+            el("div", { class: "t-sub" }, c.ownerName + "'s cause" + (c.abn ? " · ABN " + c.abn : ""))),
+          gv.vote && gv.vote.open ? el("button", { class: "btn sm", onclick: () => {
+            const r = SoT.voteGiving(g.id, c.playerId);
+            if (r.error) { sfx("error"); toast(r.error); return; }
+            sfx("pot"); toast("Vote in — majority directs the pool"); render();
+          } }, "🗳️ Vote" + (gv.vote.myVote === c.playerId ? " ✓" : "")) : (gv.vote && !gv.vote.open && gv.vote.settledCauseId === c.playerId ? el("span", { class: "chip gold" }, "directed") : null)))));
+    } else {
+      box.append(el("p", { class: "tiny", style: "margin:8px 2px" }, "No causes nominated yet — add yours below (mid-season nominations join the next pool)."));
+    }
+    // live resolution states (season ended)
+    if (s && s.status === "ended" && gv.resolution) {
+      const r = gv.resolution;
+      const owner = gv.causes.find((c) => c.playerId === r.causeOwnerId);
+      box.append(el("div", { class: "share-card" },
+        el("div", { class: "sc-k" }, "💙 " + money(r.amountCents) + " → " + r.charityName),
+        el("div", { class: "sc-s" }, (owner ? owner.ownerName + "'s cause · " : "") + "receipt " + r.receipt + " · ⏳ web checkout pending"),
+        el("a", { class: "btn ghost sm", style: "margin-top:10px;display:inline-block", href: r.settlement.checkoutUrl, target: "_blank", rel: "noopener" }, "Open web checkout (pending)")));
+    } else if (s && s.status === "ended" && gv.vote && gv.vote.open) {
+      box.append(el("div", { class: "banner info", style: "margin:12px 0 0" }, "🗳️",
+        el("span", null, gv.meIn ? "The crew votes now — majority cause directs the pool. Vote above or in the feed." : "The crew is voting on this month's pool.")));
+    }
+    // my cause row
+    if (me) {
+      const mine = gv.myCause;
+      const draft = { charityName: mine ? mine.charityName : "", abn: mine ? (mine.abn || "") : "" };
+      box.append(el("div", { class: "toggle-row", style: "flex-direction:column;align-items:stretch;gap:6px;margin-top:10px" },
+        el("div", { class: "t-name" }, mine ? "Your cause: " + mine.charityName : "Nominate your cause"),
+        el("div", { style: "display:flex;gap:6px" },
+          el("input", { id: "hub-cause-name", type: "text", placeholder: "e.g. RSPCA", maxlength: "80", value: draft.charityName, oninput: (e) => { draft.charityName = e.target.value; } }),
+          el("input", { id: "hub-cause-abn", type: "text", placeholder: "ABN (opt.)", maxlength: "16", value: draft.abn, style: "width:110px", oninput: (e) => { draft.abn = e.target.value; } })),
+        el("button", { class: "btn sm", style: "align-self:flex-start", onclick: () => {
+          if (!(draft.charityName || "").trim()) { toast("Name your cause first"); sfx("error"); return; }
+          const r = SoT.setCause(g.id, me.id, draft);
+          if (r.error) { sfx("error"); toast(r.error); return; }
+          sfx("pot"); toast("💙 Cause nominated"); render();
+        } }, mine ? "Update cause" : "Nominate cause")));
+      // the giving setting itself is adjustable from the hub: monthly
+      // amount + who directs the pool (applies from the NEXT pool — the
+      // active season froze its snapshot at start)
+      box.append(el("div", { class: "toggle-row", style: "flex-direction:column;align-items:stretch;gap:6px" },
+        el("div", { class: "t-sub" }, "Monthly amount per member — applies from the next pool"),
+        el("div", { class: "seg", style: "flex-wrap:wrap" }, [200, 500, 1000].map((cents) =>
+          el("button", { class: gv.monthlyCentsPerMember === cents ? "on" : "", onclick: () => { const r = SoT.updateGiving(g.id, { monthlyCentsPerMember: cents }); if (r.error) toast(r.error); else { sfx("tap"); toast("Monthly amount updated — next pool uses " + money(cents)); render(); } } }, money(cents)))),
+        el("div", { class: "seg", style: "flex-wrap:wrap" },
+          el("button", { class: gv.selection === "winner" ? "on" : "", onclick: () => { const r = SoT.updateGiving(g.id, { selection: "winner" }); if (r.error) toast(r.error); else { sfx("tap"); render(); } } }, "Winner's cause"),
+          el("button", { class: gv.selection === "crew-vote" ? "on" : "", onclick: () => { const r = SoT.updateGiving(g.id, { selection: "crew-vote" }); if (r.error) toast(r.error); else { sfx("tap"); render(); } } }, "Crew vote"))));
+    }
+    // per-member opt-in toggles
+    box.append(el("h3", { class: "row", style: "margin:12px 2px 6px;font-size:13px" }, "Monthly pool opt-in"));
+    box.append(el("div", { class: "card tight", style: "background:rgba(160,107,255,.06)" },
+      g.members.map((m) => el("div", { class: "toggle-row" },
+        el("div", { style: "flex:1" },
+          el("div", { class: "t-name" }, m.name + (me && m.id === me.id ? " (you)" : "")),
+          el("div", { class: "t-sub" }, m.cause && m.cause.charityName ? "💙 " + m.cause.charityName : "the game is free — giving is the crew's shared choice")),
+        switchEl(gv.optedIn.includes(m.id), (v) => { const r = SoT.setGivingOptIn(g.id, m.id, v); if (r.error) toast(r.error); render(); }, "givin-" + m.id)))));
+    return box;
+  }
+
   function stakeCard(snap) {
     const { group: g } = snap;
     // stake + resolution ride the LATEST season (current if live, last if ended)
@@ -1867,13 +2146,13 @@
       const feeCents = res && res.feeCents != null ? res.feeCents : Math.round(potCents * (stake.feePct / 100));
       const status = res ? res.status : "pending";
       box.append(el("div", { class: "stat-grid" },
-        el("div", { class: "stat-box" }, el("div", { class: "v" }, money(potCents)), el("div", { class: "l" }, "Pot (" + contributors + " in)")),
+        el("div", { class: "stat-box" }, el("div", { class: "v" }, money(potCents)), el("div", { class: "l" }, "Pool (" + contributors + " in)")),
         el("div", { class: "stat-box" }, el("div", { class: "v" }, money(feeCents)), el("div", { class: "l" }, "Platform fee " + stake.feePct + "%"))));
       if (status === "awaiting_choice") {
         const winner = s.winnerId && g.members.find((m) => m.id === s.winnerId);
         const iAmWinner = snap.me && s.winnerId === snap.me.id;
         box.append(el("div", { class: "banner info", style: "margin:12px 0 0" }, "⏳",
-          el("span", null, iAmWinner ? "Season won — choose where the pot goes." : `Awaiting ${winner ? winner.name.split(" ")[0] : "the winner"}'s charity choice.`)));
+          el("span", null, iAmWinner ? "Season won — choose where the pool goes." : `Awaiting ${winner ? winner.name.split(" ")[0] : "the winner"}'s charity choice.`)));
         if (iAmWinner) box.append(el("button", { class: "btn purple", style: "margin-top:12px", onclick: () => { sfx("pot"); App.overlay = { kind: "charity" }; render(); } }, "Choose the charity"));
       } else if (status === "donated") {
         box.append(el("div", { class: "share-card" },
@@ -1881,7 +2160,7 @@
           el("div", { class: "sc-s" }, `after ${money(res.feeCents)} disclosed fee · receipt ${res.receipt}`)));
       } else if (status !== "none") {
         box.append(el("div", { class: "banner info", style: "margin:12px 0 0" }, "⏳",
-          el("span", null, `Pot locks at season end — ${money(potCents - feeCents)} goes to the winner's chosen charity.`)));
+          el("span", null, `Pool locks at season end — ${money(potCents - feeCents)} goes to the winner's chosen charity.`)));
       }
     } else if (res && res.status === "obligation") {
       const loser = g.members.find((m) => m.id === res.loserId);
@@ -1939,7 +2218,8 @@
             try { navigator.clipboard && navigator.clipboard.writeText(link); } catch (e) {}
             toast("Invite link copied");
           } }, "Copy invite")),
-        el("div", { class: "o-stats" }, el("span", { class: "chip gold" }, g.members.length + " players"), el("span", { class: "chip" }, stakeName(g.stake.type))),
+        el("div", { class: "o-stats" }, el("span", { class: "chip gold" }, g.members.length + " players"),
+          el("span", { class: "chip" }, (g.giving && g.giving.enabled) ? "💙 Crew Giving" : stakeName(g.stake.type))),
         btnRow(() => { App.overlay = null; render(); }, "Save invite", () => {
           App.overlay = null; sfx("deal"); SoT.startSeason(g.id); render();
         }, "Start the season")));
@@ -2269,14 +2549,56 @@
       layer.append(layer2);
       return layer;
     }
+    if (ov.kind === "givingPool") {
+      // THE MONTHLY MOMENT (docs/32 ADDENDUM): season close with giving on
+      // → receipt-style resolution + impact-card share canvas. No money
+      // moves in-app — settlement is "web checkout pending".
+      const snap = SoT.snapshot();
+      const gv = snap.giving;
+      const r = gv && gv.resolution;
+      if (!r) { setTimeout(() => { App.overlay = null; render(); }, 0); return layer; }
+      const owner = gv.causes.find((c) => c.playerId === r.causeOwnerId);
+      const director = snap.group.members.find((m) => m.id === r.directedByPlayerId);
+      sfx("pot");
+      const givePng = givingCardPng(snap);
+      window.rwfLastGivingPng = givePng || "";
+      const month = new Date(r.resolvedAt || Date.now()).toLocaleString("en-AU", { month: "long" });
+      layer.append(el("div", { class: "oval" },
+        confetti(40),
+        el("div", { class: "o-kicker" }, "YOUR CREW'S " + month.toUpperCase() + " POOL"),
+        el("div", { class: "o-title", style: "font-size:30px" }, r.charityName.toUpperCase()),
+        el("p", { class: "o-sub" }, `${money(r.amountCents)} directed to ${r.charityName}${owner ? " — " + owner.ownerName + "'s cause" : ""}${director ? ", by " + director.name.split(" ")[0] + "'s season" : ", by the crew's vote"}.`),
+        el("div", { class: "share-card" },
+          el("div", { class: "sc-k" }, "💙 " + money(r.amountCents) + " → " + r.charityName),
+          el("div", { class: "sc-s" }, `${owner ? owner.ownerName + "'s cause · " : ""}receipt ${r.receipt} · ⏳ web checkout pending — money is never handled in-app; contributions happen on the web at season close`),
+          el("a", { class: "btn ghost sm", style: "margin-top:10px;display:inline-block", href: r.settlement.checkoutUrl, target: "_blank", rel: "noopener" }, "Open web checkout (pending)"),
+          el("div", { class: "btn-row", style: "margin-top:10px" },
+            el("button", { class: "btn ghost sm", onclick: () => {
+              sfx("tap");
+              try { navigator.clipboard && navigator.clipboard.writeText(`Our crew's ${month} pool — ${money(r.amountCents)} to ${r.charityName}${owner ? ", " + owner.ownerName + "'s cause" : ""}${director ? ", directed by " + director.name.split(" ")[0] + "'s season" : ""}. A giving circle, not a prize — everyone's contribution reaches charity. Join: rwf.qalarc.com/v4`); } catch (e) {}
+              toast("Impact card copied");
+            } }, "Share the impact"),
+            givePng ? el("button", { class: "btn ghost sm", onclick: () => {
+              sfx("tap");
+              try {
+                const a = document.createElement("a");
+                a.href = givePng; a.download = "rwf-impact-card.png";
+                document.body.append(a); a.click(); a.remove();
+                toast("Impact card saved — PNG ready to post");
+              } catch (e) { toast("Couldn't save the card here"); }
+            } }, "Save PNG") : null)),
+        el("p", { class: "tiny" }, "Every contribution reaches charity — the season only chose the destination."),
+        btnRow(() => { App.overlay = null; App.seasonView = true; render(); }, "Done", () => { App.overlay = null; App.seasonView = true; render(); }, "Season hub")));
+      return layer;
+    }
     if (ov.kind === "charity") {
       const snap = SoT.snapshot();
       const s = snap.season || snap.group.seasons[snap.group.seasons.length - 1];
       const res = s.stakeResolution;
       const box = el("div", { class: "oval" },
-        el("div", { class: "o-kicker" }, "SEASON WINNER — DIRECT THE POT"),
+        el("div", { class: "o-kicker" }, "SEASON WINNER — DIRECT THE POOL"),
         el("div", { class: "o-title", style: "font-size:30px" }, "CHOOSE THE CHARITY"),
-        el("p", { class: "o-sub" }, `Pot ${money(res.potCents)} → charity ${money(res.donateCents)} after ${money(res.feeCents)} disclosed fee (${s.stake.feePct}%).`),
+        el("p", { class: "o-sub" }, `Pool ${money(res.potCents)} → charity ${money(res.donateCents)} after ${money(res.feeCents)} disclosed fee (${s.stake.feePct}%).`),
         el("div", { class: "grid2", style: "margin-top:8px" }, SoT.CHARITIES.map((c) =>
           el("div", { class: "pick", onclick: () => {
             const r = SoT.resolveCharity(snap.group.id, c.id);
@@ -2393,12 +2715,24 @@
     if (ov.kind === "seasonWinner") {
       const snap = SoT.snapshot();
       const s = snap.group.seasons[snap.group.seasons.length - 1];
+      // Crew Giving routes the close: the giving pool moment (or the crew
+      // vote in the feed) replaces the stake resolution button
+      const gv = snap.giving;
+      const givingNext = gv && gv.resolution ? { label: "💙 Your crew's pool", ov: { kind: "givingPool" }, mark: "giving-" + snap.group.id + "-" + s.idx }
+        : gv && gv.vote && gv.vote.open ? { label: "🗳️ Vote in the feed", ov: "feed" }
+        : null;
       layer.append(el("div", { class: "oval" },
         confetti(70),
         el("div", { class: "o-kicker" }, s.label + " COMPLETE"),
         el("div", { class: "o-title" }, ov.me ? "SEASON CHAMPION" : "SEASON DECIDED"),
         el("p", { class: "o-sub" }, ov.me ? `You took ${s.label} with ${(s.core && s.core.points && s.winnerId ? s.core.points[s.winnerId] : 0) || 0} Daily Wins.` : `${ov.name || "Someone"} took the season.`),
-        btnRow(() => { App.overlay = null; render(); }, "Close", () => { App.overlay = { kind: "charity" }; render(); }, "Resolve the stake")));
+        givingNext
+          ? btnRow(() => { App.overlay = null; render(); }, "Close", () => {
+              if (givingNext.mark) App.overlayShown[givingNext.mark] = true;
+              if (givingNext.ov === "feed") { App.overlay = null; tab("feed"); return; }
+              App.overlay = givingNext.ov; render();
+            }, givingNext.label)
+          : btnRow(() => { App.overlay = null; render(); }, "Close", () => { App.overlay = { kind: "charity" }; render(); }, "Resolve the stake")));
       return layer;
     }
     return layer;
@@ -2442,10 +2776,22 @@
           }
         }
       }
-      if (s.status === "ended" && !App.overlayShown["season" + s.idx]) {
-        App.overlayShown["season" + s.idx] = true;
+      // group-scoped key: two crews on one device each get their moment
+      if (s.status === "ended" && !App.overlayShown["season-" + g.id + "-" + s.idx]) {
+        App.overlayShown["season-" + g.id + "-" + s.idx] = true;
         if (claimable() && App.view === "app") {
           App.overlay = { kind: "seasonWinner", me: s.winnerId === me.id, name: (g.members.find((m) => m.id === s.winnerId) || { name: "" }).name.split(" ")[0] };
+        }
+      }
+      // THE MONTHLY MOMENT (Crew Giving): once the resolution is recorded
+      // with the season (winner mode at close, or after the crew vote
+      // settles), the "YOUR CREW'S POOL" receipt claims the screen.
+      // group-scoped key: two crews on one device each get their moment
+      if (s.status === "ended" && snap.giving && snap.giving.resolution && !App.overlayShown["giving-" + g.id + "-" + s.idx]) {
+        App.overlayShown["giving-" + g.id + "-" + s.idx] = true;
+        if (claimable() && App.view === "app") {
+          sfx("pot");
+          App.overlay = { kind: "givingPool" };
         }
       }
     }

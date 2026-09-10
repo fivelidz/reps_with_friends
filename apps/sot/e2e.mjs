@@ -173,11 +173,13 @@ const waitBattleStatus = (idx, status, timeout = 150_000) => waitFor(async () =>
   return s === status;
 }, { timeout, every: 400, label: `battle ${idx} → ${status}` });
 
-/* the founder's language rule, enforced */
-const BANNED = /\bmatch(?:es|ed|ing)?\b|kitty|poker|\bruf\b|\b300\b/i;
+/* the founder's language rule, enforced. 2026-09-11: extended per the
+   docs/32 ADDENDUM wording table (binding) — money contexts never say
+   wager / bet(ting) / jackpot / winnings; they join the banned list. */
+const BANNED = /\bmatch(?:es|ed|ing)?\b|kitty|poker|\bruf\b|\b300\b|\bwager\b|\bbet(?:ting)?\b|\bjackpot\b|\bwinnings\b/i;
 const langClean = (where) =>
   evalJs(`(() => { const t = document.body.innerText || ''; return !${BANNED.toString()}.test(t); })()`)
-    .then((clean) => ok(clean === true, `language clean on ${where} (no match/kitty/poker/RUF/300)`));
+    .then((clean) => ok(clean === true, `language clean on ${where} (no match/kitty/poker/RUF/300/wager/bet/jackpot/winnings)`));
 
 /* ═══════════════════════ THE WALK ═════════════════════════════════════ */
 mkdirSync(SHOTS, { recursive: true });
@@ -239,7 +241,7 @@ okBody("Handicap review".toUpperCase().slice(0, 7), "handicap review shown");
 await clickText("Next");                                      // handicap (fit) → exercises
 okBody("Push-ups", "stock library includes the core 12");
 await clickText("Next");                                      // exercises → season step
-await clickText("Charity pot");                               // stake = charity
+await clickText("Contribution pool");                         // stake = charity (2026-09-11: reworded per docs/32 ADDENDUM wording table — the points-trial stake says "contribution pool", never pot/wager terms)
 await shot("stake-setup");
 await clickText("Next");                                      // → charity stake setup
 okBody("$10.00", "charity contribution $10 default");
@@ -573,9 +575,9 @@ okBody("Gold Squad".toUpperCase(), "join preview shows the group");
 okBody("Individual", "join preview: mode");
 okBody("200 adjusted reps", "join preview: target");
 okBody("Mon · Tue", "join preview: battle days");
-okBody("STAKE — CHARITY", "join preview: stake disclosed up-front");
+okBody("STAKE — CONTRIBUTION POOL", "join preview: stake disclosed up-front");  // 2026-09-11: reworded per docs/32 ADDENDUM wording table
 await clickText("Review stake");
-okBody("winner directs", "stake acceptance explains winner-directs pot");
+okBody("winner directs", "stake acceptance explains winner-directs pool");
 await clickText("Agree & contribute");
 okBody("YOU'RE IN", "join successful");
 await shot("joined");
@@ -613,8 +615,10 @@ console.log("— LANGUAGE GATE (source files)");
       uiStrings.push(m[2].replace(/\$\{[^}]*\}/g, " "));
     }
   }
-  const bad = uiStrings.filter((s) => /\bmatch(?:es|ed|ing)?\b|\bkitty\b|\bpoker\b|\bRUF\b|\b300\b/i.test(s));
-  ok(bad.length === 0, `no banned words in app UI strings (match/kitty/poker/RUF/300)${bad.length ? ` — offenders: ${JSON.stringify(bad.slice(0, 4))}` : ""}`);
+  // 2026-09-11: banned list extended per docs/32 ADDENDUM wording table —
+  // wager / bet(ting) / jackpot / winnings never appear in money contexts
+  const bad = uiStrings.filter((s) => /\bmatch(?:es|ed|ing)?\b|\bkitty\b|\bpoker\b|\bRUF\b|\b300\b|\bwager\b|\bbet(?:ting)?\b|\bjackpot\b|\bwinnings\b/i.test(s));
+  ok(bad.length === 0, `no banned words in app UI strings (match/kitty/poker/RUF/300 + wager/bet/jackpot/winnings)${bad.length ? ` — offenders: ${JSON.stringify(bad.slice(0, 4))}` : ""}`);
 }
 const needGrep = Bun.spawnSync(["bash", "-c",
   `for w in "Daily Win" "banked" "reps"; do rg -q "$w" ${HERE}/app.js && echo "$w:yes" || echo "$w:NO"; done`]);
