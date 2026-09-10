@@ -74,3 +74,8 @@ founder asked for this — append, never rewrite.*
 ## 2026-08-28 → 09-01 — **the avatar epic**: Geno sourced (Meta ai4animationpy; "goblin mocap" was a mislabeled demo capture — 16 real clips via retarget); garments v5→v9 (ending at skin-derived construction: the body's own triangles +6mm with its own weights — the founder's "use the body's dimensions"); frog heads + wardrobe + /atelier; anyCreature integration; the Figma cascade (extraction→analysis→components→65-screen offline app); engine/app hardening (~700 checks); email v4, deck, contract.
 
 ## 2026-08-26 → 28 — **Phase 0 + prototype**: business analysis; research (OpenGym, wearables, messaging platforms); game-core engine (300-format + handicap); bots (WhatsApp via Qalarc Hub, Slack Bolt); app v1; the Three.js site; ops hub; rwf.qalarc.com + CI/CD.
+
+## 2026-09-11 (ii) — MESHY WAVE 2: the asset library
+**Shipped:** 10/13 assets — 3 squad characters (female athlete / dad-bod 60s / lanky teen), v3 dressing (trophy, floodlight, stands, hurdle, scoreboard), Reps Kits props (jump rope, bottle). ASSET VAULT on /avatars (turntable cards, 10/10 ok, 0 console errors — phantom error was a local chrome extension, harness now --disable-extensions).
+**Wall:** Meshy credits hit 0 mid-wave (our 300 billed + ~135 drained externally on the shared key — flagged to founder). ~145cr completes: 3 character rigs, 4 refines, bands/dumbbell/medal (params files written, scheduler resume-capable).
+**Next:** credit refill → resume wave (rigs first, they unlock the model grid); trophy→v3 swap recipe logged in the manifest.
