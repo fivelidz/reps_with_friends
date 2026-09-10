@@ -1,0 +1,28 @@
+{
+ "id": "01a08d40-1f43-72e1-9c57-aae151a670cb",
+ "type": "text-to-3d-preview",
+ "mode": "preview",
+ "name": "",
+ "model_type": "standard",
+ "seed": 3891912347,
+ "art_style": "realistic",
+ "texture_richness": "",
+ "prompt": "stylized sports water bottle with a flip cap, product render style, low poly game asset, clean smooth shapes, centred composition, no text",
+ "negative_prompt": "",
+ "texture_prompt": "",
+ "texture_image_url": "",
+ "status": "SUCCEEDED",
+ "created_at": 1789076187018,
+ "progress": 100,
+ "started_at": 1789076187021,
+ "finished_at": 1789076246805,
+ "task_error": null,
+ "model_urls": {
+  "glb": "https://assets.meshy.ai/8d4320d1-3e6b-4ae6-a775-7c5db5a7f36c/tasks/01a08d40-1f43-72e1-9c57-aae151a670cb/output/model.glb?Expires=4942598400&Signature=T38LJmY1dGUbKLxBC9PuuR0L-oPASd3iMCUaYRyxsKWq~yeBGMEmswK8r5YE2~8C0EcEqIXBnEDuCpElAjyezAc-oaY9Ls1Oiyhc9oBP3f57oSCw8iFZlbKP-FTqrOUXdXsWldGPD-Ik63R~IRwFSD3dgow5lsllQZ8gHm0zRQ5HADT67rPsjuZJJ4axod4n8CliYjH2oTPEJ6k3Dc1Qn-6gtbCG81YW3ZV02--RA7EYLRK5eG8TNb0-HpwrDzV5H6SSOFapVKNAUBOi8RXLVEF8~orQGf-DdnMZK3pA-poNjc17Ryrmgh7VsNtxkdsarDayGzW6l1VrwpJDakQLxg__&Key-Pair-Id=K1VGYTHIYLM9UM"
+ },
+ "thumbnail_url": "https://assets.meshy.ai/8d4320d1-3e6b-4ae6-a775-7c5db5a7f36c/tasks/01a08d40-1f43-72e1-9c57-aae151a670cb/output/preview.png?Expires=4942598400&Signature=MqJsBD9QtUuggpuxRukugItLjDVbd1~bAPZTqZBt2U-GwyAWchsxy7y-hMNp0iYttr7J8LAmF8qxZVd3lFaNBAdMGq8d5WLOyK3KA-YCfZ-B~chM2IfvbTpXKshP94mjw3M~Rnd9os2YRIq4j~Uj17SMiooOCygM~Vu4FF-saMAcdwJjKONouOBiP5ldfotg2SbaG~3W0JQeOw5~2j-NZemc4fVE8y3Vq--LDAzxB28FL5dMqfLY~jmVhTcrewlSK2raZkd7aVRUMSLGAhMX84YSvXcX1DKeRBVZVEd4TNfAt2NTZMgyTD~jZNPCH-FLRg3grMI7f3Y4gWRBh~LcWA__&Key-Pair-Id=K1VGYTHIYLM9UM",
+ "alpha_thumbnail_url": "https://assets.meshy.ai/8d4320d1-3e6b-4ae6-a775-7c5db5a7f36c/tasks/01a08d40-1f43-72e1-9c57-aae151a670cb/output/preview_alpha.png?Expires=4942598400&Signature=HSbpXsgvJ2-byZNVSxIFVbt7vVe7IGT2hE7u2LBZWiibzugJ0tPd1gQCb-QKAH~u35Wu3kWcP7dzR--CAfepckMh1JYfMl-QMupBNV80tRyBXLnLgPnVACge~ljAO6~A6kCnkWgGD2QbbgFzF9146D-xvyasEpvWvkvE~UmwD~wXGo7RD2LuYNEmPe5U6zy5e4rwd1tMkg30jb3lLfnoe4yah3yjXE6IWdfSRLL4s-DEDaWWHY83CYYdZ9JDVCHPp9EzXaWiJ97xj0w8RtccLb-FPkhl4KARkBP78IkHR19EHkg9BpuzGu4nFLh8ZJIhY8sy2JYe-LxZ-XlHU7kp0Q__&Key-Pair-Id=K1VGYTHIYLM9UM",
+ "video_url": "",
+ "texture_urls": [],
+ "consumed_credits": 20
+}

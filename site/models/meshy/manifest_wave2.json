@@ -1,0 +1,121 @@
+{
+  "experiment": "Meshy wave 2 — 3D asset library: squad variety + v3 course dressing + Reps Kits props + wildcards",
+  "date": "2026-09-11",
+  "mission": "Founder: 'We have a bunch of meshy ai tokens. Make whatever 3d meshes could be helpful for this game — even if not used here, the assets could be helpful for other projects too.' Wave plan: A) 3 rigged squad characters (female athlete / dad-bod / lanky teen), B) 5 v3 course props, C) 3 Reps Kits props, D) 2 wildcards. ~400 cr budget.",
+  "balance_before": 435,
+  "balance_after": 0,
+  "billed_by_this_wave": 300,
+  "ledger_note": "Per-task consumed_credits from the API total 300 (18 SUCCEEDED tasks, 0 FAILED — see table). The account balance nevertheless fell 435 -> 0; the extra 135 was NOT billed to any of this wave's tasks and predates/postdates them — most plausibly concurrent spend by another session sharing this account key. We stopped at the wall either way: submissions now return 402 Insufficient funds.",
+  "api": "https://api.meshy.ai/openapi/v2 (text-to-3d) + /openapi/v1 (rigging, balance). Harness: meshy.py + wave2_run.py (new scheduler).",
+  "api_notes": [
+    "GOTCHA (cost us the first-run downloads): meshy.py `status` prints the GLB URL TRUNCATED to 120 chars — CloudFront then 403s ('Missing Key-Pair-Id'). Never parse printed URLs; use `meshy.py download <taskid> <kind> <dest>` which re-GETs the task and downloads the full signed URL.",
+    "429 body is {'message':'NoMorePendingTasks: Upgrade your plan...'} — a PLAN LIMIT on total PENDING tasks, not a per-second rate. A scheduler with in-flight cap + backoff is required (wave2_run.py).",
+    "402 {'message':'Insufficient funds'} on submit when balance is 0.",
+    "Outputs remain re-downloadable from task ids long after completion (signed URLs are regenerated per status GET) — task ids are the durable record; files are canonical once downloaded.",
+    "Preview-grade GLBs (pre-refine) carry TEXCOORD_0 but NO material/texture/vertex colour — they render untextured. The vault cards tint them per-asset until a refine is bought.",
+    "Carried from wave 1: art_style is DEPRECATED — 'stylized' goes in the prompt wording; should_remesh:true + target_polycount bakes the remesh into the preview (100k for rig-eligible characters, 30k for props)."
+  ],
+  "scheduler": "wave2_run.py — in-flight cap 3, 429 backoff, resume-from-state (wave2_state.json), refine auto-queue, rig queue for characters, download-on-terminal, credits counted once per task id (counted list survives restarts). Log: logs/wave2_scheduler.jsonl.",
+  "generations": {
+    "athlete_f": {
+      "task_ids": { "preview": "01a08d43-0155-71b4-9388-1b62784d88f5", "refine": "01a08d44-48c3-7337-ac43-247437e998d6" },
+      "prompt_file": "params_wave2_athlete_f.json",
+      "prompt_summary": "stylized athletic woman, ponytail, sportswear, full body T-pose (100k polys, rig-eligible)",
+      "credits": 30, "quality": "refined PBR (2k)",
+      "installed": "wave2/athlete_f.glb (12.4 MB)",
+      "status": "refined, UNRIGGED (rig blocked: balance hit 0 before rig submission)"
+    },
+    "dad": {
+      "task_ids": { "preview": "01a08d43-35ce-7389-b6ef-ae9f637edc52", "refine": "01a08d44-821a-7108-8807-4186d34756dd" },
+      "prompt_file": "params_wave2_dad.json",
+      "prompt_summary": "stylized heavyset older man, 60s, grey hair, gym clothes, T-pose",
+      "credits": 30, "quality": "refined PBR (2k)",
+      "installed": "wave2/dad.glb (12.4 MB — second download; first was truncated mid-transfer)",
+      "status": "refined, UNRIGGED (same block)"
+    },
+    "teen": {
+      "task_ids": { "preview": "01a08d43-6c16-7212-b87e-48f5c5581483", "refine": "01a08d44-bb1e-7217-8eca-40ffa6ea92db" },
+      "prompt_file": "params_wave2_teen.json",
+      "prompt_summary": "stylized tall skinny teenage boy, basketball shorts, T-pose",
+      "credits": 30, "quality": "refined PBR (2k)",
+      "installed": "wave2/teen.glb (12.6 MB)",
+      "status": "refined, UNRIGGED (same block)"
+    },
+    "trophy": {
+      "task_ids": { "preview": "01a08d45-2e30-73f5-bb0e-d018560d1be8", "refine": "01a08d46-1856-7537-bf2a-7b13bf27113a" },
+      "prompt_file": "params_wave2_trophy.json",
+      "prompt_summary": "stylized golden championship trophy, two handles, low poly (30k)",
+      "credits": 30, "quality": "refined PBR (2k)",
+      "installed": "wave2/trophy.glb (6.2 MB)",
+      "status": "done — v3 pot-swap candidate (deferred, see integration.trophy_v3)"
+    },
+    "floodlight": {
+      "task_ids": { "preview": "01a08d45-6a39-7790-9a80-afaf94c86019", "refine": "01a08d46-8948-75f2-b4f0-e9dbcf56c259" },
+      "credits": 30, "quality": "refined PBR (2k)",
+      "installed": "wave2/floodlight.glb (9.4 MB)",
+      "status": "done"
+    },
+    "stands": {
+      "task_ids": { "preview": "01a08d45-a7b4-7085-b56d-3b480875a6f3", "refine": "01a08d46-fd69-709a-9d86-752d857be8d4" },
+      "credits": 30, "quality": "refined PBR (2k)",
+      "installed": "wave2/stands.glb (10.6 MB)",
+      "status": "done"
+    },
+    "hurdle": {
+      "task_ids": { "preview": "01a08d47-0006-74cf-b48b-a757f3015b02", "orphan_duplicate": "01a08d3f-ddb9-71ba-abd2-78b763ba7c6f" },
+      "credits": 40,
+      "orphan_note": "the first submission (07:38 burst) got 202 but its id was dropped by a shell-extraction bug (json.dumps spaces); the scheduler resubmitted — BOTH tasks billed 20. The orphan task succeeded and was wasted.",
+      "quality": "PREVIEW (no refine — 402 wall)",
+      "installed": "wave2/hurdle.glb (1.0 MB, untextured — vault card tints it red)",
+      "status": "mesh done, refine pending (10 cr)"
+    },
+    "scoreboard": {
+      "task_ids": { "preview": "01a08d47-3d44-77d3-9902-5842bf999a27" },
+      "credits": 20, "quality": "PREVIEW",
+      "installed": "wave2/scoreboard.glb (1.1 MB, tinted dark slate on card)",
+      "status": "mesh done, refine pending (10 cr)"
+    },
+    "jumprope": {
+      "task_ids": { "preview": "01a08d47-e7bc-72cf-abe1-8433fb18bf5e", "orphan_duplicate": "01a08d3f-f3a5-70d0-a016-9974008fc3a9" },
+      "credits": 40, "orphan_note": "same double-submission as hurdle",
+      "quality": "PREVIEW",
+      "installed": "wave2/jumprope.glb (1.6 MB, tinted lime on card)",
+      "status": "mesh done, refine pending (10 cr) — Reps Kits tie-in (SOT §3.17)"
+    },
+    "bottle": {
+      "task_ids": { "preview": "01a08d40-1f43-72e1-9c57-aae151a670cb" },
+      "credits": 20, "quality": "PREVIEW",
+      "installed": "wave2/bottle.glb (1.0 MB, tinted blue on card)",
+      "status": "mesh done, refine pending (10 cr) — WILDCARD pick: universal prop, reads in any project"
+    }
+  },
+  "blocked_by_balance": {
+    "character_rigs_x3": "rig = 5 cr each (15 cr) — then rename_bones.py (Spine01/Spine02/neck fold) -> install -> register MODELS cards per the meshy-athlete pattern -> run apps/avatars/test/meshy2_verify.ts per character (22/22 joints, walk/run/squat deltas, 0 NaN)",
+    "bands_weights_medal": "3 planned assets never submitted (402): resistance bands + dumbbell/kettlebell (Reps Kits), gold medal (wildcard: universal reward object, pairs with trophy). ~90 cr to generate + refine.",
+    "refines_x4": "hurdle/scoreboard/jumprope/bottle at 10 cr each",
+    "total_to_complete": "~145 cr"
+  },
+  "integration": {
+    "vault": "site/model-avatars.js exports VAULT (10 entries) -> /avatars new 'Asset vault' section (#vaultSection/#vaultGrid, built by the self-contained block at the end of apps/avatars/avatars.js): lazy-WebGL turntable cards (context released 3s off-screen, ctx budget respected), spin toggle, per-asset tint for preview-grade meshes, perf chip, test hook window.__rwfVault. The 3 unrigged characters live HERE (not MODELS) — ModelAvatar needs the mixamo skeleton; promoting them after rigging is a 3-line MODELS entry each (meshy-athlete pattern).",
+    "trophy_v3": "DEFERRED (noted per brief). v3's charity pot (apps/v3/course.js _buildPot) is procedural primitives anchored at pedestal-top y=1.08, height ~1.1, gold Lambert + emissive, with chip stacks + label sprite composed around it. A clean swap needs: MA.loadModel('/models/meshy/wave2/trophy.glb') (6.2 MB), ground-centre + scale to footprint, keep primitives until load resolves (fallback), and re-check lighting (PBR standard material under v3's Lambert-tuned lights reads darker). Not 'same scale/anchor' out of the box, and validating against the v3 e2e suites (69+35) is not a cheap win. Recipe above is the whole job when someone picks it up.",
+    "other_projects": "wildcards chosen for cross-project reuse: gold medal (reward object; BLOCKED) + water bottle (delivered, preview-grade). Floodlight/stands/scoreboard read as generic stadium kit for any sports project."
+  },
+  "verification": {
+    "harness": "apps/avatars/test/wave2_shots.ts (meshy2_shots pattern + Network-level failure capture)",
+    "results": "10/10 vault cards ok:true via page-truth (__rwfVault); matrix-world finite gate 0 NaN per asset; renders live (turntables spinning); /avatars 0 console errors — the one recurring 'ERR_FILE_NOT_FOUND Script' is chrome-extension://.../page-script.js injected by a locally installed browser extension (URL-level Network capture proved it; harness now launches chromium with --disable-extensions; canonical run: CONSOLE_ERRORS 0)",
+    "rig_check": "NOT run this wave — no rigged assets exist yet (blocked). Wave-A verify = meshy2_verify.ts per character after rigging.",
+    "screenshots": "apps/avatars/screenshots/wave2_{athlete-f,dad,teen,trophy,floodlight,stands,hurdle,scoreboard,jumprope,bottle}.png + wave2_vault_section.png (suffix _wave2 per brief)"
+  },
+  "lessons": [
+    "Download via task-id commands, never via printed URLs (truncation).",
+    "Reserve ~1 preview's credits of headroom before submitting a chain — if the balance can't cover pending reservations the whole queue stalls on 402 mid-flight.",
+    "The first-run double-submission (orphan hurdle/jumprope previews, 40 cr) came from parsing printed output with a brittle grep — the scheduler now records ids in wave2_state.json + scheduler.jsonl directly.",
+    "Screenshot evidence: identify-then-read images (a 12 MP phone shot can kill an agent session — house rule); card clips are ~254x467 so safe."
+  ],
+  "notes": [
+    "Character prompts deliberately mirror the wave-1 style block ('clean smooth game-ready shapes, clean silhouette, full body visible') so the four squad members form one coherent cast with meshy_rigged_01..03.",
+    "Dad prompt says 'dad-bod heavier older man with grey hair, friendly face' — the founder's 'every player type sees themselves' requirement.",
+    "Never-delete rule honoured: failed/truncated first dad.glb was overwritten by a fresh download of the same canonical asset (same task output), not a distinct artifact.",
+    "wave2_shots_url.ts kept in test/ — the URL-pairing variant that identified the extension noise."
+  ]
+}

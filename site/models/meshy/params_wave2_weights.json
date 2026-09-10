@@ -1,0 +1,11 @@
+{
+  "mode": "preview",
+  "ai_model": "latest",
+  "should_remesh": true,
+  "target_polycount": 30000,
+  "target_formats": [
+    "glb"
+  ],
+  "alpha_thumbnail": true,
+  "prompt": "stylized hex dumbbell and kettlebell side by side, low poly game asset, clean smooth shapes, centred composition, no text"
+}

@@ -1,0 +1,34 @@
+{
+ "request": {
+  "mode": "preview",
+  "ai_model": "latest",
+  "should_remesh": true,
+  "target_polycount": 30000,
+  "target_formats": [
+   "glb"
+  ],
+  "alpha_thumbnail": true,
+  "prompt": "resistance band set with handles and a door anchor, stylized product render, clean smooth shapes, centred composition, no text"
+ },
+ "status_code": 402,
+ "response": {
+  "message": "Insufficient funds"
+ }
+}
+{
+ "request": {
+  "mode": "preview",
+  "ai_model": "latest",
+  "should_remesh": true,
+  "target_polycount": 30000,
+  "target_formats": [
+   "glb"
+  ],
+  "alpha_thumbnail": true,
+  "prompt": "resistance band set with handles and a door anchor, stylized product render, clean smooth shapes, centred composition, no text"
+ },
+ "status_code": 402,
+ "response": {
+  "message": "Insufficient funds"
+ }
+}

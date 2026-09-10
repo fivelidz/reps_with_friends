@@ -1,0 +1,10 @@
+{
+  "mode": "preview",
+  "prompt": "stylized athletic woman game character, ponytail, sportswear, full body T-pose, clean topology. Stylized video game character asset: fit athletic female humanoid, high ponytail, plain training sports top, dark neutral shorts, simple trainers, neutral confident stance, arms straight out in a T pose, clean smooth game-ready shapes, clean silhouette, full body visible",
+  "ai_model": "latest",
+  "pose_mode": "t-pose",
+  "should_remesh": true,
+  "target_polycount": 100000,
+  "target_formats": ["glb"],
+  "alpha_thumbnail": true
+}

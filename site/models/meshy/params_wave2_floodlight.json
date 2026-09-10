@@ -1,0 +1,11 @@
+{
+  "mode": "preview",
+  "prompt": "stadium floodlight tower, tall metal pole with a rack of four floodlight heads on top, low poly game environment asset, clean smooth shapes, centred composition, no characters, no text",
+  "ai_model": "latest",
+  "should_remesh": true,
+  "target_polycount": 30000,
+  "target_formats": [
+    "glb"
+  ],
+  "alpha_thumbnail": true
+}

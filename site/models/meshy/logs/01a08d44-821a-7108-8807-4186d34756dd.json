@@ -1,0 +1,177 @@
+{
+ "id": "01a08d44-821a-7108-8807-4186d34756dd",
+ "type": "text-to-3d-refine",
+ "mode": "refine",
+ "name": "",
+ "model_type": "standard",
+ "seed": 2793522087,
+ "art_style": "realistic",
+ "texture_richness": "high",
+ "prompt": "stylized heavyset older man game character in his 60s, gym clothes, full body T-pose, clean topology. Stylized video game character asset: dad-bod heavier older man with grey hair, friendly face, plain grey t-shirt, dark track pants, simple sneakers, neutral stance, arms straight out in a T pose, clean smooth game-ready shapes, clean silhouette, full body visible",
+ "negative_prompt": "",
+ "texture_prompt": "",
+ "texture_image_url": "",
+ "status": "IN_PROGRESS",
+ "created_at": 1789076472358,
+ "progress": 0,
+ "started_at": 1789076472362,
+ "finished_at": 0,
+ "task_error": null,
+ "model_urls": {},
+ "thumbnail_url": "",
+ "video_url": "",
+ "texture_urls": null,
+ "consumed_credits": 10
+}
+{
+ "id": "01a08d44-821a-7108-8807-4186d34756dd",
+ "type": "text-to-3d-refine",
+ "mode": "refine",
+ "name": "",
+ "model_type": "standard",
+ "seed": 2793522087,
+ "art_style": "realistic",
+ "texture_richness": "high",
+ "prompt": "stylized heavyset older man game character in his 60s, gym clothes, full body T-pose, clean topology. Stylized video game character asset: dad-bod heavier older man with grey hair, friendly face, plain grey t-shirt, dark track pants, simple sneakers, neutral stance, arms straight out in a T pose, clean smooth game-ready shapes, clean silhouette, full body visible",
+ "negative_prompt": "",
+ "texture_prompt": "",
+ "texture_image_url": "",
+ "status": "IN_PROGRESS",
+ "created_at": 1789076472358,
+ "progress": 50,
+ "started_at": 1789076472362,
+ "finished_at": 0,
+ "task_error": null,
+ "model_urls": {},
+ "thumbnail_url": "",
+ "video_url": "",
+ "texture_urls": null,
+ "consumed_credits": 10
+}
+{
+ "id": "01a08d44-821a-7108-8807-4186d34756dd",
+ "type": "text-to-3d-refine",
+ "mode": "refine",
+ "name": "",
+ "model_type": "standard",
+ "seed": 2793522087,
+ "art_style": "realistic",
+ "texture_richness": "high",
+ "prompt": "stylized heavyset older man game character in his 60s, gym clothes, full body T-pose, clean topology. Stylized video game character asset: dad-bod heavier older man with grey hair, friendly face, plain grey t-shirt, dark track pants, simple sneakers, neutral stance, arms straight out in a T pose, clean smooth game-ready shapes, clean silhouette, full body visible",
+ "negative_prompt": "",
+ "texture_prompt": "",
+ "texture_image_url": "",
+ "status": "IN_PROGRESS",
+ "created_at": 1789076472358,
+ "progress": 70,
+ "started_at": 1789076472362,
+ "finished_at": 0,
+ "task_error": null,
+ "model_urls": {},
+ "thumbnail_url": "",
+ "video_url": "",
+ "texture_urls": null,
+ "consumed_credits": 10
+}
+{
+ "id": "01a08d44-821a-7108-8807-4186d34756dd",
+ "type": "text-to-3d-refine",
+ "mode": "refine",
+ "name": "",
+ "model_type": "standard",
+ "seed": 2793522087,
+ "art_style": "realistic",
+ "texture_richness": "high",
+ "prompt": "stylized heavyset older man game character in his 60s, gym clothes, full body T-pose, clean topology. Stylized video game character asset: dad-bod heavier older man with grey hair, friendly face, plain grey t-shirt, dark track pants, simple sneakers, neutral stance, arms straight out in a T pose, clean smooth game-ready shapes, clean silhouette, full body visible",
+ "negative_prompt": "",
+ "texture_prompt": "",
+ "texture_image_url": "",
+ "status": "SUCCEEDED",
+ "created_at": 1789076472358,
+ "progress": 100,
+ "started_at": 1789076472362,
+ "finished_at": 1789076528048,
+ "task_error": null,
+ "model_urls": {
+  "glb": "https://assets.meshy.ai/8d4320d1-3e6b-4ae6-a775-7c5db5a7f36c/tasks/01a08d44-821a-7108-8807-4186d34756dd/output/model.glb?Expires=4942598400&Signature=CaPDeXn6STWPqdl6Veeu9x8wkaJsIVukQafcgZM7m4ccX1xGLX6lBOnW2VJyHSQnqHl2PBbYUy-J~0yYo5Ip48ng8XP8rsyTGSN568FlPOtKnXfqSrepD9H3Skl3I1hCj8kAqBTEPtfgwZJ-m~DuVsnUEuOccSdAHCI3W-L4JQdZZOq4Pr4DETyG2TI~cge9FuzKOGjkrXNCWtwK1o1BsrQTrGwVuNiJLiIReZwuVf5dfOtsMOPdc-17kogNVCvb5tg3WuPV5-f9wEYNgvbWqwrGNwI8ABrPiqOxlwUIIbbj0myCDJk~WYz81-m0yBUC2mtqbx60zwpBxCY4in1WCQ__&Key-Pair-Id=K1VGYTHIYLM9UM"
+ },
+ "thumbnail_url": "https://assets.meshy.ai/8d4320d1-3e6b-4ae6-a775-7c5db5a7f36c/tasks/01a08d44-821a-7108-8807-4186d34756dd/output/preview.png?Expires=4942598400&Signature=h08wJBZtA9o8dc3kVdFXT6a0OueAZZnsDR3~M2O~IXwHMKJ58GrKbL2PcDoMpcyDrDKoHaRXVkKA~-Fy302HI0ukxonfe8xww4njKEcjm49E8481czeyjQMsgHcTFV3Mzz0TrdG7ye5fpYZwIP~VNh5Br~2x3zrDI~QwFtTuk7umMtqtSlhO3SXyRtr8orldHPfJhhTCsvbiEPwVvXotHWjzC5CH5lBvgbKVPRzmapwCKW4YFK34bzuRHRgZ7A4uD93JIt3gqk62bi3ITc1OmKRVrtnwvgno-fBlqhc4Wtftfbc4B8dKZGZl3Tyc6iqH~ZveV0tR7GcWj9WIdpUZxQ__&Key-Pair-Id=K1VGYTHIYLM9UM",
+ "video_url": "",
+ "texture_urls": [
+  {
+   "base_color": "https://assets.meshy.ai/8d4320d1-3e6b-4ae6-a775-7c5db5a7f36c/tasks/01a08d44-821a-7108-8807-4186d34756dd/output/texture_0.png?Expires=4942598400&Signature=BifSG12zKsLjlws0qd7Omp1SOg3oEtzt3JUki6J6uggWaG1N8MRdOxEpEwTvzRSKX7gxpvp4EkHyhtJtX4XEjLODsmIRrDLiUhyCHvlJzlqgSIVfs8DXDrg-Ubxcj8wI2-49EWKmNO49hmuT24bcZtVHPnFRXKMQwz9HCvrYLATAZm0-bIn~WknlaUsS0FA9WC0XfuspkI7pIqmfPuxxB5A-JnYzr7Pci4Uo83Bqb305qHPIarO8fULP6idczIZGFMBPTpvvjDKvdIxJE1y~w9mpVb7LZguklQyQS1SeIsLZDOn2cMEWn3R1iElZ4wy9dGwpbFpn2E1OcH2zjwZJ5g__&Key-Pair-Id=K1VGYTHIYLM9UM",
+   "metallic": "https://assets.meshy.ai/8d4320d1-3e6b-4ae6-a775-7c5db5a7f36c/tasks/01a08d44-821a-7108-8807-4186d34756dd/output/texture_0_metallic.png?Expires=4942598400&Signature=Lo2yLAcJSYtGcm~yn6Q3Yn39Eb3p~reHvg--aXtPfhBmcNMAgfg64ASlqZ0UNlPpjOkPAlYgtspseSAniYHEchy3QdsLyVEV7laHYMKIXrhiGVY1rRhbJGRPv9VaOvNT1qf33sO1WsAkjcS1g~zVkmUwUDhIq4AzJexiGn4o05N10AQkBJJJQZuz2x~ZzBvzf7fvQHxBl2L-sJWyPz1VvNVI5IeKYxB8OUHF9SWBlKJyH9mOMgcJ4dPwVlQVfGt7PeBkEmvvbKkdhXv7k1diklWeQ-vig7KbkcDC7gpqWd0oHBciUd-gO6y-F4IW0cz8zbOUk~GMzf2QLTlUdEOw1w__&Key-Pair-Id=K1VGYTHIYLM9UM",
+   "roughness": "https://assets.meshy.ai/8d4320d1-3e6b-4ae6-a775-7c5db5a7f36c/tasks/01a08d44-821a-7108-8807-4186d34756dd/output/texture_0_roughness.png?Expires=4942598400&Signature=X0xQZ3rO8m05dn3twrBpl-1R6qS8q0zeaW1Zzg4wfYROTMAg~QTRw2EmPkAAjKevEDBS-rvUgYpuTAv1UVyadxxZD0tON6dkI~2WXaTMuhGknwvACljPf0k0YXIBmTOQczBdh0I7clThKVfynSkuqcb49pPeEdlrJ-ksudfafCoJB~9mC-kM0m0XtJZzXwueSuTQGgJ1LMXOGNJPx99k3eYX2rUV79pYJM-QqVrIu1KskrwMRFq8IjONc5dbtcVSSG8w4c~pco8wM5GKB0de2adJBFLW~o6guF0aePyWx6O6uS9P2ArdD9JxS2pPDpvVQqNPqptZdpoVEKQHd-9tgQ__&Key-Pair-Id=K1VGYTHIYLM9UM",
+   "normal": "https://assets.meshy.ai/8d4320d1-3e6b-4ae6-a775-7c5db5a7f36c/tasks/01a08d44-821a-7108-8807-4186d34756dd/output/texture_0_normal.png?Expires=4942598400&Signature=OkTMa2ysmYm5bT2WEX9J42kGR-3bfIh2Oem9xaMEcQeadDQL6qlujZeh7qBHy-8J1vsJs5DXVUfyR8f1eFHU6JHEo83M4E3P1cIK09MGQEMywAcFmA2sdks7vr8ZOobO-nVBde5gU5dMjLJYGLfReno9Krq7xT58vhA4sjfSpoSZh~Mm9z4Dj3XofEoyTDZBPGdoKpuL-bs54ke4ehoMUXSoqaMfO7POQk35g7ky4MtAC5RjMZPzboCTbiRqT6VGhEk1acQf32vUYPwTtsqnKUH-3Limv5XCjEOEZ6znFhYm301CbKDLufczaF1QtMswzf~JAhGl36psxJgQobkd6w__&Key-Pair-Id=K1VGYTHIYLM9UM"
+  }
+ ],
+ "consumed_credits": 10
+}
+{
+ "id": "01a08d44-821a-7108-8807-4186d34756dd",
+ "type": "text-to-3d-refine",
+ "mode": "refine",
+ "name": "",
+ "model_type": "standard",
+ "seed": 2793522087,
+ "art_style": "realistic",
+ "texture_richness": "high",
+ "prompt": "stylized heavyset older man game character in his 60s, gym clothes, full body T-pose, clean topology. Stylized video game character asset: dad-bod heavier older man with grey hair, friendly face, plain grey t-shirt, dark track pants, simple sneakers, neutral stance, arms straight out in a T pose, clean smooth game-ready shapes, clean silhouette, full body visible",
+ "negative_prompt": "",
+ "texture_prompt": "",
+ "texture_image_url": "",
+ "status": "SUCCEEDED",
+ "created_at": 1789076472358,
+ "progress": 100,
+ "started_at": 1789076472362,
+ "finished_at": 1789076528048,
+ "task_error": null,
+ "model_urls": {
+  "glb": "https://assets.meshy.ai/8d4320d1-3e6b-4ae6-a775-7c5db5a7f36c/tasks/01a08d44-821a-7108-8807-4186d34756dd/output/model.glb?Expires=4942598400&Signature=CaPDeXn6STWPqdl6Veeu9x8wkaJsIVukQafcgZM7m4ccX1xGLX6lBOnW2VJyHSQnqHl2PBbYUy-J~0yYo5Ip48ng8XP8rsyTGSN568FlPOtKnXfqSrepD9H3Skl3I1hCj8kAqBTEPtfgwZJ-m~DuVsnUEuOccSdAHCI3W-L4JQdZZOq4Pr4DETyG2TI~cge9FuzKOGjkrXNCWtwK1o1BsrQTrGwVuNiJLiIReZwuVf5dfOtsMOPdc-17kogNVCvb5tg3WuPV5-f9wEYNgvbWqwrGNwI8ABrPiqOxlwUIIbbj0myCDJk~WYz81-m0yBUC2mtqbx60zwpBxCY4in1WCQ__&Key-Pair-Id=K1VGYTHIYLM9UM"
+ },
+ "thumbnail_url": "https://assets.meshy.ai/8d4320d1-3e6b-4ae6-a775-7c5db5a7f36c/tasks/01a08d44-821a-7108-8807-4186d34756dd/output/preview.png?Expires=4942598400&Signature=h08wJBZtA9o8dc3kVdFXT6a0OueAZZnsDR3~M2O~IXwHMKJ58GrKbL2PcDoMpcyDrDKoHaRXVkKA~-Fy302HI0ukxonfe8xww4njKEcjm49E8481czeyjQMsgHcTFV3Mzz0TrdG7ye5fpYZwIP~VNh5Br~2x3zrDI~QwFtTuk7umMtqtSlhO3SXyRtr8orldHPfJhhTCsvbiEPwVvXotHWjzC5CH5lBvgbKVPRzmapwCKW4YFK34bzuRHRgZ7A4uD93JIt3gqk62bi3ITc1OmKRVrtnwvgno-fBlqhc4Wtftfbc4B8dKZGZl3Tyc6iqH~ZveV0tR7GcWj9WIdpUZxQ__&Key-Pair-Id=K1VGYTHIYLM9UM",
+ "video_url": "",
+ "texture_urls": [
+  {
+   "base_color": "https://assets.meshy.ai/8d4320d1-3e6b-4ae6-a775-7c5db5a7f36c/tasks/01a08d44-821a-7108-8807-4186d34756dd/output/texture_0.png?Expires=4942598400&Signature=BifSG12zKsLjlws0qd7Omp1SOg3oEtzt3JUki6J6uggWaG1N8MRdOxEpEwTvzRSKX7gxpvp4EkHyhtJtX4XEjLODsmIRrDLiUhyCHvlJzlqgSIVfs8DXDrg-Ubxcj8wI2-49EWKmNO49hmuT24bcZtVHPnFRXKMQwz9HCvrYLATAZm0-bIn~WknlaUsS0FA9WC0XfuspkI7pIqmfPuxxB5A-JnYzr7Pci4Uo83Bqb305qHPIarO8fULP6idczIZGFMBPTpvvjDKvdIxJE1y~w9mpVb7LZguklQyQS1SeIsLZDOn2cMEWn3R1iElZ4wy9dGwpbFpn2E1OcH2zjwZJ5g__&Key-Pair-Id=K1VGYTHIYLM9UM",
+   "metallic": "https://assets.meshy.ai/8d4320d1-3e6b-4ae6-a775-7c5db5a7f36c/tasks/01a08d44-821a-7108-8807-4186d34756dd/output/texture_0_metallic.png?Expires=4942598400&Signature=Lo2yLAcJSYtGcm~yn6Q3Yn39Eb3p~reHvg--aXtPfhBmcNMAgfg64ASlqZ0UNlPpjOkPAlYgtspseSAniYHEchy3QdsLyVEV7laHYMKIXrhiGVY1rRhbJGRPv9VaOvNT1qf33sO1WsAkjcS1g~zVkmUwUDhIq4AzJexiGn4o05N10AQkBJJJQZuz2x~ZzBvzf7fvQHxBl2L-sJWyPz1VvNVI5IeKYxB8OUHF9SWBlKJyH9mOMgcJ4dPwVlQVfGt7PeBkEmvvbKkdhXv7k1diklWeQ-vig7KbkcDC7gpqWd0oHBciUd-gO6y-F4IW0cz8zbOUk~GMzf2QLTlUdEOw1w__&Key-Pair-Id=K1VGYTHIYLM9UM",
+   "roughness": "https://assets.meshy.ai/8d4320d1-3e6b-4ae6-a775-7c5db5a7f36c/tasks/01a08d44-821a-7108-8807-4186d34756dd/output/texture_0_roughness.png?Expires=4942598400&Signature=X0xQZ3rO8m05dn3twrBpl-1R6qS8q0zeaW1Zzg4wfYROTMAg~QTRw2EmPkAAjKevEDBS-rvUgYpuTAv1UVyadxxZD0tON6dkI~2WXaTMuhGknwvACljPf0k0YXIBmTOQczBdh0I7clThKVfynSkuqcb49pPeEdlrJ-ksudfafCoJB~9mC-kM0m0XtJZzXwueSuTQGgJ1LMXOGNJPx99k3eYX2rUV79pYJM-QqVrIu1KskrwMRFq8IjONc5dbtcVSSG8w4c~pco8wM5GKB0de2adJBFLW~o6guF0aePyWx6O6uS9P2ArdD9JxS2pPDpvVQqNPqptZdpoVEKQHd-9tgQ__&Key-Pair-Id=K1VGYTHIYLM9UM",
+   "normal": "https://assets.meshy.ai/8d4320d1-3e6b-4ae6-a775-7c5db5a7f36c/tasks/01a08d44-821a-7108-8807-4186d34756dd/output/texture_0_normal.png?Expires=4942598400&Signature=OkTMa2ysmYm5bT2WEX9J42kGR-3bfIh2Oem9xaMEcQeadDQL6qlujZeh7qBHy-8J1vsJs5DXVUfyR8f1eFHU6JHEo83M4E3P1cIK09MGQEMywAcFmA2sdks7vr8ZOobO-nVBde5gU5dMjLJYGLfReno9Krq7xT58vhA4sjfSpoSZh~Mm9z4Dj3XofEoyTDZBPGdoKpuL-bs54ke4ehoMUXSoqaMfO7POQk35g7ky4MtAC5RjMZPzboCTbiRqT6VGhEk1acQf32vUYPwTtsqnKUH-3Limv5XCjEOEZ6znFhYm301CbKDLufczaF1QtMswzf~JAhGl36psxJgQobkd6w__&Key-Pair-Id=K1VGYTHIYLM9UM"
+  }
+ ],
+ "consumed_credits": 10
+}
+{
+ "id": "01a08d44-821a-7108-8807-4186d34756dd",
+ "type": "text-to-3d-refine",
+ "mode": "refine",
+ "name": "",
+ "model_type": "standard",
+ "seed": 2793522087,
+ "art_style": "realistic",
+ "texture_richness": "high",
+ "prompt": "stylized heavyset older man game character in his 60s, gym clothes, full body T-pose, clean topology. Stylized video game character asset: dad-bod heavier older man with grey hair, friendly face, plain grey t-shirt, dark track pants, simple sneakers, neutral stance, arms straight out in a T pose, clean smooth game-ready shapes, clean silhouette, full body visible",
+ "negative_prompt": "",
+ "texture_prompt": "",
+ "texture_image_url": "",
+ "status": "SUCCEEDED",
+ "created_at": 1789076472358,
+ "progress": 100,
+ "started_at": 1789076472362,
+ "finished_at": 1789076528048,
+ "task_error": null,
+ "model_urls": {
+  "glb": "https://assets.meshy.ai/8d4320d1-3e6b-4ae6-a775-7c5db5a7f36c/tasks/01a08d44-821a-7108-8807-4186d34756dd/output/model.glb?Expires=4942598400&Signature=CaPDeXn6STWPqdl6Veeu9x8wkaJsIVukQafcgZM7m4ccX1xGLX6lBOnW2VJyHSQnqHl2PBbYUy-J~0yYo5Ip48ng8XP8rsyTGSN568FlPOtKnXfqSrepD9H3Skl3I1hCj8kAqBTEPtfgwZJ-m~DuVsnUEuOccSdAHCI3W-L4JQdZZOq4Pr4DETyG2TI~cge9FuzKOGjkrXNCWtwK1o1BsrQTrGwVuNiJLiIReZwuVf5dfOtsMOPdc-17kogNVCvb5tg3WuPV5-f9wEYNgvbWqwrGNwI8ABrPiqOxlwUIIbbj0myCDJk~WYz81-m0yBUC2mtqbx60zwpBxCY4in1WCQ__&Key-Pair-Id=K1VGYTHIYLM9UM"
+ },
+ "thumbnail_url": "https://assets.meshy.ai/8d4320d1-3e6b-4ae6-a775-7c5db5a7f36c/tasks/01a08d44-821a-7108-8807-4186d34756dd/output/preview.png?Expires=4942598400&Signature=h08wJBZtA9o8dc3kVdFXT6a0OueAZZnsDR3~M2O~IXwHMKJ58GrKbL2PcDoMpcyDrDKoHaRXVkKA~-Fy302HI0ukxonfe8xww4njKEcjm49E8481czeyjQMsgHcTFV3Mzz0TrdG7ye5fpYZwIP~VNh5Br~2x3zrDI~QwFtTuk7umMtqtSlhO3SXyRtr8orldHPfJhhTCsvbiEPwVvXotHWjzC5CH5lBvgbKVPRzmapwCKW4YFK34bzuRHRgZ7A4uD93JIt3gqk62bi3ITc1OmKRVrtnwvgno-fBlqhc4Wtftfbc4B8dKZGZl3Tyc6iqH~ZveV0tR7GcWj9WIdpUZxQ__&Key-Pair-Id=K1VGYTHIYLM9UM",
+ "video_url": "",
+ "texture_urls": [
+  {
+   "base_color": "https://assets.meshy.ai/8d4320d1-3e6b-4ae6-a775-7c5db5a7f36c/tasks/01a08d44-821a-7108-8807-4186d34756dd/output/texture_0.png?Expires=4942598400&Signature=BifSG12zKsLjlws0qd7Omp1SOg3oEtzt3JUki6J6uggWaG1N8MRdOxEpEwTvzRSKX7gxpvp4EkHyhtJtX4XEjLODsmIRrDLiUhyCHvlJzlqgSIVfs8DXDrg-Ubxcj8wI2-49EWKmNO49hmuT24bcZtVHPnFRXKMQwz9HCvrYLATAZm0-bIn~WknlaUsS0FA9WC0XfuspkI7pIqmfPuxxB5A-JnYzr7Pci4Uo83Bqb305qHPIarO8fULP6idczIZGFMBPTpvvjDKvdIxJE1y~w9mpVb7LZguklQyQS1SeIsLZDOn2cMEWn3R1iElZ4wy9dGwpbFpn2E1OcH2zjwZJ5g__&Key-Pair-Id=K1VGYTHIYLM9UM",
+   "metallic": "https://assets.meshy.ai/8d4320d1-3e6b-4ae6-a775-7c5db5a7f36c/tasks/01a08d44-821a-7108-8807-4186d34756dd/output/texture_0_metallic.png?Expires=4942598400&Signature=Lo2yLAcJSYtGcm~yn6Q3Yn39Eb3p~reHvg--aXtPfhBmcNMAgfg64ASlqZ0UNlPpjOkPAlYgtspseSAniYHEchy3QdsLyVEV7laHYMKIXrhiGVY1rRhbJGRPv9VaOvNT1qf33sO1WsAkjcS1g~zVkmUwUDhIq4AzJexiGn4o05N10AQkBJJJQZuz2x~ZzBvzf7fvQHxBl2L-sJWyPz1VvNVI5IeKYxB8OUHF9SWBlKJyH9mOMgcJ4dPwVlQVfGt7PeBkEmvvbKkdhXv7k1diklWeQ-vig7KbkcDC7gpqWd0oHBciUd-gO6y-F4IW0cz8zbOUk~GMzf2QLTlUdEOw1w__&Key-Pair-Id=K1VGYTHIYLM9UM",
+   "roughness": "https://assets.meshy.ai/8d4320d1-3e6b-4ae6-a775-7c5db5a7f36c/tasks/01a08d44-821a-7108-8807-4186d34756dd/output/texture_0_roughness.png?Expires=4942598400&Signature=X0xQZ3rO8m05dn3twrBpl-1R6qS8q0zeaW1Zzg4wfYROTMAg~QTRw2EmPkAAjKevEDBS-rvUgYpuTAv1UVyadxxZD0tON6dkI~2WXaTMuhGknwvACljPf0k0YXIBmTOQczBdh0I7clThKVfynSkuqcb49pPeEdlrJ-ksudfafCoJB~9mC-kM0m0XtJZzXwueSuTQGgJ1LMXOGNJPx99k3eYX2rUV79pYJM-QqVrIu1KskrwMRFq8IjONc5dbtcVSSG8w4c~pco8wM5GKB0de2adJBFLW~o6guF0aePyWx6O6uS9P2ArdD9JxS2pPDpvVQqNPqptZdpoVEKQHd-9tgQ__&Key-Pair-Id=K1VGYTHIYLM9UM",
+   "normal": "https://assets.meshy.ai/8d4320d1-3e6b-4ae6-a775-7c5db5a7f36c/tasks/01a08d44-821a-7108-8807-4186d34756dd/output/texture_0_normal.png?Expires=4942598400&Signature=OkTMa2ysmYm5bT2WEX9J42kGR-3bfIh2Oem9xaMEcQeadDQL6qlujZeh7qBHy-8J1vsJs5DXVUfyR8f1eFHU6JHEo83M4E3P1cIK09MGQEMywAcFmA2sdks7vr8ZOobO-nVBde5gU5dMjLJYGLfReno9Krq7xT58vhA4sjfSpoSZh~Mm9z4Dj3XofEoyTDZBPGdoKpuL-bs54ke4ehoMUXSoqaMfO7POQk35g7ky4MtAC5RjMZPzboCTbiRqT6VGhEk1acQf32vUYPwTtsqnKUH-3Limv5XCjEOEZ6znFhYm301CbKDLufczaF1QtMswzf~JAhGl36psxJgQobkd6w__&Key-Pair-Id=K1VGYTHIYLM9UM"
+  }
+ ],
+ "consumed_credits": 10
+}

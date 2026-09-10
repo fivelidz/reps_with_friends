@@ -113,6 +113,27 @@ export const MODELS = [
   { id: 'cranberry', name: 'Cranberry — detailed human', file: '/models/Cranberry.glb', rig: 'anycreature', native: [], creature: true, tint: '#b9c2cc' },
 ];
 
+// ── ASSET VAULT — meshy.ai wave-2 run (2026-09-11, site/models/meshy/ +
+// manifest_wave2.json). Turntable cards on /avatars (#vaultGrid). GLBs live
+// in /models/meshy/wave2/. Files ending _preview were downloaded pre-refine
+// (account hit 0 credits mid-wave — ledger in the manifest): they carry
+// TEXCOORD but no material, so the vault card tints them via `tint` until a
+// refine can be bought. The three Wave-A characters are refined but UNRIGGED
+// for the same reason — when credits return: rig (5 cr each) → rename_bones.py
+// → promote to MODELS cards above (mixamo, bvh list — meshy-athlete pattern).
+export const VAULT = [
+  { id: 'wave2-athlete-f', name: 'Athlete (F) — wave 2 · rig pending', file: '/models/meshy/wave2/athlete_f.glb', blurb: 'stylized athletic woman, ponytail, sportswear — refined PBR; joins the model cards once rigged (5 cr)' },
+  { id: 'wave2-dad', name: 'Heavyset dad — wave 2 · rig pending', file: '/models/meshy/wave2/dad.glb', blurb: 'heavyset older man, gym clothes — refined PBR; the dad-bod player avatar, rig pending (5 cr)' },
+  { id: 'wave2-teen', name: 'Lanky teen — wave 2 · rig pending', file: '/models/meshy/wave2/teen.glb', blurb: 'tall skinny teen, basketball shorts — refined PBR; rig pending (5 cr)' },
+  { id: 'wave2-trophy', name: 'Championship trophy — v3 pot candidate', file: '/models/meshy/wave2/trophy.glb', blurb: 'golden cup, two handles — refined PBR; swap candidate for the v3 charity-pot primitives' },
+  { id: 'wave2-floodlight', name: 'Floodlight tower — v3 dressing', file: '/models/meshy/wave2/floodlight.glb', blurb: 'stadium floodlight tower — refined PBR; v3 course dressing' },
+  { id: 'wave2-stands', name: 'Stadium stands — v3 dressing', file: '/models/meshy/wave2/stands.glb', blurb: 'bleacher section with crowd suggestion — refined PBR; v3 course dressing' },
+  { id: 'wave2-hurdle', name: 'Athletics hurdle — refine pending', file: '/models/meshy/wave2/hurdle.glb', blurb: 'red & white hurdle — preview mesh (tinted here), refine pending credits', tint: 0xd8434e },
+  { id: 'wave2-scoreboard', name: 'Scoreboard — refine pending', file: '/models/meshy/wave2/scoreboard.glb', blurb: 'stadium scoreboard with clock — preview mesh (tinted here), refine pending credits', tint: 0x2c3038 },
+  { id: 'wave2-jumprope', name: 'Jump rope — Reps Kits · refine pending', file: '/models/meshy/wave2/jumprope.glb', blurb: 'coiled speed rope — preview mesh (tinted here); Reps Kits tie-in, refine pending credits', tint: 0xc6f32e },
+  { id: 'wave2-bottle', name: 'Water bottle — Reps Kits · refine pending', file: '/models/meshy/wave2/bottle.glb', blurb: 'sports bottle, flip cap — preview mesh (tinted here); wildcard pick for reuse, refine pending credits', tint: 0x3d7bd9 },
+];
+
 const loader = new GLTFLoader();
 const cache = new Map();
 

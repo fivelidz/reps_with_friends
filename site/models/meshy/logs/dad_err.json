@@ -1,0 +1,18 @@
+{
+ "request": {
+  "input_task_id": "01a08d44-821a-7108-8807-4186d34756dd"
+ },
+ "status_code": 402,
+ "response": {
+  "message": "Insufficient funds"
+ }
+}
+{
+ "request": {
+  "input_task_id": "01a08d44-821a-7108-8807-4186d34756dd"
+ },
+ "status_code": 402,
+ "response": {
+  "message": "Insufficient funds"
+ }
+}

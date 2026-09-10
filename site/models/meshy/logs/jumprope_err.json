@@ -1,0 +1,15 @@
+{
+ "request": {
+  "mode": "refine",
+  "preview_task_id": "01a08d47-e7bc-72cf-abe1-8433fb18bf5e",
+  "enable_pbr": true,
+  "target_formats": [
+   "glb"
+  ],
+  "texture_resolution": "2k"
+ },
+ "status_code": 402,
+ "response": {
+  "message": "Insufficient funds"
+ }
+}

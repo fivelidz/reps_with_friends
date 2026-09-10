@@ -1,0 +1,11 @@
+{
+  "mode": "preview",
+  "prompt": "stadium scoreboard with a clock on top, low poly game environment asset, clean shapes, centred composition, no characters, no text",
+  "ai_model": "latest",
+  "should_remesh": true,
+  "target_polycount": 30000,
+  "target_formats": [
+    "glb"
+  ],
+  "alpha_thumbnail": true
+}

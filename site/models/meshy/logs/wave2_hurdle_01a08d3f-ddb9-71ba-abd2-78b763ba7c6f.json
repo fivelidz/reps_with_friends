@@ -1,0 +1,17 @@
+{
+ "request": {
+  "mode": "preview",
+  "prompt": "athletics track hurdle, red and white, low poly game asset, clean shapes, centred composition, no characters, no text",
+  "ai_model": "latest",
+  "should_remesh": true,
+  "target_polycount": 30000,
+  "target_formats": [
+   "glb"
+  ],
+  "alpha_thumbnail": true
+ },
+ "status_code": 202,
+ "response": {
+  "result": "01a08d3f-ddb9-71ba-abd2-78b763ba7c6f"
+ }
+}

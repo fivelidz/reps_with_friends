@@ -1,0 +1,17 @@
+{
+ "request": {
+  "mode": "preview",
+  "ai_model": "latest",
+  "should_remesh": true,
+  "target_polycount": 30000,
+  "target_formats": [
+   "glb"
+  ],
+  "alpha_thumbnail": true,
+  "prompt": "stylized speed jump rope, coiled, product render style, clean smooth shapes, centred composition, no text"
+ },
+ "status_code": 202,
+ "response": {
+  "result": "01a08d47-e7bc-72cf-abe1-8433fb18bf5e"
+ }
+}

@@ -1,0 +1,177 @@
+{
+ "id": "01a08d46-fd69-709a-9d86-752d857be8d4",
+ "type": "text-to-3d-refine",
+ "mode": "refine",
+ "name": "",
+ "model_type": "standard",
+ "seed": 3097683974,
+ "art_style": "realistic",
+ "texture_richness": "high",
+ "prompt": "low poly stadium bleacher section, rows of seats with a simple crowd suggestion, game environment asset, clean shapes, centred composition, no characters in focus, no text",
+ "negative_prompt": "",
+ "texture_prompt": "",
+ "texture_image_url": "",
+ "status": "IN_PROGRESS",
+ "created_at": 1789076634998,
+ "progress": 35,
+ "started_at": 1789076635001,
+ "finished_at": 0,
+ "task_error": null,
+ "model_urls": {},
+ "thumbnail_url": "",
+ "video_url": "",
+ "texture_urls": null,
+ "consumed_credits": 10
+}
+{
+ "id": "01a08d46-fd69-709a-9d86-752d857be8d4",
+ "type": "text-to-3d-refine",
+ "mode": "refine",
+ "name": "",
+ "model_type": "standard",
+ "seed": 3097683974,
+ "art_style": "realistic",
+ "texture_richness": "high",
+ "prompt": "low poly stadium bleacher section, rows of seats with a simple crowd suggestion, game environment asset, clean shapes, centred composition, no characters in focus, no text",
+ "negative_prompt": "",
+ "texture_prompt": "",
+ "texture_image_url": "",
+ "status": "IN_PROGRESS",
+ "created_at": 1789076634998,
+ "progress": 50,
+ "started_at": 1789076635001,
+ "finished_at": 0,
+ "task_error": null,
+ "model_urls": {},
+ "thumbnail_url": "",
+ "video_url": "",
+ "texture_urls": null,
+ "consumed_credits": 10
+}
+{
+ "id": "01a08d46-fd69-709a-9d86-752d857be8d4",
+ "type": "text-to-3d-refine",
+ "mode": "refine",
+ "name": "",
+ "model_type": "standard",
+ "seed": 3097683974,
+ "art_style": "realistic",
+ "texture_richness": "high",
+ "prompt": "low poly stadium bleacher section, rows of seats with a simple crowd suggestion, game environment asset, clean shapes, centred composition, no characters in focus, no text",
+ "negative_prompt": "",
+ "texture_prompt": "",
+ "texture_image_url": "",
+ "status": "IN_PROGRESS",
+ "created_at": 1789076634998,
+ "progress": 70,
+ "started_at": 1789076635001,
+ "finished_at": 0,
+ "task_error": null,
+ "model_urls": {},
+ "thumbnail_url": "",
+ "video_url": "",
+ "texture_urls": null,
+ "consumed_credits": 10
+}
+{
+ "id": "01a08d46-fd69-709a-9d86-752d857be8d4",
+ "type": "text-to-3d-refine",
+ "mode": "refine",
+ "name": "",
+ "model_type": "standard",
+ "seed": 3097683974,
+ "art_style": "realistic",
+ "texture_richness": "high",
+ "prompt": "low poly stadium bleacher section, rows of seats with a simple crowd suggestion, game environment asset, clean shapes, centred composition, no characters in focus, no text",
+ "negative_prompt": "",
+ "texture_prompt": "",
+ "texture_image_url": "",
+ "status": "SUCCEEDED",
+ "created_at": 1789076634998,
+ "progress": 100,
+ "started_at": 1789076635001,
+ "finished_at": 1789076687820,
+ "task_error": null,
+ "model_urls": {
+  "glb": "https://assets.meshy.ai/8d4320d1-3e6b-4ae6-a775-7c5db5a7f36c/tasks/01a08d46-fd69-709a-9d86-752d857be8d4/output/model.glb?Expires=4942598400&Signature=FXwRicao4EsmDWtodoObnEpfQAkVtMjDj0VG79qLn3r1Q3X7cPNvEUNGV7Bcg2kLNPXu4JddbWP9ei2sNwrnhmgcyqooxpz5mwxe8Pz1cDm75Vw9cQ3xnS4dijGKxUm3QUbaVicATR0CLmmz7RhUZC74BXA79HHre1rP9RghV~Fb8gRvTPMXvY2YRLMTvq8~AcIoadjilmbPVXHRty4ucwpiBQjryeT6BCWL4aDXulBcu8zzK87o9d0an5ttVokkNMs56kU7ZmQVLgN5pOfoMGY3QE6RI44AVjN~qqBNPqasUIHakP0F9OeX~5nUsyihQzV16CINur6sb0ODoi0aUg__&Key-Pair-Id=K1VGYTHIYLM9UM"
+ },
+ "thumbnail_url": "https://assets.meshy.ai/8d4320d1-3e6b-4ae6-a775-7c5db5a7f36c/tasks/01a08d46-fd69-709a-9d86-752d857be8d4/output/preview.png?Expires=4942598400&Signature=pEgIRQ2mBAduwxsyVojvPAK6Shi6vO7ScKpd4Swzw4yl5WYU-hZTBWPmPRenRgMnF~KSm-V~BS1XbhLCyFcn6-dURqsoNooTNj1dPC6eT2wsij925IZprivQGD7-P92APzHWJJsg6De12-w7ten2ImZ1-JFccqaJj97QQGas~xPSdMjG2MyWb9sVGKHPBswGGmk86P-7Njla257OgGHdWACIMWgzj1UpVu-H631ul40gYtiC5rcDFZuumqC~BtUrIsM5bq-iVSEI0IuEOxoHfeovd0e8jrZ5HGVS76zsvejP4XJYqnM9mh154ly5qeG75t5FY2AJpV9U90e8QAeTTw__&Key-Pair-Id=K1VGYTHIYLM9UM",
+ "video_url": "",
+ "texture_urls": [
+  {
+   "base_color": "https://assets.meshy.ai/8d4320d1-3e6b-4ae6-a775-7c5db5a7f36c/tasks/01a08d46-fd69-709a-9d86-752d857be8d4/output/texture_0.png?Expires=4942598400&Signature=kPF1Ka5CWjb~~sE9G-F1P8PFgPbG~NWPt9IecFeyvZcJCBMXeN7oc0cLVHctjhyc9~Nh8kRETML6cIInTMelW5KwJTFzL85sz6nrZj3YEgV8eoyOBjeKlJ5DY5VgHt1FXmZPv6JRExLbYNuAP-xlZ8HzS7TBvKzUIvYHO6KCQv2dO36HaJhMIZzp5eR3mMYy~aLCOL4ji1n1RDDu1-q8xX1YDxr-xZja6qAQilug1beTkmxvjJp9KitajwBCXA7liHZ9GLisEhWevqeADqZSTDqyOe6i23YP47R3OLuoRL3708Gt3ZGb1LP~YLN1E~qTDs3IJNm90auXCep5s3~6CA__&Key-Pair-Id=K1VGYTHIYLM9UM",
+   "metallic": "https://assets.meshy.ai/8d4320d1-3e6b-4ae6-a775-7c5db5a7f36c/tasks/01a08d46-fd69-709a-9d86-752d857be8d4/output/texture_0_metallic.png?Expires=4942598400&Signature=h8BSj8M3qDA6JtfsQGk3pKtPX6ViyTVhyW5wBoXDpkap0fj7DQpVrObGIs2lcxSzZa98V1-jiV-rWseDk0RzuKTjTCgwt2WH1~DInHMUbe~0AbDjnhb1xf75uxIDathgZWWoHqEYS96bVtCXNNCHYpRYuug~bvMtIbm0hU6-gYoGjH9wWZPKxbsoMxuYlaC0EfEnwh-~aQRQvBOtEnarS1z5fzRDS03BrmaEVy1xtWjwEZEaFMu94m8QCEvUMegPeGzlUzCWdc3Yzpkjtk3bHF4tnbHGhaJtmylhAl4z52fW1cAwb0tJzP~Bo9yb2Itjdpcle~nHzIwcZlo2q2evtw__&Key-Pair-Id=K1VGYTHIYLM9UM",
+   "roughness": "https://assets.meshy.ai/8d4320d1-3e6b-4ae6-a775-7c5db5a7f36c/tasks/01a08d46-fd69-709a-9d86-752d857be8d4/output/texture_0_roughness.png?Expires=4942598400&Signature=ovEN5UAuUDNFruEV5guAsE~qA6941bzptC1277DkQCaafzVzK9H-KYl1oVlzp-z7YlceIS0ermqH8PfoDZFeTCN0PRKaRJ7S9G0wPMJVTu9WdqXZALyrodXbqJO4hA2tGLSg-pVVK6DoEOvl0f~CxtCAkeErxsjg7d0yW9fi44yepaixjqvKgGoYeiva9yDBJ5yAkWmtw74O0JxOOwzktRuAZrW6c8v-A8pNYvG773nz2D3bfLN-FTY1GGwz21UkenngYjOPTP6yoaNwv9zem8tZJxSPAn0nfrEzzLCYwnO2z6UpBt6VowMmI6WElid0EV4Ww47FoQ3Gv6tAzvn3uw__&Key-Pair-Id=K1VGYTHIYLM9UM",
+   "normal": "https://assets.meshy.ai/8d4320d1-3e6b-4ae6-a775-7c5db5a7f36c/tasks/01a08d46-fd69-709a-9d86-752d857be8d4/output/texture_0_normal.png?Expires=4942598400&Signature=fMIPGmJ1QeI1RMa20WNw7jW41op~aFWUybLlg-ReYB9YymAF-7fkx-7S6TY5a~xuv9j5oxCASnFHmuWLLTs6SCLfP~q8bzlJD1FahEvFyECkQ26DMTYBGxZIa5aps3Fa7VX7V2hQn8Hql2W2I0nE6IfHkV2SBE5Ekz3n1nEowXVeim-Orl29kBOqJ67bwMWCwrSr~q6yt1jGz3mX8agF076cMfLWgoFyJPMQ4OPMPc9SBCtzuaYjB0ynq31ihk1lODPhKQE744-DMOWgwa6WgH72mj8jbl~JFH2ourj3KlR39auMjeb4DSFthDZLf-vjYnh42cEZb04hN0V-UcKidQ__&Key-Pair-Id=K1VGYTHIYLM9UM"
+  }
+ ],
+ "consumed_credits": 10
+}
+{
+ "id": "01a08d46-fd69-709a-9d86-752d857be8d4",
+ "type": "text-to-3d-refine",
+ "mode": "refine",
+ "name": "",
+ "model_type": "standard",
+ "seed": 3097683974,
+ "art_style": "realistic",
+ "texture_richness": "high",
+ "prompt": "low poly stadium bleacher section, rows of seats with a simple crowd suggestion, game environment asset, clean shapes, centred composition, no characters in focus, no text",
+ "negative_prompt": "",
+ "texture_prompt": "",
+ "texture_image_url": "",
+ "status": "SUCCEEDED",
+ "created_at": 1789076634998,
+ "progress": 100,
+ "started_at": 1789076635001,
+ "finished_at": 1789076687820,
+ "task_error": null,
+ "model_urls": {
+  "glb": "https://assets.meshy.ai/8d4320d1-3e6b-4ae6-a775-7c5db5a7f36c/tasks/01a08d46-fd69-709a-9d86-752d857be8d4/output/model.glb?Expires=4942598400&Signature=FXwRicao4EsmDWtodoObnEpfQAkVtMjDj0VG79qLn3r1Q3X7cPNvEUNGV7Bcg2kLNPXu4JddbWP9ei2sNwrnhmgcyqooxpz5mwxe8Pz1cDm75Vw9cQ3xnS4dijGKxUm3QUbaVicATR0CLmmz7RhUZC74BXA79HHre1rP9RghV~Fb8gRvTPMXvY2YRLMTvq8~AcIoadjilmbPVXHRty4ucwpiBQjryeT6BCWL4aDXulBcu8zzK87o9d0an5ttVokkNMs56kU7ZmQVLgN5pOfoMGY3QE6RI44AVjN~qqBNPqasUIHakP0F9OeX~5nUsyihQzV16CINur6sb0ODoi0aUg__&Key-Pair-Id=K1VGYTHIYLM9UM"
+ },
+ "thumbnail_url": "https://assets.meshy.ai/8d4320d1-3e6b-4ae6-a775-7c5db5a7f36c/tasks/01a08d46-fd69-709a-9d86-752d857be8d4/output/preview.png?Expires=4942598400&Signature=pEgIRQ2mBAduwxsyVojvPAK6Shi6vO7ScKpd4Swzw4yl5WYU-hZTBWPmPRenRgMnF~KSm-V~BS1XbhLCyFcn6-dURqsoNooTNj1dPC6eT2wsij925IZprivQGD7-P92APzHWJJsg6De12-w7ten2ImZ1-JFccqaJj97QQGas~xPSdMjG2MyWb9sVGKHPBswGGmk86P-7Njla257OgGHdWACIMWgzj1UpVu-H631ul40gYtiC5rcDFZuumqC~BtUrIsM5bq-iVSEI0IuEOxoHfeovd0e8jrZ5HGVS76zsvejP4XJYqnM9mh154ly5qeG75t5FY2AJpV9U90e8QAeTTw__&Key-Pair-Id=K1VGYTHIYLM9UM",
+ "video_url": "",
+ "texture_urls": [
+  {
+   "base_color": "https://assets.meshy.ai/8d4320d1-3e6b-4ae6-a775-7c5db5a7f36c/tasks/01a08d46-fd69-709a-9d86-752d857be8d4/output/texture_0.png?Expires=4942598400&Signature=kPF1Ka5CWjb~~sE9G-F1P8PFgPbG~NWPt9IecFeyvZcJCBMXeN7oc0cLVHctjhyc9~Nh8kRETML6cIInTMelW5KwJTFzL85sz6nrZj3YEgV8eoyOBjeKlJ5DY5VgHt1FXmZPv6JRExLbYNuAP-xlZ8HzS7TBvKzUIvYHO6KCQv2dO36HaJhMIZzp5eR3mMYy~aLCOL4ji1n1RDDu1-q8xX1YDxr-xZja6qAQilug1beTkmxvjJp9KitajwBCXA7liHZ9GLisEhWevqeADqZSTDqyOe6i23YP47R3OLuoRL3708Gt3ZGb1LP~YLN1E~qTDs3IJNm90auXCep5s3~6CA__&Key-Pair-Id=K1VGYTHIYLM9UM",
+   "metallic": "https://assets.meshy.ai/8d4320d1-3e6b-4ae6-a775-7c5db5a7f36c/tasks/01a08d46-fd69-709a-9d86-752d857be8d4/output/texture_0_metallic.png?Expires=4942598400&Signature=h8BSj8M3qDA6JtfsQGk3pKtPX6ViyTVhyW5wBoXDpkap0fj7DQpVrObGIs2lcxSzZa98V1-jiV-rWseDk0RzuKTjTCgwt2WH1~DInHMUbe~0AbDjnhb1xf75uxIDathgZWWoHqEYS96bVtCXNNCHYpRYuug~bvMtIbm0hU6-gYoGjH9wWZPKxbsoMxuYlaC0EfEnwh-~aQRQvBOtEnarS1z5fzRDS03BrmaEVy1xtWjwEZEaFMu94m8QCEvUMegPeGzlUzCWdc3Yzpkjtk3bHF4tnbHGhaJtmylhAl4z52fW1cAwb0tJzP~Bo9yb2Itjdpcle~nHzIwcZlo2q2evtw__&Key-Pair-Id=K1VGYTHIYLM9UM",
+   "roughness": "https://assets.meshy.ai/8d4320d1-3e6b-4ae6-a775-7c5db5a7f36c/tasks/01a08d46-fd69-709a-9d86-752d857be8d4/output/texture_0_roughness.png?Expires=4942598400&Signature=ovEN5UAuUDNFruEV5guAsE~qA6941bzptC1277DkQCaafzVzK9H-KYl1oVlzp-z7YlceIS0ermqH8PfoDZFeTCN0PRKaRJ7S9G0wPMJVTu9WdqXZALyrodXbqJO4hA2tGLSg-pVVK6DoEOvl0f~CxtCAkeErxsjg7d0yW9fi44yepaixjqvKgGoYeiva9yDBJ5yAkWmtw74O0JxOOwzktRuAZrW6c8v-A8pNYvG773nz2D3bfLN-FTY1GGwz21UkenngYjOPTP6yoaNwv9zem8tZJxSPAn0nfrEzzLCYwnO2z6UpBt6VowMmI6WElid0EV4Ww47FoQ3Gv6tAzvn3uw__&Key-Pair-Id=K1VGYTHIYLM9UM",
+   "normal": "https://assets.meshy.ai/8d4320d1-3e6b-4ae6-a775-7c5db5a7f36c/tasks/01a08d46-fd69-709a-9d86-752d857be8d4/output/texture_0_normal.png?Expires=4942598400&Signature=fMIPGmJ1QeI1RMa20WNw7jW41op~aFWUybLlg-ReYB9YymAF-7fkx-7S6TY5a~xuv9j5oxCASnFHmuWLLTs6SCLfP~q8bzlJD1FahEvFyECkQ26DMTYBGxZIa5aps3Fa7VX7V2hQn8Hql2W2I0nE6IfHkV2SBE5Ekz3n1nEowXVeim-Orl29kBOqJ67bwMWCwrSr~q6yt1jGz3mX8agF076cMfLWgoFyJPMQ4OPMPc9SBCtzuaYjB0ynq31ihk1lODPhKQE744-DMOWgwa6WgH72mj8jbl~JFH2ourj3KlR39auMjeb4DSFthDZLf-vjYnh42cEZb04hN0V-UcKidQ__&Key-Pair-Id=K1VGYTHIYLM9UM"
+  }
+ ],
+ "consumed_credits": 10
+}
+{
+ "id": "01a08d46-fd69-709a-9d86-752d857be8d4",
+ "type": "text-to-3d-refine",
+ "mode": "refine",
+ "name": "",
+ "model_type": "standard",
+ "seed": 3097683974,
+ "art_style": "realistic",
+ "texture_richness": "high",
+ "prompt": "low poly stadium bleacher section, rows of seats with a simple crowd suggestion, game environment asset, clean shapes, centred composition, no characters in focus, no text",
+ "negative_prompt": "",
+ "texture_prompt": "",
+ "texture_image_url": "",
+ "status": "SUCCEEDED",
+ "created_at": 1789076634998,
+ "progress": 100,
+ "started_at": 1789076635001,
+ "finished_at": 1789076687820,
+ "task_error": null,
+ "model_urls": {
+  "glb": "https://assets.meshy.ai/8d4320d1-3e6b-4ae6-a775-7c5db5a7f36c/tasks/01a08d46-fd69-709a-9d86-752d857be8d4/output/model.glb?Expires=4942598400&Signature=FXwRicao4EsmDWtodoObnEpfQAkVtMjDj0VG79qLn3r1Q3X7cPNvEUNGV7Bcg2kLNPXu4JddbWP9ei2sNwrnhmgcyqooxpz5mwxe8Pz1cDm75Vw9cQ3xnS4dijGKxUm3QUbaVicATR0CLmmz7RhUZC74BXA79HHre1rP9RghV~Fb8gRvTPMXvY2YRLMTvq8~AcIoadjilmbPVXHRty4ucwpiBQjryeT6BCWL4aDXulBcu8zzK87o9d0an5ttVokkNMs56kU7ZmQVLgN5pOfoMGY3QE6RI44AVjN~qqBNPqasUIHakP0F9OeX~5nUsyihQzV16CINur6sb0ODoi0aUg__&Key-Pair-Id=K1VGYTHIYLM9UM"
+ },
+ "thumbnail_url": "https://assets.meshy.ai/8d4320d1-3e6b-4ae6-a775-7c5db5a7f36c/tasks/01a08d46-fd69-709a-9d86-752d857be8d4/output/preview.png?Expires=4942598400&Signature=pEgIRQ2mBAduwxsyVojvPAK6Shi6vO7ScKpd4Swzw4yl5WYU-hZTBWPmPRenRgMnF~KSm-V~BS1XbhLCyFcn6-dURqsoNooTNj1dPC6eT2wsij925IZprivQGD7-P92APzHWJJsg6De12-w7ten2ImZ1-JFccqaJj97QQGas~xPSdMjG2MyWb9sVGKHPBswGGmk86P-7Njla257OgGHdWACIMWgzj1UpVu-H631ul40gYtiC5rcDFZuumqC~BtUrIsM5bq-iVSEI0IuEOxoHfeovd0e8jrZ5HGVS76zsvejP4XJYqnM9mh154ly5qeG75t5FY2AJpV9U90e8QAeTTw__&Key-Pair-Id=K1VGYTHIYLM9UM",
+ "video_url": "",
+ "texture_urls": [
+  {
+   "base_color": "https://assets.meshy.ai/8d4320d1-3e6b-4ae6-a775-7c5db5a7f36c/tasks/01a08d46-fd69-709a-9d86-752d857be8d4/output/texture_0.png?Expires=4942598400&Signature=kPF1Ka5CWjb~~sE9G-F1P8PFgPbG~NWPt9IecFeyvZcJCBMXeN7oc0cLVHctjhyc9~Nh8kRETML6cIInTMelW5KwJTFzL85sz6nrZj3YEgV8eoyOBjeKlJ5DY5VgHt1FXmZPv6JRExLbYNuAP-xlZ8HzS7TBvKzUIvYHO6KCQv2dO36HaJhMIZzp5eR3mMYy~aLCOL4ji1n1RDDu1-q8xX1YDxr-xZja6qAQilug1beTkmxvjJp9KitajwBCXA7liHZ9GLisEhWevqeADqZSTDqyOe6i23YP47R3OLuoRL3708Gt3ZGb1LP~YLN1E~qTDs3IJNm90auXCep5s3~6CA__&Key-Pair-Id=K1VGYTHIYLM9UM",
+   "metallic": "https://assets.meshy.ai/8d4320d1-3e6b-4ae6-a775-7c5db5a7f36c/tasks/01a08d46-fd69-709a-9d86-752d857be8d4/output/texture_0_metallic.png?Expires=4942598400&Signature=h8BSj8M3qDA6JtfsQGk3pKtPX6ViyTVhyW5wBoXDpkap0fj7DQpVrObGIs2lcxSzZa98V1-jiV-rWseDk0RzuKTjTCgwt2WH1~DInHMUbe~0AbDjnhb1xf75uxIDathgZWWoHqEYS96bVtCXNNCHYpRYuug~bvMtIbm0hU6-gYoGjH9wWZPKxbsoMxuYlaC0EfEnwh-~aQRQvBOtEnarS1z5fzRDS03BrmaEVy1xtWjwEZEaFMu94m8QCEvUMegPeGzlUzCWdc3Yzpkjtk3bHF4tnbHGhaJtmylhAl4z52fW1cAwb0tJzP~Bo9yb2Itjdpcle~nHzIwcZlo2q2evtw__&Key-Pair-Id=K1VGYTHIYLM9UM",
+   "roughness": "https://assets.meshy.ai/8d4320d1-3e6b-4ae6-a775-7c5db5a7f36c/tasks/01a08d46-fd69-709a-9d86-752d857be8d4/output/texture_0_roughness.png?Expires=4942598400&Signature=ovEN5UAuUDNFruEV5guAsE~qA6941bzptC1277DkQCaafzVzK9H-KYl1oVlzp-z7YlceIS0ermqH8PfoDZFeTCN0PRKaRJ7S9G0wPMJVTu9WdqXZALyrodXbqJO4hA2tGLSg-pVVK6DoEOvl0f~CxtCAkeErxsjg7d0yW9fi44yepaixjqvKgGoYeiva9yDBJ5yAkWmtw74O0JxOOwzktRuAZrW6c8v-A8pNYvG773nz2D3bfLN-FTY1GGwz21UkenngYjOPTP6yoaNwv9zem8tZJxSPAn0nfrEzzLCYwnO2z6UpBt6VowMmI6WElid0EV4Ww47FoQ3Gv6tAzvn3uw__&Key-Pair-Id=K1VGYTHIYLM9UM",
+   "normal": "https://assets.meshy.ai/8d4320d1-3e6b-4ae6-a775-7c5db5a7f36c/tasks/01a08d46-fd69-709a-9d86-752d857be8d4/output/texture_0_normal.png?Expires=4942598400&Signature=fMIPGmJ1QeI1RMa20WNw7jW41op~aFWUybLlg-ReYB9YymAF-7fkx-7S6TY5a~xuv9j5oxCASnFHmuWLLTs6SCLfP~q8bzlJD1FahEvFyECkQ26DMTYBGxZIa5aps3Fa7VX7V2hQn8Hql2W2I0nE6IfHkV2SBE5Ekz3n1nEowXVeim-Orl29kBOqJ67bwMWCwrSr~q6yt1jGz3mX8agF076cMfLWgoFyJPMQ4OPMPc9SBCtzuaYjB0ynq31ihk1lODPhKQE744-DMOWgwa6WgH72mj8jbl~JFH2ourj3KlR39auMjeb4DSFthDZLf-vjYnh42cEZb04hN0V-UcKidQ__&Key-Pair-Id=K1VGYTHIYLM9UM"
+  }
+ ],
+ "consumed_credits": 10
+}

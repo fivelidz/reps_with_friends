@@ -1,0 +1,17 @@
+{
+ "request": {
+  "mode": "preview",
+  "prompt": "stylized golden championship trophy with two handles on a small dark base, low poly game asset, clean smooth shapes, centred composition, no characters, no text",
+  "ai_model": "latest",
+  "should_remesh": true,
+  "target_polycount": 30000,
+  "target_formats": [
+   "glb"
+  ],
+  "alpha_thumbnail": true
+ },
+ "status_code": 202,
+ "response": {
+  "result": "01a08d45-2e30-73f5-bb0e-d018560d1be8"
+ }
+}

@@ -1,0 +1,17 @@
+{
+ "request": {
+  "mode": "preview",
+  "ai_model": "latest",
+  "should_remesh": true,
+  "target_polycount": 30000,
+  "target_formats": [
+   "glb"
+  ],
+  "alpha_thumbnail": true,
+  "prompt": "stylized sports water bottle with a flip cap, product render style, low poly game asset, clean smooth shapes, centred composition, no text"
+ },
+ "status_code": 202,
+ "response": {
+  "result": "01a08d40-1f43-72e1-9c57-aae151a670cb"
+ }
+}

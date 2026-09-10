@@ -1,0 +1,10 @@
+{
+  "mode": "preview",
+  "prompt": "stylized tall skinny teenage boy game character, basketball shorts, full body T-pose, clean topology. Stylized video game character asset: lanky adolescent humanoid, narrow shoulders, long limbs, messy short hair, plain tank top, long basketball shorts, simple sneakers, neutral stance, arms straight out in a T pose, clean smooth game-ready shapes, clean silhouette, full body visible",
+  "ai_model": "latest",
+  "pose_mode": "t-pose",
+  "should_remesh": true,
+  "target_polycount": 100000,
+  "target_formats": ["glb"],
+  "alpha_thumbnail": true
+}

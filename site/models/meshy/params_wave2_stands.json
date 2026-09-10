@@ -1,0 +1,11 @@
+{
+  "mode": "preview",
+  "prompt": "low poly stadium bleacher section, rows of seats with a simple crowd suggestion, game environment asset, clean shapes, centred composition, no characters in focus, no text",
+  "ai_model": "latest",
+  "should_remesh": true,
+  "target_polycount": 30000,
+  "target_formats": [
+    "glb"
+  ],
+  "alpha_thumbnail": true
+}

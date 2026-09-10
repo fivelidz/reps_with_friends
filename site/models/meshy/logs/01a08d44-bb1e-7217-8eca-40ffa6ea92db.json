@@ -1,0 +1,177 @@
+{
+ "id": "01a08d44-bb1e-7217-8eca-40ffa6ea92db",
+ "type": "text-to-3d-refine",
+ "mode": "refine",
+ "name": "",
+ "model_type": "standard",
+ "seed": 2785443273,
+ "art_style": "realistic",
+ "texture_richness": "high",
+ "prompt": "stylized tall skinny teenage boy game character, basketball shorts, full body T-pose, clean topology. Stylized video game character asset: lanky adolescent humanoid, narrow shoulders, long limbs, messy short hair, plain tank top, long basketball shorts, simple sneakers, neutral stance, arms straight out in a T pose, clean smooth game-ready shapes, clean silhouette, full body visible",
+ "negative_prompt": "",
+ "texture_prompt": "",
+ "texture_image_url": "",
+ "status": "IN_PROGRESS",
+ "created_at": 1789076486955,
+ "progress": 35,
+ "started_at": 1789076486958,
+ "finished_at": 0,
+ "task_error": null,
+ "model_urls": {},
+ "thumbnail_url": "",
+ "video_url": "",
+ "texture_urls": null,
+ "consumed_credits": 10
+}
+{
+ "id": "01a08d44-bb1e-7217-8eca-40ffa6ea92db",
+ "type": "text-to-3d-refine",
+ "mode": "refine",
+ "name": "",
+ "model_type": "standard",
+ "seed": 2785443273,
+ "art_style": "realistic",
+ "texture_richness": "high",
+ "prompt": "stylized tall skinny teenage boy game character, basketball shorts, full body T-pose, clean topology. Stylized video game character asset: lanky adolescent humanoid, narrow shoulders, long limbs, messy short hair, plain tank top, long basketball shorts, simple sneakers, neutral stance, arms straight out in a T pose, clean smooth game-ready shapes, clean silhouette, full body visible",
+ "negative_prompt": "",
+ "texture_prompt": "",
+ "texture_image_url": "",
+ "status": "IN_PROGRESS",
+ "created_at": 1789076486955,
+ "progress": 70,
+ "started_at": 1789076486958,
+ "finished_at": 0,
+ "task_error": null,
+ "model_urls": {},
+ "thumbnail_url": "",
+ "video_url": "",
+ "texture_urls": null,
+ "consumed_credits": 10
+}
+{
+ "id": "01a08d44-bb1e-7217-8eca-40ffa6ea92db",
+ "type": "text-to-3d-refine",
+ "mode": "refine",
+ "name": "",
+ "model_type": "standard",
+ "seed": 2785443273,
+ "art_style": "realistic",
+ "texture_richness": "high",
+ "prompt": "stylized tall skinny teenage boy game character, basketball shorts, full body T-pose, clean topology. Stylized video game character asset: lanky adolescent humanoid, narrow shoulders, long limbs, messy short hair, plain tank top, long basketball shorts, simple sneakers, neutral stance, arms straight out in a T pose, clean smooth game-ready shapes, clean silhouette, full body visible",
+ "negative_prompt": "",
+ "texture_prompt": "",
+ "texture_image_url": "",
+ "status": "IN_PROGRESS",
+ "created_at": 1789076486955,
+ "progress": 99,
+ "started_at": 1789076486958,
+ "finished_at": 0,
+ "task_error": null,
+ "model_urls": {},
+ "thumbnail_url": "",
+ "video_url": "",
+ "texture_urls": null,
+ "consumed_credits": 10
+}
+{
+ "id": "01a08d44-bb1e-7217-8eca-40ffa6ea92db",
+ "type": "text-to-3d-refine",
+ "mode": "refine",
+ "name": "",
+ "model_type": "standard",
+ "seed": 2785443273,
+ "art_style": "realistic",
+ "texture_richness": "high",
+ "prompt": "stylized tall skinny teenage boy game character, basketball shorts, full body T-pose, clean topology. Stylized video game character asset: lanky adolescent humanoid, narrow shoulders, long limbs, messy short hair, plain tank top, long basketball shorts, simple sneakers, neutral stance, arms straight out in a T pose, clean smooth game-ready shapes, clean silhouette, full body visible",
+ "negative_prompt": "",
+ "texture_prompt": "",
+ "texture_image_url": "",
+ "status": "SUCCEEDED",
+ "created_at": 1789076486955,
+ "progress": 100,
+ "started_at": 1789076486958,
+ "finished_at": 1789076533016,
+ "task_error": null,
+ "model_urls": {
+  "glb": "https://assets.meshy.ai/8d4320d1-3e6b-4ae6-a775-7c5db5a7f36c/tasks/01a08d44-bb1e-7217-8eca-40ffa6ea92db/output/model.glb?Expires=4942598400&Signature=RBat9gg6aFukjE6X9nufYQjB3rt4RTxkd9OuLApZPuZU4~erIvM9-Hezod8Po-esJ2ZBYCzGrnR~rOEdmEm0LROmLC61NiYgw~XoX-CORPqyB1honbQVNcXE8slsWIBBqCCZlwJP4Q9U5cQ1pbZa4PRVRQXA0uTcEWTnzMOD22obIhBiMDl0CRD3ktKLbJvaNPnpUIo07AOYfgSk1wQa50tOXtGoHKZAXZ6mrc1u7E8FhF1FDxOOHYmK7GCbNWWymBqUdjKbsU1ak~EVLwNMWSR8PcdmDfMOpRUCkVkt2aYOUYe4DynCDRoxcE23wWWk8RHsb0Fvezu4uQpWgtwDpQ__&Key-Pair-Id=K1VGYTHIYLM9UM"
+ },
+ "thumbnail_url": "https://assets.meshy.ai/8d4320d1-3e6b-4ae6-a775-7c5db5a7f36c/tasks/01a08d44-bb1e-7217-8eca-40ffa6ea92db/output/preview.png?Expires=4942598400&Signature=lvr-0aAbegCowlgXoycLhMAPcAjKizyv2vRHyz2FO29FHyBKP7UaOUI66cRpFKWFbvm3UDJWnoT5i6mM1Albvah1r0ACnUlAJtgcnf3o320fT-Vjiuax1RThttW0xi1Rh6DQiKhu0~lTi2ddN-Zgeb2uCaHcdc57rfkk07HUFtT3kHCbzpfcrXO07-dnGg1CXr8ImPMBhtUK3P8C~YoFE4OB43fYUcw3yJLLGRhPsIKDs43BbDV48HQ6-QqMm8d46xMf2XqxfYiulII2lL6ITn8UobRLSGY7MMaCSPv3i9jmARoy-iyOPCFrXY9vHWqTvWnHakm2kkh1U0JnkP7j8A__&Key-Pair-Id=K1VGYTHIYLM9UM",
+ "video_url": "",
+ "texture_urls": [
+  {
+   "base_color": "https://assets.meshy.ai/8d4320d1-3e6b-4ae6-a775-7c5db5a7f36c/tasks/01a08d44-bb1e-7217-8eca-40ffa6ea92db/output/texture_0.png?Expires=4942598400&Signature=e~IfW~H3jaFVQLGUeQLLoHNB1t2~s~xr2~2TZwIQEeGcyTiJC5876K0ZDkERwwQrcjcKoN2rg9pGxKW6E03I3zXBkOGXvuGmt~PPOvDg54Ze~aGNXXnjMr9J02aUg7BM-uz9jSWKz2EDSOLp62Ll8~WzOBcNrXYd77VXMBu8U2bv6wldetmR6Mw~Zhs9fopcUoUMloljESUDEmuGlS9a1P3KW1q9~6Ng2Kx2e4tn1sTIOIffXKAAutFqLcbALYNkVi7DSjatQd5edeAJZ-bbzwZKWRwbH7pymieK~8-wN8o6TR4yO1qu~AP4~rKFDF54cQFMg5ml4NguW-v116Sotw__&Key-Pair-Id=K1VGYTHIYLM9UM",
+   "metallic": "https://assets.meshy.ai/8d4320d1-3e6b-4ae6-a775-7c5db5a7f36c/tasks/01a08d44-bb1e-7217-8eca-40ffa6ea92db/output/texture_0_metallic.png?Expires=4942598400&Signature=C961qc0STaAoYhHKOy~6mC6h3qesvdFwQgQsJN3fVVMXFsiIxxXg2IqrolHcbAzN5HQ3mqmA3d~Lt5a3HCx0p5NVaV~Lynmj5OauTCpXYCPNGujtFhhdVD~BB3BUc9peLZmoQvYT~JHE-ssSPYN9C0ZxpAZCDmlIVEp8l-zWM0JJGdz1~4Jpz2IQlNPwAOxYBMCrd-WbTMJ-zTIxS7Uuue-r-Hq7NER4l8Fn8Nr-b6VLf5zdwtvkWXD7~TcsdOEnq9lQqftKwkVZkXT70SQcS-8LPPr-fs23~r~OOxx9~X5U84soyDtgSib6WiTEocu9o5xrvejcWRzFCA1cSMXieQ__&Key-Pair-Id=K1VGYTHIYLM9UM",
+   "roughness": "https://assets.meshy.ai/8d4320d1-3e6b-4ae6-a775-7c5db5a7f36c/tasks/01a08d44-bb1e-7217-8eca-40ffa6ea92db/output/texture_0_roughness.png?Expires=4942598400&Signature=khkXYiGmJWpz-oDv0lBuh087jySnQfyzs0Q47wcMVsATdRNtSEPuy0qda8miyTxddGvCCT1Ql5pQqZRsew4IxisNul5BRkpLGPQ4q7AJti8-sHB171H4xoq7VKkJH4ksrOC1GCRUxNvl8bg1Mp5dm2TQVysu2eRJretD8yTNUO-ncWJ6YXaD--2e~bHsl5iCPNKO8poD-eRAc0b3NV~fcQiPP5kWdGFymxXnMYT7x70uVBb~TsnwVZ0R4INdAyLRlF6qkAdj0yBRORsfTOBvkdUSvJC89dHBppcy3SbPlFIUYmoJAHCQ7vtPDjHY4D4VdUHFlYg5OMICCdtu~mENbQ__&Key-Pair-Id=K1VGYTHIYLM9UM",
+   "normal": "https://assets.meshy.ai/8d4320d1-3e6b-4ae6-a775-7c5db5a7f36c/tasks/01a08d44-bb1e-7217-8eca-40ffa6ea92db/output/texture_0_normal.png?Expires=4942598400&Signature=Rzla68QOTiDc6FgoJcdz5g0vI8vKFBDSaPNLLt2wm77mmnvPZM6JFTLpR42mXTy8X0VkY3hr-vRdr9o7IKPJRiFZICbPx7j-NiYXLgM6cuXHvS5oSwgLAZw07l11enoWkPoqC1EDwGhgmTUZ2cgHQ-IZm8dGr40Ot45s7jgeDF2KBwOQZeaNllkTAQpK5-Smlvhfo4DwUnqsdwC2KKDDskUmVqb8aXclbEiPWyybOCHikQ3L4NU00gtHjB-c0N1n2locOI2SzNVuLTDvl3xhB1DbbjajOf7F5HD1TuWSmx8omdAZdMeUT0xjddLVSxFrx4lm-5wZjTNxB87~EF9avQ__&Key-Pair-Id=K1VGYTHIYLM9UM"
+  }
+ ],
+ "consumed_credits": 10
+}
+{
+ "id": "01a08d44-bb1e-7217-8eca-40ffa6ea92db",
+ "type": "text-to-3d-refine",
+ "mode": "refine",
+ "name": "",
+ "model_type": "standard",
+ "seed": 2785443273,
+ "art_style": "realistic",
+ "texture_richness": "high",
+ "prompt": "stylized tall skinny teenage boy game character, basketball shorts, full body T-pose, clean topology. Stylized video game character asset: lanky adolescent humanoid, narrow shoulders, long limbs, messy short hair, plain tank top, long basketball shorts, simple sneakers, neutral stance, arms straight out in a T pose, clean smooth game-ready shapes, clean silhouette, full body visible",
+ "negative_prompt": "",
+ "texture_prompt": "",
+ "texture_image_url": "",
+ "status": "SUCCEEDED",
+ "created_at": 1789076486955,
+ "progress": 100,
+ "started_at": 1789076486958,
+ "finished_at": 1789076533016,
+ "task_error": null,
+ "model_urls": {
+  "glb": "https://assets.meshy.ai/8d4320d1-3e6b-4ae6-a775-7c5db5a7f36c/tasks/01a08d44-bb1e-7217-8eca-40ffa6ea92db/output/model.glb?Expires=4942598400&Signature=RBat9gg6aFukjE6X9nufYQjB3rt4RTxkd9OuLApZPuZU4~erIvM9-Hezod8Po-esJ2ZBYCzGrnR~rOEdmEm0LROmLC61NiYgw~XoX-CORPqyB1honbQVNcXE8slsWIBBqCCZlwJP4Q9U5cQ1pbZa4PRVRQXA0uTcEWTnzMOD22obIhBiMDl0CRD3ktKLbJvaNPnpUIo07AOYfgSk1wQa50tOXtGoHKZAXZ6mrc1u7E8FhF1FDxOOHYmK7GCbNWWymBqUdjKbsU1ak~EVLwNMWSR8PcdmDfMOpRUCkVkt2aYOUYe4DynCDRoxcE23wWWk8RHsb0Fvezu4uQpWgtwDpQ__&Key-Pair-Id=K1VGYTHIYLM9UM"
+ },
+ "thumbnail_url": "https://assets.meshy.ai/8d4320d1-3e6b-4ae6-a775-7c5db5a7f36c/tasks/01a08d44-bb1e-7217-8eca-40ffa6ea92db/output/preview.png?Expires=4942598400&Signature=lvr-0aAbegCowlgXoycLhMAPcAjKizyv2vRHyz2FO29FHyBKP7UaOUI66cRpFKWFbvm3UDJWnoT5i6mM1Albvah1r0ACnUlAJtgcnf3o320fT-Vjiuax1RThttW0xi1Rh6DQiKhu0~lTi2ddN-Zgeb2uCaHcdc57rfkk07HUFtT3kHCbzpfcrXO07-dnGg1CXr8ImPMBhtUK3P8C~YoFE4OB43fYUcw3yJLLGRhPsIKDs43BbDV48HQ6-QqMm8d46xMf2XqxfYiulII2lL6ITn8UobRLSGY7MMaCSPv3i9jmARoy-iyOPCFrXY9vHWqTvWnHakm2kkh1U0JnkP7j8A__&Key-Pair-Id=K1VGYTHIYLM9UM",
+ "video_url": "",
+ "texture_urls": [
+  {
+   "base_color": "https://assets.meshy.ai/8d4320d1-3e6b-4ae6-a775-7c5db5a7f36c/tasks/01a08d44-bb1e-7217-8eca-40ffa6ea92db/output/texture_0.png?Expires=4942598400&Signature=e~IfW~H3jaFVQLGUeQLLoHNB1t2~s~xr2~2TZwIQEeGcyTiJC5876K0ZDkERwwQrcjcKoN2rg9pGxKW6E03I3zXBkOGXvuGmt~PPOvDg54Ze~aGNXXnjMr9J02aUg7BM-uz9jSWKz2EDSOLp62Ll8~WzOBcNrXYd77VXMBu8U2bv6wldetmR6Mw~Zhs9fopcUoUMloljESUDEmuGlS9a1P3KW1q9~6Ng2Kx2e4tn1sTIOIffXKAAutFqLcbALYNkVi7DSjatQd5edeAJZ-bbzwZKWRwbH7pymieK~8-wN8o6TR4yO1qu~AP4~rKFDF54cQFMg5ml4NguW-v116Sotw__&Key-Pair-Id=K1VGYTHIYLM9UM",
+   "metallic": "https://assets.meshy.ai/8d4320d1-3e6b-4ae6-a775-7c5db5a7f36c/tasks/01a08d44-bb1e-7217-8eca-40ffa6ea92db/output/texture_0_metallic.png?Expires=4942598400&Signature=C961qc0STaAoYhHKOy~6mC6h3qesvdFwQgQsJN3fVVMXFsiIxxXg2IqrolHcbAzN5HQ3mqmA3d~Lt5a3HCx0p5NVaV~Lynmj5OauTCpXYCPNGujtFhhdVD~BB3BUc9peLZmoQvYT~JHE-ssSPYN9C0ZxpAZCDmlIVEp8l-zWM0JJGdz1~4Jpz2IQlNPwAOxYBMCrd-WbTMJ-zTIxS7Uuue-r-Hq7NER4l8Fn8Nr-b6VLf5zdwtvkWXD7~TcsdOEnq9lQqftKwkVZkXT70SQcS-8LPPr-fs23~r~OOxx9~X5U84soyDtgSib6WiTEocu9o5xrvejcWRzFCA1cSMXieQ__&Key-Pair-Id=K1VGYTHIYLM9UM",
+   "roughness": "https://assets.meshy.ai/8d4320d1-3e6b-4ae6-a775-7c5db5a7f36c/tasks/01a08d44-bb1e-7217-8eca-40ffa6ea92db/output/texture_0_roughness.png?Expires=4942598400&Signature=khkXYiGmJWpz-oDv0lBuh087jySnQfyzs0Q47wcMVsATdRNtSEPuy0qda8miyTxddGvCCT1Ql5pQqZRsew4IxisNul5BRkpLGPQ4q7AJti8-sHB171H4xoq7VKkJH4ksrOC1GCRUxNvl8bg1Mp5dm2TQVysu2eRJretD8yTNUO-ncWJ6YXaD--2e~bHsl5iCPNKO8poD-eRAc0b3NV~fcQiPP5kWdGFymxXnMYT7x70uVBb~TsnwVZ0R4INdAyLRlF6qkAdj0yBRORsfTOBvkdUSvJC89dHBppcy3SbPlFIUYmoJAHCQ7vtPDjHY4D4VdUHFlYg5OMICCdtu~mENbQ__&Key-Pair-Id=K1VGYTHIYLM9UM",
+   "normal": "https://assets.meshy.ai/8d4320d1-3e6b-4ae6-a775-7c5db5a7f36c/tasks/01a08d44-bb1e-7217-8eca-40ffa6ea92db/output/texture_0_normal.png?Expires=4942598400&Signature=Rzla68QOTiDc6FgoJcdz5g0vI8vKFBDSaPNLLt2wm77mmnvPZM6JFTLpR42mXTy8X0VkY3hr-vRdr9o7IKPJRiFZICbPx7j-NiYXLgM6cuXHvS5oSwgLAZw07l11enoWkPoqC1EDwGhgmTUZ2cgHQ-IZm8dGr40Ot45s7jgeDF2KBwOQZeaNllkTAQpK5-Smlvhfo4DwUnqsdwC2KKDDskUmVqb8aXclbEiPWyybOCHikQ3L4NU00gtHjB-c0N1n2locOI2SzNVuLTDvl3xhB1DbbjajOf7F5HD1TuWSmx8omdAZdMeUT0xjddLVSxFrx4lm-5wZjTNxB87~EF9avQ__&Key-Pair-Id=K1VGYTHIYLM9UM"
+  }
+ ],
+ "consumed_credits": 10
+}
+{
+ "id": "01a08d44-bb1e-7217-8eca-40ffa6ea92db",
+ "type": "text-to-3d-refine",
+ "mode": "refine",
+ "name": "",
+ "model_type": "standard",
+ "seed": 2785443273,
+ "art_style": "realistic",
+ "texture_richness": "high",
+ "prompt": "stylized tall skinny teenage boy game character, basketball shorts, full body T-pose, clean topology. Stylized video game character asset: lanky adolescent humanoid, narrow shoulders, long limbs, messy short hair, plain tank top, long basketball shorts, simple sneakers, neutral stance, arms straight out in a T pose, clean smooth game-ready shapes, clean silhouette, full body visible",
+ "negative_prompt": "",
+ "texture_prompt": "",
+ "texture_image_url": "",
+ "status": "SUCCEEDED",
+ "created_at": 1789076486955,
+ "progress": 100,
+ "started_at": 1789076486958,
+ "finished_at": 1789076533016,
+ "task_error": null,
+ "model_urls": {
+  "glb": "https://assets.meshy.ai/8d4320d1-3e6b-4ae6-a775-7c5db5a7f36c/tasks/01a08d44-bb1e-7217-8eca-40ffa6ea92db/output/model.glb?Expires=4942598400&Signature=RBat9gg6aFukjE6X9nufYQjB3rt4RTxkd9OuLApZPuZU4~erIvM9-Hezod8Po-esJ2ZBYCzGrnR~rOEdmEm0LROmLC61NiYgw~XoX-CORPqyB1honbQVNcXE8slsWIBBqCCZlwJP4Q9U5cQ1pbZa4PRVRQXA0uTcEWTnzMOD22obIhBiMDl0CRD3ktKLbJvaNPnpUIo07AOYfgSk1wQa50tOXtGoHKZAXZ6mrc1u7E8FhF1FDxOOHYmK7GCbNWWymBqUdjKbsU1ak~EVLwNMWSR8PcdmDfMOpRUCkVkt2aYOUYe4DynCDRoxcE23wWWk8RHsb0Fvezu4uQpWgtwDpQ__&Key-Pair-Id=K1VGYTHIYLM9UM"
+ },
+ "thumbnail_url": "https://assets.meshy.ai/8d4320d1-3e6b-4ae6-a775-7c5db5a7f36c/tasks/01a08d44-bb1e-7217-8eca-40ffa6ea92db/output/preview.png?Expires=4942598400&Signature=lvr-0aAbegCowlgXoycLhMAPcAjKizyv2vRHyz2FO29FHyBKP7UaOUI66cRpFKWFbvm3UDJWnoT5i6mM1Albvah1r0ACnUlAJtgcnf3o320fT-Vjiuax1RThttW0xi1Rh6DQiKhu0~lTi2ddN-Zgeb2uCaHcdc57rfkk07HUFtT3kHCbzpfcrXO07-dnGg1CXr8ImPMBhtUK3P8C~YoFE4OB43fYUcw3yJLLGRhPsIKDs43BbDV48HQ6-QqMm8d46xMf2XqxfYiulII2lL6ITn8UobRLSGY7MMaCSPv3i9jmARoy-iyOPCFrXY9vHWqTvWnHakm2kkh1U0JnkP7j8A__&Key-Pair-Id=K1VGYTHIYLM9UM",
+ "video_url": "",
+ "texture_urls": [
+  {
+   "base_color": "https://assets.meshy.ai/8d4320d1-3e6b-4ae6-a775-7c5db5a7f36c/tasks/01a08d44-bb1e-7217-8eca-40ffa6ea92db/output/texture_0.png?Expires=4942598400&Signature=e~IfW~H3jaFVQLGUeQLLoHNB1t2~s~xr2~2TZwIQEeGcyTiJC5876K0ZDkERwwQrcjcKoN2rg9pGxKW6E03I3zXBkOGXvuGmt~PPOvDg54Ze~aGNXXnjMr9J02aUg7BM-uz9jSWKz2EDSOLp62Ll8~WzOBcNrXYd77VXMBu8U2bv6wldetmR6Mw~Zhs9fopcUoUMloljESUDEmuGlS9a1P3KW1q9~6Ng2Kx2e4tn1sTIOIffXKAAutFqLcbALYNkVi7DSjatQd5edeAJZ-bbzwZKWRwbH7pymieK~8-wN8o6TR4yO1qu~AP4~rKFDF54cQFMg5ml4NguW-v116Sotw__&Key-Pair-Id=K1VGYTHIYLM9UM",
+   "metallic": "https://assets.meshy.ai/8d4320d1-3e6b-4ae6-a775-7c5db5a7f36c/tasks/01a08d44-bb1e-7217-8eca-40ffa6ea92db/output/texture_0_metallic.png?Expires=4942598400&Signature=C961qc0STaAoYhHKOy~6mC6h3qesvdFwQgQsJN3fVVMXFsiIxxXg2IqrolHcbAzN5HQ3mqmA3d~Lt5a3HCx0p5NVaV~Lynmj5OauTCpXYCPNGujtFhhdVD~BB3BUc9peLZmoQvYT~JHE-ssSPYN9C0ZxpAZCDmlIVEp8l-zWM0JJGdz1~4Jpz2IQlNPwAOxYBMCrd-WbTMJ-zTIxS7Uuue-r-Hq7NER4l8Fn8Nr-b6VLf5zdwtvkWXD7~TcsdOEnq9lQqftKwkVZkXT70SQcS-8LPPr-fs23~r~OOxx9~X5U84soyDtgSib6WiTEocu9o5xrvejcWRzFCA1cSMXieQ__&Key-Pair-Id=K1VGYTHIYLM9UM",
+   "roughness": "https://assets.meshy.ai/8d4320d1-3e6b-4ae6-a775-7c5db5a7f36c/tasks/01a08d44-bb1e-7217-8eca-40ffa6ea92db/output/texture_0_roughness.png?Expires=4942598400&Signature=khkXYiGmJWpz-oDv0lBuh087jySnQfyzs0Q47wcMVsATdRNtSEPuy0qda8miyTxddGvCCT1Ql5pQqZRsew4IxisNul5BRkpLGPQ4q7AJti8-sHB171H4xoq7VKkJH4ksrOC1GCRUxNvl8bg1Mp5dm2TQVysu2eRJretD8yTNUO-ncWJ6YXaD--2e~bHsl5iCPNKO8poD-eRAc0b3NV~fcQiPP5kWdGFymxXnMYT7x70uVBb~TsnwVZ0R4INdAyLRlF6qkAdj0yBRORsfTOBvkdUSvJC89dHBppcy3SbPlFIUYmoJAHCQ7vtPDjHY4D4VdUHFlYg5OMICCdtu~mENbQ__&Key-Pair-Id=K1VGYTHIYLM9UM",
+   "normal": "https://assets.meshy.ai/8d4320d1-3e6b-4ae6-a775-7c5db5a7f36c/tasks/01a08d44-bb1e-7217-8eca-40ffa6ea92db/output/texture_0_normal.png?Expires=4942598400&Signature=Rzla68QOTiDc6FgoJcdz5g0vI8vKFBDSaPNLLt2wm77mmnvPZM6JFTLpR42mXTy8X0VkY3hr-vRdr9o7IKPJRiFZICbPx7j-NiYXLgM6cuXHvS5oSwgLAZw07l11enoWkPoqC1EDwGhgmTUZ2cgHQ-IZm8dGr40Ot45s7jgeDF2KBwOQZeaNllkTAQpK5-Smlvhfo4DwUnqsdwC2KKDDskUmVqb8aXclbEiPWyybOCHikQ3L4NU00gtHjB-c0N1n2locOI2SzNVuLTDvl3xhB1DbbjajOf7F5HD1TuWSmx8omdAZdMeUT0xjddLVSxFrx4lm-5wZjTNxB87~EF9avQ__&Key-Pair-Id=K1VGYTHIYLM9UM"
+  }
+ ],
+ "consumed_credits": 10
+}

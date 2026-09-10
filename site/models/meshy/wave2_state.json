@@ -1,0 +1,241 @@
+{
+ "athlete_f": {
+  "tag": "athlete_f",
+  "preview": "01a08d43-0155-71b4-9388-1b62784d88f5",
+  "preview_ok": "01a08d43-0155-71b4-9388-1b62784d88f5",
+  "refine": "01a08d44-48c3-7337-ac43-247437e998d6",
+  "rig": "PENDING_CREDITS",
+  "glb": "wave2/athlete_f.glb",
+  "rigged": null,
+  "walk": null,
+  "credits": 30,
+  "done": true,
+  "fail_preview": 0,
+  "fail_refine": 0,
+  "fail_rig": 2,
+  "skipped_rig": true,
+  "counted": [
+   "01a08d43-0155-71b4-9388-1b62784d88f5",
+   "01a08d44-48c3-7337-ac43-247437e998d6"
+  ]
+ },
+ "dad": {
+  "tag": "dad",
+  "preview": "01a08d43-35ce-7389-b6ef-ae9f637edc52",
+  "preview_ok": "01a08d43-35ce-7389-b6ef-ae9f637edc52",
+  "refine": "01a08d44-821a-7108-8807-4186d34756dd",
+  "rig": "PENDING_CREDITS",
+  "glb": "wave2/dad.glb",
+  "rigged": null,
+  "walk": null,
+  "credits": 30,
+  "done": true,
+  "fail_preview": 0,
+  "fail_refine": 0,
+  "fail_rig": 2,
+  "skipped_rig": true,
+  "counted": [
+   "01a08d43-35ce-7389-b6ef-ae9f637edc52",
+   "01a08d44-821a-7108-8807-4186d34756dd"
+  ]
+ },
+ "teen": {
+  "tag": "teen",
+  "preview": "01a08d43-6c16-7212-b87e-48f5c5581483",
+  "preview_ok": "01a08d43-6c16-7212-b87e-48f5c5581483",
+  "refine": "01a08d44-bb1e-7217-8eca-40ffa6ea92db",
+  "rig": "PENDING_CREDITS",
+  "glb": "wave2/teen.glb",
+  "rigged": null,
+  "walk": null,
+  "credits": 30,
+  "done": true,
+  "fail_preview": 0,
+  "fail_refine": 0,
+  "fail_rig": 1,
+  "skipped_rig": false,
+  "counted": [
+   "01a08d43-6c16-7212-b87e-48f5c5581483",
+   "01a08d44-bb1e-7217-8eca-40ffa6ea92db"
+  ]
+ },
+ "trophy": {
+  "tag": "trophy",
+  "preview": "01a08d45-2e30-73f5-bb0e-d018560d1be8",
+  "preview_ok": "01a08d45-2e30-73f5-bb0e-d018560d1be8",
+  "refine": "01a08d46-1856-7537-bf2a-7b13bf27113a",
+  "rig": null,
+  "glb": "wave2/trophy.glb",
+  "rigged": null,
+  "walk": null,
+  "credits": 30,
+  "done": true,
+  "fail_preview": 0,
+  "fail_refine": 0,
+  "fail_rig": 0,
+  "counted": [
+   "01a08d45-2e30-73f5-bb0e-d018560d1be8",
+   "01a08d46-1856-7537-bf2a-7b13bf27113a"
+  ]
+ },
+ "floodlight": {
+  "tag": "floodlight",
+  "preview": "01a08d45-6a39-7790-9a80-afaf94c86019",
+  "preview_ok": "01a08d45-6a39-7790-9a80-afaf94c86019",
+  "refine": "01a08d46-8948-75f2-b4f0-e9dbcf56c259",
+  "rig": null,
+  "glb": "wave2/floodlight.glb",
+  "rigged": null,
+  "walk": null,
+  "credits": 30,
+  "done": true,
+  "fail_preview": 0,
+  "fail_refine": 0,
+  "fail_rig": 0,
+  "counted": [
+   "01a08d45-6a39-7790-9a80-afaf94c86019",
+   "01a08d46-8948-75f2-b4f0-e9dbcf56c259"
+  ]
+ },
+ "stands": {
+  "tag": "stands",
+  "preview": "01a08d45-a7b4-7085-b56d-3b480875a6f3",
+  "preview_ok": "01a08d45-a7b4-7085-b56d-3b480875a6f3",
+  "refine": "01a08d46-fd69-709a-9d86-752d857be8d4",
+  "rig": null,
+  "glb": "wave2/stands.glb",
+  "rigged": null,
+  "walk": null,
+  "credits": 30,
+  "done": true,
+  "fail_preview": 0,
+  "fail_refine": 0,
+  "fail_rig": 0,
+  "counted": [
+   "01a08d45-a7b4-7085-b56d-3b480875a6f3",
+   "01a08d46-fd69-709a-9d86-752d857be8d4"
+  ]
+ },
+ "hurdle": {
+  "tag": "hurdle",
+  "preview": "01a08d47-0006-74cf-b48b-a757f3015b02",
+  "preview_ok": "01a08d47-0006-74cf-b48b-a757f3015b02",
+  "refine": null,
+  "rig": null,
+  "glb": "wave2/hurdle.glb",
+  "rigged": null,
+  "walk": null,
+  "credits": 40,
+  "done": true,
+  "fail_preview": 0,
+  "fail_refine": 0,
+  "fail_rig": 0,
+  "orphan_preview_task": "01a08d3f-ddb9-71ba-abd2-78b763ba7c6f",
+  "counted": [
+   "01a08d47-0006-74cf-b48b-a757f3015b02"
+  ]
+ },
+ "scoreboard": {
+  "tag": "scoreboard",
+  "preview": "01a08d47-3d44-77d3-9902-5842bf999a27",
+  "preview_ok": "01a08d47-3d44-77d3-9902-5842bf999a27",
+  "refine": null,
+  "rig": null,
+  "glb": "wave2/scoreboard.glb",
+  "rigged": null,
+  "walk": null,
+  "credits": 40,
+  "done": true,
+  "fail_preview": 0,
+  "fail_refine": 0,
+  "fail_rig": 0,
+  "counted": [
+   "01a08d47-3d44-77d3-9902-5842bf999a27"
+  ]
+ },
+ "jumprope": {
+  "tag": "jumprope",
+  "preview": "01a08d47-e7bc-72cf-abe1-8433fb18bf5e",
+  "preview_ok": "01a08d47-e7bc-72cf-abe1-8433fb18bf5e",
+  "refine": null,
+  "rig": null,
+  "glb": "wave2/jumprope.glb",
+  "rigged": null,
+  "walk": null,
+  "credits": 20,
+  "done": true,
+  "fail_preview": 0,
+  "fail_refine": 0,
+  "fail_rig": 0,
+  "orphan_preview_task": "01a08d3f-f3a5-70d0-a016-9974008fc3a9",
+  "counted": [
+   "01a08d47-e7bc-72cf-abe1-8433fb18bf5e"
+  ]
+ },
+ "bands": {
+  "tag": "bands",
+  "preview": null,
+  "preview_ok": null,
+  "refine": null,
+  "rig": null,
+  "glb": null,
+  "rigged": null,
+  "walk": null,
+  "credits": 0,
+  "done": true,
+  "fail_preview": 0,
+  "fail_refine": 0,
+  "fail_rig": 0,
+  "skipped_credit": true
+ },
+ "weights": {
+  "tag": "weights",
+  "preview": null,
+  "preview_ok": null,
+  "refine": null,
+  "rig": null,
+  "glb": null,
+  "rigged": null,
+  "walk": null,
+  "credits": 0,
+  "done": true,
+  "fail_preview": 0,
+  "fail_refine": 0,
+  "fail_rig": 0,
+  "skipped_credit": true
+ },
+ "medal": {
+  "tag": "medal",
+  "preview": null,
+  "preview_ok": null,
+  "refine": null,
+  "rig": null,
+  "glb": null,
+  "rigged": null,
+  "walk": null,
+  "credits": 0,
+  "done": true,
+  "fail_preview": 0,
+  "fail_refine": 0,
+  "fail_rig": 0,
+  "skipped_credit": true
+ },
+ "bottle": {
+  "tag": "bottle",
+  "preview": "01a08d40-1f43-72e1-9c57-aae151a670cb",
+  "preview_ok": "01a08d40-1f43-72e1-9c57-aae151a670cb",
+  "refine": null,
+  "rig": null,
+  "glb": null,
+  "rigged": null,
+  "walk": null,
+  "credits": 20,
+  "done": false,
+  "fail_preview": 0,
+  "fail_refine": 0,
+  "fail_rig": 0,
+  "counted": [
+   "01a08d40-1f43-72e1-9c57-aae151a670cb"
+  ]
+ }
+}

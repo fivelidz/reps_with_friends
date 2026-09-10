@@ -1,0 +1,81 @@
+{"t": "07:39:34", "ev": "submitted", "kind": "preview", "tag": "athlete_f", "id": "01a08d43-0155-71b4-9388-1b62784d88f5"}
+{"t": "07:39:47", "ev": "submitted", "kind": "preview", "tag": "dad", "id": "01a08d43-35ce-7389-b6ef-ae9f637edc52"}
+{"t": "07:40:01", "ev": "submitted", "kind": "preview", "tag": "teen", "id": "01a08d43-6c16-7212-b87e-48f5c5581483"}
+{"t": "07:40:55", "ev": "terminal", "tag": "athlete_f", "kind": "preview", "id": "01a08d43-0155-71b4-9388-1b62784d88f5", "status": "SUCCEEDED", "credits": 20, "err": null}
+{"t": "07:40:57", "ev": "submitted", "kind": "refine", "tag": "athlete_f", "id": "01a08d44-48c3-7337-ac43-247437e998d6"}
+{"t": "07:41:10", "ev": "terminal", "tag": "dad", "kind": "preview", "id": "01a08d43-35ce-7389-b6ef-ae9f637edc52", "status": "SUCCEEDED", "credits": 20, "err": null}
+{"t": "07:41:12", "ev": "submitted", "kind": "refine", "tag": "dad", "id": "01a08d44-821a-7108-8807-4186d34756dd"}
+{"t": "07:41:25", "ev": "terminal", "tag": "teen", "kind": "preview", "id": "01a08d43-6c16-7212-b87e-48f5c5581483", "status": "SUCCEEDED", "credits": 20, "err": null}
+{"t": "07:41:27", "ev": "submitted", "kind": "refine", "tag": "teen", "id": "01a08d44-bb1e-7217-8eca-40ffa6ea92db"}
+{"t": "07:41:53", "ev": "terminal", "tag": "athlete_f", "kind": "refine", "id": "01a08d44-48c3-7337-ac43-247437e998d6", "status": "SUCCEEDED", "credits": 10, "err": null}
+{"t": "07:41:54", "ev": "download_fail", "dest": "/home/fivelidz/projects/reps_with_friends/site/models/meshy/wave2/athlete_f.glb", "err": "HTTP Error 403: Forbidden"}
+{"t": "07:41:54", "ev": "download_fail", "dest": "/home/fivelidz/projects/reps_with_friends/site/models/meshy/wave2/athlete_f_thumb.png", "err": "HTTP Error 403: Forbidden"}
+{"t": "07:41:54", "ev": "skip", "tag": "athlete_f", "why": "refine ok but GLB missing"}
+{"t": "07:41:56", "ev": "submitted", "kind": "preview", "tag": "trophy", "id": "01a08d45-2e30-73f5-bb0e-d018560d1be8"}
+{"t": "07:42:09", "ev": "terminal", "tag": "dad", "kind": "refine", "id": "01a08d44-821a-7108-8807-4186d34756dd", "status": "SUCCEEDED", "credits": 10, "err": null}
+{"t": "07:42:09", "ev": "download_fail", "dest": "/home/fivelidz/projects/reps_with_friends/site/models/meshy/wave2/dad.glb", "err": "HTTP Error 403: Forbidden"}
+{"t": "07:42:09", "ev": "download_fail", "dest": "/home/fivelidz/projects/reps_with_friends/site/models/meshy/wave2/dad_thumb.png", "err": "HTTP Error 403: Forbidden"}
+{"t": "07:42:09", "ev": "skip", "tag": "dad", "why": "refine ok but GLB missing"}
+{"t": "07:42:11", "ev": "submitted", "kind": "preview", "tag": "floodlight", "id": "01a08d45-6a39-7790-9a80-afaf94c86019"}
+{"t": "07:42:24", "ev": "terminal", "tag": "teen", "kind": "refine", "id": "01a08d44-bb1e-7217-8eca-40ffa6ea92db", "status": "SUCCEEDED", "credits": 10, "err": null}
+{"t": "07:42:25", "ev": "download_fail", "dest": "/home/fivelidz/projects/reps_with_friends/site/models/meshy/wave2/teen.glb", "err": "HTTP Error 403: Forbidden"}
+{"t": "07:42:25", "ev": "download_fail", "dest": "/home/fivelidz/projects/reps_with_friends/site/models/meshy/wave2/teen_thumb.png", "err": "HTTP Error 403: Forbidden"}
+{"t": "07:42:25", "ev": "skip", "tag": "teen", "why": "refine ok but GLB missing"}
+{"t": "07:42:27", "ev": "submitted", "kind": "preview", "tag": "stands", "id": "01a08d45-a7b4-7085-b56d-3b480875a6f3"}
+{"t": "07:42:54", "ev": "terminal", "tag": "trophy", "kind": "preview", "id": "01a08d45-2e30-73f5-bb0e-d018560d1be8", "status": "SUCCEEDED", "credits": 20, "err": null}
+{"t": "07:42:56", "ev": "submitted", "kind": "refine", "tag": "trophy", "id": "01a08d46-1856-7537-bf2a-7b13bf27113a"}
+{"t": "07:43:23", "ev": "terminal", "tag": "floodlight", "kind": "preview", "id": "01a08d45-6a39-7790-9a80-afaf94c86019", "status": "SUCCEEDED", "credits": 20, "err": null}
+{"t": "07:43:25", "ev": "submitted", "kind": "refine", "tag": "floodlight", "id": "01a08d46-8948-75f2-b4f0-e9dbcf56c259"}
+{"t": "07:43:52", "ev": "terminal", "tag": "stands", "kind": "preview", "id": "01a08d45-a7b4-7085-b56d-3b480875a6f3", "status": "SUCCEEDED", "credits": 20, "err": null}
+{"t": "07:43:52", "ev": "terminal", "tag": "trophy", "kind": "refine", "id": "01a08d46-1856-7537-bf2a-7b13bf27113a", "status": "SUCCEEDED", "credits": 10, "err": null}
+{"t": "07:43:53", "ev": "download_fail", "dest": "/home/fivelidz/projects/reps_with_friends/site/models/meshy/wave2/trophy.glb", "err": "HTTP Error 403: Forbidden"}
+{"t": "07:43:53", "ev": "download_fail", "dest": "/home/fivelidz/projects/reps_with_friends/site/models/meshy/wave2/trophy_thumb.png", "err": "HTTP Error 403: Forbidden"}
+{"t": "07:43:53", "ev": "skip", "tag": "trophy", "why": "refine ok but GLB missing"}
+{"t": "07:43:55", "ev": "submitted", "kind": "refine", "tag": "stands", "id": "01a08d46-fd69-709a-9d86-752d857be8d4"}
+{"t": "07:43:55", "ev": "submitted", "kind": "preview", "tag": "hurdle", "id": "01a08d47-0006-74cf-b48b-a757f3015b02"}
+{"t": "07:44:08", "ev": "terminal", "tag": "floodlight", "kind": "refine", "id": "01a08d46-8948-75f2-b4f0-e9dbcf56c259", "status": "SUCCEEDED", "credits": 10, "err": null}
+{"t": "07:44:09", "ev": "download_fail", "dest": "/home/fivelidz/projects/reps_with_friends/site/models/meshy/wave2/floodlight.glb", "err": "HTTP Error 403: Forbidden"}
+{"t": "07:44:09", "ev": "download_fail", "dest": "/home/fivelidz/projects/reps_with_friends/site/models/meshy/wave2/floodlight_thumb.png", "err": "HTTP Error 403: Forbidden"}
+{"t": "07:44:09", "ev": "skip", "tag": "floodlight", "why": "refine ok but GLB missing"}
+{"t": "07:44:11", "ev": "submitted", "kind": "preview", "tag": "scoreboard", "id": "01a08d47-3d44-77d3-9902-5842bf999a27"}
+{"t": "07:44:52", "ev": "terminal", "tag": "stands", "kind": "refine", "id": "01a08d46-fd69-709a-9d86-752d857be8d4", "status": "SUCCEEDED", "credits": 10, "err": null}
+{"t": "07:44:53", "ev": "download_fail", "dest": "/home/fivelidz/projects/reps_with_friends/site/models/meshy/wave2/stands.glb", "err": "HTTP Error 403: Forbidden"}
+{"t": "07:44:53", "ev": "download_fail", "dest": "/home/fivelidz/projects/reps_with_friends/site/models/meshy/wave2/stands_thumb.png", "err": "HTTP Error 403: Forbidden"}
+{"t": "07:44:53", "ev": "skip", "tag": "stands", "why": "refine ok but GLB missing"}
+{"t": "07:44:55", "ev": "submitted", "kind": "preview", "tag": "jumprope", "id": "01a08d47-e7bc-72cf-abe1-8433fb18bf5e"}
+{"t": "07:45:07", "ev": "terminal", "tag": "hurdle", "kind": "preview", "id": "01a08d47-0006-74cf-b48b-a757f3015b02", "status": "SUCCEEDED", "credits": 20, "err": null}
+{"t": "07:45:09", "ev": "submit_fail", "kind": "refine", "args": ["hurdle", "01a08d47-0006-74cf-b48b-a757f3015b02", "true"], "code": "402", "resp": {"message": "Insufficient funds"}}
+{"t": "07:45:10", "ev": "submit_fail", "kind": "preview", "args": ["bands", "params_wave2_bands.json"], "code": "402", "resp": {"message": "Insufficient funds"}}
+{"t": "07:45:23", "ev": "terminal", "tag": "scoreboard", "kind": "preview", "id": "01a08d47-3d44-77d3-9902-5842bf999a27", "status": "SUCCEEDED", "credits": 20, "err": null}
+{"t": "07:49:55", "ev": "terminal", "tag": "athlete_f", "kind": "preview", "id": "01a08d43-0155-71b4-9388-1b62784d88f5", "status": "SUCCEEDED", "credits": 20, "err": null}
+{"t": "07:49:56", "ev": "terminal", "tag": "athlete_f", "kind": "refine", "id": "01a08d44-48c3-7337-ac43-247437e998d6", "status": "SUCCEEDED", "credits": 10, "err": null}
+{"t": "07:50:04", "ev": "terminal", "tag": "dad", "kind": "preview", "id": "01a08d43-35ce-7389-b6ef-ae9f637edc52", "status": "SUCCEEDED", "credits": 20, "err": null}
+{"t": "07:50:05", "ev": "terminal", "tag": "dad", "kind": "refine", "id": "01a08d44-821a-7108-8807-4186d34756dd", "status": "SUCCEEDED", "credits": 10, "err": null}
+{"t": "07:50:09", "ev": "terminal", "tag": "teen", "kind": "preview", "id": "01a08d43-6c16-7212-b87e-48f5c5581483", "status": "SUCCEEDED", "credits": 20, "err": null}
+{"t": "07:50:09", "ev": "terminal", "tag": "teen", "kind": "refine", "id": "01a08d44-bb1e-7217-8eca-40ffa6ea92db", "status": "SUCCEEDED", "credits": 10, "err": null}
+{"t": "07:50:14", "ev": "terminal", "tag": "trophy", "kind": "preview", "id": "01a08d45-2e30-73f5-bb0e-d018560d1be8", "status": "SUCCEEDED", "credits": 20, "err": null}
+{"t": "07:50:14", "ev": "terminal", "tag": "trophy", "kind": "refine", "id": "01a08d46-1856-7537-bf2a-7b13bf27113a", "status": "SUCCEEDED", "credits": 10, "err": null}
+{"t": "07:50:17", "ev": "download_fail", "tag": "trophy", "out": ""}
+{"t": "07:50:18", "ev": "skip", "tag": "trophy", "why": "refine ok but GLB missing"}
+{"t": "07:50:18", "ev": "terminal", "tag": "floodlight", "kind": "preview", "id": "01a08d45-6a39-7790-9a80-afaf94c86019", "status": "SUCCEEDED", "credits": 20, "err": null}
+{"t": "07:50:19", "ev": "terminal", "tag": "floodlight", "kind": "refine", "id": "01a08d46-8948-75f2-b4f0-e9dbcf56c259", "status": "SUCCEEDED", "credits": 10, "err": null}
+{"t": "07:50:24", "ev": "terminal", "tag": "stands", "kind": "preview", "id": "01a08d45-a7b4-7085-b56d-3b480875a6f3", "status": "SUCCEEDED", "credits": 20, "err": null}
+{"t": "07:50:25", "ev": "terminal", "tag": "stands", "kind": "refine", "id": "01a08d46-fd69-709a-9d86-752d857be8d4", "status": "SUCCEEDED", "credits": 10, "err": null}
+{"t": "07:50:31", "ev": "terminal", "tag": "hurdle", "kind": "preview", "id": "01a08d47-0006-74cf-b48b-a757f3015b02", "status": "SUCCEEDED", "credits": 20, "err": null}
+{"t": "07:50:32", "ev": "terminal", "tag": "scoreboard", "kind": "preview", "id": "01a08d47-3d44-77d3-9902-5842bf999a27", "status": "SUCCEEDED", "credits": 20, "err": null}
+{"t": "07:50:32", "ev": "terminal", "tag": "jumprope", "kind": "preview", "id": "01a08d47-e7bc-72cf-abe1-8433fb18bf5e", "status": "SUCCEEDED", "credits": 20, "err": null}
+{"t": "07:50:33", "ev": "terminal", "tag": "bottle", "kind": "preview", "id": "01a08d40-1f43-72e1-9c57-aae151a670cb", "status": "SUCCEEDED", "credits": 20, "err": null}
+{"t": "07:50:34", "ev": "submit_fail", "kind": "refine", "args": ["hurdle", "01a08d47-0006-74cf-b48b-a757f3015b02", "true"], "code": "402", "resp": {"message": "Insufficient funds"}}
+{"t": "07:50:34", "ev": "submit_fail", "kind": "preview", "args": ["bands", "params_wave2_bands.json"], "code": "402", "resp": {"message": "Insufficient funds"}}
+{"t": "07:50:40", "ev": "submit_fail", "kind": "rig", "args": ["athlete_f", "01a08d44-48c3-7337-ac43-247437e998d6"], "code": "402", "resp": {"message": "Insufficient funds"}}
+{"t": "07:51:03", "ev": "submit_fail", "kind": "refine", "args": ["scoreboard", "01a08d47-3d44-77d3-9902-5842bf999a27", "true"], "code": "402", "resp": {"message": "Insufficient funds"}}
+{"t": "07:51:04", "ev": "submit_fail", "kind": "preview", "args": ["weights", "params_wave2_weights.json"], "code": "402", "resp": {"message": "Insufficient funds"}}
+{"t": "07:51:16", "ev": "submit_fail", "kind": "rig", "args": ["athlete_f", "01a08d44-48c3-7337-ac43-247437e998d6"], "code": "402", "resp": {"message": "Insufficient funds"}}
+{"t": "07:51:16", "ev": "skip_rig", "tag": "athlete_f", "why": "rig submit failed twice"}
+{"t": "07:51:40", "ev": "submit_fail", "kind": "refine", "args": ["jumprope", "01a08d47-e7bc-72cf-abe1-8433fb18bf5e", "true"], "code": "402", "resp": {"message": "Insufficient funds"}}
+{"t": "07:51:40", "ev": "submit_fail", "kind": "preview", "args": ["medal", "params_wave2_medal.json"], "code": "402", "resp": {"message": "Insufficient funds"}}
+{"t": "07:51:45", "ev": "submit_fail", "kind": "rig", "args": ["dad", "01a08d44-821a-7108-8807-4186d34756dd"], "code": "402", "resp": {"message": "Insufficient funds"}}
+{"t": "07:52:08", "ev": "submit_fail", "kind": "refine", "args": ["bottle", "01a08d40-1f43-72e1-9c57-aae151a670cb", "true"], "code": "402", "resp": {"message": "Insufficient funds"}}
+{"t": "07:52:12", "ev": "submit_fail", "kind": "rig", "args": ["dad", "01a08d44-821a-7108-8807-4186d34756dd"], "code": "402", "resp": {"message": "Insufficient funds"}}
+{"t": "07:52:12", "ev": "skip_rig", "tag": "dad", "why": "rig submit failed twice"}
+{"t": "07:52:54", "ev": "submit_fail", "kind": "rig", "args": ["teen", "01a08d44-bb1e-7217-8eca-40ffa6ea92db"], "code": "402", "resp": {"message": "Insufficient funds"}}

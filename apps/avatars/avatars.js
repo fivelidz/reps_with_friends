@@ -1314,3 +1314,142 @@ if (modelGrid) {
     window.__rwfPhotoAvatars = cards; // test hook (same pattern as __rwfModels)
   }
 }
+
+// ─────────────────────────────────────────────────────────────────────────────
+// ASSET VAULT — meshy.ai wave-2 props (2026-09-11, site/models/meshy/).
+//
+// Turntable display cards for the wave-2 generation run: v3 course dressing +
+// Reps Kits props + wildcards (full ledger: meshy/manifest_wave2.json). Same
+// lazy-context contract as every other strip: renderer created on
+// intersection, released 3s off-screen, page-wide ctx budget respected.
+// Self-contained append-only block.
+// ─────────────────────────────────────────────────────────────────────────────
+{
+  const grid = $('vaultGrid');
+  if (grid) {
+    const { VAULT, loadModel } = await import('/site/model-avatars.js');
+    const W = 240, H = 300;
+    const cards = [];
+
+    for (const A of VAULT) {
+      const card = document.createElement('article');
+      card.className = 'style-card style-card--model';
+      card.innerHTML = `
+        <div class="style-stage"></div>
+        <div class="style-meta">
+          <h3>${A.name}</h3>
+          <p class="style-blurb">${A.blurb}</p>
+          <div class="model-btns">
+            <button class="rwf-btn btn--xs is-on" data-spin="1" title="slow turntable">spin</button>
+          </div>
+        </div>`;
+      grid.appendChild(card);
+      const stage = card.querySelector('.style-stage');
+
+      const scene = new THREE.Scene();
+      const cam = new THREE.PerspectiveCamera(38, W / H, 0.01, 60);
+      const key = new THREE.DirectionalLight(0xffffff, 3.2); key.position.set(1.5, 3, 2); scene.add(key);
+      const key2 = new THREE.DirectionalLight(0xfff2e0, 1.6); key2.position.set(-1.2, 2, 2.4); scene.add(key2);
+      const warm = new THREE.PointLight(0xffd9a0, 2.4, 8); warm.position.set(1.8, 0.9, 1.8); scene.add(warm);
+      const fill = new THREE.HemisphereLight(0x8fb6ff, 0x1a1d23, 1.8); scene.add(fill);
+      const rim = new THREE.PointLight(0xc6f32e, 3, 8); rim.position.set(-2, 1.4, -2); scene.add(rim);
+      const ground = new THREE.Mesh(
+        new THREE.CircleGeometry(0.5, 40).rotateX(-Math.PI / 2),
+        new THREE.MeshStandardMaterial({ color: 0x14171c, roughness: 0.95 })
+      );
+      scene.add(ground);
+
+      const turn = new THREE.Group(); turn.name = 'Turntable'; scene.add(turn);
+      const entry = { A, card, renderer: null, scene, cam, turn, model: null, spin: true, ok: false, renderMs: 0 };
+      cards.push(entry);
+
+      let releaseTimer = 0;
+      const ensureRenderer = () => {
+        if (entry.renderer) return;
+        ctxMakeRoom();
+        try {
+          const r = new THREE.WebGLRenderer({ antialias: true, alpha: true });
+          r.setPixelRatio(Math.min(devicePixelRatio, 2));
+          r.setSize(W, H);
+          r.outputColorSpace = THREE.SRGBColorSpace;
+          stage.appendChild(r.domElement);
+          entry.renderer = r;
+        } catch (e) {
+          card.querySelector('.style-blurb').textContent = 'WebGL unavailable';
+        }
+      };
+      const releaseRenderer = () => {
+        if (!entry.renderer) return;
+        entry.renderer.dispose();
+        if (entry.renderer.getContext().getExtension('WEBGL_lose_context')) entry.renderer.forceContextLoss?.();
+        entry.renderer.domElement.remove();
+        entry.renderer = null;
+      };
+      ctxRegister({ el: card, gl: () => entry.renderer?.getContext?.() ?? null, release: releaseRenderer, ensure: ensureRenderer });
+      new IntersectionObserver((es) => {
+        clearTimeout(releaseTimer);
+        if (es[0].isIntersecting) ensureRenderer();
+        else releaseTimer = setTimeout(releaseRenderer, 3000);
+      }, { threshold: 0 }).observe(card);
+
+      const spinBtn = card.querySelector('[data-spin]');
+      spinBtn?.addEventListener('click', () => {
+        entry.spin = !entry.spin;
+        spinBtn.classList.toggle('is-on', entry.spin);
+      });
+
+      // GLB: ground-centre + normalise to ~1.5 units (creature-card framing),
+      // camera framed by bounding sphere so wide pieces (stands) still fit.
+      // Preview-grade GLBs (refine pending credits) ship with no material —
+      // `A.tint` gives those a flat colour so the card doesn't render raw clay.
+      loadModel(A.file).then((model) => {
+        if (A.tint) {
+          model.traverse((o) => {
+            if (o.isMesh && !(o.material?.map) && !(o.geometry?.attributes?.color)) {
+              o.material = new THREE.MeshStandardMaterial({ color: A.tint, roughness: 0.7 });
+            }
+          });
+        }
+        const box0 = new THREE.Box3().setFromObject(model);
+        const c0 = box0.getCenter(new THREE.Vector3());
+        model.position.sub(new THREE.Vector3(c0.x, box0.min.y, c0.z));
+        const s0 = 1.5 / Math.max(0.01, box0.max.y - box0.min.y);
+        model.scale.setScalar(s0);
+        turn.add(model);
+        const box = new THREE.Box3().setFromObject(model);
+        const sphere = box.getBoundingSphere(new THREE.Sphere());
+        const radius = Math.max(sphere.radius, 0.55);
+        const vFov = THREE.MathUtils.degToRad(cam.fov);
+        const hFov = 2 * Math.atan(Math.tan(vFov / 2) * (W / H));
+        const dist = (radius * 1.12) / Math.sin(Math.min(vFov, hFov) / 2);
+        cam.position.set(sphere.center.x + dist * 0.16, sphere.center.y + radius * 0.18, dist);
+        cam.lookAt(sphere.center);
+        entry.model = model;
+        entry.ok = true;
+      }).catch((e) => {
+        card.querySelector('.style-blurb').textContent = 'load failed: ' + e.message;
+      });
+    }
+
+    // shared animation loop — turntable spin + render
+    let last = performance.now();
+    (function tick(now) {
+      requestAnimationFrame(tick);
+      const dt = Math.min(0.05, (now - last) / 1000); last = now;
+      for (const e of cards) {
+        if (!e.ok || !e.renderer) continue;
+        const t0 = performance.now();
+        if (!REDUCED && e.spin) e.turn.rotation.y += dt * 0.5;
+        e.renderer.render(e.scene, e.cam);
+        e.renderMs = e.renderMs * 0.9 + (performance.now() - t0) * 0.1;
+      }
+      const perf = $('vaultPerf');
+      if (perf && cards.some((c) => c.renderer)) {
+        const live = cards.filter((c) => c.renderer);
+        perf.textContent = `${(live.reduce((a, c) => a + c.renderMs, 0) / live.length).toFixed(1)} ms/frame`;
+      }
+    })(last);
+
+    window.__rwfVault = cards; // test hook (same pattern as __rwfModels)
+  }
+}

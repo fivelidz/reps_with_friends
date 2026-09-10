@@ -1,0 +1,152 @@
+{
+ "id": "01a08d46-8948-75f2-b4f0-e9dbcf56c259",
+ "type": "text-to-3d-refine",
+ "mode": "refine",
+ "name": "",
+ "model_type": "standard",
+ "seed": 33100958,
+ "art_style": "realistic",
+ "texture_richness": "high",
+ "prompt": "stadium floodlight tower, tall metal pole with a rack of four floodlight heads on top, low poly game environment asset, clean smooth shapes, centred composition, no characters, no text",
+ "negative_prompt": "",
+ "texture_prompt": "",
+ "texture_image_url": "",
+ "status": "IN_PROGRESS",
+ "created_at": 1789076605272,
+ "progress": 35,
+ "started_at": 1789076605276,
+ "finished_at": 0,
+ "task_error": null,
+ "model_urls": {},
+ "thumbnail_url": "",
+ "video_url": "",
+ "texture_urls": null,
+ "consumed_credits": 10
+}
+{
+ "id": "01a08d46-8948-75f2-b4f0-e9dbcf56c259",
+ "type": "text-to-3d-refine",
+ "mode": "refine",
+ "name": "",
+ "model_type": "standard",
+ "seed": 33100958,
+ "art_style": "realistic",
+ "texture_richness": "high",
+ "prompt": "stadium floodlight tower, tall metal pole with a rack of four floodlight heads on top, low poly game environment asset, clean smooth shapes, centred composition, no characters, no text",
+ "negative_prompt": "",
+ "texture_prompt": "",
+ "texture_image_url": "",
+ "status": "IN_PROGRESS",
+ "created_at": 1789076605272,
+ "progress": 70,
+ "started_at": 1789076605276,
+ "finished_at": 0,
+ "task_error": null,
+ "model_urls": {},
+ "thumbnail_url": "",
+ "video_url": "",
+ "texture_urls": null,
+ "consumed_credits": 10
+}
+{
+ "id": "01a08d46-8948-75f2-b4f0-e9dbcf56c259",
+ "type": "text-to-3d-refine",
+ "mode": "refine",
+ "name": "",
+ "model_type": "standard",
+ "seed": 33100958,
+ "art_style": "realistic",
+ "texture_richness": "high",
+ "prompt": "stadium floodlight tower, tall metal pole with a rack of four floodlight heads on top, low poly game environment asset, clean smooth shapes, centred composition, no characters, no text",
+ "negative_prompt": "",
+ "texture_prompt": "",
+ "texture_image_url": "",
+ "status": "SUCCEEDED",
+ "created_at": 1789076605272,
+ "progress": 100,
+ "started_at": 1789076605276,
+ "finished_at": 1789076646929,
+ "task_error": null,
+ "model_urls": {
+  "glb": "https://assets.meshy.ai/8d4320d1-3e6b-4ae6-a775-7c5db5a7f36c/tasks/01a08d46-8948-75f2-b4f0-e9dbcf56c259/output/model.glb?Expires=4942598400&Signature=HfW~yH9O1hw5OEPowLeA3ZEPlEoDtKpClNuVhOLSOXDyMDlLguf2lEITa8YbQmqAeYdNZqYK5p75VBorEMrRd6aL5FsL08UcVDhze7OMrxFCiiqZgDaZPqr96AMD0FHDhMC-YJXIMYaL~cCmjC95CDXAIpTxTTYOkx3~29mWzbcpdY3gQdYoCSL-t3JM1FFHUmjBqpGX~sn0tEoGFZ9igcmYUkxvTmvO-oWAU4rDwSuknoalSLB5iIhiXQZrH-Np1FT6jXNo3OArGSQLiiw2IXI~M~HibpS0-V3xQRoukTZis1nmqV4riPKkMRyd6MFSQsu9U8NB90xi0QgB3LzF0A__&Key-Pair-Id=K1VGYTHIYLM9UM"
+ },
+ "thumbnail_url": "https://assets.meshy.ai/8d4320d1-3e6b-4ae6-a775-7c5db5a7f36c/tasks/01a08d46-8948-75f2-b4f0-e9dbcf56c259/output/preview.png?Expires=4942598400&Signature=Wtm7WYWx9~p2IZFQ~NPXvgsEzzuSsk3IygiT~BiHpOkKyau2dpcmIMDkCgw09l~sSGwqAEjO58JMBGLUebcn~CjNvfw73gcNg--igzAkxZ-t05NgtokmkcViWe7aGFKo8zTsGGe2EioTxM4BXSD57ljlVTHZr4TmAFkWOuJKTYZA1ooxBQ9B4iPWdAlheNGv8GmlN63lHV~XBC7jTi8~x0LfoAe2us~ReBGCujgvk1EVr2V7LUkuBYB9ApFQ8bL0ClgQ8Z6V2uB-bElJqmJXdnQP1FrvTTurBNbLwN0DPMjXH7Kw-1uE8GRcm4qCXZZ3r0fgz3ApvidVHCHVwEgmug__&Key-Pair-Id=K1VGYTHIYLM9UM",
+ "video_url": "",
+ "texture_urls": [
+  {
+   "base_color": "https://assets.meshy.ai/8d4320d1-3e6b-4ae6-a775-7c5db5a7f36c/tasks/01a08d46-8948-75f2-b4f0-e9dbcf56c259/output/texture_0.png?Expires=4942598400&Signature=SLj~zHqUdDirWvvtkC25Mi10xsDKcsv4BLkJSN1qXvT5a9JqzMh28Ac-bKOzrRFLkDfouFm9Sn5eu2x-i76g1QI0rK2e8NScrhoEfQ7zJjxn4~QL8RxrCIhUDqrq17S02ZD35f4IlhY9jQCZE1KLoiGquLEYjQRwKiKbMi4zWp0xSQ6P2tzgJ8pYaW4NnIVHoXkRuzm6aCw3RHYiJbF9RkNWXFJC~ZcKnFrdh44O4NK73QbL3fS4vuFtpipRh7S-HouKZT7SzScHlnzyG1F52jJ1Y0oLySjID10fvlnEI7E1a238QTC82jn7yVQ6h9657XtP3X5-MEsAAs6IWwKRiw__&Key-Pair-Id=K1VGYTHIYLM9UM",
+   "metallic": "https://assets.meshy.ai/8d4320d1-3e6b-4ae6-a775-7c5db5a7f36c/tasks/01a08d46-8948-75f2-b4f0-e9dbcf56c259/output/texture_0_metallic.png?Expires=4942598400&Signature=cofkQQRnsRxEBagKqtkF6t5~gAZdORphO3GllXkpxF9QPuihO40dO-Unco7z0aUebu~I4OgbWRj~7VCdFwpBmYTK3ZgnEpfMscZcu0HrFrX8pvPpMJAiPoZHROoM8PIva0mNjEkyfcqFbXa56iitSmlbscEV9sk5Sn6A10wobsodq7wiNHTFsm-yv8wKRRbHpwbwKi4rwthxmEBJXRMKFUB-w6-8nZZ6NWKQ2oyW9FsYVEM4vs6brwPwrVMBSPI2yuOB1tkY-cQdnDnK4I8ktJ1suxpoHZ7k0qBBQUvMxHmqqiXRgNOUln0-Xz8VLqUgOtx80TSIwnn4UuVdgpoF1w__&Key-Pair-Id=K1VGYTHIYLM9UM",
+   "roughness": "https://assets.meshy.ai/8d4320d1-3e6b-4ae6-a775-7c5db5a7f36c/tasks/01a08d46-8948-75f2-b4f0-e9dbcf56c259/output/texture_0_roughness.png?Expires=4942598400&Signature=LTbkU8Az6cLksISRqioeNLsy4zwJa-fEBYg-0HXB6gBcajByJSkiVofTVgjOPrZIpnfUhF4Gok2oxt5cz1UFVavg-0Tuhu8NrhvZbX2UTm7RlPSTVratxQEgbd7VKrNUe1b-fBSIPEsPNVI5rfN4xTxlUXDjOq0Aq3kZ1aJzmbgnDe9Cu789-IkwjnSE~YCiOUgWkKEF5L33v17IZO2apFOecvniwlrDtz3n4FLaAS124~eMmhYpcvyjimniib0pbggYUGrH~7yBybiHnHJ3uph3bq4md25E-ZO1xfpEy-qTkNM8YNrVQhSEfM77gsyduIfEnuSPkaq3SvtGhzjTXg__&Key-Pair-Id=K1VGYTHIYLM9UM",
+   "normal": "https://assets.meshy.ai/8d4320d1-3e6b-4ae6-a775-7c5db5a7f36c/tasks/01a08d46-8948-75f2-b4f0-e9dbcf56c259/output/texture_0_normal.png?Expires=4942598400&Signature=bDybhogEFxHks4i6IqEaylCqMbvbz~lgbVqNoGmXs87c5THND7Sa7WvccwGiLvtC~phBpsk6ZUjwzN-AToDThOAEZz5ZsSJzoeeSgMCMy6j3s1n4PyRjyKeJPoL7L2U4YUcb69gYNsMvYPjT73kt4aPWuoBQbuIjpp86UEK7hn8-ASM-6cET-qwypjPRX33LfbDgdWkTvjKm696MMctyDLjVpwO2~7Squ~D9r4yYaNcBttxoxwU5T8Y1bjicojB2l01kCqdCW7uD8mhrMSjWp2ZNRlvpyt97Z-dMEMG1JewHVDJwLICvO6hh~CeefwOJtO7TTJ0JHllxj-za2yheNQ__&Key-Pair-Id=K1VGYTHIYLM9UM"
+  }
+ ],
+ "consumed_credits": 10
+}
+{
+ "id": "01a08d46-8948-75f2-b4f0-e9dbcf56c259",
+ "type": "text-to-3d-refine",
+ "mode": "refine",
+ "name": "",
+ "model_type": "standard",
+ "seed": 33100958,
+ "art_style": "realistic",
+ "texture_richness": "high",
+ "prompt": "stadium floodlight tower, tall metal pole with a rack of four floodlight heads on top, low poly game environment asset, clean smooth shapes, centred composition, no characters, no text",
+ "negative_prompt": "",
+ "texture_prompt": "",
+ "texture_image_url": "",
+ "status": "SUCCEEDED",
+ "created_at": 1789076605272,
+ "progress": 100,
+ "started_at": 1789076605276,
+ "finished_at": 1789076646929,
+ "task_error": null,
+ "model_urls": {
+  "glb": "https://assets.meshy.ai/8d4320d1-3e6b-4ae6-a775-7c5db5a7f36c/tasks/01a08d46-8948-75f2-b4f0-e9dbcf56c259/output/model.glb?Expires=4942598400&Signature=HfW~yH9O1hw5OEPowLeA3ZEPlEoDtKpClNuVhOLSOXDyMDlLguf2lEITa8YbQmqAeYdNZqYK5p75VBorEMrRd6aL5FsL08UcVDhze7OMrxFCiiqZgDaZPqr96AMD0FHDhMC-YJXIMYaL~cCmjC95CDXAIpTxTTYOkx3~29mWzbcpdY3gQdYoCSL-t3JM1FFHUmjBqpGX~sn0tEoGFZ9igcmYUkxvTmvO-oWAU4rDwSuknoalSLB5iIhiXQZrH-Np1FT6jXNo3OArGSQLiiw2IXI~M~HibpS0-V3xQRoukTZis1nmqV4riPKkMRyd6MFSQsu9U8NB90xi0QgB3LzF0A__&Key-Pair-Id=K1VGYTHIYLM9UM"
+ },
+ "thumbnail_url": "https://assets.meshy.ai/8d4320d1-3e6b-4ae6-a775-7c5db5a7f36c/tasks/01a08d46-8948-75f2-b4f0-e9dbcf56c259/output/preview.png?Expires=4942598400&Signature=Wtm7WYWx9~p2IZFQ~NPXvgsEzzuSsk3IygiT~BiHpOkKyau2dpcmIMDkCgw09l~sSGwqAEjO58JMBGLUebcn~CjNvfw73gcNg--igzAkxZ-t05NgtokmkcViWe7aGFKo8zTsGGe2EioTxM4BXSD57ljlVTHZr4TmAFkWOuJKTYZA1ooxBQ9B4iPWdAlheNGv8GmlN63lHV~XBC7jTi8~x0LfoAe2us~ReBGCujgvk1EVr2V7LUkuBYB9ApFQ8bL0ClgQ8Z6V2uB-bElJqmJXdnQP1FrvTTurBNbLwN0DPMjXH7Kw-1uE8GRcm4qCXZZ3r0fgz3ApvidVHCHVwEgmug__&Key-Pair-Id=K1VGYTHIYLM9UM",
+ "video_url": "",
+ "texture_urls": [
+  {
+   "base_color": "https://assets.meshy.ai/8d4320d1-3e6b-4ae6-a775-7c5db5a7f36c/tasks/01a08d46-8948-75f2-b4f0-e9dbcf56c259/output/texture_0.png?Expires=4942598400&Signature=SLj~zHqUdDirWvvtkC25Mi10xsDKcsv4BLkJSN1qXvT5a9JqzMh28Ac-bKOzrRFLkDfouFm9Sn5eu2x-i76g1QI0rK2e8NScrhoEfQ7zJjxn4~QL8RxrCIhUDqrq17S02ZD35f4IlhY9jQCZE1KLoiGquLEYjQRwKiKbMi4zWp0xSQ6P2tzgJ8pYaW4NnIVHoXkRuzm6aCw3RHYiJbF9RkNWXFJC~ZcKnFrdh44O4NK73QbL3fS4vuFtpipRh7S-HouKZT7SzScHlnzyG1F52jJ1Y0oLySjID10fvlnEI7E1a238QTC82jn7yVQ6h9657XtP3X5-MEsAAs6IWwKRiw__&Key-Pair-Id=K1VGYTHIYLM9UM",
+   "metallic": "https://assets.meshy.ai/8d4320d1-3e6b-4ae6-a775-7c5db5a7f36c/tasks/01a08d46-8948-75f2-b4f0-e9dbcf56c259/output/texture_0_metallic.png?Expires=4942598400&Signature=cofkQQRnsRxEBagKqtkF6t5~gAZdORphO3GllXkpxF9QPuihO40dO-Unco7z0aUebu~I4OgbWRj~7VCdFwpBmYTK3ZgnEpfMscZcu0HrFrX8pvPpMJAiPoZHROoM8PIva0mNjEkyfcqFbXa56iitSmlbscEV9sk5Sn6A10wobsodq7wiNHTFsm-yv8wKRRbHpwbwKi4rwthxmEBJXRMKFUB-w6-8nZZ6NWKQ2oyW9FsYVEM4vs6brwPwrVMBSPI2yuOB1tkY-cQdnDnK4I8ktJ1suxpoHZ7k0qBBQUvMxHmqqiXRgNOUln0-Xz8VLqUgOtx80TSIwnn4UuVdgpoF1w__&Key-Pair-Id=K1VGYTHIYLM9UM",
+   "roughness": "https://assets.meshy.ai/8d4320d1-3e6b-4ae6-a775-7c5db5a7f36c/tasks/01a08d46-8948-75f2-b4f0-e9dbcf56c259/output/texture_0_roughness.png?Expires=4942598400&Signature=LTbkU8Az6cLksISRqioeNLsy4zwJa-fEBYg-0HXB6gBcajByJSkiVofTVgjOPrZIpnfUhF4Gok2oxt5cz1UFVavg-0Tuhu8NrhvZbX2UTm7RlPSTVratxQEgbd7VKrNUe1b-fBSIPEsPNVI5rfN4xTxlUXDjOq0Aq3kZ1aJzmbgnDe9Cu789-IkwjnSE~YCiOUgWkKEF5L33v17IZO2apFOecvniwlrDtz3n4FLaAS124~eMmhYpcvyjimniib0pbggYUGrH~7yBybiHnHJ3uph3bq4md25E-ZO1xfpEy-qTkNM8YNrVQhSEfM77gsyduIfEnuSPkaq3SvtGhzjTXg__&Key-Pair-Id=K1VGYTHIYLM9UM",
+   "normal": "https://assets.meshy.ai/8d4320d1-3e6b-4ae6-a775-7c5db5a7f36c/tasks/01a08d46-8948-75f2-b4f0-e9dbcf56c259/output/texture_0_normal.png?Expires=4942598400&Signature=bDybhogEFxHks4i6IqEaylCqMbvbz~lgbVqNoGmXs87c5THND7Sa7WvccwGiLvtC~phBpsk6ZUjwzN-AToDThOAEZz5ZsSJzoeeSgMCMy6j3s1n4PyRjyKeJPoL7L2U4YUcb69gYNsMvYPjT73kt4aPWuoBQbuIjpp86UEK7hn8-ASM-6cET-qwypjPRX33LfbDgdWkTvjKm696MMctyDLjVpwO2~7Squ~D9r4yYaNcBttxoxwU5T8Y1bjicojB2l01kCqdCW7uD8mhrMSjWp2ZNRlvpyt97Z-dMEMG1JewHVDJwLICvO6hh~CeefwOJtO7TTJ0JHllxj-za2yheNQ__&Key-Pair-Id=K1VGYTHIYLM9UM"
+  }
+ ],
+ "consumed_credits": 10
+}
+{
+ "id": "01a08d46-8948-75f2-b4f0-e9dbcf56c259",
+ "type": "text-to-3d-refine",
+ "mode": "refine",
+ "name": "",
+ "model_type": "standard",
+ "seed": 33100958,
+ "art_style": "realistic",
+ "texture_richness": "high",
+ "prompt": "stadium floodlight tower, tall metal pole with a rack of four floodlight heads on top, low poly game environment asset, clean smooth shapes, centred composition, no characters, no text",
+ "negative_prompt": "",
+ "texture_prompt": "",
+ "texture_image_url": "",
+ "status": "SUCCEEDED",
+ "created_at": 1789076605272,
+ "progress": 100,
+ "started_at": 1789076605276,
+ "finished_at": 1789076646929,
+ "task_error": null,
+ "model_urls": {
+  "glb": "https://assets.meshy.ai/8d4320d1-3e6b-4ae6-a775-7c5db5a7f36c/tasks/01a08d46-8948-75f2-b4f0-e9dbcf56c259/output/model.glb?Expires=4942598400&Signature=HfW~yH9O1hw5OEPowLeA3ZEPlEoDtKpClNuVhOLSOXDyMDlLguf2lEITa8YbQmqAeYdNZqYK5p75VBorEMrRd6aL5FsL08UcVDhze7OMrxFCiiqZgDaZPqr96AMD0FHDhMC-YJXIMYaL~cCmjC95CDXAIpTxTTYOkx3~29mWzbcpdY3gQdYoCSL-t3JM1FFHUmjBqpGX~sn0tEoGFZ9igcmYUkxvTmvO-oWAU4rDwSuknoalSLB5iIhiXQZrH-Np1FT6jXNo3OArGSQLiiw2IXI~M~HibpS0-V3xQRoukTZis1nmqV4riPKkMRyd6MFSQsu9U8NB90xi0QgB3LzF0A__&Key-Pair-Id=K1VGYTHIYLM9UM"
+ },
+ "thumbnail_url": "https://assets.meshy.ai/8d4320d1-3e6b-4ae6-a775-7c5db5a7f36c/tasks/01a08d46-8948-75f2-b4f0-e9dbcf56c259/output/preview.png?Expires=4942598400&Signature=Wtm7WYWx9~p2IZFQ~NPXvgsEzzuSsk3IygiT~BiHpOkKyau2dpcmIMDkCgw09l~sSGwqAEjO58JMBGLUebcn~CjNvfw73gcNg--igzAkxZ-t05NgtokmkcViWe7aGFKo8zTsGGe2EioTxM4BXSD57ljlVTHZr4TmAFkWOuJKTYZA1ooxBQ9B4iPWdAlheNGv8GmlN63lHV~XBC7jTi8~x0LfoAe2us~ReBGCujgvk1EVr2V7LUkuBYB9ApFQ8bL0ClgQ8Z6V2uB-bElJqmJXdnQP1FrvTTurBNbLwN0DPMjXH7Kw-1uE8GRcm4qCXZZ3r0fgz3ApvidVHCHVwEgmug__&Key-Pair-Id=K1VGYTHIYLM9UM",
+ "video_url": "",
+ "texture_urls": [
+  {
+   "base_color": "https://assets.meshy.ai/8d4320d1-3e6b-4ae6-a775-7c5db5a7f36c/tasks/01a08d46-8948-75f2-b4f0-e9dbcf56c259/output/texture_0.png?Expires=4942598400&Signature=SLj~zHqUdDirWvvtkC25Mi10xsDKcsv4BLkJSN1qXvT5a9JqzMh28Ac-bKOzrRFLkDfouFm9Sn5eu2x-i76g1QI0rK2e8NScrhoEfQ7zJjxn4~QL8RxrCIhUDqrq17S02ZD35f4IlhY9jQCZE1KLoiGquLEYjQRwKiKbMi4zWp0xSQ6P2tzgJ8pYaW4NnIVHoXkRuzm6aCw3RHYiJbF9RkNWXFJC~ZcKnFrdh44O4NK73QbL3fS4vuFtpipRh7S-HouKZT7SzScHlnzyG1F52jJ1Y0oLySjID10fvlnEI7E1a238QTC82jn7yVQ6h9657XtP3X5-MEsAAs6IWwKRiw__&Key-Pair-Id=K1VGYTHIYLM9UM",
+   "metallic": "https://assets.meshy.ai/8d4320d1-3e6b-4ae6-a775-7c5db5a7f36c/tasks/01a08d46-8948-75f2-b4f0-e9dbcf56c259/output/texture_0_metallic.png?Expires=4942598400&Signature=cofkQQRnsRxEBagKqtkF6t5~gAZdORphO3GllXkpxF9QPuihO40dO-Unco7z0aUebu~I4OgbWRj~7VCdFwpBmYTK3ZgnEpfMscZcu0HrFrX8pvPpMJAiPoZHROoM8PIva0mNjEkyfcqFbXa56iitSmlbscEV9sk5Sn6A10wobsodq7wiNHTFsm-yv8wKRRbHpwbwKi4rwthxmEBJXRMKFUB-w6-8nZZ6NWKQ2oyW9FsYVEM4vs6brwPwrVMBSPI2yuOB1tkY-cQdnDnK4I8ktJ1suxpoHZ7k0qBBQUvMxHmqqiXRgNOUln0-Xz8VLqUgOtx80TSIwnn4UuVdgpoF1w__&Key-Pair-Id=K1VGYTHIYLM9UM",
+   "roughness": "https://assets.meshy.ai/8d4320d1-3e6b-4ae6-a775-7c5db5a7f36c/tasks/01a08d46-8948-75f2-b4f0-e9dbcf56c259/output/texture_0_roughness.png?Expires=4942598400&Signature=LTbkU8Az6cLksISRqioeNLsy4zwJa-fEBYg-0HXB6gBcajByJSkiVofTVgjOPrZIpnfUhF4Gok2oxt5cz1UFVavg-0Tuhu8NrhvZbX2UTm7RlPSTVratxQEgbd7VKrNUe1b-fBSIPEsPNVI5rfN4xTxlUXDjOq0Aq3kZ1aJzmbgnDe9Cu789-IkwjnSE~YCiOUgWkKEF5L33v17IZO2apFOecvniwlrDtz3n4FLaAS124~eMmhYpcvyjimniib0pbggYUGrH~7yBybiHnHJ3uph3bq4md25E-ZO1xfpEy-qTkNM8YNrVQhSEfM77gsyduIfEnuSPkaq3SvtGhzjTXg__&Key-Pair-Id=K1VGYTHIYLM9UM",
+   "normal": "https://assets.meshy.ai/8d4320d1-3e6b-4ae6-a775-7c5db5a7f36c/tasks/01a08d46-8948-75f2-b4f0-e9dbcf56c259/output/texture_0_normal.png?Expires=4942598400&Signature=bDybhogEFxHks4i6IqEaylCqMbvbz~lgbVqNoGmXs87c5THND7Sa7WvccwGiLvtC~phBpsk6ZUjwzN-AToDThOAEZz5ZsSJzoeeSgMCMy6j3s1n4PyRjyKeJPoL7L2U4YUcb69gYNsMvYPjT73kt4aPWuoBQbuIjpp86UEK7hn8-ASM-6cET-qwypjPRX33LfbDgdWkTvjKm696MMctyDLjVpwO2~7Squ~D9r4yYaNcBttxoxwU5T8Y1bjicojB2l01kCqdCW7uD8mhrMSjWp2ZNRlvpyt97Z-dMEMG1JewHVDJwLICvO6hh~CeefwOJtO7TTJ0JHllxj-za2yheNQ__&Key-Pair-Id=K1VGYTHIYLM9UM"
+  }
+ ],
+ "consumed_credits": 10
+}
