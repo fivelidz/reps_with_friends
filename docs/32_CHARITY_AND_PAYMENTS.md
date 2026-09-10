@@ -580,3 +580,124 @@ charity enters the eligible list.
 *Every `[VERIFY]` above is an explicit open question — none of them blocks the
 pilot architecture; several block specific later moves (store IAP, external
 links, fee rates). The one gate that blocks real money is L1 (docs/15).*
+
+---
+
+## ADDENDUM — THE GIVING-CIRCLE REFRAME (founder's call, 10 Sep)
+
+*"It's definitely not gambling. Could get this set up as a group subscription
+model where they choose where the money goes. So many ways to word this."*
+
+This is the primary launch shape now. It changes the legal character AND the
+business model:
+
+### The mechanic, reworded
+**OLD framing** (wager-adjacent — retire): "stake a charity pot on the battle,
+winner directs the winnings."
+**NEW framing**: **the crew subscribes together to collective giving** — each
+member commits a monthly amount, the crew picks its causes (or each member
+nominates one), and **the season's results steer which cause the pool
+supports**. Everyone's money reaches charity every month, no matter who wins;
+winning determines the *destination*, never the *recipient of money*.
+
+Why this is categorically safer:
+1. **No contingent loss** — a player's contribution never depends on their
+   result. Lose every battle, your $5 still reaches a charity (yours, or the
+   crew's). No stake, no prize, no wager.
+2. **No player ever receives money** — unchanged from before, now structural.
+3. **Subscription = giving-circle** — a known charitable structure (giving
+   circles are ACNC-recognised) vs "competition with a pot".
+
+### THE WORDING TABLE (load-bearing — use these, never those)
+
+| Concept | ✅ Say | ❌ Never |
+|---|---|---|
+| The pooled money | the **crew's giving pool** / monthly pool | pot, kitty, prize pool, winnings, jackpot |
+| What members do | **subscribe / contribute / chip in monthly** | wager, bet, stake, ante, gamble, risk |
+| What winning does | your season **directs the pool** / chooses the cause | wins the pool, takes the pot, cashes out |
+| The feature | **Crew Giving** / the crew's collective giving | charity betting, wager suite, stakes (for $) |
+| Personal stakes (dinner/dare) | the crew's **forfeit** / shout | (fine — no money involved) |
+| Points | points (earn-only) | credits, tokens, chips, coins |
+
+### Product shape (what gets built)
+- **Crew Giving setup** (replaces stake-setup for the $ path): monthly amount
+  per member (default $5) · cause-selection method (winner's cause by default
+  — the champion-of-your-cause moment survives intact · crew-vote for
+  corporate) · opt-in per member (never mandatory to play — the game is free,
+  giving is the crew's shared choice)
+- **The monthly moment**: season close → pool destination decided by the
+  season → receipt + impact card in the crew feed ("Your crew's September
+  pool — $38 to Beyond Blue, Dave's cause, directed by Alexei's season")
+- **Subscription billing**: web/PWA via Stripe (Payment Links →
+  Subscriptions when it ships); NEVER through the store apps (3.2.2(iv)
+  unchanged); merchant-of-record = charity platform at launch
+- **Free tier unchanged**: crews play free forever; giving is an opt-in layer
+
+### What this does to the founder decision list
+- The legal opinion scope NARROWS: "giving circle + game-steered allocation"
+  is a far cheaper opinion than "charity wager structure". Still get it — but
+  this wording may not even need one before pilot-adjacent testing with real
+  money [VERIFY with counsel]
+- Recurring revenue arrives EARLIER than the Pro subscription: crew giving
+  subscriptions are the first money, and the take-rate question becomes
+  " disclosed platform fee on the giving subscription" (the SOT's own §3.8
+  wording) rather than anything wager-shaped
+
+---
+
+## ADDENDUM — THE GIVING-CIRCLE REFRAME (founder's call, 10 Sep)
+
+*"It's definitely not gambling. Could get this set up as a group subscription
+model where they choose where the money goes. So many ways to word this."*
+
+This is the primary launch shape now. It changes the legal character AND the
+business model:
+
+### The mechanic, reworded
+**OLD framing** (wager-adjacent — retire): "stake a charity pot on the battle,
+winner directs the winnings."
+**NEW framing**: **the crew subscribes together to collective giving** — each
+member commits a monthly amount, the crew picks its causes (or each member
+nominates one), and **the season's results steer which cause the pool
+supports**. Everyone's money reaches charity every month, no matter who wins;
+winning determines the *destination*, never the *recipient of money*.
+
+Why this is categorically safer:
+1. **No contingent loss** — a player's contribution never depends on their
+   result. Lose every battle, your $5 still reaches a charity. No stake, no
+   prize, no wager.
+2. **No player ever receives money** — unchanged, now structural.
+3. **Subscription = giving-circle** — a known charitable structure (giving
+   circles are ACNC-recognised) vs "competition with a pot".
+
+### THE WORDING TABLE (load-bearing — use these, never those)
+
+| Concept | ✅ Say | ❌ Never |
+|---|---|---|
+| The pooled money | the **crew's giving pool** / monthly pool | pot, kitty, prize pool, winnings, jackpot |
+| What members do | **subscribe / contribute / chip in monthly** | wager, bet, stake, ante, gamble, risk |
+| What winning does | your season **directs the pool** / chooses the cause | wins the pool, takes the pot, cashes out |
+| The feature | **Crew Giving** / the crew's collective giving | charity betting, wager suite, $ stakes |
+| Personal stakes (dinner/dare) | the crew's **forfeit** / shout | (fine — no money involved) |
+| Points | points (earn-only) | credits, tokens, chips, coins |
+
+### Product shape (what gets built)
+- **Crew Giving setup** (replaces stake-setup for the $ path): monthly amount
+  per member (default $5) · cause-selection method (winner's cause default —
+  the champion-of-your-cause moment survives intact · crew-vote for
+  corporate) · opt-in per member (never mandatory — the game is free, giving
+  is the crew's shared choice)
+- **The monthly moment**: season close → destination decided by the season →
+  receipt + impact card in the feed ("Your crew's September pool — $38 to
+  Beyond Blue, Dave's cause, directed by Alexei's season")
+- **Billing**: web/PWA via Stripe (Payment Links → Subscriptions later);
+  NEVER through the store apps (3.2.2(iv) unchanged); charity platform as
+  merchant-of-record at launch
+- **Free tier unchanged**: crews play free forever; giving is an opt-in layer
+
+### What this does to the decision list
+- The legal opinion scope NARROWS: "giving circle + game-steered allocation"
+  is a far cheaper opinion than "charity wager structure" [VERIFY counsel]
+- Recurring revenue arrives EARLIER than Pro: crew giving subscriptions are
+  the first money, and the take-rate question becomes "disclosed platform fee
+  on the giving subscription" (the SOT's own §3.8 wording)
