@@ -1453,3 +1453,61 @@ if (modelGrid) {
     window.__rwfVault = cards; // test hook (same pattern as __rwfModels)
   }
 }
+
+// 3D CARDS — the full power-up deck as real meshes (2026-09-11,
+// site/models/cards3d.js). One lazy context for the whole 21-card wheel;
+// same contract as the vault strip above (IntersectionObserver + 3s
+// release + ctx budget). The REUSE showcase: v3 fans these cards over
+// every runner; this wheel is the deck-as-asset demo for other projects.
+// Self-contained append-only block.
+// ─────────────────────────────────────────────────────────────────────────────
+{
+  const grid = $('cards3dGrid');
+  if (grid) {
+    const { makeDeckDemo } = await import('/site/models/cards3d.js');
+    const W = 420, H = 460;
+
+    const card = document.createElement('article');
+    card.className = 'style-card style-card--model';
+    card.innerHTML = `
+      <div class="style-stage" style="display:flex;align-items:center;justify-content:center;min-height:${H}px"></div>
+      <div class="style-meta">
+        <h3>The deck — 21 cards, real meshes</h3>
+        <p class="style-blurb">Every kind from the SoT CARD_CATALOG: canon · series 2 · exercise · rivalry · proof · catch-up. Rarity edges glow (legendary shimmers); the back is the shared gold-filigree RWF monogram.</p>
+        <div class="model-btns">
+          <button class="rwf-btn btn--xs is-on" data-spin="1" title="slow wheel">spin</button>
+        </div>
+      </div>`;
+    grid.appendChild(card);
+    const stage = card.querySelector('.style-stage');
+
+    const demo = makeDeckDemo(stage, { W, H });
+
+    let releaseTimer = 0;
+    const ensure = () => { ctxMakeRoom(); demo.ensure(); };
+    const release = () => demo.release();
+    ctxRegister({ el: card, gl: () => demo.gl(), release, ensure });
+    new IntersectionObserver((es) => {
+      clearTimeout(releaseTimer);
+      if (es[0].isIntersecting) ensure();
+      else releaseTimer = setTimeout(release, 3000);
+    }, { threshold: 0 }).observe(card);
+
+    const spinBtn = card.querySelector('[data-spin]');
+    spinBtn?.addEventListener('click', () => {
+      demo.setSpin(!demo.spinning);
+      spinBtn.classList.toggle('is-on', demo.spinning);
+    });
+
+    let last = performance.now();
+    (function tick(now) {
+      requestAnimationFrame(tick);
+      const dt = Math.min(0.05, (now - last) / 1000); last = now;
+      if (demo.stats().live) demo.tick(now, dt);
+      const perf = $('cards3dPerf');
+      if (perf && demo.stats().live) perf.textContent = `${demo.stats().renderMs.toFixed(1)} ms/frame · ${demo.stats().cards} cards`;
+    })(last);
+
+    window.__rwfCards3d = demo; // test hook (same pattern as __rwfVault)
+  }
+}

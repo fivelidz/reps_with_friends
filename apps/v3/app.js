@@ -159,8 +159,17 @@ const CARD_ICONS = {
   shield: `<svg viewBox="0 0 24 24" aria-hidden="true"><path d="M12 2l8 3v6c0 5.2-3.4 8.8-8 11-4.6-2.2-8-5.8-8-11V5l8-3z" fill="currentColor" opacity="0.9"/><path d="M12 2l8 3v6c0 5.2-3.4 8.8-8 11-4.6-2.2-8-5.8-8-11V5l8-3z" fill="none" stroke="currentColor" stroke-width="1.6"/></svg>`,
   freeze: `<svg viewBox="0 0 24 24" aria-hidden="true"><path d="M12 1v22M2 6l20 12M22 6L2 18M12 1l-2.5 2.5M12 1l2.5 2.5M12 23l-2.5-2.5M12 23l2.5-2.5M2 6l3.4.4M2 6l.4 3.4M22 18l-3.4-.4M22 18l-.4-3.4M22 6l-3.4.4M22 6l-.4 3.4M2 18l3.4-.4M2 18l.4-3.4" stroke="currentColor" stroke-width="1.7" fill="none" stroke-linecap="round"/></svg>`,
 };
-/* glyph for the 3D billboard faces (canvas-safe) */
-const CARD_GLYPHS = { lightning: "⚡", steal: "💅", shield: "🛡", freeze: "❄" };
+/* glyph for the 3D card faces (canvas-safe) — the SoT CARD_ICONS set:
+   all 21 deck kinds, matching site/models/cards3d.js's DECK art */
+const CARD_GLYPHS = {
+  lightning: "⚡", steal: "🥷", shield: "🛡", freeze: "❄",
+  combo_boost: "🔥", double_down: "🎲", assist_boost: "🤝",
+  surprise_bomb: "💣", rescue_rope: "🪢", shield_bash: "🔨",
+  double_exercise: "🏋️", specialist: "🎯", wildcard_workout: "🃏",
+  rivalry: "⚔️", training_partners: "🤜", pack_bond: "🐺",
+  prove_it: "📋", spot_check: "🔍",
+  second_wind: "💨", mulligan: "🔄", underdog: "🐕",
+};
 const RAR_COL = { common: "#9aa7a0", rare: "#6ec1ff", epic: "#b78cff", legendary: "#ffc941" };
 
 /* ═══════════════════════ commentary feed (in-memory, per battle) ══════ */
@@ -645,7 +654,8 @@ function openCardSheet(matchId, cardEl) {
       </div>
     </div>`);
 
-  $("#playIt").onclick = () => {
+  // scoped to THIS sheet — a global #playIt query could catch a stale one
+  sheetEl.querySelector("#playIt").onclick = () => {
     closeSheet();
     playCard(matchId, kind, cardEl);
   };
@@ -679,12 +689,13 @@ function playCard(matchId, kind, cardEl) {
   fly.style.cssText = `position:fixed;left:${rect.left}px;top:${rect.top}px;width:${rect.width}px;height:${rect.height}px;z-index:70;--fly-dx:0px;--fly-dy:-42vh;`;
   fly.innerHTML = cardEl.querySelector(".bd-card__inner").outerHTML;
   document.body.appendChild(fly);
-  slot.remove();
   fly.addEventListener("animationend", () => fly.remove(), { once: true });
+  setTimeout(() => fly.remove(), 1400); // safety net — animationend can stall (0.95s anim)
 
-  /* 3D mirror: the billboard card over your runner flies up + bursts */
+  /* 3D mirror: the real card lifts out of the fan, flies to your runner's
+     head and bursts (rarity-coloured — CARDS3D + the confetti language) */
   course?.playCardFx(state.player.id, {
-    name: E.POWER_UPS[kind].name, glyph: CARD_GLYPHS[kind], rarity: E.POWER_UPS[kind].rarity,
+    kind, name: E.POWER_UPS[kind].name, glyph: CARD_GLYPHS[kind], rarity: E.POWER_UPS[kind].rarity,
   });
 
   afterAction(matchId);
@@ -780,8 +791,15 @@ function afterAction(matchId, opts = {}) {
 
 /* ═══════════════════════ SHEETS ═══════════════════════════════════════ */
 let sheetEl = null;
+const closingSheets = new Set(); // animated closers — linger ~400ms mid-fade
 function openSheet(inner) {
   closeSheet(true);
+  // purge lingering closers BEFORE building the new sheet: a stale sheet's
+  // #playIt would shadow the fresh one (querySelector finds the first) and
+  // the new sheet's Play button would be born unbound. Seen headless; also
+  // reachable on a phone when tapping card B while card A's sheet fades.
+  for (const el of closingSheets) el.remove();
+  closingSheets.clear();
   sheetEl = document.createElement("div");
   sheetEl.className = "bd-sheet";
   sheetEl.innerHTML = `<div class="bd-sheet__veil"></div><div class="bd-sheet__panel">${inner}</div>`;
@@ -793,7 +811,11 @@ function closeSheet(instant = false) {
   const el = sheetEl; sheetEl = null;
   if (instant) return el.remove();
   el.classList.add("is-closing");
-  el.addEventListener("animationend", () => el.remove(), { once: true });
+  closingSheets.add(el);
+  el.addEventListener("animationend", () => { el.remove(); closingSheets.delete(el); }, { once: true });
+  // safety net: animationend stalls on starved GPUs / frozen tabs — never
+  // let a closing sheet linger past its welcome (seen headless)
+  setTimeout(() => { el.remove(); closingSheets.delete(el); }, 500);
 }
 
 /* LOG REPS — ≤3 taps: exercise, step, LOG IT (both pre-selected) */
@@ -1094,6 +1116,38 @@ window.__rwfV3 = {
   modelsReady: () => course?.modelsReady ?? false,
   frameMs: () => course?.frameMs() ?? -1,
   fxPlayed: () => course?.fxPlayed ?? 0,
+  /* CARDS3D probes — real card meshes over the runners */
+  cards3d: () => course?.cards3dStats() ?? null,
+  cardScreen: (pid, idx) => course?.cardScreen(pid, idx) ?? null,
+  /* e2e driver: play a held card through the REAL state layer (what the
+     sheet's Play button calls) — returns the engine verdict + reason */
+  drivePlay: (kind) => {
+    const state = S.load();
+    const m = S.currentMatch(state);
+    if (!m || m.status !== "live") return { ok: false, reason: "not live" };
+    const r = S.boardPlayInMatch(m.config.id, { kind });
+    if (r.result.ok) {
+      feedPush(m.config.id, `<b>CARD</b> — you play ${esc(E.POWER_UPS[kind].name)}`);
+      course?.playCardFx(state.player.id, {
+        kind, name: E.POWER_UPS[kind].name, glyph: CARD_GLYPHS[kind], rarity: E.POWER_UPS[kind].rarity,
+      });
+      afterAction(m.config.id);
+    }
+    return { ok: r.result.ok, reason: r.result.reason ?? null, spent: r.spent };
+  },
+  /* e2e driver: deal n random power-ups to any runner (hand-cap scenes) */
+  dealTo: (pid, n = 1) => {
+    const state = S.load();
+    const m = S.currentMatch(state);
+    if (!m || m.status !== "live") return { ok: false, reason: "not live" };
+    const granted = [];
+    for (let i = 0; i < n; i++) {
+      const g = S.grantRandomTo(m.config.id, pid);
+      if (g) granted.push(g.kind);
+    }
+    afterAction(m.config.id);
+    return { ok: granted.length > 0, granted };
+  },
   potTotal: () => {
     const m = S.currentMatch(S.load());
     return m?.board?.pot ?? -1;

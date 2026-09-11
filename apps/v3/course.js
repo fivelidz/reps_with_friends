@@ -19,9 +19,14 @@
                     Comeback-armed → gold lightning ring at the feet;
                     lightning live → gold trail behind the runner;
                     shielded → blue shell.
-     · POWER-UPS    billboard card-sprites (canvas textures: name +
-                    icon + rarity) floating + bobbing over each runner.
-                    Playing one: the card flies up and BURSTS.
+     · POWER-UPS    REAL 3D CARD MESHES (site/models/cards3d.js — the
+                    reusable asset): rounded-rect cards, canvas faces,
+                    rarity-tinted edges, fanned over each runner. Deal
+                    arcs in from the pot deck anchor; hover lifts + names
+                    the card; playing one flies it to the runner's head
+                    and BURSTS (rarity-coloured confetti).
+     · DRESSING     meshy-vault props on the infield (hurdles) — lazy
+                    GLB, graceful skip if the load fails.
      · CHARITY POT  a trophy pedestal just past the finish — chip
                     stacks (gold/blue/red/white by denomination, engine
                     chipMix) grow with every contribution.
@@ -47,6 +52,10 @@
 
 import * as THREE from "three";
 import { OrbitControls } from "three/addons/controls/OrbitControls.js";
+// CARDS3D — the reusable 3D power-up card asset (site/models/cards3d.js):
+// real card meshes (rounded-rect, bevelled edge, canvas faces) replacing
+// the billboard sprites. Founder: "assets we can reuse".
+import { makeCard, getDef, burst as cardsBurst, stepBursts } from "/site/models/cards3d.js";
 
 /* ── course geometry constants (world units ≈ metres) ─────────────────── */
 export const COURSE_LEN = 28;   // start line → finish line (table-top footprint
@@ -182,7 +191,9 @@ function laneStripeTexture(hex, idx) {
   return tex;
 }
 
-/** rounded-rect card face texture for the power-up billboards */
+/** rounded-rect card face texture for the power-up billboards
+    (SUPERSEDED by site/models/cards3d.js — kept: never delete, and the
+    "cardup" fx path may still reference it) */
 function cardTexture(name, glyph, rarHex) {
   const W = 256, H = 352;
   const c = document.createElement("canvas");
@@ -314,6 +325,17 @@ export class Course3D {
     this.runners = new Map();      // pid → runner state
     this.fx = [];                  // transient sprites {spr, vel, t, dur, kind}
     this.trail = [];               // lightning trail sprites
+    /* CARDS3D state — hover raycast, play-burst sparks, deal counters */
+    this._ray = new THREE.Raycaster();
+    this._hover = null;            // { pid, idx, card } | null
+    this._hoverLabel = null;       // lazily-built name-label sprite
+    this._burstSprites = [];       // cards3d.burst() list, stepped each frame
+    this._flying = [];             // cards in flight/discard (update-driven after leaving the fan)
+    this._dealCount = 0;
+    this._burstCount = 0;
+    this._lastPlay = null;
+    this._deckAnchor = new THREE.Vector3(0, 1.5, POT_Z + 1.6); // the deck sits near the pot
+    this._hurdles = [];            // meshy vault dressing (infield decor)
     this.mode = "table";           // table | stadium | follow | podium
     this.modelsReady = false;
     this.disposed = false;
@@ -399,6 +421,72 @@ export class Course3D {
     this.controls.enabled = false; // TABLE/STADIUM/FOLLOW drive the camera; podium owns it
 
     this._wireTableGestures();
+    this._wireCardHover();
+  }
+
+  /* ── CARDS3D hover: raycast the fan cards on pointer move ──────────────
+     Hover lifts the card (Cards3D state) and floats its name label above
+     it. Active in every camera mode; suppressed while table-panning. */
+  _wireCardHover() {
+    const el = this.renderer.domElement;
+    const move = (e) => {
+      if (this.disposed) return;
+      if (this._ptrs && this._ptrs.size > 0) return; // mid-pan/pinch — no hover
+      const r = el.getBoundingClientRect();
+      const ndc = new THREE.Vector2(
+        ((e.clientX - r.left) / r.width) * 2 - 1,
+        -((e.clientY - r.top) / r.height) * 2 + 1
+      );
+      this._ray.setFromCamera(ndc, this.camera);
+      const hits = [];
+      for (const [pid, rn] of this.runners) {
+        for (let i = 0; i < (rn.cards?.length ?? 0); i++) {
+          const card = rn.cards[i];
+          if (card.mode !== "idle") continue;
+          for (const m of card.hitMeshes) hits.push(m);
+        }
+      }
+      const hit = this._ray.intersectObjects(hits, false)[0];
+      const found = hit
+        ? { pid: hit.object.userData.pid, idx: hit.object.userData.idx, card: hit.object.userData.cardRef }
+        : null;
+      this._setHover(found);
+    };
+    el.addEventListener("pointermove", move);
+    el.addEventListener("pointerleave", () => this._setHover(null));
+  }
+
+  _setHover(found) {
+    const prev = this._hover;
+    if (prev && (!found || found.card !== prev.card)) prev.card.setHover(false);
+    this._hover = found && found.card ? found : null;
+    if (this._hover) {
+      this._hover.card.setHover(true);
+      this._paintHoverLabel(this._hover);
+    } else if (this._hoverLabel) {
+      this._hoverLabel.visible = false;
+    }
+    this.dirty = true;
+  }
+
+  _paintHoverLabel({ pid, idx }) {
+    const r = this.runners.get(pid);
+    const card = r?.cards?.[idx];
+    if (!card) return;
+    if (!this._hoverLabel) {
+      this._hoverLabel = new THREE.Sprite(new THREE.SpriteMaterial({ transparent: true, depthWrite: false }));
+      this._hoverLabel.scale.set(2.2, 0.5, 1);
+      this.scene.add(this._hoverLabel);
+    }
+    const tex = labelTexture([card.def.name.toUpperCase()], {
+      accent: this.rarHex(card.def.rarity),
+      bg: "rgba(8,10,13,0.78)",
+    });
+    this._hoverLabel.material.map?.dispose();
+    this._hoverLabel.material.map = tex;
+    this._hoverLabel.material.needsUpdate = true;
+    this._hoverLabel.visible = true;
+    this.dirty = true;
   }
 
   /* ── TABLE gestures: drag to pan the table · pinch/wheel zoom ──────── */
@@ -992,46 +1080,138 @@ export class Course3D {
     this.dirty = true;
   }
 
-  /** held power-ups → billboard cards over the runner */
+  /** held power-ups → REAL 3D cards fanned over the runner
+      (site/models/cards3d.js — shared geometry, cached textures).
+      A kind that wasn't in the previous hand DEALS in: arc from the deck
+      anchor near the pot, full spin, staggered — the day-open moment. */
   setCards(pid, cards) {
     // cards: [{kind, name, glyph, rarity}]
     const r = this.runners.get(pid);
     if (!r) return;
     const sig = cards.map((c) => c.kind).join(",");
     if (r._cardsSig === sig) return;
+    const prevKinds = (r._cardsSig ?? "").split(",").filter(Boolean);
     r._cardsSig = sig;
-    for (const spr of r.cards) {
-      spr.material.map?.dispose(); spr.material.dispose();
-      r.cardsGroup.remove(spr);
-    }
+    // retire the old fan (legendary edge clones only; shared assets persist)
+    for (const card of r.cards) { card.dispose(); r.cardsGroup.remove(card.group); }
+    const mid = (cards.length - 1) / 2;
+    const spacing = cards.length > 3 ? 2.76 / Math.max(1, cards.length - 1) : 0.92; // hand cap 3 comfortable
+    let dealIdx = 0;
     r.cards = cards.map((c, i) => {
-      const spr = new THREE.Sprite(new THREE.SpriteMaterial({
-        map: cardTexture(c.name, c.glyph, this.rarHex(c.rarity)),
-        transparent: true, depthWrite: false,
-      }));
-      spr.scale.set(0.86, 1.18, 1);
-      spr.position.x = (i - (cards.length - 1) / 2) * 0.92;
-      spr.userData.phase = i * 1.3;
-      r.cardsGroup.add(spr);
-      return spr;
+      // DECK (SoT CARD_CATALOG mirror) is the face-art source of truth;
+      // ad-hoc kinds fall back to the passed name/rarity.
+      const known = !!getDef(c.kind)?.id && getDef(c.kind).name !== c.kind;
+      const card = makeCard(known ? getDef(c.kind) : { id: c.kind, name: c.name, glyph: c.glyph, rarity: c.rarity }, { phase: i * 1.3, scene: this.scene });
+      card.group.position.set((i - mid) * spacing, 0, -Math.abs(i - mid) * 0.12);
+      card.setTilt((mid - i) * 0.1);
+      card.hitMeshes.forEach((m) => {
+        m.userData.pid = pid;
+        m.userData.idx = i;
+        m.userData.cardRef = card;
+      });
+      r.cardsGroup.add(card.group);
+      if (!prevKinds.includes(c.kind)) {
+        // NEW card → the deal moment (arc in from the deck by the pot)
+        card.deal(this._deckAnchor, { dur: 0.6, delay: dealIdx++ * 0.14 });
+        this._dealCount++;
+      }
+      return card;
     });
     this.dirty = true;
   }
 
-  /** card played → it flies up + bursts */
-  playCardFx(pid, { name, glyph, rarity }) {
+  /** card played → the REAL card lifts out of the fan, flies to the
+      runner's head and BURSTS (rarity-coloured sparks + confetti). */
+  playCardFx(pid, { kind, name, glyph, rarity }) {
     this.fxPlayed = (this.fxPlayed ?? 0) + 1; // probe: 3D play fx observed
     const r = this.runners.get(pid);
     if (!r) return;
-    const spr = new THREE.Sprite(new THREE.SpriteMaterial({
-      map: cardTexture(name, glyph, this.rarHex(rarity)),
-      transparent: true, depthWrite: false,
-    }));
-    spr.scale.set(0.86, 1.18, 1);
-    spr.position.set(r.group.position.x, 3.0, r.group.position.z);
-    this.scene.add(spr);
-    this.fx.push({ spr, t: 0, dur: 0.85, kind: "cardup", vel: new THREE.Vector3(0, 2.6, 0) });
+    const rarHex = this.rarHex(rarity);
+    let card = kind ? r.cards.find((c) => c.id === kind && c.mode === "idle") : null;
+    if (this._hover && card && this._hover.card === card) this._setHover(null); // hovered card left the hand
+    if (!card) {
+      // no matching fan card (e.g. fx replayed) — conjure one at the fan
+      card = makeCard(getDef(kind) ?? { id: kind, name, glyph, rarity }, { phase: 0, scene: this.scene });
+      card.group.position.copy(r.cardsGroup.position);
+      r.group.add(card.group);
+    } else {
+      // re-slot to the scene for the flight (play() reparents internally)
+      card.group.position.copy(card.group.getWorldPosition(new THREE.Vector3()));
+      r.cardsGroup.remove(card.group);
+      r.group.add(card.group);
+      r.cards = r.cards.filter((c) => c !== card);
+      this._refan(r);
+      r._cardsSig = r.cards.map((c) => c.id).join(",");
+    }
+    const from = card.group.position.clone();
+    const fromY = +(r.group.position.y + from.y).toFixed(2);
+    const head = new THREE.Vector3(0, 3.2, 0); // just above the runner's head — the burst rains down
+    this._flying.push(card); // off the fan — the step loop now drives its tween
+    card.play(r.group.localToWorld(head.clone()), {
+      dur: 0.5,
+      onArrive: (grp, def) => {
+        card._arrived = true;
+        const at = grp.getWorldPosition(new THREE.Vector3());
+        // rarity-coloured burst: sparks + a confetti puff (the fx language)
+        cardsBurst(this.scene, at, rarHex, 16, this._burstSprites);
+        this._burstCount += 16;
+        this._confettiPuff(at, rarHex);
+        this._lastPlay = {
+          kind: def.id, rarity,
+          fromY,
+          toY: +at.y.toFixed(2),
+          rise: +(at.y - fromY).toFixed(2),
+          dist: +Math.hypot(at.x - r.group.position.x, at.z - r.group.position.z).toFixed(2),
+          sparks: 16,
+        };
+        grp.removeFromParent();
+        card.dispose();
+        this.dirty = true;
+      },
+    });
     this.dirty = true;
+  }
+
+  /** re-fan the remaining cards after one leaves the hand */
+  _refan(r) {
+    const n = r.cards.length;
+    const mid = (n - 1) / 2;
+    const spacing = n > 3 ? 2.76 / Math.max(1, n - 1) : 0.92;
+    r.cards.forEach((card, i) => {
+      card.group.position.set((i - mid) * spacing, 0, -Math.abs(i - mid) * 0.12);
+      card.setTilt((mid - i) * 0.1);
+      card.hitMeshes.forEach((m) => { m.userData.idx = i; });
+    });
+    if (this._hover?.card) {
+      const idx = r.cards.indexOf(this._hover.card);
+      if (idx >= 0) this._hover.idx = idx;
+      else this._setHover(null);
+    }
+  }
+
+  /** small rarity-coloured confetti puff (reuses the confetti sprites) */
+  _confettiPuff(pos, rarHex) {
+    const col = new THREE.Color(rarHex);
+    const cols = [col, col.clone().multiplyScalar(0.8), new THREE.Color(0xffffff)];
+    for (let i = 0; i < 12; i++) {
+      const mat = new THREE.SpriteMaterial({
+        map: confettiTexture(),
+        color: cols[i % cols.length],
+        transparent: true, opacity: 0.96, depthWrite: false,
+      });
+      mat.rotation = Math.random() * Math.PI;
+      const spr = new THREE.Sprite(mat);
+      spr.scale.set(0.08 + Math.random() * 0.07, 0.16 + Math.random() * 0.1, 1);
+      spr.position.copy(pos);
+      this.scene.add(spr);
+      const a = Math.random() * Math.PI * 2;
+      const v = 1.4 + Math.random() * 1.8;
+      this.fx.push({
+        spr, t: 0, dur: 1.0 + Math.random() * 0.4, kind: "confetti",
+        vel: new THREE.Vector3(Math.cos(a) * v, 1.8 + Math.random() * 1.8, Math.sin(a) * v),
+        spin: (Math.random() - 0.5) * 6,
+      });
+    }
   }
 
   repsBurst(pid, reps, accent = "#c6f32e") {
@@ -1203,6 +1383,47 @@ export class Course3D {
     return { x: +v.x.toFixed(3), y: +v.y.toFixed(3) };
   }
 
+  /** NDC of a fanned card (hover-raycast e2e aims the pointer with this) */
+  cardScreen(pid, idx) {
+    const r = this.runners.get(pid);
+    const card = r?.cards?.[idx];
+    if (!card || !this.camera) return null;
+    const v = card.group.getWorldPosition(new THREE.Vector3());
+    v.y += 0.1;
+    v.project(this.camera);
+    return { x: +v.x.toFixed(3), y: +v.y.toFixed(3) };
+  }
+
+  /** CARDS3D audit — mesh counts, fan layout, hover, deal/play counters */
+  cards3dStats() {
+    const byRunner = {};
+    let total = 0, meshes = 0;
+    for (const [pid, r] of this.runners) {
+      const cards = r.cards ?? [];
+      total += cards.length;
+      meshes += cards.length * 3; // core + front + back
+      byRunner[pid] = {
+        n: cards.length,
+        kinds: cards.map((c) => c.id),
+        xs: cards.map((c) => +c.group.position.x.toFixed(3)),
+        lifted: cards.map((c) => c.hovered),
+      };
+    }
+    return {
+      total, meshes, byRunner,
+      hover: this._hover
+        ? { pid: this._hover.pid, idx: this._hover.idx, id: this._hover.card.id, lifted: this._hover.card.hovered }
+        : null,
+      hoverLabelVisible: !!(this._hoverLabel?.visible),
+      deals: this._dealCount ?? 0,
+      plays: this.fxPlayed ?? 0,
+      lastPlay: this._lastPlay,
+      bursts: this._burstCount ?? 0,
+      sparkSprites: this._burstSprites.length,
+      hurdles: this._hurdles.length,
+    };
+  }
+
   _leader() {
     let best = null;
     for (const [, r] of this.runners) {
@@ -1248,8 +1469,47 @@ export class Course3D {
       this.modelsReady = true;
       this.dirty = true;
       this.onModelsReady?.();
+      this.loadDressing(); // infield hurdles ride the same lazy loader
     } catch { /* WebGL/model trouble — capsules carry the game */ }
     this._avatarsLoading = false;
+  }
+
+  /* ── infield dressing: meshy-vault hurdle props (decor, static) ────────
+     The founder: "not the worst having 3d models for hurdles … assets we
+     can reuse." Lazy GLB (1 MB, preview mesh — tinted vault-red), placed
+     on the grass margins beside the lanes. Any failure = graceful skip:
+     the course never depends on decor. */
+  async loadDressing() {
+    if (this._dressingLoading || this.disposed || this._hurdles.length) return;
+    this._dressingLoading = true;
+    try {
+      const MA = this._MA ?? await import("/site/model-avatars.js");
+      if (this.disposed) return;
+      const proto = await MA.loadModel("/models/meshy/wave2/hurdle.glb");
+      if (this.disposed) return;
+      const spots = [
+        { x: -4.55, z: START_Z - 7.5, ry: Math.PI / 2 + 0.14 },
+        { x: 4.55, z: START_Z - 14.5, ry: -Math.PI / 2 - 0.1 },
+        { x: -4.55, z: START_Z - 21.5, ry: Math.PI / 2 - 0.12 },
+      ];
+      for (const s of spots) {
+        const h = proto.clone(true);
+        MA.applyFlatTint(h, "#d8434e"); // preview mesh — vault red until a refine
+        // ground-centre + normalise to a real hurdle's ~1.07 m
+        const box = new THREE.Box3().setFromObject(h);
+        const size = new THREE.Vector3();
+        box.getSize(size);
+        const sc = 1.07 / Math.max(0.01, size.y);
+        h.scale.setScalar(sc);
+        h.position.set(s.x, TRACK_TOP, s.z);
+        h.rotation.y = s.ry;
+        h.traverse((o) => { if (o.isMesh) { o.castShadow = false; o.receiveShadow = false; } });
+        this.scene.add(h);
+        this._hurdles.push(h);
+      }
+      this.dirty = true;
+    } catch { /* decor only — skip gracefully (GLB heavy/route absent) */ }
+    this._dressingLoading = false;
   }
 
   _genoTint(tier) {
@@ -1333,10 +1593,12 @@ export class Course3D {
         r.shield.scale.setScalar(1 + Math.sin(now * 2.2 + r.bobPhase) * 0.04);
       }
 
-      // cards bob
+      // CARDS3D — per-card drive (idle bob, hover lift, deal/play tweens,
+      // face-the-camera). Reduced motion: cards only advance when a render
+      // is actually due (this.dirty), so pointer hover still lifts them.
+      const cardDt = this.reduced ? (this.dirty ? Math.min(dt || 0.016, 0.05) : 0) : dt;
       for (const c of r.cards) {
-        c.position.y = Math.sin(now * 2.1 + c.userData.phase) * 0.07;
-        c.material.rotation = Math.sin(now * 1.35 + c.userData.phase) * 0.055;
+        c.update(cardDt, { camera: this.camera, now });
       }
 
       // lightning live → gold trail
@@ -1358,6 +1620,13 @@ export class Course3D {
       }
 
       if (!leader || r.t > leader.t) leader = r;
+    }
+
+    // cards off the fan (play flight, discard toss) — still tween-driven
+    for (let i = this._flying.length - 1; i >= 0; i--) {
+      const c = this._flying[i];
+      c.update(this.reduced ? (this.dirty ? Math.min(dt || 0.016, 0.05) : 0) : dt, { now });
+      if (c._arrived || c.mode === "done") this._flying.splice(i, 1);
     }
 
     for (const [, r] of this.runners) {
@@ -1462,6 +1731,23 @@ export class Course3D {
         tr.spr.material.dispose();
         this.scene.remove(tr.spr);
         this.trail.splice(i, 1);
+      }
+    }
+
+    // CARDS3D play-burst sparks (same reduced-motion gate as the cards)
+    if (this._burstSprites.length) {
+      stepBursts(this._burstSprites, this.reduced ? (this.dirty ? 0.033 : 0) : dt);
+    }
+
+    // the hover label rides above its card
+    if (this._hoverLabel?.visible && this._hover) {
+      const r = this.runners.get(this._hover.pid);
+      const card = r?.cards?.[this._hover.idx];
+      if (card) {
+        const wp = card.group.getWorldPosition(new THREE.Vector3());
+        this._hoverLabel.position.set(wp.x, wp.y + 0.66, wp.z);
+      } else {
+        this._hoverLabel.visible = false;
       }
     }
   }
@@ -1575,12 +1861,18 @@ export class Course3D {
       this.renderer.domElement?.remove();
       this.renderer = null;
     }
-    // free GPU resources
+    // free GPU resources — but SKIP the shared CARDS3D cache (flagged
+    // __rwfShared in site/models/cards3d.js): geometry/materials/textures
+    // survive the route change and re-upload for free on the next mount.
     this.scene?.traverse((o) => {
-      o.geometry?.dispose?.();
+      if (o.geometry && !o.geometry.__rwfShared) o.geometry.dispose?.();
       if (o.material) {
         const mats = Array.isArray(o.material) ? o.material : [o.material];
-        for (const m of mats) { m.map?.dispose?.(); m.dispose?.(); }
+        for (const m of mats) {
+          if (m.__rwfShared) continue;
+          if (m.map && !m.map.__rwfShared) m.map.dispose?.();
+          m.dispose?.();
+        }
       }
     });
     _glowTex = null;

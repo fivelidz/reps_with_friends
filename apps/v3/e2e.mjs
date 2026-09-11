@@ -269,9 +269,17 @@ await evalJs(`document.querySelector('[data-step="25"]').click(); true`);
 await sleep(150);
 await shot("logsheet");
 await click("#logGo");
-await sleep(1600); // runner lerp (~0.95s) + settle
-const posAfter = await call("runnerPos('you')");
-const prog = await call("progressOf('you')");
+// the runner lerp is dt-clamped: under CPU starvation sim-time runs slower
+// than wall-time — settle by POLLING to the expected position (same physics
+// assertion, load-tolerant wait; idle machines pass on the first sample)
+let posAfter = null, prog = null;
+for (let i = 0; i < 24; i++) {
+  await sleep(250);
+  posAfter = await call("runnerPos('you')");
+  prog = await call("progressOf('you')");
+  const expectedZ = START_Z - prog * COURSE;
+  if (Math.abs(posAfter.z - expectedZ) < COURSE * 0.03 && Math.abs(posAfter.z - posBefore.z) > 2) break;
+}
 const expectedZ = START_Z - prog * COURSE;
 ok(Math.abs(posAfter.z - expectedZ) < COURSE * 0.03,
    `world z matches progress % (z=${posAfter.z.toFixed(2)} vs expected ${expectedZ.toFixed(2)} · ${(prog * 100).toFixed(1)}%)`);
@@ -292,6 +300,38 @@ const hand1 = await call("handKinds()");
 ok(hand1.length === hand0.length + 1, `daily drop dealt (${hand0.length} → ${hand1.length})`);
 await shot("battle-dealt");
 
+console.log("— 3D POWER-UP CARDS (real card meshes — site/models/cards3d.js)");
+const c3 = await call("cards3d()");
+ok(c3 && c3.total >= 2 && c3.total === c3.byRunner.you.n + Object.entries(c3.byRunner).filter(([pid]) => pid !== "you").reduce((a, [, r]) => a + r.n, 0),
+   `real card meshes fanned over the runners (${c3?.total} cards · ${c3?.meshes} meshes — your 2-card hand + mates' drafts; mates may have played cards in the sim)`);
+ok(c3.byRunner.you.n === 2 && c3.meshes === c3.total * 3, `your hand renders as 2 real card meshes (${c3.byRunner.you.kinds.join(", ")}) — 3 meshes per card`);
+ok(Object.values(c3?.byRunner ?? {}).every((r) => r.n === 0 || r.xs.length === r.n), "every held card is a positioned mesh in its runner's fan");
+{
+  // fan geometry: cards symmetric about the runner axis, distinct slots
+  const youFan = c3.byRunner.you;
+  const mean = youFan.xs.reduce((a, b) => a + b, 0) / youFan.xs.length;
+  ok(Math.abs(mean) < 0.05, `your fan is centred on the runner (mean Δx=${mean.toFixed(3)})`);
+  ok(new Set(youFan.xs).size === youFan.xs.length, "fan slots are distinct (no stacked cards)");
+  ok(c3.deals >= 5, `the DEAL moment ran (day-open draft + daily drop → ${c3.deals} deal arcs from the pot deck)`);
+}
+{
+  // hover — raycast the pointer onto your first card
+  const sp = await call("cardScreen('you', 0)");
+  ok(!!sp && Math.abs(sp.x) <= 1 && Math.abs(sp.y) <= 1, `your first card is on-frame (NDC ${sp?.x},${sp?.y})`);
+  const rect = await evalJs(`(() => { const r = document.querySelector('#gl canvas').getBoundingClientRect(); return JSON.stringify({ l: r.left, t: r.top, w: r.width, h: r.height }); })()`);
+  const { l, t, w, h } = JSON.parse(rect);
+  const cx = l + ((sp.x + 1) / 2) * w, cy = t + (1 - (sp.y + 1) / 2) * h;
+  await evalJs(`document.querySelector('#gl canvas').dispatchEvent(new PointerEvent('pointermove', { clientX: ${cx.toFixed(1)}, clientY: ${cy.toFixed(1)}, bubbles: true })); true`);
+  await sleep(500); // lift tween (280ms) + label
+  const hov = await call("cards3d()");
+  ok(hov.hover && hov.hover.pid === "you" && hov.hover.lifted === true, `hover raycast lifts the card (${hov.hover ? `${hov.hover.id} lifted=${hov.hover.lifted}` : "no hover"})`);
+  ok(hov.hoverLabelVisible === true, "hover floats the card name label");
+  await evalJs(`document.querySelector('#gl canvas').dispatchEvent(new PointerEvent('pointermove', { clientX: 4, clientY: 4, bubbles: true })); true`);
+  await sleep(400);
+  ok((await call("cards3d()")).hover === null, "hover clears off-card");
+}
+await shot("battle-cards3d");
+
 console.log("— PLAY A CARD (CSS-3D flight + 3D billboard burst + engine effect)");
 // play the cheapest affordable card (shield 10 → freeze 15 → steal 30 → lightning 50)
 let played = null;
@@ -301,15 +341,20 @@ for (const kind of ["shield", "freeze", "steal", "lightning"]) {
   if (idx < 0) continue;
   await evalJs(`document.querySelectorAll('#hand .bd-card')[${idx}].click(); true`);
   await sleep(240);
-  if (await evalJs(`!document.querySelector('#playIt')?.disabled`)) {
-    const fx0 = await call("fxPlayed()");
-    await evalJs(`(() => { window.__playSeen = false; const iv = setInterval(() => { if (document.querySelector('.bd-card.is-playing')) window.__playSeen = true; }, 25); setTimeout(() => clearInterval(iv), 1600); return true; })()`);
-    await shot("cardsheet");
-    await click("#playIt");
-    await sleep(300);
-    ok(await evalJs(`window.__playSeen === true`), "CSS card play animation fires (.is-playing flip+fly)");
+    if (await evalJs(`!document.querySelector('#playIt')?.disabled`)) {
+      const fx0 = await call("fxPlayed()");
+      await evalJs(`(() => { window.__playSeen = false; const iv = setInterval(() => { if (document.querySelector('.bd-card.is-playing')) window.__playSeen = true; }, 25); setTimeout(() => clearInterval(iv), 4000); return true; })()`);
+      await shot("cardsheet");
+      await click("#playIt");
+      await sleep(300);
+      ok(await evalJs(`window.__playSeen === true`), "CSS card play animation fires (.is-playing flip+fly)");
     await sleep(1100);
-    ok((await call("fxPlayed()")) > fx0, "3D billboard play fx fired (card flies up + bursts over the runner)");
+    ok((await call("fxPlayed()")) > fx0, "3D card play fx fired (the card flies from the fan to the runner's head + bursts)");
+    // the flight completes whenever the frame clock gets CPU — poll, don't guess
+    let played3d = null;
+    for (let i = 0; i < 30 && !(played3d?.lastPlay); i++) { played3d = await call("cards3d()"); if (!played3d?.lastPlay) await sleep(200); }
+    ok(played3d.lastPlay && played3d.lastPlay.rise > 0.3, `card flight covered real distance (rise ${played3d.lastPlay?.rise ?? "?"} units to the runner's head)`);
+    ok(played3d.bursts >= 16, `rarity-coloured burst particles exist (${played3d.bursts} sparks spawned across the run)`);
     played = kind;
     break;
   }

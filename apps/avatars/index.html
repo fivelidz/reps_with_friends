@@ -115,6 +115,27 @@
     </p>
   </section>
 
+  <!-- ── 3D CARDS — the power-up deck as real meshes (site/models/cards3d.js) -->
+  <section class="studio-section" id="cards3dSection">
+    <div class="section-head">
+      <h2>3D cards — the power-up deck as real meshes</h2>
+      <p class="section-sub">
+        The reusable card ASSET from <code>site/models/cards3d.js</code>: all
+        21 deck kinds (the SoT CARD_CATALOG) as bevelled rounded-rect meshes
+        with procedural canvas faces — 256×358 sports-poster art, rarity
+        borders, cost pips — and the shared gold-filigree RWF back. Real
+        geometry, zero image textures. The v3 battle course fans these over
+        every runner (deal / hover / play / discard); this wheel is the
+        reuse demo for other projects.
+      </p>
+    </div>
+    <div class="style-grid" id="cards3dGrid"></div>
+    <p class="gallery-foot">
+      <span class="hud-chip hud-chip--dim" id="cards3dPerf">— ms/frame</span>
+      <span class="gallery-note">One lazy WebGL context for the whole wheel (released 3 s off-screen, page budget respected) · slow rotation shows every face + the legendary gold shimmer · <code>makeCard(id)</code> is the whole API.</span>
+    </p>
+  </section>
+
   <!-- ── PHOTO AVATARS — img2threejs-style code-only avatars (docs/23 §3) ── -->
   <section class="studio-section" id="photoSection">
     <div class="section-head">
