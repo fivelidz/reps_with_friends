@@ -59,7 +59,8 @@ html, body { margin: 0; padding: 0; }
   color: var(--text);
   font-family: var(--font-body);
   -webkit-font-smoothing: antialiased;
-  padding-top: 44px; /* the persistent quick bar owns the top 44px */
+  /* the quick bar owns the top 44px + the notch inset (viewport-fit=cover) */
+  padding-top: calc(44px + env(safe-area-inset-top));
   padding-bottom: env(safe-area-inset-bottom);
 }
 .v3-screen { animation: v3ScreenIn 0.32s cubic-bezier(0.22, 1, 0.36, 1) both; }
@@ -72,7 +73,7 @@ html, body { margin: 0; padding: 0; }
    One tap from anywhere, mid-battle included. Sits above sheets (reachable
    while a sheet is open), below toasts. */
 .v3-quick {
-  position: fixed; top: 0; left: 0; right: 0; z-index: 70;
+  position: fixed; top: env(safe-area-inset-top); left: 0; right: 0; z-index: 70;
   display: flex; align-items: center; gap: 6px;
   height: 44px; padding: 0 8px 0 6px;
   background: color-mix(in srgb, var(--bg) 92%, transparent);
@@ -119,7 +120,7 @@ body[data-rwf-theme="ice"] {
 
 /* header — back · battle name · battle clock */
 .v3-top {
-  position: sticky; top: 44px; z-index: 40; /* parks just under the quick bar */
+  position: sticky; top: calc(44px + env(safe-area-inset-top)); z-index: 40; /* parks just under the quick bar */
   display: flex; align-items: center; gap: 10px;
   padding: 10px 12px;
   background: color-mix(in srgb, var(--bg) 88%, transparent);
@@ -278,7 +279,7 @@ body[data-rwf-theme="ice"] {
 .v3-hud > * { pointer-events: auto; }
 
 .v3-strip {
-  position: absolute; top: 10px; left: 10px; right: 58px;
+  position: absolute; top: 10px; left: 10px; right: 10px;
   display: flex; gap: 6px; overflow-x: auto;
   scrollbar-width: none; -webkit-overflow-scrolling: touch;
 }
@@ -299,7 +300,11 @@ body[data-rwf-theme="ice"] {
   font: 700 8.5px/1 var(--font-mono); color: #0b0c0e;
   background: var(--tier, var(--lime));
 }
-.v3-srow__name { color: var(--text); max-width: 92px; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
+.v3-srow__name {
+  color: var(--text); max-width: 92px; overflow: hidden; text-overflow: ellipsis; white-space: nowrap;
+  cursor: pointer; /* tap → toast with the full name (UX2 display fix) */
+}
+.v3-srow__ruf { margin-left: auto; } /* RUF pins right — tags never push it out */
 .v3-srow__pct { color: var(--lime); font-variant-numeric: tabular-nums; }
 .v3-srow__ruf { color: var(--faint); font-variant-numeric: tabular-nums; }
 .v3-tag {
@@ -665,8 +670,14 @@ body[data-rwf-theme="ice"] {
   position: absolute; width: 7px; height: 7px; border-radius: 50%;
   bottom: 4px; box-shadow: 0 0 6px currentColor;
 }
-.v3-bcard__name { margin: 0; font: 400 15px/1.1 var(--font-display); text-transform: uppercase; }
-.v3-bcard__meta { margin: 3px 0 0; font: 700 10px/1.4 var(--font-mono); color: var(--muted); }
+.v3-bcard__name {
+  margin: 0; font: 400 15px/1.1 var(--font-display); text-transform: uppercase;
+  overflow: hidden; text-overflow: ellipsis; white-space: nowrap; /* long crew names never wrap-push */
+}
+.v3-bcard__meta {
+  margin: 3px 0 0; font: 700 10px/1.4 var(--font-mono); color: var(--muted);
+  overflow: hidden; text-overflow: ellipsis; white-space: nowrap;
+}
 .v3-bcard__status {
   flex: none; font: 700 9px/1 var(--font-mono); letter-spacing: 0.1em;
   padding: 6px 8px; border-radius: 999px; text-transform: uppercase;
@@ -718,6 +729,121 @@ body[data-rwf-theme="ice"] {
 .v3-lad td:nth-child(n+3), .v3-lad th:nth-child(n+3) { text-align: right; }
 .v3-lad tr.is-you td { color: var(--lime); }
 
+/* ── 7b · UX2 — THE 3-CLICK ENTRY ────────────────────────────────────── */
+.v3-entry { display: flex; flex-direction: column; min-height: calc(100dvh - 44px - env(safe-area-inset-top)); }
+.v3-entry__brand { padding: 14px 16px 0; }
+.v3-entry__pad { display: flex; flex-direction: column; gap: 14px; padding-top: 8px; padding-bottom: 20px; }
+.v3-entry__step { transition: opacity 0.3s ease, transform 0.3s cubic-bezier(0.22, 1, 0.36, 1); }
+.v3-entry__step.is-wait { opacity: 0.5; }        /* next up — visible, dimmed */
+.v3-entry__step.is-now { opacity: 1; }
+.v3-entry__step.is-done { opacity: 0.85; }
+.v3-entry__label {
+  margin: 0 0 8px; font: 700 10px/1 var(--font-mono);
+  letter-spacing: 0.16em; text-transform: uppercase; color: var(--faint);
+  display: flex; align-items: center; gap: 8px;
+}
+.v3-entry__label i {
+  font-style: normal; width: 18px; height: 18px; border-radius: 6px;
+  display: inline-flex; align-items: center; justify-content: center;
+  background: var(--lime); color: var(--on-accent); font-size: 10px;
+}
+.v3-input--big {
+  font: 400 20px/1.2 var(--font-display); padding: 14px 14px;
+  text-transform: none; letter-spacing: 0.01em;
+}
+.v3-tiers { display: grid; grid-template-columns: 1fr 1fr; gap: 10px; }
+.v3-tier {
+  display: flex; flex-direction: column; align-items: flex-start; gap: 2px;
+  padding: 12px 12px 11px; border-radius: 16px; cursor: pointer;
+  border: 1px solid var(--line-bright); background: var(--surface);
+  color: var(--text); text-align: left;
+  box-shadow: 0 4px 0 var(--rail);
+  transition: transform 0.12s, box-shadow 0.12s, border-color 0.12s, background 0.12s;
+  min-height: 86px; /* big, forgiving tap targets — the × on the face */
+}
+.v3-tier:active { transform: translateY(3px); box-shadow: 0 1px 0 var(--rail); }
+.v3-tier:disabled { opacity: 0.45; cursor: not-allowed; }
+.v3-tier__x { font: 400 22px/1 var(--font-display); color: var(--lime); }
+.v3-tier__t { font: 700 12px/1 var(--font-mono); letter-spacing: 0.12em; text-transform: uppercase; }
+.v3-tier__s { font: 500 9.5px/1.3 var(--font-body); color: var(--muted); }
+.v3-tier.is-on {
+  border-color: var(--lime);
+  background: color-mix(in srgb, var(--lime) 10%, var(--surface));
+  box-shadow: 0 4px 0 var(--pop-shadow), 0 0 0 1px color-mix(in srgb, var(--lime) 50%, transparent);
+}
+.v3-entry__note { margin: 10px 2px 0; font: 500 11px/1.6 var(--font-body); color: var(--muted); }
+.v3-entry__note b { color: var(--text); }
+
+/* UX2 — THE HUB (home) */
+.v3-hub__sub { margin: 9px 2px 10px; font: 500 11.5px/1.6 var(--font-body); color: var(--muted); }
+.v3-hub__sub b { color: var(--text); }
+.v3-link {
+  border: 0; background: none; padding: 0; cursor: pointer;
+  font: 700 11px/1 var(--font-mono); letter-spacing: 0.08em;
+  color: var(--lime); text-transform: uppercase; text-decoration: underline;
+}
+
+/* UX2 — ⚙︎ HOUSE RULES — config as rule cards (the power-up teaser) */
+.rule-row { display: flex; flex-wrap: wrap; gap: 8px; align-items: stretch; }
+.rule-card {
+  flex: 1 1 30%; min-width: 104px; position: relative;
+  display: flex; flex-direction: column; gap: 3px; text-align: left;
+  padding: 10px 10px 9px; border-radius: 12px; cursor: pointer;
+  border: 1px solid var(--line-bright); background: var(--surface-2);
+  color: var(--text);
+  box-shadow: 0 3px 0 var(--rail);
+  transition: transform 0.12s, box-shadow 0.12s, border-color 0.12s, background 0.12s;
+}
+.rule-card:active { transform: translateY(3px); box-shadow: 0 0 0 var(--rail); }
+.rule-card.is-on {
+  border-color: var(--lime);
+  background: color-mix(in srgb, var(--lime) 12%, var(--surface));
+  box-shadow: 0 3px 0 var(--pop-shadow), 0 0 0 1px color-mix(in srgb, var(--lime) 50%, transparent);
+}
+.rule-card__t { font: 700 11px/1 var(--font-mono); letter-spacing: 0.06em; }
+.rule-card__s { font: 500 9.5px/1.35 var(--font-body); color: var(--muted); }
+.rule-card.is-on .rule-card__s { color: color-mix(in srgb, var(--text) 80%, transparent); }
+.rule-card__note {
+  flex-basis: 100%; font: 700 8.5px/1 var(--font-mono);
+  letter-spacing: 0.18em; text-transform: uppercase; color: var(--faint);
+  padding: 2px 2px 0;
+}
+
+/* UX2 — drag-to-look affordance (fades on first touch — JS adds .is-gone) */
+.v3-orbit {
+  position: absolute; inset: 0; z-index: 12;
+  display: flex; align-items: center; justify-content: center;
+  pointer-events: none;
+}
+.v3-orbit span {
+  font: 700 10px/1 var(--font-mono); letter-spacing: 0.18em; text-transform: uppercase;
+  color: var(--text); background: color-mix(in srgb, var(--bg) 58%, transparent);
+  backdrop-filter: blur(6px);
+  border: 1px solid var(--line-bright); border-radius: 999px;
+  padding: 10px 15px;
+  animation: v3OrbitFloat 2.6s ease-in-out 0.8s infinite;
+  transition: opacity 0.5s ease, transform 0.5s ease;
+}
+@keyframes v3OrbitFloat { 50% { transform: translateY(-5px); } }
+.v3-orbit.is-gone span { opacity: 0; transform: translateY(10px); animation: none; }
+
+/* UX2 — 390×844 HUD stack: buttons own the bottom row, the feed stacks
+   ABOVE them (was: feed under-ran the buttons and they covered text), the
+   fx chips sit under the standings strip, the gesture hint lands above
+   the feed on the right. No overlaps, no scroll, nothing covered. */
+@media (max-width: 899px) {
+  .v3-actions { left: 10px; }
+  .v3-actions #logBtn { flex: 1; }        /* the primary action stretches */
+  .v3-feed {
+    left: 10px; right: 10px; bottom: 66px; max-width: none;
+    font: 500 11px/1.5 var(--font-body);
+    display: -webkit-box; -webkit-line-clamp: 3; -webkit-box-orient: vertical;
+    overflow: hidden;
+  }
+  .v3-fxdockwrap { top: 56px; bottom: auto; }  /* fx chips: under the strip */
+  .v3-cam__hint { top: auto; bottom: 130px; }  /* gesture cheat-sheet above feed */
+}
+
 /* ── 8 · RESPONSIVE — phone floats → desktop side rails ──────────────── */
 @media (min-width: 900px) {
   .v3-strip {
@@ -731,6 +857,12 @@ body[data-rwf-theme="ice"] {
   .v3-fxdockwrap { left: auto; transform: none; right: 14px; bottom: 74px; }
   .v3-cam { top: 14px; right: 14px; }
   .v3-cam__hint { top: 50px; right: 14px; }
+}
+
+/* narrow phones: the 5-card fan overlaps harder so it never exceeds 390 */
+@media (max-width: 430px) {
+  .bd-hand .bd-hand__slot { margin: 0 -24px; width: 90px; height: 126px; }
+  .bd-hand { height: 128px; }
 }
 
 /* reduced motion — static course, no sheet/confetti/pulse animation */

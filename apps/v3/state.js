@@ -38,14 +38,23 @@ export const PACKS = {
   bodyweight: ["pushup", "squat", "situp", "lunge", "plank"],
   fullbody: ["pushup", "squat", "burpee", "lunge", "plank", "situp"],
 };
+/** Battle distance — the founder's UX2 default is 200 ("sensible defaults for
+ *  EVERYTHING"). HOUSE RULES swaps it (150/250 rule cards); the classic 300
+ *  and the 500 remain for later config, not the default path. */
 export const TARGETS = [
-  { id: "light", label: "Light", reps: 150, sub: "≈ a gentle week — 150 total reps" },
+  { id: "breezy", label: "Breezy", reps: 150, sub: "≈ a gentle day — 150 total reps" },
+  { id: "standard", label: "Standard", reps: 200, sub: "the default battle distance" },
+  { id: "bravo", label: "Bravo", reps: 250, sub: "a step up — 250 total reps" },
   { id: "solid", label: "Solid", reps: 300, sub: "the classic 300 format" },
   { id: "hero", label: "Hero", reps: 500, sub: "you're a menace — 500 total reps" },
 ];
+export const DEFAULT_TARGET = "standard";
+export const targetById = (id) => TARGETS.find((t) => t.id === id) ?? TARGETS.find((t) => t.id === DEFAULT_TARGET);
 
 /** Ben's crew, as engine players — the mates your battles are actually
- *  against in this build (the app is single-human; bots make it a game). */
+ *  against in this build (the app is single-human; bots make it a game).
+ *  Varied tiers on purpose: the auto-seeded crew must feel like a real
+ *  ladder (UX2: they're the "instant, seeded opponents" of the 3-click). */
 export const MATES = [
   { id: "sam", name: "Sam K", tier: "fit" },
   { id: "alex", name: "Alex T", tier: "couch" },
@@ -62,10 +71,34 @@ export const CHARITIES = [
 
 const DAYS = ["S", "M", "T", "W", "T", "F", "S"];
 
+/* ── HOUSE-RULES prefs (UX2) — the auto-set defaults ────────────────────
+   The 3-click entry auto-configures EVERYTHING from these; the ⚙︎ settings
+   sheet on the course edits them (immediately where safe — visual toggles —
+   otherwise from the next battle). "giving OFF" = charity designation UI is
+   parked; the points pot (the game economy) is untouched. */
+export const DEFAULT_PREFS = {
+  target: DEFAULT_TARGET,          // 200 reps
+  pack: "bodyweight",              // pushup·squat·situp·lunge·plank
+  playDays: [0, 1, 2, 3, 4, 5, 6], // every day is a battle day (today active)
+  giving: false,                   // charity designation OFF until switched on
+  autoDeal: true,                  // power-ups auto-dealt — no draft screen
+  heads: "none",                   // species head: "none" | "frog"
+};
+/** prefs(state) — the live prefs, defaults backfilled for pre-UX2 saves. */
+export function prefs(state = load()) {
+  return { ...DEFAULT_PREFS, ...(state.prefs ?? {}) };
+}
+/** Merge-patch the stored prefs. Returns the full new prefs. */
+export function setPrefs(patch) {
+  return mutate((s) => {
+    s.prefs = { ...DEFAULT_PREFS, ...(s.prefs ?? {}), ...(patch ?? {}) };
+  }).prefs;
+}
+
 /* ── load / save ──────────────────────────────────────────────────────── */
 
 export function blank() {
-  return { v: 1, player: null, matches: [], pots: {}, season: null, seq: 0 };
+  return { v: 1, player: null, matches: [], pots: {}, season: null, seq: 0, prefs: { ...DEFAULT_PREFS } };
 }
 
 export function load() {
@@ -73,7 +106,9 @@ export function load() {
     const raw = localStorage.getItem(KEY);
     if (!raw) return blank();
     const s = JSON.parse(raw);
-    return s && s.v === 1 ? s : blank();
+    if (!(s && s.v === 1)) return blank();
+    if (!s.prefs) s.prefs = { ...DEFAULT_PREFS }; // pre-UX2 saves backfill silently
+    return s;
   } catch {
     return blank();
   }
@@ -100,6 +135,7 @@ export function setPlayer({ name, tier }) {
       name: String(name || "You").slice(0, 40),
       tier,
     };
+    if (!s.prefs) s.prefs = { ...DEFAULT_PREFS };
     if (s.season && prev == null) {
       // first identity → seed the season roster with you + the mates
       s.season = E.createSeason(
@@ -121,9 +157,26 @@ export function crewCode(state = load()) {
   return `CREW-${String((n * 7 + 11) % 46656).padStart(4, "0").slice(0, 4)}${"QXZ7K2"[n % 6]}`;
 }
 
-export function createFastBattle({ name, days, pack, target, withMates = true }) {
-  const target_ = TARGETS.find((t) => t.id === target) ?? TARGETS[1];
-  const packIds = PACKS[pack] ?? PACKS.bodyweight;
+/** UX2: keep the strongest dealt card for auto-deal (legendary → common;
+ *  ties → the first dealt). The 3-click path never shows the draft sheet. */
+const RARITY_RANK = { legendary: 0, epic: 1, rare: 2, common: 3 };
+export function bestDraftKind(matchId, state = load()) {
+  const kinds = state.matches.find((m) => m.config.id === matchId)?.board?.drafts?.["you"];
+  if (!kinds?.length) return null;
+  return [...kinds].sort((a, b) =>
+    (RARITY_RANK[E.POWER_UPS[a]?.rarity] ?? 9) - (RARITY_RANK[E.POWER_UPS[b]?.rarity] ?? 9))[0];
+}
+
+/** FAST BATTLE — UX2: every knob defaults from the stored prefs (target 200 ·
+ *  every day active · bodyweight pack), the crew is the seeded demo mates at
+ *  varied tiers, and with autoDeal the battle is born LIVE: your draft is
+ *  auto-picked (strongest of the dealt three) and the clock is already
+ *  running by the time the course fades in. Explicit args still win. */
+export function createFastBattle({ name, days, pack, target, withMates = true } = {}) {
+  const P = prefs();
+  const target_ = targetById(target ?? P.target);
+  const packIds = PACKS[pack ?? P.pack] ?? PACKS.bodyweight;
+  const playDays = days?.length ? days : (P.playDays?.length ? P.playDays : [0, 1, 2, 3, 4, 5, 6]);
   const state = load();
   const code = crewCode(state);
   let match = E.createMatch(
@@ -132,17 +185,28 @@ export function createFastBattle({ name, days, pack, target, withMates = true })
       name: String(name || "The Battle").slice(0, 40),
       exercises: EXERCISES.filter((e) => packIds.includes(e.id)),
       targetReps: target_.reps,
-      playDays: days?.length ? days : [1, 3, 5],
+      playDays,
       deadlineAt: playDayEndMs(), // FLOW-05: battles run to end of play day (9PM AEST)
     },
-    withMates ? [state.player, ...MATES.slice(0, 3)] : [state.player]
+    // UX2 seats: sam (fit) · alex (couch) · Mikayla Long-Name-Rutherford
+    // (casual) — varied tiers AND a name too long for one HUD row, so the
+    // truncation fix is exercised by every battle, not a special case.
+    withMates ? [state.player, MATES[0], MATES[1], MATES[4]] : [state.player]
   );
   match.createdAt = Date.now();
   match = E.initBoard(match); // V2: entry → pot, RP balances, 3-card drafts
-  // mates pick their draft immediately (first dealt); YOU pick on the draft screen
+  // mates pick their draft immediately (first dealt)
   for (const p of match.players) {
     if (p.id === state.player?.id) continue;
     match = E.applyDraft(match, p.id, match.board.drafts[p.id][0]);
+  }
+  // UX2 auto-deal: YOU keep the strongest dealt card and the battle goes
+  // straight to live — zero extra screens between START and the course.
+  const auto = prefs(state).autoDeal;
+  if (auto && state.player) {
+    const pick = bestDraftKind(match.config.id, { ...state, matches: [match] });
+    if (pick) match = E.applyDraft(match, state.player.id, pick);
+    match = E.startMatch(match);
   }
   // V2 FORK DIVERGENCE: return the CREATED MATCH (v1 returned the whole
   // state). Callers route to its draft — S.currentMatch() would prefer an
@@ -154,6 +218,27 @@ export function createFastBattle({ name, days, pack, target, withMates = true })
     s.pots[match.id] = E.createPot(`pot-${match.id}`, match.id);
   });
   return out.matches.find((m) => m.config.id === match.config.id) ?? match;
+}
+
+/** JOIN WITH CODE (UX2 hub) — the bots bridge links real friends via
+ *  `link <CODE>`; until they arrive, a code opens a live battle vs the demo
+ *  crew branded with the code so the seat is warm, not a dead end. */
+export function joinByCode(rawCode) {
+  const code = String(rawCode ?? "").trim().toUpperCase().slice(0, 12);
+  if (!code) return { ok: false, reason: "Enter a battle code" };
+  let m = createFastBattle({ name: `Crew ${code}` });
+  // A JOIN is a jump into something live — even with AUTO-DEAL off in
+  // house rules, the code path deals your card and starts the clock.
+  if (m.status !== "live") {
+    const pick = bestDraftKind(m.config.id);
+    if (pick) m = E.applyDraft(m, "you", pick);
+    m = E.startMatch(m);
+    mutate((s) => {
+      const i = s.matches.findIndex((x) => x.config.id === m.config.id);
+      if (i >= 0) s.matches[i] = m;
+    });
+  }
+  return { ok: true, match: m };
 }
 
 export function matchById(id, state = load()) {
@@ -251,7 +336,9 @@ export function rematch(matchId) {
   if (!old) throw new Error("match not found");
   let fresh = E.startMatch(
     E.createMatch(
-      { ...old.config, id: `m${Date.now()}`, deadlineAt: playDayEndMs() }, // fresh play-day deadline
+      // fresh play-day deadline + the CURRENT house-rule target (the rule
+      // card promises "applies from your next battle" — a rematch is one)
+      { ...old.config, id: `m${Date.now()}`, targetReps: targetById(prefs(s).target).reps, deadlineAt: playDayEndMs() },
       old.players
     )
   );
@@ -260,6 +347,12 @@ export function rematch(matchId) {
   for (const p of fresh.players) {
     if (p.id === s.player?.id) continue;
     fresh = E.applyDraft(fresh, p.id, fresh.board.drafts[p.id][0]);
+  }
+  // UX2 auto-deal mirrors createFastBattle: no draft screen unless HOUSE
+  // RULES turns it off. (Rematch is born live — startMatch already ran.)
+  if (prefs(s).autoDeal && s.player) {
+    const pick = bestDraftKind(fresh.config.id, { ...s, matches: [fresh] });
+    if (pick) fresh = E.applyDraft(fresh, s.player.id, pick);
   }
   // V2 FORK DIVERGENCE: return the fresh match (see createFastBattle note)
   const out = mutate((st) => {

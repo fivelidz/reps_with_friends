@@ -8,6 +8,14 @@
 
 import { existsSync, mkdirSync, readFileSync, writeFileSync } from "node:fs";
 import { CommandBus, MatchStore } from "./packages/bot-core/src/index.ts";
+import {
+  addFeedback,
+  feedbackIp,
+  feedbackRateLimited,
+  listForPage,
+  listRecent,
+  parseLimit,
+} from "./apps/api/src/feedback.ts";
 
 // In-memory bot console for the debug page (separate scratch store).
 const simBus = new CommandBus(new MatchStore(".data/sim-debug.json"));
@@ -129,8 +137,11 @@ async function file(path: string, urlPath: string): Promise<Response | null> {
 
 async function dirRoute(root: string, url: URL): Promise<Response | null> {
   const rel = decodeURIComponent(url.pathname.replace(/^\/[^/]+/, "").replace(/^\//, ""));
+  // The `rel.html` try mirrors Cloudflare Pages' pretty-URL behaviour
+  // (/wiki/feedback serves feedback.html in prod) — without it the admin
+  // view 404s only on the local server and the nav link looks broken.
   const tries = rel
-    ? [`${root}/${rel}`, `${root}/${rel}/index.html`]
+    ? [`${root}/${rel}`, `${root}/${rel}.html`, `${root}/${rel}/index.html`]
     : [`${root}/index.html`];
   for (const t of tries) {
     const r = await file(t, url.pathname);
@@ -299,6 +310,70 @@ function boothStatus(id: string | null): Response {
   });
 }
 
+// ── /feedback → the API on :4174 (the production path — docs/22 §11) ────────
+// The wiki's comment box + admin stream hit /feedback on their own origin.
+// 1st choice: proxy to apps/api (same contract the bots/phone already use).
+// If the API isn't running, answer HERE via the same store module, so the
+// founder's one-server setup (`bun serve.ts` alone) still gets a working
+// comment box. Both paths persist to .data/feedback.json with atomic writes.
+const FEEDBACK_API = `http://127.0.0.1:${process.env.RWF_API_PORT ?? 4174}`;
+
+async function feedbackApi(req: Request, url: URL): Promise<Response> {
+  if (req.method !== "GET" && req.method !== "POST")
+    return Response.json({ error: "GET or POST only" }, { status: 405 });
+  try {
+    const headers: Record<string, string> = {
+      // pass the caller through so the API's per-IP rate limit sees the real IP
+      "x-forwarded-for": req.headers.get("x-forwarded-for") ?? "serve",
+    };
+    let body: string | undefined;
+    if (req.method === "POST") {
+      headers["content-type"] = "application/json";
+      body = JSON.stringify(await req.json().catch(() => ({})));
+    }
+    const upstream = await fetch(`${FEEDBACK_API}${url.pathname}${url.search}`, {
+      method: req.method,
+      headers,
+      body,
+      signal: AbortSignal.timeout(2500), // a hung API must not hang the wiki
+    });
+    // The API answered (incl. its 4xx/5xx) → verbatim passthrough.
+    return new Response(upstream.body, {
+      status: upstream.status,
+      headers: {
+        "content-type": upstream.headers.get("content-type") ?? "application/json",
+      },
+    });
+  } catch {
+    // API down → fall through to the local store below.
+  }
+
+  if (req.method === "POST") {
+    const raw = (await req.json().catch(() => ({}))) as any;
+    if (feedbackRateLimited(feedbackIp(req)))
+      return Response.json({ error: "rate limit exceeded — try again in a few minutes" }, { status: 429 });
+    const out = addFeedback(raw ?? {});
+    if (!out.ok) return Response.json({ error: out.error }, { status: out.status });
+    return Response.json(
+      { ok: true, id: out.entry.id, page: out.entry.page, name: out.entry.name, deduped: out.deduped },
+      { status: 201 }
+    );
+  }
+  if (url.pathname === "/feedback/recent") {
+    const limit = parseLimit(url.searchParams.get("limit"));
+    const { comments, total } = listRecent(limit);
+    return Response.json({ total, count: comments.length, limit, comments });
+  }
+  const page = url.searchParams.get("page")?.trim() ?? "";
+  if (!page)
+    return Response.json(
+      { error: "page query param is required (GET /feedback/recent for the whole stream)" },
+      { status: 400 }
+    );
+  const { comments, total } = listForPage(page);
+  return Response.json({ page, total, count: comments.length, comments });
+}
+
 const server = Bun.serve({
   port: PORT,
   async fetch(req) {
@@ -307,6 +382,7 @@ const server = Bun.serve({
 
     if (p === "/api/state") return apiState();
     if (p === "/api/health") return Response.json({ ok: true });
+    if (p === "/feedback" || p === "/feedback/recent") return feedbackApi(req, url);
     if (p === "/api/ai" && req.method === "POST") {
       let body: any;
       try { body = await req.json(); } catch { body = {}; }
@@ -390,6 +466,18 @@ const server = Bun.serve({
     } else if (p.startsWith("/styles")) {
       // Five-theme design exploration — side-by-side gallery + full previews.
       r = await dirRoute("apps/styles", url) ?? new Response("styles gallery not found", { status: 404 });
+    } else if (p === "/powerups" || p.startsWith("/powerups/")) {
+      // POWER-UP ART STUDIO — the founder review page (apps/powerups): every
+      // card × every style kit, big, with engine data + feedback capture.
+      // The shared engine rides the same explicit mapping /v4 uses below.
+      if (p === "/powerups/sot-engine.js") {
+        r = (await file("apps/sot-engine.js", p)) ?? new Response(
+          "/* shared engine missing — the power-ups page cannot render card data */\nconsole.error('apps/sot-engine.js missing');\n",
+          { headers: { "content-type": "text/javascript; charset=utf-8", "cache-control": "no-cache" } },
+        );
+      } else {
+        r = await dirRoute("apps/powerups", url) ?? new Response("powerups not found", { status: 404 });
+      }
     } else if (p === "/sfx" || p.startsWith("/sfx/")) {
       // SFX demo — the live app sound catalogue, tappable (apps/sfx-demo).
       // Defensive one-file copy of the figma-app synthesis module.

@@ -5,7 +5,8 @@
    charity pot centred on the course axis past the finish, lane geometry
    sane, the oblique TABLE camera (50–65° down, all runners framed),
    mocap models loaded through the real /models routes, frame
-   budget, and zero console errors — at 390×844 and 1280×800.
+   budget, and zero console errors — at 390×844 and 1280×800. UX2: the
+   walk IS the founder's 3-click entry (name → tier → START THE BATTLE).
    Run: bun apps/v3/geom.mjs (needs `bun serve.ts` on :4173)
    ═══════════════════════════════════════════════════════════════════════ */
 import { spawn } from "node:child_process";
@@ -66,21 +67,26 @@ async function walk(width, height, mobile, tag) {
   await send("Page.navigate", { url: `${BASE}/v3/#/home` });
   for (let i = 0; i < 80; i++) { try { if (await evalJs("window.__rwfV3?.ready === true")) break; } catch {} await sleep(200); }
   await sleep(400);
+  // fresh state per leg — the second (desktop) walk must be a fresh visitor too
+  await evalJs("localStorage.clear(); location.hash = '#/home'; location.reload(); true");
+  for (let i = 0; i < 80; i++) { try { if (await evalJs("window.__rwfV3?.ready === true")) break; } catch {} await sleep(200); }
+  await sleep(400);
 
   const waitSel = async (sel, ms = 9000) => {
     for (let i = 0; i < ms / 150; i++) { try { if (await evalJs(`!!document.querySelector('${sel}')`)) return true; } catch {} await sleep(150); }
     throw new Error(`timeout: ${sel}`);
   };
 
-  // fresh profile → identity → create → draft → live battle
-  await evalJs(`location.hash = "#/setup"`); await sleep(260);
+  // fresh profile → THE 3-CLICK ENTRY → live battle (UX2 — no wizard,
+  // no draft screen: auto-deal seats the crew and starts the clock)
+  ok(await evalJs(`window.__rwfV3.view() === "play"`), "fresh visit lands on the 3-click entry (not a hub or wizard)");
+  ok((await evalJs(`document.querySelector(".v3-screen").scrollHeight - document.querySelector(".v3-screen").clientHeight`)) <= 2,
+     "the entry fits the viewport with no scrolling");
   await evalJs(`(() => { const i = document.querySelector('#nameIn'); i.value = "QA"; i.dispatchEvent(new Event("input", {bubbles:true})); document.querySelector('[data-tier="fit"]').click(); return true; })()`);
   await sleep(120);
-  await evalJs(`document.querySelector("#setupGo").click()`); await sleep(300);
-  await evalJs(`location.hash = "#/create"`); await waitSel("#startBattle");
-  await evalJs(`document.querySelector("#startBattle").click()`); await waitSel("#draftFan .bd-card");
-  await evalJs(`document.querySelectorAll("#draftFan .bd-card")[0].click()`); await sleep(150);
-  await evalJs(`document.querySelector("#keepBtn").click()`); await waitSel("#gl canvas");
+  ok((await evalJs(`!document.querySelector('#startBattle').disabled`)), "name + tier light START THE BATTLE (3 clicks total)");
+  await evalJs(`document.querySelector("#startBattle").click()`); await waitSel("#gl canvas");
+  ok(await evalJs(`window.__rwfV3.view() === "battle"`), "after START the view IS the course (live battle, nothing between)");
   await sleep(700);
 
   /* ── course geometry (world-space, via the debug probes) ── */
@@ -98,7 +104,7 @@ async function walk(width, height, mobile, tag) {
   ok(cam?.downDeg >= 50 && cam?.downDeg <= 65,
      `TABLE looks down in the 50–65° band (${cam?.downDeg}° — perspective third person)`);
   const onFrame = [];
-  for (const pid of ["you", "sam", "alex", "jordan"]) {
+  for (const pid of ["you", "sam", "alex", "mika"]) {
     const sp = await call(`runnerScreen('${pid}')`);
     onFrame.push(!!sp && Math.abs(sp.x) <= 1 && Math.abs(sp.y) <= 1);
   }
@@ -108,7 +114,7 @@ async function walk(width, height, mobile, tag) {
      `charity pot framed with the course in TABLE (NDC ${potNdc?.x},${potNdc?.y} — centred, on-screen)`);
 
   const ys = [], zs = [];
-  for (const pid of ["you", "sam", "alex", "jordan"]) {
+  for (const pid of ["you", "sam", "alex", "mika"]) {
     const p = await call(`runnerPos('${pid}')`);
     if (p) { ys.push(p.y); zs.push(p.z); }
   }
@@ -125,14 +131,20 @@ async function walk(width, height, mobile, tag) {
   /* ── the real model routes ── */
   let models = false;
   for (let i = 0; i < 90 && !models; i++) { models = await call("modelsReady()").catch(() => false); if (!models) await sleep(300); }
-  ok(models === true, "Geno + Soldier mocap loaded through the real /models routes");
+  ok(models === true, "the meshy trio + Soldier mocap loaded through the real /models routes");
   const avatar = await call("runnerPos('you')");
-  ok(avatar?.avatarReady === true, "your runner is the real Geno avatar (not the placeholder capsule)");
+  ok(avatar?.avatarReady === true, "your runner is a real rigged atelier avatar (not the placeholder capsule)");
 
-  /* ── runner advance + frame budget on the real server ── */
+  /* ── runner advance + frame budget on the real server ──
+     (poll: the meshy trio is heavier than flat-tinted Geno on SwiftShader,
+     and the lerp's dt is clamped — wall time to advance varies) */
   await evalJs(`window.__rwfV3.driveLog(30); true`);
-  await sleep(1500);
-  const after = await call("runnerPos('you')");
+  let after = null;
+  for (let i = 0; i < 40; i++) {
+    await sleep(300);
+    after = await call("runnerPos('you')");
+    if (after.z < avatar.z - 1) break;
+  }
   ok(after.z < avatar.z - 1, `runner advanced after logging (Δz=${(after.z - avatar.z).toFixed(2)})`);
   await sleep(1500);
   const fms = await call("frameMs()");
@@ -141,7 +153,8 @@ async function walk(width, height, mobile, tag) {
   /* ── DOM-level sanity ── */
   ok((await evalJs(`document.scrollingElement.scrollWidth - document.scrollingElement.clientWidth`)) <= 1, "no horizontal overflow");
   ok((await evalJs(`document.querySelectorAll('.v3-srow').length`)) === 4, "HUD standings strip shows 4 rows");
-  ok((await evalJs(`document.querySelector('#hand .bd-card') !== null`)), "card hand docked under the course");
+  ok((await evalJs(`document.querySelector('#hand .bd-card') !== null`)), "card hand docked under the course (auto-dealt at START)");
+  ok((await evalJs(`!!document.querySelector('#orbitHint')`)), "drag-to-look affordance mounted over the course");
   ok((await evalJs(`document.querySelector('#hand').getBoundingClientRect().bottom <= innerHeight + 1`)), "card hand fully on-screen");
 }
 

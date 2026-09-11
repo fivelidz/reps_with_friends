@@ -2,6 +2,6 @@
    sw.js derives its cache name from BUILD_STAMP (stale-cache fix);
    the About screen surfaces the same values. */
 export const APP_VERSION = "1.0.0";
-export const BUILD_HASH = "931c424";
-export const BUILD_DATE = "2026-09-10";
-export const BUILD_STAMP = "1.0.0+931c424.202609102214";
+export const BUILD_HASH = "17e00ea";
+export const BUILD_DATE = "2026-09-11";
+export const BUILD_STAMP = "1.0.0+17e00ea.202609110011";

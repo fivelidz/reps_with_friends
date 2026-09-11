@@ -27,6 +27,14 @@ import {
   type Player,
 } from "../../../packages/game-core/src/index.ts";
 import {
+  addFeedback,
+  feedbackIp,
+  feedbackRateLimited,
+  listForPage,
+  listRecent,
+  parseLimit,
+} from "./feedback.ts";
+import {
   advanceGroup,
   applyLog,
   createSotGroup,
@@ -635,6 +643,53 @@ export const routes: Route[] = [
         });
         return json({ sources });
       });
+    },
+  },
+
+  // ── Wiki feedback (founder's crew notes — apps/wiki; docs/22 §11) ─────
+  // ZERO auth by design: length-capped, control-char-stripped, deduped,
+  // rate-limited (all in feedback.ts); the wiki renders textContent-only.
+
+  {
+    method: "POST",
+    path: "/feedback",
+    handler: ({ body, req }) => {
+      if (feedbackRateLimited(feedbackIp(req)))
+        throw new HttpError(429, "rate limit exceeded — try again in a few minutes");
+      const out = addFeedback(body ?? {});
+      if (!out.ok) throw new HttpError(out.status, out.error);
+      return json(
+        {
+          ok: true,
+          id: out.entry.id,
+          page: out.entry.page,
+          name: out.entry.name,
+          deduped: out.deduped,
+        },
+        201
+      );
+    },
+  },
+
+  {
+    method: "GET",
+    path: "/feedback",
+    handler: ({ url }) => {
+      const page = url.searchParams.get("page")?.trim() ?? "";
+      if (!page)
+        throw new HttpError(400, "page query param is required (GET /feedback/recent for the whole stream)");
+      const { comments, total } = listForPage(page);
+      return json({ page, total, count: comments.length, comments });
+    },
+  },
+
+  {
+    method: "GET",
+    path: "/feedback/recent",
+    handler: ({ url }) => {
+      const limit = parseLimit(url.searchParams.get("limit"));
+      const { comments, total } = listRecent(limit);
+      return json({ total, count: comments.length, limit, comments });
     },
   },
 ];

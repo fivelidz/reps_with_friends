@@ -21,6 +21,7 @@
   <a class="wnav__link" href="ops.html">Ops &amp; Testing</a>
   <a class="wnav__link" href="design.html">Design System</a>
   <a class="wnav__link" href="status.html">Status</a>
+  <a class="wnav__link" href="feedback.html">📝 Feedback</a>
 </nav>
 <div class="wrap">
 
@@ -33,6 +34,7 @@
     <div class="stat"><b>~700</b><span>checks green across the suites</span></div>
     <div class="stat"><b>12</b><span>public surfaces</span></div>
     <div class="stat"><b>4</b><span>app versions, all runnable</span></div>
+    <div class="stat"><b data-fb-total>…</b><span>wiki notes from the crew</span></div>
     <div class="stat"><b>~20s</b><span>push → live deploy</span></div>
   </div>
 </header>
@@ -123,6 +125,7 @@
     <tr><td><b>API</b></td><td>REST backend (crews / matches / seasons) — the MVP state foundation</td><td class="mono">apps/api/ · port 4174</td></tr>
     <tr><td><b>Avatars</b></td><td>Local-only avatar style + tuning studio</td><td class="mono">/avatars · apps/avatars/ (local)</td></tr>
     <tr><td><b>Wiki</b></td><td>This documentation</td><td class="mono">/wiki · apps/wiki/</td></tr>
+    <tr><td><b>Wiki feedback</b></td><td>The crew's notes — comment box on every page + the reading stream</td><td class="mono">/wiki/feedback · apps/api /feedback</td></tr>
   </table></div>
   <p class="dim">Everything runs from one Bun dev server (<span class="mono">bun serve.ts</span> → <span class="mono">localhost:4173</span>) locally, and from Cloudflare Pages at <span class="mono">rwf.qalarc.com</span> in production. See <a href="ops.html">Ops &amp; Testing</a>.</p>
 </section>
@@ -133,5 +136,6 @@
 </footer>
 </div>
 <script src="wiki.js"></script>
+<script src="feedback.js"></script>
 </body>
 </html>

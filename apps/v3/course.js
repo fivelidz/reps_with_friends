@@ -12,10 +12,14 @@
                     tier-coloured, distance markers every 25% — in a
                     low-poly world (grass, trees, hills, sky gradient,
                     gentle fog)
-     · RUNNERS      Geno avatars (site/model-avatars.js) driven by REAL
-                    Soldier mocap (GENO_CLIPS walk/run/idle — the
-                    founder's preferred animation), tier-tinted. Reps
+     · RUNNERS      the atelier's commercial-safe meshy trio
+                    (site/models/meshy_rigged_0*.glb — mixamo rigs, real
+                    PBR), cycled by tier, driven by REAL Soldier mocap
+                    (GENO_CLIPS walk/run/idle — the founder's preferred
+                    animation); tinted Geno remains the fallback. Reps
                     logged → the runner lerps forward along its lane.
+                    Species-head toggle (settings → frog!) attaches
+                    geno-wardrobe heads live.
                     Comeback-armed → gold lightning ring at the feet;
                     lightning live → gold trail behind the runner;
                     shielded → blue shell.
@@ -950,6 +954,7 @@ export class Course3D {
     // remove stale
     for (const [pid, r] of this.runners) {
       if (!players.some((p) => p.id === pid)) {
+        this._detachHead(r);
         this.scene.remove(r.group);
         this.runners.delete(pid);
       }
@@ -1038,6 +1043,7 @@ export class Course3D {
         r = {
           id: p.id, name: p.name, tier: p.tier, isYou: !!p.isYou, lane: i,
           group, glow, tag, crown, ring, shield, avatar: null, players: {}, clip: null,
+          avatarKind: null, _head: null, _headBusy: false,
           t: 0, target: 0, fromT: 0, moveElapsed: 0, moveDur: 0,
           speed: 0, bobPhase: Math.random() * Math.PI * 2,
           cards: [], cardsGroup: new THREE.Group(),
@@ -1433,37 +1439,78 @@ export class Course3D {
   }
 
   /* ── avatars + mocap (lazy, async) ─────────────────────────────────── */
-  /** stream Geno + Soldier clips in; placeholder capsules run meanwhile */
+  /* UX2 AVATARS — the atelier's commercial-safe meshy trio drives the
+     course (site/models/meshy_rigged_0*.glb: mixamo-rigged, real PBR
+     textures — NO flat tint; tier stays legible via glow + tag + lane).
+     Cycled by tier where it reads right: couch→heavyweight, casual→
+     sprinter, fit/athlete→athlete. Any load failure falls back to the
+     tinted Geno (proven, still shipped). Frog heads (settings toggle)
+     attach through geno-wardrobe onto whichever avatar is live. */
+  static MESHY_ORDER = [
+    "/models/meshy_rigged_01.glb", // athlete
+    "/models/meshy_rigged_02.glb", // heavyweight
+    "/models/meshy_rigged_03.glb", // sprinter
+  ];
+  static MESHY_BY_TIER = {
+    couch: "/models/meshy_rigged_02.glb",   // heavyweight
+    casual: "/models/meshy_rigged_03.glb",  // sprinter
+    fit: "/models/meshy_rigged_01.glb",     // athlete
+    athlete: "/models/meshy_rigged_01.glb", // athlete
+  };
+  static MESHY_KIND = {
+    "/models/meshy_rigged_01.glb": "meshy-athlete",
+    "/models/meshy_rigged_02.glb": "meshy-heavy",
+    "/models/meshy_rigged_03.glb": "meshy-slim",
+  };
+
+  /** stream the meshy trio + Soldier clips in; placeholder capsules run
+      meanwhile; per-runner fallback to Geno keeps the course unbreakable */
   async loadAvatars() {
     if (this._avatarsLoading || this.disposed) return;
     this._avatarsLoading = true;
     try {
       const MA = await import("/site/model-avatars.js");
-      const [genoSceneProto, walk, run, idle] = await Promise.all([
-        MA.loadModel("/models/Geno.glb").catch(() => null),
+      const [walk, run, idle, genoProto, ...meshyProtos] = await Promise.all([
         MA.loadGenoClip("walk").catch(() => null),
         MA.loadGenoClip("run").catch(() => null),
         MA.loadGenoClip("idle").catch(() => null),
+        MA.loadModel("/models/Geno.glb").catch(() => null),
+        ...Course3D.MESHY_ORDER.map((f) => MA.loadModel(f).catch(() => null)),
       ]);
       if (this.disposed) return;
       this._MA = MA;
       this._clips = { walk, run, idle };
+      const meshyIdx = (f) => Course3D.MESHY_ORDER.indexOf(f);
 
       for (const [pid, r] of this.runners) {
-        if (!genoSceneProto) break;
+        if (this.disposed) return;
         try {
-          const geno = await MA.loadModel("/models/Geno.glb"); // cached — clones per runner
+          const meshyFile = Course3D.MESHY_BY_TIER[r.tier] ?? null;
+          const meshyProto = meshyFile ? meshyProtos[meshyIdx(meshyFile)] : null;
+          let kind = null;
+          let scene;
+          if (meshyProto) {
+            scene = await MA.loadModel(meshyFile); // cached — clones per runner
+            kind = Course3D.MESHY_KIND[meshyFile];
+            // real PBR — no tint. YOU still reads via the lime glow/tag/lane.
+          } else if (genoProto) {
+            scene = await MA.loadModel("/models/Geno.glb");
+            kind = "geno";
+            MA.applyFlatTint(scene, r.isYou ? "#c6f32e" : this._genoTint(r.tier));
+          }
+          if (!scene) continue; // total model failure — capsule carries the lane
           if (this.disposed) return;
-          MA.applyFlatTint(geno, r.isYou ? "#c6f32e" : this._genoTint(r.tier));
-          const av = new MA.ModelAvatar(geno, "mixamo");
+          const av = new MA.ModelAvatar(scene, "mixamo");
           const s = RUNNER_H / av.H;
           av.root.scale.setScalar(s);
-          av.root.rotation.y = Math.PI; // course runs toward −Z; Geno faces +Z
+          av.root.rotation.y = Math.PI; // course runs toward −Z; models face +Z
           r.group.add(av.root);
           const ph = r.group.getObjectByName("placeholder");
           if (ph) { ph.geometry.dispose(); ph.material.dispose(); r.group.remove(ph); }
           r.avatar = av;
+          r.avatarKind = kind;
           this._setClip(r, this._clipFor(r));
+          if (this.headMode) this._attachHead(r); // frog toggle armed pre-load
         } catch { /* runner keeps its capsule — the course still plays */ }
       }
       this.modelsReady = true;
@@ -1472,6 +1519,45 @@ export class Course3D {
       this.loadDressing(); // infield hurdles ride the same lazy loader
     } catch { /* WebGL/model trouble — capsules carry the game */ }
     this._avatarsLoading = false;
+  }
+
+  /* ── species heads (UX2 settings toggle — "frog!") ─────────────────────
+     geno-wardrobe.attachHead builds the frog (swallowing the host head) on
+     ANY mixamo-rigged ModelAvatar; OFF removes + disposes. Immediate — the
+     one class of setting that is safe to flip mid-battle. */
+  async setHeads(mode) {
+    this.headMode = mode === "frog" ? "frog" : null;
+    if (this.headMode) {
+      for (const [, r] of this.runners) this._attachHead(r);
+    } else {
+      for (const [, r] of this.runners) this._detachHead(r);
+    }
+    this.dirty = true;
+  }
+
+  async _attachHead(r) {
+    if (!r.avatar || r._headBusy || r._head) return;
+    r._headBusy = true;
+    try {
+      const W = await import("/site/models/geno-wardrobe.js");
+      if (this.disposed || !r.avatar) return;
+      const head = W.attachHead(r.avatar, this.headMode);
+      r._head = head;
+    } catch { /* head fails → the runner stays baseline (never blocks play) */ }
+    r._headBusy = false;
+  }
+
+  _detachHead(r) {
+    if (!r._head) return;
+    try {
+      r._head.removeFromParent();
+      r._head.traverse((o) => {
+        o.geometry?.dispose?.();
+        const mats = Array.isArray(o.material) ? o.material : o.material ? [o.material] : [];
+        for (const m of mats) { m.map?.dispose?.(); m.dispose?.(); }
+      });
+    } catch { /* already gone */ }
+    r._head = null;
   }
 
   /* ── infield dressing: meshy-vault hurdle props (decor, static) ────────
@@ -1819,6 +1905,8 @@ export class Course3D {
       t: +r.t.toFixed(4),
       lane: r.lane,
       avatarReady: !!r.avatar,
+      avatarKind: r.avatarKind ?? null, // meshy-athlete/-heavy/-slim | geno | null (capsule)
+      headOn: !!r._head,                // species head attached (settings toggle)
     };
   }
 

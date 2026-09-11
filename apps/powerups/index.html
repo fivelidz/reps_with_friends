@@ -1,0 +1,120 @@
+<!doctype html>
+<html lang="en" data-style="poster">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
+  <title>RWF · Power-Up Art Studio — 21 cards × 7 styles</title>
+  <meta name="description" content="The power-up symbol studio review: every Reps With Friends card rendered big as sports-poster art in seven named styles — front and back, effect text, draft rules, founder feedback capture.">
+  <meta name="theme-color" content="#0a0b0d">
+  <link rel="icon" href="data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 32 32'%3E%3Crect width='32' height='32' rx='7' fill='%230a0b0d'/%3E%3Cpath d='M17 5 9 17h6l-2 10 10-14h-7l1-8z' fill='%23ffc941'/%3E%3C/svg%3E">
+  <link rel="stylesheet" href="/design/fonts/fonts.css">
+  <link rel="stylesheet" href="powerups.css">
+</head>
+<body>
+
+  <!-- ═══════════ HEADER ═══════════ -->
+  <header class="pu-header">
+    <div class="pu-bar">
+      <span class="pu-over">RWF</span>
+      <h1 class="pu-title">Power-Up Art Studio</h1>
+      <span class="pu-count" id="puCount">— cards · — styles</span>
+      <span class="pu-spring"></span>
+      <button class="pu-barbtn" id="btnSheet" type="button" title="The whole deck on one sheet — print or download">🂠 Deck sheet</button>
+      <button class="pu-barbtn" id="btnReview" type="button" title="Full-screen review — swipe the deck">📱 Review</button>
+      <button class="pu-helpbtn" id="btnHelp" type="button" aria-expanded="false" aria-controls="puSheet" title="What is this page?">?</button>
+    </div>
+
+    <!-- style rail — the 7 kits (arrow-key + tap, like /styles) -->
+    <nav class="pu-rail" id="puRail" aria-label="Art style">
+      <span class="pu-rail__kbd">← → styles</span>
+      <!-- chips injected -->
+    </nav>
+
+    <!-- feedback summary (founder capture) -->
+    <div class="pu-fbar" id="puFbar" hidden>
+      <span id="puFbarText"></span>
+      <button class="pu-fbar__copy" id="btnFeedbackCopy" type="button">copy feedback</button>
+    </div>
+  </header>
+
+  <!-- ═══════════ ? SHEET ═══════════ -->
+  <div class="pu-sheet" id="puSheet" hidden role="dialog" aria-modal="true" aria-label="About this page">
+    <div class="pu-sheet__backdrop" data-sheet-close></div>
+    <div class="pu-sheet__panel">
+      <button class="pu-sheet__x" type="button" data-sheet-close>✕</button>
+      <h2>The power-up art system</h2>
+      <p><strong>21 cards × 7 named styles</strong>, all procedurally drawn — real vector symbols
+      (no emoji) in the sports-poster language: star-bursts, speed lines, halftone shading,
+      offset print misregistration, thick keylines. The "local media studio": canvas paths
+      rendered to SVG + PNG by a build script, committed assets — no runtime generation,
+      no image API.</p>
+      <p>Every card shows <strong>front + back</strong>, its full engine data (effect, target,
+      expiry, counters — read live from <code>apps/sot-engine.js</code>, never hardcoded),
+      and a <strong>💛 like / 💬 note</strong> pair saved to this device so founder feedback
+      ships with the deck.</p>
+      <p>Built for <code>site/powerup-art/</code> (the generator) · rendered into
+      <code>site/powerup-art/gen/</code> · reviewed here at <code>/powerups</code>. The 3D card
+      faces (v3) and the v4 app chips already wear the <em>Poster</em> master style.</p>
+      <p class="pu-sheet__kbd">← → styles · swipe the deck in Review · tap a card for the detail sheet</p>
+    </div>
+  </div>
+
+  <!-- ═══════════ RARITY LEGEND ═══════════ -->
+  <div class="pu-legend" id="puLegend">
+    <span class="pu-legend__t">rarity</span>
+    <span class="pu-legend__dot r-common"></span>common
+    <span class="pu-legend__dot r-rare"></span>rare
+    <span class="pu-legend__dot r-epic"></span>epic
+    <span class="pu-legend__dot r-legendary"></span>legendary
+  </div>
+
+  <!-- ═══════════ FAMILY SECTIONS (injected) ═══════════ -->
+  <main class="pu-main" id="puMain"><!-- sections injected --></main>
+
+  <!-- ═══════════ DRAFT RULES (engine numbers, injected) ═══════════ -->
+  <section class="pu-draft" id="puDraft" aria-label="Draft rules">
+    <h2 class="pu-h2">The draft economy</h2>
+    <p class="pu-draft__sub">the numbers live in the engine — this block renders them, it never restates them</p>
+    <div class="pu-draft__grid" id="puDraftGrid"><!-- injected --></div>
+    <div class="pu-curve" id="puCurve"><!-- injected --></div>
+  </section>
+
+  <footer class="pu-footer">
+    <span>site/powerup-art — the generator · apps/powerups — this review · Poster master feeds the v3 card faces + v4 chips</span>
+  </footer>
+
+  <!-- ═══════════ CARD DETAIL OVERLAY ═══════════ -->
+  <div class="pu-ov" id="puOv" hidden role="dialog" aria-modal="true" aria-label="Card detail">
+    <div class="pu-ov__backdrop" data-ov-close></div>
+    <div class="pu-ov__panel" id="puOvPanel"><!-- injected --></div>
+  </div>
+
+  <!-- ═══════════ DECK SHEET ═══════════ -->
+  <div class="pu-deckov" id="puDeckOv" hidden role="dialog" aria-modal="true" aria-label="Deck sheet">
+    <div class="pu-deckov__backdrop" data-deck-close></div>
+    <div class="pu-deckov__panel">
+      <div class="pu-deckov__bar">
+        <strong id="deckTitle">The deck — one sheet</strong>
+        <span class="pu-deckov__spring"></span>
+        <button class="pu-barbtn" id="btnDeckPrint" type="button">🖨 Print</button>
+        <button class="pu-barbtn" id="btnDeckPng" type="button">⬇ Download PNG</button>
+        <button class="pu-barbtn" id="btnDeckClose" type="button">✕ Close</button>
+      </div>
+      <div class="pu-deckov__sheet" id="puDeckSheet"><!-- injected --></div>
+    </div>
+  </div>
+
+  <!-- ═══════════ REVIEW MODE (fullscreen swipe deck) ═══════════ -->
+  <div class="pu-review" id="puReview" hidden aria-label="Review mode">
+    <div class="pu-review__bar">
+      <button class="pu-barbtn" id="btnReviewExit" type="button">✕ Exit</button>
+      <span class="pu-review__count" id="rvCount">1 / 21</span>
+      <span class="pu-review__kbd">← → · swipe · tap art to flip</span>
+    </div>
+    <div class="pu-review__stage" id="rvStage"><!-- injected --></div>
+    <div class="pu-review__dots" id="rvDots"><!-- injected --></div>
+  </div>
+
+  <script type="module" src="powerups.js"></script>
+</body>
+</html>

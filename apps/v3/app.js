@@ -1,8 +1,27 @@
 /* ═══════════════════════════════════════════════════════════════════════
-   RWF · V3 THE BATTLE COURSE — app.js
-   ┄┄┄┄┄┄┄┄┄┄┄┄┄┄┄┄┄┄┄┄┄┄┄┄┄┄┄┄┄┄┄┄┄┄┄┄┄┄┄┄┄┄┄┄┄┄┄┄┄┄┄┄┄┄┄┄┄┄┄┄┄┄┄┄┄┄┄┄
-   Views (hash router): #/home · #/setup · #/create · #/battle · #/result
-                         · #/squad
+   RWF · V3 THE BATTLE COURSE — app.js (UX2 — the 3-click entry)
+   ┄┄┄┄┄┄┄┄┄┄┄┄┄┄┄┄┄┄┄┄┄┄┄┄┄┄┄┄┄┄┄┄┄┄┄┄┄┄┄┄┄┄┄┄┄┄┄┄┄┄┄┄┄┄┄┄┄┄┄┄┄┄┄┄┄┄┄┄┄
+   UX2 (founder's first-play feedback: "a million clicks just to make a
+   team — less clicks to buy a car"):
+     · THREE CLICKS TO PLAYING — type your name → tap a tier → tap
+       START THE BATTLE. You land ON THE 3D COURSE in a LIVE battle vs
+       the seeded demo crew (varied tiers). Everything else is auto-set:
+       target 200 · every day active · bodyweight pack · weekly season ·
+       giving OFF · power-ups auto-dealt (strongest of your dealt three).
+     · ZERO WIZARD — the old setup/create screens are archived
+       (apps/v3/archive/2026-09-11_wizard-entry); #/setup and #/create
+       redirect to #/play.
+     · ⚙︎ HOUSE RULES — the quick-bar gear opens the full config ON the
+       course, framed as rule cards ("Target 200 ↔ 150/250"): config
+       changes take effect next battle, or immediately where safe
+       (species head → frog!, giving UI).
+     · THE COURSE IS THE EXPERIENCE — after START every screen IS the
+       course (TABLE camera default, drag-to-look hint fading on first
+       touch). The hub (home) shows START A BATTLE / JOIN WITH CODE /
+       your battles with one-tap resume.
+
+   Views (hash router): #/home (hub) · #/play (3-click entry) · #/battle
+   · #/result · #/squad · legacy #/setup + #/create → #/play
    The 3D course renders ONCE per visit; state changes PATCH in place —
    runners lerp forward (never a re-mount mid-battle), cards float in
    sync with the hand, the charity pot grows. Card choreography is the
@@ -20,8 +39,8 @@
    log (combo pitch climbs) · deal · flip · play · win · lose (you didn't
    take the pot) · pot · tick (final minute) · dz (heartbeat on each
    danger-zone step up) · swipe (screen changes) · error. Mute: the 🔊/🔇
-   button in the top bar, persisted at localStorage rwf.sfx.muted — the key
-   shared with v1, v2 and /sfx (mute anywhere, muted everywhere).
+   button in the quick bar, persisted at localStorage rwf.sfx.muted — the
+   key shared with v1, v2 and /sfx (mute anywhere, muted everywhere).
    ═══════════════════════════════════════════════════════════════════════ */
 
 import * as E from "./engine.js";
@@ -69,8 +88,11 @@ document.addEventListener("click", (e) => {
 /* ═════════════════════════ THE QUICK BAR — persistent top nav ══════════
    The founder: "navigation of the options and back to the dashboard should
    be easier too." One slim bar, fixed, on EVERY screen (mid-battle too):
-     ⌂ DASHBOARD (home) · ◉ camera cycle (battle) · ◐ theme · 🔊 sound
-   One tap from anywhere. The per-screen HUD underneath is untouched. */
+     ⌂ DASHBOARD (home) · ◉ camera cycle (battle) · ⚙ house rules ·
+     ◐ theme · 🔊 sound
+   One tap from anywhere. The per-screen HUD underneath is untouched.
+   UX2: the gear is the ONLY settings surface — the 3-click entry auto-sets
+   everything, and this is where you change it later. */
 const THEMES = [
   { id: "night", label: "Night" },   // the default stadium night (tokens.css)
   { id: "court", label: "Court" },   // amber court sport
@@ -98,10 +120,12 @@ function buildQuickbar() {
       <span class="v3-cam__dot"></span><span id="qCamLbl">CAM · TABLE</span>
     </button>
     <span class="v3-quick__spring" aria-hidden="true"></span>
+    <button class="v3-quick__btn v3-quick__icon" id="qSettings" aria-label="House rules — settings" title="House rules">⚙︎</button>
     <button class="v3-quick__btn v3-quick__icon" id="qTheme" aria-label="Theme" title="Theme">◐</button>
     ${muteBtnHtml()}`;
   document.body.prepend(bar);
   $("#qHome").onclick = () => { sfx("tap"); go("home"); };
+  $("#qSettings").onclick = () => { sfx("tap"); openSettingsSheet(); };
   $("#qTheme").onclick = () => {
     sfx("tap");
     themeIdx = (themeIdx + 1) % THEMES.length;
@@ -121,7 +145,7 @@ function buildQuickbar() {
 /* camera chrome (quick bar label + in-course hint) — safe from any view */
 const CAM_LABEL = { table: "CAM · TABLE", stadium: "CAM · STADIUM", follow: "CAM · FOLLOW" };
 const CAM_HINT = {
-  table: "DRAG TO PAN · PINCH TO ZOOM · C TO CYCLE",
+  table: "DRAG TO LOOK · PINCH TO ZOOM · C TO CYCLE",
   stadium: "HIGH SWEEP — THE SPECTACLE · C TO CYCLE",
   follow: "LEADER CAM · C TO CYCLE",
 };
@@ -240,13 +264,18 @@ function render() {
     ? S.matchById(new URLSearchParams(location.hash.split("?")[1] ?? "").get("m") ?? "") ?? S.currentMatch(state)
     : null;
 
-  if (view === "home") return renderHome(state);
-  if (view === "setup") return renderSetup();
-  if (view === "create") return state.player ? renderCreate() : go("setup");
+  /* UX2 ROUTING — the course is the experience. A fresh visitor (no
+     identity) lands on the 3-click entry, never a hub or wizard; the
+     archived setup/create screens redirect; a battle-less #/battle
+     returns to the hub whose hero makes a battle instantly. */
+  if (view === "home") return state.player ? renderHome(state) : go("play");
+  if (view === "play") return renderEntry(state);
+  if (view === "setup") return go("play"); // archived wizard → the 3-click entry
+  if (view === "create") return go(state.player ? "home" : "play"); // archived
   if (view === "battle") {
-    if (!state.player) return go("setup");
+    if (!state.player) return go("play");
     const m = match ?? S.currentMatch(state);
-    if (!m) return go("create");
+    if (!m) return go("home");
     if (m.status === "complete") return go(`result?m=${m.config.id}`);
     return renderBattle(S.load(), m);
   }
@@ -261,7 +290,7 @@ function topBar({ back = "home", kicker = "", name = "", right = "" }) {
   // (sound lives in the persistent quick bar above — one toggle, every screen)
   return `
   <header class="v3-top">
-    <button class="v3-top__back" data-go="${back}" aria-label="back">‹</button>
+    ${back ? `<button class="v3-top__back" data-go="${back}" aria-label="back">‹</button>` : `<span class="v3-top__spacer" aria-hidden="true"></span>`}
     <div class="v3-top__title">
       <p class="v3-top__kicker">${esc(kicker)}</p>
       <h2 class="v3-top__name">${esc(name)}</h2>
@@ -276,32 +305,39 @@ function syncQuickbar(view) {
   if (cam) cam.hidden = view !== "battle";
 }
 
-/* ═══════════════════════ HOME — your battles ══════════════════════════ */
+/* ═══════════════════════ HOME — THE HUB (UX2) ════════════════════════
+   The founder: "unsure how the game hub display works." Now it is
+   self-evident — exactly three things, nothing else:
+     1 · START A BATTLE — the hero (→ the 3-click entry, then live).
+     2 · JOIN WITH CODE — the secondary (bots bridge `link <CODE>`).
+     3 · YOUR BATTLES — LIVE first, ONE TAP resumes on the course. */
 function renderHome(state) {
   const me = S.me(state);
-  const matches = [...state.matches].reverse().slice(0, 8);
+  const rank = { live: 0, open: 1, complete: 2 };
+  const matches = [...state.matches]
+    .sort((a, b) => (rank[a.status] ?? 3) - (rank[b.status] ?? 3) ||
+      String(b.config.id).localeCompare(String(a.config.id)))
+    .slice(0, 8);
+  const liveCount = state.matches.filter((m) => m.status === "live").length;
   $app.innerHTML = `
   <div class="v3-screen">
-    ${topBar({ back: "squad", kicker: "Reps With Friends", name: me ? `Battle day · ${me.name}` : "The Battle Course" })}
+    ${topBar({ back: null, kicker: "Reps With Friends", name: me ? `Battle day · ${me.name}` : "The Battle Course" })}
     <div class="v3-pad">
-      <p class="v3-kicker">V3 · the founder's course</p>
       <h1 class="v3-h1">Run the course.<br><em>Hold your cards.</em></h1>
-      <p class="v3-sub">A 3D battle — your avatar runs the course as reps land, your
-        power-up cards float overhead, and the charity pot waits at the finish.
-        Close on the reps target or the clock, whichever comes first.</p>
-      <button class="pop-btn pop-btn--big pop-btn--full" id="newBattle" data-sfx="primary">Start a fast battle</button>
-      ${me ? "" : `<button class="pop-btn pop-btn--ghost pop-btn--full" id="setupBtn" style="margin-top:8px" data-sfx="tap">Set up your runner</button>`}
+      <button class="pop-btn pop-btn--big pop-btn--full" id="newBattle" data-sfx="primary">START A BATTLE</button>
+      <p class="v3-hub__sub">You <b>+ the demo crew</b> · target <b>200</b> unless you say otherwise · live in seconds${liveCount ? ` · <b>${liveCount} live</b> now` : ""}</p>
+      <button class="pop-btn pop-btn--ghost pop-btn--full" id="joinBtn" data-sfx="tap">JOIN WITH CODE</button>
 
-      <p class="v3-kicker" style="margin-top:22px">Your battles</p>
+      <p class="v3-kicker" style="margin-top:22px">Your battles — tap to resume</p>
       <div class="v3-battles" id="battles">
         ${matches.length ? matches.map(battleCard).join("") : `
-          <p class="v3-sub" style="margin:6px 0 0">No battles yet — start one and call the crew in.</p>`}
+          <p class="v3-sub" style="margin:6px 0 0">No battles yet — the hero above makes one instantly.</p>`}
       </div>
     </div>
   </div>`;
 
-  $("#newBattle").onclick = () => { sfx("primary"); go("create"); }; // the hero CTA gets the primary thunk
-  $("#setupBtn")?.addEventListener("click", () => { sfx("tap"); go("setup"); });
+  $("#newBattle").onclick = () => { sfx("primary"); go("play"); }; // hero → 3-click entry
+  $("#joinBtn").onclick = () => { sfx("tap"); openJoinSheet(); };
   $app.querySelectorAll("[data-go]").forEach((b) => (b.onclick = () => { sfx("tap"); go(b.dataset.go); }));
   $app.querySelectorAll("[data-open]").forEach((b) =>
     (b.onclick = () => {
@@ -309,8 +345,35 @@ function renderHome(state) {
       const m = state.matches.find((x) => x.config.id === b.dataset.open);
       if (!m) return;
       if (m.status === "complete") return go(`result?m=${m.config.id}`);
-      go(`battle?m=${m.config.id}`);
+      go(`battle?m=${m.config.id}`); // ONE TAP resumes
     }));
+}
+
+/* JOIN WITH CODE — a warm seat, never a dead end: the bots bridge links
+   real friends via `link <CODE>`; until they arrive a code opens a live
+   battle vs the demo crew branded with the code. */
+function openJoinSheet() {
+  openSheet(`
+    <div class="bd-sheet__grab"></div>
+    <h3 class="bd-sheet__h">Join with a code</h3>
+    <p class="v3-sub" style="margin:0 0 12px">Your crew's battle code comes from their chat bot
+      (<b>link &lt;CODE&gt;</b>). Until a friend links in, the code opens a live
+      battle vs the demo crew so nothing stalls.</p>
+    <input class="v3-input" id="codeIn" maxlength="12" placeholder="e.g. CREW-0QXZ" autocomplete="off" autocapitalize="characters" style="text-transform:uppercase">
+    <button class="pop-btn pop-btn--big pop-btn--full" id="joinGo" style="margin-top:12px" data-sfx="deal" disabled>Join the battle</button>`);
+  const inp = sheetEl.querySelector("#codeIn");
+  const goBtn = sheetEl.querySelector("#joinGo");
+  inp.oninput = () => { goBtn.disabled = !inp.value.trim(); };
+  inp.onkeydown = (e) => { if (e.key === "Enter" && !goBtn.disabled) goBtn.click(); };
+  setTimeout(() => inp.focus(), 120);
+  goBtn.onclick = () => {
+    sfx("deal");
+    const r = S.joinByCode(inp.value);
+    if (!r.ok) { sfx("error"); toast(r.reason ?? "That code won't work", "warn"); return; }
+    closeSheet(true);
+    toast(`Joined ${r.match.config.name} — battle live`, "ok");
+    go(`battle?m=${r.match.config.id}`);
+  };
 }
 
 function battleCard(m) {
@@ -336,116 +399,103 @@ function battleCard(m) {
     </button>`;
 }
 
-/* ═══════════════════════ SETUP — quick identity ═══════════════════════ */
-function renderSetup() {
+/* ═══════════════════════ PLAY — THE 3-CLICK ENTRY (UX2) ══════════════
+   The founder: "a million clicks just to make a team. Less clicks to buy
+   a car." Three interactions, then you are ON the course:
+     1 · TYPE your name        — the first keystroke auto-advances to…
+     2 · TAP your tier         — 4 big targets, the ×multiplier on the
+                                 face (handicaps your score)…
+     3 · TAP START THE BATTLE  — a LIVE battle vs the seeded demo crew
+                                 (varied tiers), every default auto-set:
+                                 target 200 · every day active · bodyweight
+                                 pack · weekly season · giving OFF ·
+                                 power-ups auto-dealt (strongest card).
+   No wizard, no battle-name form, no days/pack/target triage, no draft
+   screen. Returning runners land prefilled — one tap on START re-enters.
+   Everything adjustable later via ⚙︎ HOUSE RULES on the course. */
+const TIER_LINES = {
+  couch: "starting fresh — every rep counts more",
+  casual: "in the rhythm",
+  fit: "training regularly",
+  athlete: "competitor — reps count less, fairly",
+};
+function renderEntry(state) {
+  const me = S.me(state);
+  const P = S.prefs(state);
+  const name0 = me?.name ?? "";
+  const tier0 = me?.tier ?? null;
   $app.innerHTML = `
-  <div class="v3-screen">
-    ${topBar({ back: "home", kicker: "New runner", name: "Who's running?" })}
-    <div class="v3-pad">
-      <div class="v3-field">
-        <p class="v3-kicker">Your name</p>
-        <input class="v3-input" id="nameIn" maxlength="40" placeholder="e.g. Alexei" style="margin-top:8px">
+  <div class="v3-screen v3-entry" id="entry">
+    <div class="v3-entry__brand">
+      <p class="v3-kicker">REPS WITH FRIENDS · THE BATTLE COURSE</p>
+      <h1 class="v3-h1">Take your lane.<br><em>Three taps to the battle.</em></h1>
+    </div>
+    <div class="v3-pad v3-entry__pad">
+      <div class="v3-entry__step ${name0 ? "is-done" : "is-now"}" id="stepName">
+        <p class="v3-entry__label"><i>1</i> Your name</p>
+        <input class="v3-input v3-input--big" id="nameIn" maxlength="40" placeholder="Type it — the crew's waiting" value="${esc(name0)}" autocomplete="name" enterkeyhint="next">
       </div>
-      <div class="v3-field">
-        <p class="v3-kicker">Your tier — handicaps your score</p>
-        <div class="v3-chiprow" id="tiers" style="margin-top:8px">
+      <div class="v3-entry__step ${tier0 ? "is-done" : name0 ? "is-now" : "is-wait"}" id="stepTier">
+        <p class="v3-entry__label"><i>2</i> Your tier — handicaps your score</p>
+        <div class="v3-tiers" id="tiers">
           ${Object.entries(E.TIER_MULTIPLIERS).map(([k, v]) => `
-            <button class="v3-pick" data-tier="${k}" data-sfx="tap">
-              <span class="v3-pick__t">${k[0].toUpperCase() + k.slice(1)}</span>
-              <span class="v3-pick__s">reps ×${v}</span>
+            <button class="v3-tier ${tier0 === k ? "is-on" : ""}" data-tier="${k}" data-sfx="tap" ${name0 ? "" : "disabled"}>
+              <span class="v3-tier__x">×${v}</span>
+              <span class="v3-tier__t">${k[0].toUpperCase() + k.slice(1)}</span>
+              <span class="v3-tier__s">${TIER_LINES[k]}</span>
             </button>`).join("")}
         </div>
       </div>
-      <button class="pop-btn pop-btn--big pop-btn--full" id="setupGo" style="margin-top:18px" data-sfx="tap" disabled>Take your lane</button>
+      <div class="v3-entry__step ${name0 && tier0 ? "is-now" : "is-wait"}" id="stepGo">
+        <button class="pop-btn pop-btn--big pop-btn--full" id="startBattle" data-sfx="primary" ${name0 && tier0 ? "" : "disabled"}>START THE BATTLE</button>
+        <p class="v3-entry__note">Demo crew takes the other lanes · target <b>${S.targetById(P.target).reps}</b> reps ·
+          today active · power-ups auto-dealt. Everything's adjustable later —
+          <b>⚙︎ house rules</b>, on the course.</p>
+      </div>
     </div>
   </div>`;
-  let tier = null;
-  const sync = () => { $("#setupGo").disabled = !($("#nameIn").value.trim() && tier); };
-  $("#nameIn").oninput = sync;
-  $$("#tiers .v3-pick").forEach((b) =>
+
+  let tier = tier0;
+  const nameIn = $("#nameIn");
+  const stepTier = $("#stepTier");
+  const stepGo = $("#stepGo");
+  const sync = () => {
+    const ready = !!nameIn.value.trim() && !!tier;
+    $("#startBattle").disabled = !ready;
+    $$("#tiers .v3-tier").forEach((b) => (b.disabled = !nameIn.value.trim()));
+  };
+  // CLICK 1 → auto-proceed: the first keystroke wakes the tier grid.
+  nameIn.oninput = () => {
+    const has = !!nameIn.value.trim();
+    $("#stepName").className = `v3-entry__step ${has ? "is-done" : "is-now"}`;
+    stepTier.className = `v3-entry__step ${tier ? "is-done" : has ? "is-now" : "is-wait"}`;
+    sync();
+  };
+  nameIn.onkeydown = (e) => {
+    if (e.key !== "Enter") return;
+    e.preventDefault();
+    if (!nameIn.value.trim()) return;
+    (stepTier.querySelector(".v3-tier:not(.is-on)") ?? stepTier.querySelector(".v3-tier"))?.click();
+  };
+  // CLICK 2 → auto-proceed: the tier tap lights START THE BATTLE.
+  $$("#tiers .v3-tier").forEach((b) =>
     (b.onclick = () => {
       sfx("tap");
       tier = b.dataset.tier;
-      $$("#tiers .v3-pick").forEach((x) => x.classList.toggle("is-on", x === b));
+      $$("#tiers .v3-tier").forEach((x) => x.classList.toggle("is-on", x === b));
+      stepTier.classList.add("is-done");
+      stepGo.className = "v3-entry__step is-now";
       sync();
     }));
-  $app.querySelectorAll("[data-go]").forEach((b) => (b.onclick = () => { sfx("tap"); go(b.dataset.go); }));
-  $("#setupGo").onclick = () => {
-    sfx("win");
-    S.setPlayer({ name: $("#nameIn").value.trim() || "You", tier });
-    toast(`Lane taken — ${$("#nameIn").value.trim() || "You"} (${tier})`, "ok");
-    go("home");
-  };
-}
-
-/* ═══════════════════════ CREATE — fast battle setup ═══════════════════ */
-function renderCreate() {
-  const days = new Set([1, 3, 5]);
-  let pack = "bodyweight", target = "solid";
-  $app.innerHTML = `
-  <div class="v3-screen">
-    ${topBar({ back: "home", kicker: "Fast battle", name: "Set the battle" })}
-    <div class="v3-pad">
-      <div class="v3-field">
-        <p class="v3-kicker">Battle name</p>
-        <input class="v3-input" id="bName" maxlength="40" value="The 300 Club" style="margin-top:8px">
-      </div>
-      <div class="v3-field">
-        <p class="v3-kicker">Battle days — when the clock runs</p>
-        <div class="v3-chiprow" id="dayRow" style="margin-top:8px">
-          ${["SUN", "MON", "TUE", "WED", "THU", "FRI", "SAT"].map((d, i) => `
-            <button class="v3-pick" data-day="${i}" data-sfx="tap"><span class="v3-pick__t">${d}</span></button>`).join("")}
-        </div>
-      </div>
-      <div class="v3-field">
-        <p class="v3-kicker">Exercise pack</p>
-        <div class="v3-chiprow" id="packRow" style="margin-top:8px">
-          <button class="v3-pick" data-pack="bodyweight" data-sfx="tap"><span class="v3-pick__t">Bodyweight</span><span class="v3-pick__s">pushup·squat·situp·lunge·plank</span></button>
-          <button class="v3-pick" data-pack="fullbody" data-sfx="tap"><span class="v3-pick__t">Full body</span><span class="v3-pick__s">+ burpees</span></button>
-        </div>
-      </div>
-      <div class="v3-field">
-        <p class="v3-kicker">Battle distance (raw reps to close)</p>
-        <div class="v3-chiprow" id="tgtRow" style="margin-top:8px">
-          ${S.TARGETS.map((t) => `
-            <button class="v3-pick" data-target="${t.id}" data-sfx="tap">
-              <span class="v3-pick__t">${t.label}</span><span class="v3-pick__s">${esc(t.sub)}</span>
-            </button>`).join("")}
-        </div>
-      </div>
-      <p class="v3-sub" style="margin-top:16px">Every runner posts a <b>${E.ENTRY}-point entry</b> into the charity pot and
-        starts with <b>${E.START_RP} RUF</b> for cards. Sam, Alex &amp; Jordan take the other lanes.</p>
-      <button class="pop-btn pop-btn--big pop-btn--full" id="startBattle" data-sfx="deal">Set the course</button>
-    </div>
-  </div>`;
-
-  const syncDays = () => $$("#dayRow .v3-pick").forEach((b) =>
-    b.classList.toggle("is-on", days.has(+b.dataset.day)));
-  syncDays();
-  $$("#dayRow .v3-pick").forEach((b) =>
-    (b.onclick = () => {
-      sfx("tap");
-      const d = +b.dataset.day;
-      days.has(d) ? days.delete(d) : days.add(d);
-      if (!days.size) days.add(d); // at least one battle day
-      syncDays();
-    }));
-  const sync = (row, attr, val) => $$(`#${row} .v3-pick`).forEach((b) =>
-    b.classList.toggle("is-on", b.dataset[attr] === val));
-  sync("packRow", "pack", pack); sync("tgtRow", "target", target);
-  $$("#packRow .v3-pick").forEach((b) => (b.onclick = () => { sfx("tap"); pack = b.dataset.pack; sync("packRow", "pack", pack); }));
-  $$("#tgtRow .v3-pick").forEach((b) => (b.onclick = () => { sfx("tap"); target = b.dataset.target; sync("tgtRow", "target", target); }));
-  $app.querySelectorAll("[data-go]").forEach((b) => (b.onclick = () => { sfx("tap"); go(b.dataset.go); }));
-
+  // CLICK 3 → ON THE COURSE, live, instantly (demo crew auto-seated).
   $("#startBattle").onclick = () => {
-    sfx("deal");
-    const m = S.createFastBattle({
-      name: $("#bName").value.trim() || "The Battle",
-      days: [...days],
-      pack, target,
-    });
+    if ($("#startBattle").disabled) return;
+    sfx("primary");
+    S.setPlayer({ name: nameIn.value.trim() || "You", tier: tier ?? "casual" });
+    const m = S.createFastBattle({}); // every default from the HOUSE-RULES prefs
     go(`battle?m=${m.config.id}`);
   };
+  if (!name0) setTimeout(() => nameIn.focus(), 350); // keyboard up, step 1 lit
 }
 
 /* ═══════════════════════ THE BATTLE COURSE (flagship) ═════════════════ */
@@ -473,7 +523,8 @@ function renderBattle(state, matchIn) {
 
     <div class="v3-course" id="course">
       <div class="v3-course__gl" id="gl"></div>
-      <div class="v3-cam__hint" id="camHint">DRAG TO PAN · PINCH TO ZOOM · C TO CYCLE</div>
+      <div class="v3-cam__hint" id="camHint">DRAG TO LOOK · PINCH TO ZOOM · C TO CYCLE</div>
+      <div class="v3-orbit" id="orbitHint" aria-hidden="true"><span>↔ DRAG TO LOOK AROUND</span></div>
       <div class="v3-veil" id="veil"><span class="v3-veil__tag">RUNNERS WARMING UP</span></div>
 
       <div class="v3-hud">
@@ -512,6 +563,20 @@ function renderBattle(state, matchIn) {
   );
   course.start();
   course.loadAvatars();
+  // species heads restore with the course (the ⚙︎ toggle persists in prefs)
+  course.setHeads(S.prefs(S.load()).heads);
+
+  /* UX2 drag-to-look affordance: a subtle centred hint that fades on the
+     FIRST canvas interaction (or after 6s) — the course is touch-first. */
+  {
+    const orbitHint = $("#orbitHint");
+    if (orbitHint) {
+      const drop = () => orbitHint.classList.add("is-gone");
+      $("#gl canvas")?.addEventListener("pointerdown", drop, { once: true });
+      $("#gl canvas")?.addEventListener("wheel", drop, { once: true, passive: true });
+      setTimeout(drop, 6000);
+    }
+  }
 
   /* the camera cycle lives in the quick bar (+ keyboard C) — TABLE is the
      founder's oblique POV and the default; paint the chrome to match */
@@ -547,7 +612,9 @@ function renderBattle(state, matchIn) {
   ticker = setInterval(() => tickClock(match.config.id), 1000);
   tickClock(match.config.id);
 
-  /* draft pending → draft-from-3 sheet OVER the course (runners wait at the start) */
+  /* draft pending → draft-from-3 sheet OVER the course (runners wait at
+     the start). UX2: only when HOUSE RULES turns AUTO-DEAL off — the
+     default 3-click path dealt your strongest card at START. */
   if (S.myDraft(match.config.id, state)) openDraftSheet(match.config.id);
 }
 
@@ -589,12 +656,17 @@ function updateBattle(match, { full = false, newCard = null } = {}) {
       <div class="v3-srow ${r.player.id === you?.id ? "v3-srow--you" : ""}">
         <span class="v3-srow__pos">P${i + 1}</span>
         <span class="v3-srow__chip" style="--tier:${tierHex(r.player.tier, r.player.id === you?.id)}">${initials(r.player.name)}</span>
-        <span class="v3-srow__name">${esc(r.player.name)}</span>
+        <span class="v3-srow__name" data-fullname="${esc(r.player.name)}" title="${esc(r.player.name)}">${esc(r.player.name)}</span>
         ${tags}
         <span class="v3-srow__pct">${Math.round(r.progressPct)}%</span>
         <span class="v3-srow__ruf">◈${E.boardPoints(match, r.player.id)}</span>
       </div>`;
   }).join(""));
+
+  /* UX2 display fix: long names truncate with ellipsis — tap for the full
+     name (a toast, so nothing covers anything). */
+  $("#strip")?.querySelectorAll(".v3-srow__name").forEach((el) =>
+    (el.onclick = () => { sfx("tap"); toast(el.dataset.fullname, "ok"); }));
 
   /* commentary feed */
   const feed = feeds.get(match.config.id) ?? [];
@@ -924,6 +996,87 @@ function openDraftSheet(matchId) {
   };
 }
 
+/* ═══════════════════════ ⚙︎ SETTINGS — HOUSE RULES (UX2) ════════════
+   The founder: "should all be pretty default unless people want to change
+   things later" + "settings changes could basically be powerups." So the
+   config is framed as RULE CARDS — swappable, chunky, game pieces:
+     · TARGET 200 ↔ 150/250 · exercise pack · power-up AUTO-DEAL · GIVING
+       → apply from the NEXT battle (mid-battle economy never shifts).
+     · SPECIES HEAD — FROG! → IMMEDIATE (visual, safe mid-battle).
+     · Season card links the squad standings.
+   One sheet, reachable from ⚙︎ in the quick bar — on the course, on the
+   hub, anywhere. */
+function openSettingsSheet() {
+  const P = S.prefs(S.load());
+  const me = S.me();
+  const season = S.load().season;
+  const ruleCard = (group, val, label, sub) => `
+    <button class="rule-card ${String(P[group]) === String(val) ? "is-on" : ""}" data-rule="${group}" data-val="${val}" data-sfx="tap">
+      <span class="rule-card__t">${label}</span>
+      <span class="rule-card__s">${sub}</span>
+    </button>`;
+  openSheet(`
+    <div class="bd-sheet__grab"></div>
+    <h3 class="bd-sheet__h">House rules</h3>
+    <p class="v3-sub" style="margin:0 0 4px">Your battle, your rules — tap a card to swap it.</p>
+
+    <p class="v3-kicker" style="margin-top:12px">THE TARGET</p>
+    <div class="rule-row" id="ruleTarget">
+      ${["breezy", "standard", "bravo"].map((id) => {
+        const t = S.TARGETS.find((x) => x.id === id);
+        return ruleCard("target", id, `${t.reps} REPS`, id === "standard" ? "the default battle distance" : "swap the target", {});
+      }).join("")}
+      <span class="rule-card__note">next battle</span>
+    </div>
+
+    <p class="v3-kicker" style="margin-top:14px">THE SET</p>
+    <div class="rule-row" id="rulePack">
+      ${ruleCard("pack", "bodyweight", "BODYWEIGHT", "pushup · squat · situp · lunge · plank")}
+      ${ruleCard("pack", "fullbody", "+ BURPEES", "the full-body pack")}
+      <span class="rule-card__note">next battle</span>
+    </div>
+
+    <p class="v3-kicker" style="margin-top:14px">POWER-UPS</p>
+    <div class="rule-row" id="ruleDeal">
+      ${ruleCard("autoDeal", "true", "AUTO-DEAL", "cards dealt at START — no draft screen")}
+      ${ruleCard("autoDeal", "false", "DRAFT FROM 3", "dealt three — you keep one")}
+      <span class="rule-card__note">next battle</span>
+    </div>
+
+    <p class="v3-kicker" style="margin-top:14px">GIVING</p>
+    <div class="rule-row" id="ruleGiving">
+      ${ruleCard("giving", "false", "OFF", "no charity stop at the result")}
+      ${ruleCard("giving", "true", "ON", "the winner directs the pot")}
+      <span class="rule-card__note">next result</span>
+    </div>
+
+    <p class="v3-kicker" style="margin-top:14px">YOUR RUNNER</p>
+    <div class="rule-row" id="ruleHeads">
+      ${ruleCard("heads", "none", "RUNNER", "the atelier athlete trio")}
+      ${ruleCard("heads", "frog", "🐸 FROG HEAD", "species head — ribbit")}
+      <span class="rule-card__note">live now</span>
+    </div>
+    ${me ? `<p class="v3-sub" style="margin:10px 0 0">${esc(me.name)} · ${me.tier.toUpperCase()} tier · season ${season ? `week ${Math.min(season.week ?? 1, season.config?.weeks ?? 4)}/${season.config?.weeks ?? 4}` : "—"} · <button class="v3-link" id="squadLink" data-sfx="tap">squad standings →</button></p>` : ""}
+  `);
+
+  sheetEl.querySelectorAll(".rule-card").forEach((b) =>
+    (b.onclick = () => {
+      sfx("flip");
+      const group = b.dataset.rule;
+      let val = b.dataset.val;
+      if (val === "true") val = true;
+      else if (val === "false") val = false;
+      S.setPrefs({ [group]: val });
+      b.parentElement.querySelectorAll(".rule-card").forEach((x) => x.classList.toggle("is-on", x === b));
+      const live = group === "heads";
+      if (group === "heads" && course) course.setHeads(val);
+      toast(live
+        ? (val === "frog" ? "🐸 Frog heads — live" : "Runner heads back")
+        : `House rule saved — ${group === "target" ? `next battle runs ${S.targetById(val).reps} reps` : group === "pack" ? "next battle swaps the set" : group === "autoDeal" ? (val ? "cards auto-deal next battle" : "draft screen returns next battle") : "giving shows at the next result"}`, "ok");
+    }));
+  sheetEl.querySelector("#squadLink")?.addEventListener("click", () => { closeSheet(true); go("squad"); });
+}
+
 /* ═══════════════════════ RESULT — the 3D podium ═══════════════════════ */
 function renderResult(state, match) {
   if (!match) return go("home");
@@ -967,13 +1120,15 @@ function renderResult(state, match) {
             <span class="v3-srow__ruf">${r.rawReps} raw</span>
           </div>`).join("")}
       </div>
-      <p class="v3-kicker" style="margin-top:18px">${esc(win.player.name)} directs the ${pot}-pt charity pot</p>
-      <div class="v3-chiprow" style="margin-top:8px" id="charRow">
-        ${S.CHARITIES.map((c) => `
-          <button class="v3-pick ${designated === c.id ? "is-on" : ""}" data-charity="${c.id}" data-sfx="pot">
-            <span class="v3-pick__t">${esc(c.name)}</span>
-          </button>`).join("")}
-      </div>
+      ${S.prefs(state).giving ? `
+        <p class="v3-kicker" style="margin-top:18px">${esc(win.player.name)} directs the ${pot}-pt charity pot</p>
+        <div class="v3-chiprow" style="margin-top:8px" id="charRow">
+          ${S.CHARITIES.map((c) => `
+            <button class="v3-pick ${designated === c.id ? "is-on" : ""}" data-charity="${c.id}" data-sfx="pot">
+              <span class="v3-pick__t">${esc(c.name)}</span>
+            </button>`).join("")}
+        </div>`
+      : `<p class="v3-sub" style="margin-top:18px">The ${pot}-pt pot rides to the next battle · giving is <b>OFF</b> — flip it in <b>⚙︎ house rules</b>.</p>`}
       <div style="display:flex;gap:8px;margin-top:18px">
         <button class="pop-btn pop-btn--big" style="flex:1" id="rematchBtn" data-sfx="deal">Rematch</button>
         <button class="pop-btn pop-btn--ghost pop-btn--big" data-go="squad" data-sfx="tap">Squad</button>
@@ -1110,6 +1265,11 @@ window.__rwfV3 = {
   },
   camMode: () => course?.mode ?? null,
   camState: () => course?.camState() ?? null,
+  /* UX2 probes — prefs / house rules / species heads */
+  prefs: () => S.prefs(S.load()),
+  setPref: (k, v) => { S.setPrefs({ [k]: v }); return S.prefs(S.load()); },
+  headMode: () => course?.headMode ?? null,
+  avatarKind: (pid) => S.load() && (window.__rwfV3.runnerPos(pid)?.avatarKind ?? null),
   runnerScreen: (pid) => course?.runnerScreen(pid) ?? null,
   worldScreen: (x, y, z) => course?.worldScreen(x, y, z) ?? null,
   cycleCam: () => (course ? paintCamChrome(course.cycleCamera()) : null),

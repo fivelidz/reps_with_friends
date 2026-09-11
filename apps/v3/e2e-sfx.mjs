@@ -5,17 +5,18 @@
    actually FIRES per interaction — plays are counted per click with a
    stubbed AudioContext (the apps/sfx-demo/e2e.mjs pattern), not just
    trusted. The walk mirrors the real battle:
-     real-mouse click unlocks the lazy context (autoplay policy) →
-     hero CTA (primary) → nav (swipe) → setup (tap + win) → create
-     (tap/deal) → draft (flip + deal) → LOG REPS ×2 (log — combo pitch
-     CLIMBS, verified through recorded oscillator frequencies) →
-     deal drop (deal) → mates (tap) → card play (play) → danger-zone
-     wind (dz heartbeat + final-minute tick) → close on the TARGET
-     (win chime on the podium) → charity (pot) → rematch → close on
-     the CLOCK from behind (lose — gentle, never mean) → mute
-     round-trip through the top-bar button (rwf.sfx.muted persisted,
-     survives reload, shared key) → all-13 catalogue sweep via the
-     exact window.rwfSfx.play API.
+     UX2 walk: a real-mouse click on THE ENTRY's name field unlocks the
+     lazy context silently → tier tap (the first real tap) → START THE
+     BATTLE (primary) → ON the course, live, no draft screen (swipe) →
+     LOG REPS ×2 (log — combo pitch CLIMBS, verified through recorded
+     oscillator frequencies) → deal drop (deal) → mates (tap) → card
+     play (play) → danger-zone wind (dz heartbeat + final-minute tick)
+     → close on the TARGET (win chime on the podium) → charity (pot) →
+     rematch through the manual draft (flip + deal) → close on the
+     CLOCK from behind (lose — gentle, never mean) → mute round-trip
+     through the quick-bar button (rwf.sfx.muted persisted, survives
+     reload, shared key) → all-13 catalogue sweep via the exact
+     window.rwfSfx.play API.
    Zero console errors is a hard gate. Shots land in apps/v3/shots/
    with the _sfx suffix.
    ═══════════════════════════════════════════════════════════════════════ */
@@ -241,39 +242,33 @@ const boot = await evalJs(`(() => ({
 ok(boot.hasGlobal, "sfx.js loaded — window.rwfSfx global exists");
 ok(boot.names.length === 13, `13 catalogue names exposed (${boot.names.length})`);
 ok(boot.nodes === 0, "no synthesis before any gesture (lazy context)");
-ok(boot.plays <= 1 && (await playEvents()).every((p) => !p.r), "boot swipe was a silent no-op (no synthesis pre-gesture — the lazy-context gate)");
+ok((await playEvents()).every((p) => !p.r), "boot swipes are silent no-ops (no synthesis pre-gesture — the lazy-context gate; UX2 boots render twice: #/home → redirect #/play)");
 ok(boot.muteBtn && boot.mutePressed === "false", "top-bar mute button painted unmuted");
 
-console.log("— REAL CLICK unlocks audio (the autoplay-policy gate)");
+console.log("— REAL CLICK unlocks audio (the autoplay-policy gate) — on THE ENTRY");
 const nodesBefore = await nodes();
-await realClick("#newBattle");
+await realClick("#nameIn"); // a real user gesture on step 1 (no cue — an input focus is silent)
+ok((await playEvents()).every((p) => !p.r), "clicking the name field plays NOTHING (it unlocks the lazy context — nodes may appear, no sound fires)");
+await evalJs(`(() => { const i = document.querySelector('#nameIn'); i.value = ${JSON.stringify(MY_NAME)}; i.dispatchEvent(new Event('input', {bubbles:true})); return true; })()`);
+await sleep(250);
+await realClick('[data-tier="couch"]');
+const tierTap = await playEvents();
+ok(tierTap.some((p) => p.n === "tap" && p.r === true), `CLICK 2 — the tier tap fires the first REAL sound (tap, nodes ${await nodes()})`);
+
+console.log("— CLICK 3 — START THE BATTLE → ON the course (primary + swipe)");
+await realClick("#startBattle");
 const afterGesture = await playEvents();
-ok(afterGesture.some((p) => p.n === "primary" && p.r === true), `hero CTA fires primary via a real mouse click (nodes ${nodesBefore} → ${await nodes()})`);
+ok(afterGesture.some((p) => p.n === "primary" && p.r === true), `START THE BATTLE fires primary via a real mouse click (nodes ${nodesBefore} → ${await nodes()})`);
 ok((await count("primary")) === 1, "primary fired EXACTLY once (data-sfx + onclick deduped by the re-trigger guard)");
 ok(await count("swipe") >= 1, "navigation fires the swipe whoosh");
-ok(await exists("#nameIn"), "arrived on setup");
+await waitFor(() => exists("#logBtn").catch(() => false), { label: "battle live on the course (auto-deal — no draft screen)" });
+ok(await evalJs(`window.__rwfV3.view() === "battle"`), "the course IS the first screen after START");
 
-console.log("— SETUP → identity (tap + win)");
-await evalJs(`(() => { const i = document.querySelector('#nameIn'); i.value = ${JSON.stringify(MY_NAME)}; i.dispatchEvent(new Event('input', {bubbles:true})); return true; })()`);
-await click('[data-tier="couch"]');
-ok((await count("tap")) >= 1, "tier chip taps");
-await click("#setupGo");
-ok((await count("win")) >= 1, "taking your lane plays the win fanfare");
-
-console.log("— CREATE → draft → battle (deal + flip)");
-await click("#newBattle");
-ok((await count("primary")) === 2, "hero CTA primary again (create this time)");
-await click("#packRow .v3-pick");
-await click("#startBattle");
-ok((await count("deal")) >= 1, "set-the-course deals");
-await waitFor(() => exists("#draftFan .bd-card").catch(() => false), { label: "draft sheet over the course" });
-const flipBefore = await count("flip");
-await evalJs(`document.querySelectorAll('#draftFan .bd-card')[1].click(); true`);
-await sleep(150);
-ok((await count("flip")) === flipBefore + 1, "draft card pick snaps (flip)");
-await click("#keepBtn");
-await waitFor(async () => !(await exists(".bd-sheet").catch(() => true)), { label: "draft sheet closed (keep timed in)" });
-await waitFor(() => exists("#logBtn").catch(() => false), { label: "battle live — log button" });
+/* sfx-leg house rules: GIVING ON so the result shows the charity row (the
+   pot clink cue), AUTO-DEAL OFF so the rematch walks the manual draft
+   (flip + keep cues). Set through the probe — this suite tests SOUND, the
+   UX flow suite tests the cards themselves. */
+await evalJs(`window.__rwfV3.setPref('giving', true); window.__rwfV3.setPref('autoDeal', false); true`);
 
 console.log("— LOG REPS ×2 — the combo climbs (real oscillator numbers)");
 const f1 = await evalJs(`window.__freqs.length`);
@@ -295,7 +290,7 @@ ok(comboProbe.i1 >= 0 && comboProbe.i2 > comboProbe.i1, `log-combo pitch climbed
 
 console.log("— DEAL DROP + MATES");
 await click("#dealDrop");
-ok((await count("deal")) >= 2, "daily drop deals");
+ok((await count("deal")) >= 1, "daily drop deals (the creation auto-deal fired pre-gesture — silent)");
 await click("#simBtn");
 ok((await count("tap")) >= 4, "mates button taps");
 

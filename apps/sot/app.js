@@ -1693,7 +1693,7 @@
         n > 1 ? el("div", { class: "qty" }, "×" + n) : null,
         isRev ? el("div", { class: "face" },
           el("div", { class: "f-rar" }, card.rarity + " · " + (card.family || "card")),
-          el("div", { class: "f-ico" }, card.icon || cardIcon(card.id)),
+          el("div", { class: "f-ico" }, cardSymImg(card.id)),
           el("div", { class: "f-name" }, card.name.toUpperCase()),
           el("div", { class: "f-exp" }, "⏳ " + (card.expiry || "today"))) :
           el("div", { class: "back" }, el("div", { class: "logo" }, "RWF"), el("div", { class: "tiny" }, "tap to flip")));
@@ -1714,6 +1714,22 @@
     return scr;
   }
   function cardIcon(id) { const c = SoT.CARDS[id]; return (c && c.icon) || { lightning: "⚡", steal: "🥷", shield: "🛡️", freeze: "❄️", surprise_bomb: "💣", rescue_rope: "🪢", combo_boost: "🔥", double_down: "🎲", assist_boost: "🤝", shield_bash: "🔨" }[id] || "🃏"; }
+  /* the power-up SYMBOL (power-up art studio, site/powerup-art): the 96px
+     poster-master chip replaces the emoji in the visual slots. If the art
+     is missing (deploy lag, blocked asset), onerror falls back to the
+     engine-canonical emoji — the chip degrades, the app never breaks. */
+  function cardSymImg(id, cls) {
+    const c = SoT.CARDS[id];
+    const fallback = () => (c && c.icon) || cardIcon(id);
+    const img = el("img", {
+      class: "sym-img" + (cls ? " " + cls : ""),
+      src: "/site/powerup-art/gen/chips/" + encodeURIComponent(id) + ".png",
+      alt: fallback(),
+      loading: "lazy",
+      onerror: () => img.replaceWith(document.createTextNode(fallback())),
+    });
+    return img;
+  }
 
   /* ══ HOW IT WORKS (the one-scroll spec overview) ═══════════════════
      Phone-first visual tour of the Source of Truth: the loop as a styled
@@ -1841,7 +1857,7 @@
       const grid = el("div", { class: "tut-cards" });
       for (const c of cards) {
         grid.append(el("div", { class: "tut-cardface rarity-" + c.rarity },
-          el("div", { class: "tut-cardface__ico" }, c.icon || cardIcon(c.id)),
+          el("div", { class: "tut-cardface__ico" }, cardSymImg(c.id)),
           el("div", { class: "tut-cardface__body" },
             el("div", { class: "tut-cardface__top" },
               el("div", { class: "tut-cardface__name" }, c.name.toUpperCase()),
@@ -2396,7 +2412,7 @@
       const needsExercise = card.id === "double_exercise";
       const box = el("div", { class: "oval" },
         el("div", { class: "o-kicker" }, card.rarity.toUpperCase() + " · " + (card.family || "CARD").toUpperCase()),
-        el("div", { style: "font-size:52px;margin:8px 0" }, card.icon || cardIcon(card.id)),
+        el("div", { style: "margin:8px 0; display:flex; justify-content:center" }, cardSymImg(card.id, "lg")),
         el("div", { class: "o-title", style: "font-size:30px" }, card.name.toUpperCase()),
         el("p", { class: "o-sub" }, card.detail),
         el("div", { class: "chip-row" },
@@ -2497,7 +2513,7 @@
       const card = SoT.CARDS[ov.cardId] || {};
       layer.append(el("div", { class: "oval" },
         el("div", { class: "o-kicker" }, "OFFLINE — SAVED ON THIS DEVICE"),
-        el("div", { style: "font-size:52px;margin:8px 0" }, card.icon || cardIcon(ov.cardId)),
+        el("div", { style: "margin:8px 0; display:flex; justify-content:center" }, cardSymImg(ov.cardId, "lg")),
         el("div", { class: "o-title", style: "font-size:26px" }, "QUEUED — PLAYS WHEN YOU RECONNECT"),
         el("p", { class: "o-sub" }, `${card.name || "This card"} waits with your other offline moves and plays on the crew server the moment you're back — the whole crew sees it then.`),
         el("div", { class: "chip-row" },

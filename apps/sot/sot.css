@@ -371,6 +371,13 @@ label.f { display: block; font-size: 12px; letter-spacing: 0.14em; text-transfor
   align-items: center; justify-content: space-between; text-align: center;
 }
 .pu-card .face .f-ico { font-size: 30px; margin-top: 6px; }
+/* power-up SYMBOL chips (site/powerup-art gen) — the emoji replacements.
+   Sized to the slots they land in; the PNGs are 96px (2× at ~48px). */
+.sym-img { width: 30px; height: 30px; border-radius: 8px; display: block; }
+.sym-img.lg { width: 76px; height: 76px; border-radius: 16px; }
+.feed-item .f-ico .sym-img { width: 22px; height: 22px; border-radius: 6px; }
+.pu-card .face .f-ico .sym-img { width: 34px; height: 34px; border-radius: 9px; }
+.tut-cardface__ico .sym-img { width: 28px; height: 28px; border-radius: 7px; }
 .pu-card .face .f-name { font-family: var(--display); font-size: 13px; line-height: 1.15; letter-spacing: 0.04em; }
 .pu-card .face .f-rar { font-size: 9px; letter-spacing: 0.22em; text-transform: uppercase; color: var(--ink-faint); }
 .pu-card .qty {

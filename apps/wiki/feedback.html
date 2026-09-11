@@ -1,0 +1,53 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>Feedback — RWF Wiki</title>
+<meta name="description" content="The crew's notes on the wiki — every page comment, newest first, filterable by page.">
+<link rel="stylesheet" href="/design/tokens.css">
+<link rel="stylesheet" href="tokens.css">
+<link rel="stylesheet" href="wiki.css">
+</head>
+<body>
+<nav class="wnav">
+  <a class="wnav__brand" href="index.html"><b>RWF&nbsp;WIKI</b><span>internal docs</span></a>
+  <a class="wnav__link" href="game.html">Game Rules</a>
+  <a class="wnav__link" href="app.html">App Screens</a>
+  <a class="wnav__link" href="versions.html">Versions</a>
+  <a class="wnav__link" href="bots.html">Bots</a>
+  <a class="wnav__link" href="verification.html">Verification</a>
+  <a class="wnav__link" href="avatars.html">Avatars</a>
+  <a class="wnav__link" href="ops.html">Ops &amp; Testing</a>
+  <a class="wnav__link" href="design.html">Design System</a>
+  <a class="wnav__link" href="status.html">Status</a>
+  <a class="wnav__link" href="feedback.html">📝 Feedback</a>
+</nav>
+<div class="wrap">
+
+<header class="hero">
+  <p class="eyebrow">Reps With Friends · crew notes</p>
+  <h1>📝 Feedback</h1>
+  <p class="lede">Everything the crew has left on the wiki, newest first. Every page carries a note box at the bottom; this is the reading room. No logins, no ceremony — pick a page filter and skim.</p>
+  <div class="stats">
+    <div class="stat"><b data-fb-total>…</b><span>notes and counting</span></div>
+    <div class="stat"><b>zero</b><span>auth — it's the founder's crew</span></div>
+    <div class="stat"><b>/feedback</b><span>same-origin → apps/api · docs/22 §11</span></div>
+  </div>
+</header>
+
+<section>
+  <h2 class="sect">The notes stream</h2>
+  <p class="sectsub">Newest first. Filter by page to read one chapter's notes in full; the count in the corner shows shown vs. total. Page names link back to their chapter.</p>
+  <div id="fbAdmin"></div>
+</section>
+
+<footer class="wfoot">
+  <span>RWF wiki · feedback · apps/api /feedback → .data/feedback.json</span>
+  <span>wiring: docs/22 §11 · widget in feedback.js on every page</span>
+</footer>
+</div>
+<script src="wiki.js"></script>
+<script src="feedback.js"></script>
+</body>
+</html>

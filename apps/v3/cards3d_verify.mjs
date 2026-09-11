@@ -147,26 +147,18 @@ await waitFor(
   { label: "v3 app load", timeout: 20000 }
 );
 
-console.log("— BATTLE BOOT");
-await evalJs(`(() => { const i = document.querySelector('#nameIn'); return !!i; })()`);
-await evalJs(`location.hash = '#/setup'`);
+console.log("— BATTLE BOOT (UX2 — the 3-click entry, battle born live)");
+await evalJs(`location.hash = '#/play'`);
 await sleep(400);
 await evalJs(`(() => { const i = document.querySelector('#nameIn'); i.value = 'Alexei'; i.dispatchEvent(new Event('input', {bubbles:true})); document.querySelector('[data-tier="fit"]').click(); return true; })()`);
-await evalJs(`document.querySelector('#setupGo').click()`);
-await sleep(400);
-await evalJs(`location.hash = '#/create'`);
-await waitFor(() => evalJs(`!!document.querySelector('#startBattle')`).catch(() => false), { label: "create screen" });
 await evalJs(`document.querySelector('#startBattle').click()`);
-await waitFor(() => evalJs(`!!document.querySelector('#draftFan .bd-card')`).catch(() => false), { label: "draft sheet" });
-await evalJs(`document.querySelectorAll('#draftFan .bd-card')[1].click()`);
-await sleep(200);
-await evalJs(`document.querySelector('#keepBtn').click()`);
+await waitFor(() => evalJs(`!!document.querySelector('#logBtn')`).catch(() => false), { label: "battle live (auto-dealt — no draft sheet)" });
 await sleep(1000);
-await waitFor(() => call("modelsReady()").catch(() => false), { label: "Geno + mocap loaded", timeout: 30000 });
+await waitFor(() => call("modelsReady()").catch(() => false), { label: "meshy trio + mocap loaded", timeout: 30000 });
 ok(await evalJs(`!!document.querySelector('#gl canvas')`), "battle live with the 3D course");
 
 console.log("— THE HAND-CAP SCENE (4 runners × 3 cards)");
-for (const pid of ["sam", "alex", "jordan"]) {
+for (const pid of ["sam", "alex", "mika"]) {
   const r = await call(`dealTo('${pid}', 2)`); // mates hold 1 draft + 2 = 3
   ok(r?.ok === true, `dealt up ${pid} (now ${r?.granted?.length ?? 0} more cards)`);
 }

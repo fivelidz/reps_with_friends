@@ -1,0 +1,820 @@
+{
+  "generatedAt": "2026-09-11T01:36:00.273Z",
+  "engine": "apps/sot-engine.js CARD_CATALOG",
+  "styles": [
+    {
+      "id": "poster",
+      "name": "Poster",
+      "tagline": "the house style",
+      "desc": "The master sports-poster treatment: speed-line halo, chromatic misregistration, halftone shade, thick keyline. What the 3D cards and app chips ship with."
+    },
+    {
+      "id": "varsity",
+      "name": "Varsity Badge",
+      "tagline": "stitched felt patch",
+      "desc": "College colours on a felt circle: chenille stitch rings, dashed chain-stitch border, star pips and a blank winner's banner. Warm, earned, team-spirit."
+    },
+    {
+      "id": "risograph",
+      "name": "Risograph",
+      "tagline": "two-ink print run",
+      "desc": "Riso blue + alarm red on cream, printed a beat out of register with real paper grain. The zine-shop look — punk, tactile, very now."
+    },
+    {
+      "id": "gold-etch",
+      "name": "Gold Etching",
+      "tagline": "engraved on ink",
+      "desc": "The trophy-room plate: gold linework engraved into deep ink, hatch-shaded fields, filigree corners and double rules. Museum-grade flex."
+    },
+    {
+      "id": "halftone",
+      "name": "Halftone Comic",
+      "tagline": "ben-day action print",
+      "desc": "Silver-age comic panel: ben-day dot field, the glyph inked with a sticker-gap outline over a comic burst, heavy blacks, one alarm-yellow spot."
+    },
+    {
+      "id": "neon",
+      "name": "Neon Arena",
+      "tagline": "lights on the dark",
+      "desc": "The 11pm arena: floodlight beams, floor grid, and the glyph burning in layered neon — wide dim strokes under a hot white core."
+    },
+    {
+      "id": "boxing",
+      "name": "Boxing Poster",
+      "tagline": "aged letterpress",
+      "desc": "Turn-of-the-century fight bill: letterpress ink double-struck on aged paper, oxblood accents, rosette corners, star rows, honest wear."
+    }
+  ],
+  "chips": {
+    "dir": "chips",
+    "size": 96,
+    "note": "poster master · v4 app icons (2x)"
+  },
+  "cards": [
+    {
+      "id": "lightning",
+      "name": "Lightning Round",
+      "family": "canon",
+      "rarity": "legendary",
+      "files": {
+        "poster": {
+          "svg": "gen/poster/lightning.svg",
+          "png": "gen/poster/lightning.png"
+        },
+        "varsity": {
+          "svg": "gen/varsity/lightning.svg",
+          "png": "gen/varsity/lightning.png"
+        },
+        "risograph": {
+          "svg": "gen/risograph/lightning.svg",
+          "png": "gen/risograph/lightning.png"
+        },
+        "gold-etch": {
+          "svg": "gen/gold-etch/lightning.svg",
+          "png": "gen/gold-etch/lightning.png"
+        },
+        "halftone": {
+          "svg": "gen/halftone/lightning.svg",
+          "png": "gen/halftone/lightning.png"
+        },
+        "neon": {
+          "svg": "gen/neon/lightning.svg",
+          "png": "gen/neon/lightning.png"
+        },
+        "boxing": {
+          "svg": "gen/boxing/lightning.svg",
+          "png": "gen/boxing/lightning.png"
+        }
+      }
+    },
+    {
+      "id": "steal",
+      "name": "Rep Steal",
+      "family": "canon",
+      "rarity": "epic",
+      "files": {
+        "poster": {
+          "svg": "gen/poster/steal.svg",
+          "png": "gen/poster/steal.png"
+        },
+        "varsity": {
+          "svg": "gen/varsity/steal.svg",
+          "png": "gen/varsity/steal.png"
+        },
+        "risograph": {
+          "svg": "gen/risograph/steal.svg",
+          "png": "gen/risograph/steal.png"
+        },
+        "gold-etch": {
+          "svg": "gen/gold-etch/steal.svg",
+          "png": "gen/gold-etch/steal.png"
+        },
+        "halftone": {
+          "svg": "gen/halftone/steal.svg",
+          "png": "gen/halftone/steal.png"
+        },
+        "neon": {
+          "svg": "gen/neon/steal.svg",
+          "png": "gen/neon/steal.png"
+        },
+        "boxing": {
+          "svg": "gen/boxing/steal.svg",
+          "png": "gen/boxing/steal.png"
+        }
+      }
+    },
+    {
+      "id": "shield",
+      "name": "Group Shield",
+      "family": "canon",
+      "rarity": "common",
+      "files": {
+        "poster": {
+          "svg": "gen/poster/shield.svg",
+          "png": "gen/poster/shield.png"
+        },
+        "varsity": {
+          "svg": "gen/varsity/shield.svg",
+          "png": "gen/varsity/shield.png"
+        },
+        "risograph": {
+          "svg": "gen/risograph/shield.svg",
+          "png": "gen/risograph/shield.png"
+        },
+        "gold-etch": {
+          "svg": "gen/gold-etch/shield.svg",
+          "png": "gen/gold-etch/shield.png"
+        },
+        "halftone": {
+          "svg": "gen/halftone/shield.svg",
+          "png": "gen/halftone/shield.png"
+        },
+        "neon": {
+          "svg": "gen/neon/shield.svg",
+          "png": "gen/neon/shield.png"
+        },
+        "boxing": {
+          "svg": "gen/boxing/shield.svg",
+          "png": "gen/boxing/shield.png"
+        }
+      }
+    },
+    {
+      "id": "freeze",
+      "name": "Time Freeze",
+      "family": "canon",
+      "rarity": "rare",
+      "files": {
+        "poster": {
+          "svg": "gen/poster/freeze.svg",
+          "png": "gen/poster/freeze.png"
+        },
+        "varsity": {
+          "svg": "gen/varsity/freeze.svg",
+          "png": "gen/varsity/freeze.png"
+        },
+        "risograph": {
+          "svg": "gen/risograph/freeze.svg",
+          "png": "gen/risograph/freeze.png"
+        },
+        "gold-etch": {
+          "svg": "gen/gold-etch/freeze.svg",
+          "png": "gen/gold-etch/freeze.png"
+        },
+        "halftone": {
+          "svg": "gen/halftone/freeze.svg",
+          "png": "gen/halftone/freeze.png"
+        },
+        "neon": {
+          "svg": "gen/neon/freeze.svg",
+          "png": "gen/neon/freeze.png"
+        },
+        "boxing": {
+          "svg": "gen/boxing/freeze.svg",
+          "png": "gen/boxing/freeze.png"
+        }
+      }
+    },
+    {
+      "id": "combo_boost",
+      "name": "Combo Boost",
+      "family": "post-launch",
+      "rarity": "rare",
+      "files": {
+        "poster": {
+          "svg": "gen/poster/combo_boost.svg",
+          "png": "gen/poster/combo_boost.png"
+        },
+        "varsity": {
+          "svg": "gen/varsity/combo_boost.svg",
+          "png": "gen/varsity/combo_boost.png"
+        },
+        "risograph": {
+          "svg": "gen/risograph/combo_boost.svg",
+          "png": "gen/risograph/combo_boost.png"
+        },
+        "gold-etch": {
+          "svg": "gen/gold-etch/combo_boost.svg",
+          "png": "gen/gold-etch/combo_boost.png"
+        },
+        "halftone": {
+          "svg": "gen/halftone/combo_boost.svg",
+          "png": "gen/halftone/combo_boost.png"
+        },
+        "neon": {
+          "svg": "gen/neon/combo_boost.svg",
+          "png": "gen/neon/combo_boost.png"
+        },
+        "boxing": {
+          "svg": "gen/boxing/combo_boost.svg",
+          "png": "gen/boxing/combo_boost.png"
+        }
+      }
+    },
+    {
+      "id": "double_down",
+      "name": "Double Down",
+      "family": "post-launch",
+      "rarity": "epic",
+      "files": {
+        "poster": {
+          "svg": "gen/poster/double_down.svg",
+          "png": "gen/poster/double_down.png"
+        },
+        "varsity": {
+          "svg": "gen/varsity/double_down.svg",
+          "png": "gen/varsity/double_down.png"
+        },
+        "risograph": {
+          "svg": "gen/risograph/double_down.svg",
+          "png": "gen/risograph/double_down.png"
+        },
+        "gold-etch": {
+          "svg": "gen/gold-etch/double_down.svg",
+          "png": "gen/gold-etch/double_down.png"
+        },
+        "halftone": {
+          "svg": "gen/halftone/double_down.svg",
+          "png": "gen/halftone/double_down.png"
+        },
+        "neon": {
+          "svg": "gen/neon/double_down.svg",
+          "png": "gen/neon/double_down.png"
+        },
+        "boxing": {
+          "svg": "gen/boxing/double_down.svg",
+          "png": "gen/boxing/double_down.png"
+        }
+      }
+    },
+    {
+      "id": "assist_boost",
+      "name": "Assist Boost",
+      "family": "post-launch",
+      "rarity": "common",
+      "files": {
+        "poster": {
+          "svg": "gen/poster/assist_boost.svg",
+          "png": "gen/poster/assist_boost.png"
+        },
+        "varsity": {
+          "svg": "gen/varsity/assist_boost.svg",
+          "png": "gen/varsity/assist_boost.png"
+        },
+        "risograph": {
+          "svg": "gen/risograph/assist_boost.svg",
+          "png": "gen/risograph/assist_boost.png"
+        },
+        "gold-etch": {
+          "svg": "gen/gold-etch/assist_boost.svg",
+          "png": "gen/gold-etch/assist_boost.png"
+        },
+        "halftone": {
+          "svg": "gen/halftone/assist_boost.svg",
+          "png": "gen/halftone/assist_boost.png"
+        },
+        "neon": {
+          "svg": "gen/neon/assist_boost.svg",
+          "png": "gen/neon/assist_boost.png"
+        },
+        "boxing": {
+          "svg": "gen/boxing/assist_boost.svg",
+          "png": "gen/boxing/assist_boost.png"
+        }
+      }
+    },
+    {
+      "id": "surprise_bomb",
+      "name": "Surprise Bomb",
+      "family": "post-launch",
+      "rarity": "epic",
+      "files": {
+        "poster": {
+          "svg": "gen/poster/surprise_bomb.svg",
+          "png": "gen/poster/surprise_bomb.png"
+        },
+        "varsity": {
+          "svg": "gen/varsity/surprise_bomb.svg",
+          "png": "gen/varsity/surprise_bomb.png"
+        },
+        "risograph": {
+          "svg": "gen/risograph/surprise_bomb.svg",
+          "png": "gen/risograph/surprise_bomb.png"
+        },
+        "gold-etch": {
+          "svg": "gen/gold-etch/surprise_bomb.svg",
+          "png": "gen/gold-etch/surprise_bomb.png"
+        },
+        "halftone": {
+          "svg": "gen/halftone/surprise_bomb.svg",
+          "png": "gen/halftone/surprise_bomb.png"
+        },
+        "neon": {
+          "svg": "gen/neon/surprise_bomb.svg",
+          "png": "gen/neon/surprise_bomb.png"
+        },
+        "boxing": {
+          "svg": "gen/boxing/surprise_bomb.svg",
+          "png": "gen/boxing/surprise_bomb.png"
+        }
+      }
+    },
+    {
+      "id": "rescue_rope",
+      "name": "Rescue Rope",
+      "family": "post-launch",
+      "rarity": "rare",
+      "files": {
+        "poster": {
+          "svg": "gen/poster/rescue_rope.svg",
+          "png": "gen/poster/rescue_rope.png"
+        },
+        "varsity": {
+          "svg": "gen/varsity/rescue_rope.svg",
+          "png": "gen/varsity/rescue_rope.png"
+        },
+        "risograph": {
+          "svg": "gen/risograph/rescue_rope.svg",
+          "png": "gen/risograph/rescue_rope.png"
+        },
+        "gold-etch": {
+          "svg": "gen/gold-etch/rescue_rope.svg",
+          "png": "gen/gold-etch/rescue_rope.png"
+        },
+        "halftone": {
+          "svg": "gen/halftone/rescue_rope.svg",
+          "png": "gen/halftone/rescue_rope.png"
+        },
+        "neon": {
+          "svg": "gen/neon/rescue_rope.svg",
+          "png": "gen/neon/rescue_rope.png"
+        },
+        "boxing": {
+          "svg": "gen/boxing/rescue_rope.svg",
+          "png": "gen/boxing/rescue_rope.png"
+        }
+      }
+    },
+    {
+      "id": "shield_bash",
+      "name": "Shield Bash",
+      "family": "post-launch",
+      "rarity": "rare",
+      "files": {
+        "poster": {
+          "svg": "gen/poster/shield_bash.svg",
+          "png": "gen/poster/shield_bash.png"
+        },
+        "varsity": {
+          "svg": "gen/varsity/shield_bash.svg",
+          "png": "gen/varsity/shield_bash.png"
+        },
+        "risograph": {
+          "svg": "gen/risograph/shield_bash.svg",
+          "png": "gen/risograph/shield_bash.png"
+        },
+        "gold-etch": {
+          "svg": "gen/gold-etch/shield_bash.svg",
+          "png": "gen/gold-etch/shield_bash.png"
+        },
+        "halftone": {
+          "svg": "gen/halftone/shield_bash.svg",
+          "png": "gen/halftone/shield_bash.png"
+        },
+        "neon": {
+          "svg": "gen/neon/shield_bash.svg",
+          "png": "gen/neon/shield_bash.png"
+        },
+        "boxing": {
+          "svg": "gen/boxing/shield_bash.svg",
+          "png": "gen/boxing/shield_bash.png"
+        }
+      }
+    },
+    {
+      "id": "double_exercise",
+      "name": "Double Exercise",
+      "family": "exercise",
+      "rarity": "rare",
+      "files": {
+        "poster": {
+          "svg": "gen/poster/double_exercise.svg",
+          "png": "gen/poster/double_exercise.png"
+        },
+        "varsity": {
+          "svg": "gen/varsity/double_exercise.svg",
+          "png": "gen/varsity/double_exercise.png"
+        },
+        "risograph": {
+          "svg": "gen/risograph/double_exercise.svg",
+          "png": "gen/risograph/double_exercise.png"
+        },
+        "gold-etch": {
+          "svg": "gen/gold-etch/double_exercise.svg",
+          "png": "gen/gold-etch/double_exercise.png"
+        },
+        "halftone": {
+          "svg": "gen/halftone/double_exercise.svg",
+          "png": "gen/halftone/double_exercise.png"
+        },
+        "neon": {
+          "svg": "gen/neon/double_exercise.svg",
+          "png": "gen/neon/double_exercise.png"
+        },
+        "boxing": {
+          "svg": "gen/boxing/double_exercise.svg",
+          "png": "gen/boxing/double_exercise.png"
+        }
+      }
+    },
+    {
+      "id": "specialist",
+      "name": "Specialist",
+      "family": "exercise",
+      "rarity": "epic",
+      "files": {
+        "poster": {
+          "svg": "gen/poster/specialist.svg",
+          "png": "gen/poster/specialist.png"
+        },
+        "varsity": {
+          "svg": "gen/varsity/specialist.svg",
+          "png": "gen/varsity/specialist.png"
+        },
+        "risograph": {
+          "svg": "gen/risograph/specialist.svg",
+          "png": "gen/risograph/specialist.png"
+        },
+        "gold-etch": {
+          "svg": "gen/gold-etch/specialist.svg",
+          "png": "gen/gold-etch/specialist.png"
+        },
+        "halftone": {
+          "svg": "gen/halftone/specialist.svg",
+          "png": "gen/halftone/specialist.png"
+        },
+        "neon": {
+          "svg": "gen/neon/specialist.svg",
+          "png": "gen/neon/specialist.png"
+        },
+        "boxing": {
+          "svg": "gen/boxing/specialist.svg",
+          "png": "gen/boxing/specialist.png"
+        }
+      }
+    },
+    {
+      "id": "wildcard_workout",
+      "name": "Wildcard Workout",
+      "family": "exercise",
+      "rarity": "legendary",
+      "files": {
+        "poster": {
+          "svg": "gen/poster/wildcard_workout.svg",
+          "png": "gen/poster/wildcard_workout.png"
+        },
+        "varsity": {
+          "svg": "gen/varsity/wildcard_workout.svg",
+          "png": "gen/varsity/wildcard_workout.png"
+        },
+        "risograph": {
+          "svg": "gen/risograph/wildcard_workout.svg",
+          "png": "gen/risograph/wildcard_workout.png"
+        },
+        "gold-etch": {
+          "svg": "gen/gold-etch/wildcard_workout.svg",
+          "png": "gen/gold-etch/wildcard_workout.png"
+        },
+        "halftone": {
+          "svg": "gen/halftone/wildcard_workout.svg",
+          "png": "gen/halftone/wildcard_workout.png"
+        },
+        "neon": {
+          "svg": "gen/neon/wildcard_workout.svg",
+          "png": "gen/neon/wildcard_workout.png"
+        },
+        "boxing": {
+          "svg": "gen/boxing/wildcard_workout.svg",
+          "png": "gen/boxing/wildcard_workout.png"
+        }
+      }
+    },
+    {
+      "id": "rivalry",
+      "name": "Rivalry",
+      "family": "rivalry",
+      "rarity": "common",
+      "files": {
+        "poster": {
+          "svg": "gen/poster/rivalry.svg",
+          "png": "gen/poster/rivalry.png"
+        },
+        "varsity": {
+          "svg": "gen/varsity/rivalry.svg",
+          "png": "gen/varsity/rivalry.png"
+        },
+        "risograph": {
+          "svg": "gen/risograph/rivalry.svg",
+          "png": "gen/risograph/rivalry.png"
+        },
+        "gold-etch": {
+          "svg": "gen/gold-etch/rivalry.svg",
+          "png": "gen/gold-etch/rivalry.png"
+        },
+        "halftone": {
+          "svg": "gen/halftone/rivalry.svg",
+          "png": "gen/halftone/rivalry.png"
+        },
+        "neon": {
+          "svg": "gen/neon/rivalry.svg",
+          "png": "gen/neon/rivalry.png"
+        },
+        "boxing": {
+          "svg": "gen/boxing/rivalry.svg",
+          "png": "gen/boxing/rivalry.png"
+        }
+      }
+    },
+    {
+      "id": "training_partners",
+      "name": "Training Partners",
+      "family": "rivalry",
+      "rarity": "rare",
+      "files": {
+        "poster": {
+          "svg": "gen/poster/training_partners.svg",
+          "png": "gen/poster/training_partners.png"
+        },
+        "varsity": {
+          "svg": "gen/varsity/training_partners.svg",
+          "png": "gen/varsity/training_partners.png"
+        },
+        "risograph": {
+          "svg": "gen/risograph/training_partners.svg",
+          "png": "gen/risograph/training_partners.png"
+        },
+        "gold-etch": {
+          "svg": "gen/gold-etch/training_partners.svg",
+          "png": "gen/gold-etch/training_partners.png"
+        },
+        "halftone": {
+          "svg": "gen/halftone/training_partners.svg",
+          "png": "gen/halftone/training_partners.png"
+        },
+        "neon": {
+          "svg": "gen/neon/training_partners.svg",
+          "png": "gen/neon/training_partners.png"
+        },
+        "boxing": {
+          "svg": "gen/boxing/training_partners.svg",
+          "png": "gen/boxing/training_partners.png"
+        }
+      }
+    },
+    {
+      "id": "pack_bond",
+      "name": "Pack Bond",
+      "family": "rivalry",
+      "rarity": "epic",
+      "files": {
+        "poster": {
+          "svg": "gen/poster/pack_bond.svg",
+          "png": "gen/poster/pack_bond.png"
+        },
+        "varsity": {
+          "svg": "gen/varsity/pack_bond.svg",
+          "png": "gen/varsity/pack_bond.png"
+        },
+        "risograph": {
+          "svg": "gen/risograph/pack_bond.svg",
+          "png": "gen/risograph/pack_bond.png"
+        },
+        "gold-etch": {
+          "svg": "gen/gold-etch/pack_bond.svg",
+          "png": "gen/gold-etch/pack_bond.png"
+        },
+        "halftone": {
+          "svg": "gen/halftone/pack_bond.svg",
+          "png": "gen/halftone/pack_bond.png"
+        },
+        "neon": {
+          "svg": "gen/neon/pack_bond.svg",
+          "png": "gen/neon/pack_bond.png"
+        },
+        "boxing": {
+          "svg": "gen/boxing/pack_bond.svg",
+          "png": "gen/boxing/pack_bond.png"
+        }
+      }
+    },
+    {
+      "id": "prove_it",
+      "name": "Prove It",
+      "family": "proof",
+      "rarity": "rare",
+      "files": {
+        "poster": {
+          "svg": "gen/poster/prove_it.svg",
+          "png": "gen/poster/prove_it.png"
+        },
+        "varsity": {
+          "svg": "gen/varsity/prove_it.svg",
+          "png": "gen/varsity/prove_it.png"
+        },
+        "risograph": {
+          "svg": "gen/risograph/prove_it.svg",
+          "png": "gen/risograph/prove_it.png"
+        },
+        "gold-etch": {
+          "svg": "gen/gold-etch/prove_it.svg",
+          "png": "gen/gold-etch/prove_it.png"
+        },
+        "halftone": {
+          "svg": "gen/halftone/prove_it.svg",
+          "png": "gen/halftone/prove_it.png"
+        },
+        "neon": {
+          "svg": "gen/neon/prove_it.svg",
+          "png": "gen/neon/prove_it.png"
+        },
+        "boxing": {
+          "svg": "gen/boxing/prove_it.svg",
+          "png": "gen/boxing/prove_it.png"
+        }
+      }
+    },
+    {
+      "id": "spot_check",
+      "name": "Spot Check",
+      "family": "proof",
+      "rarity": "epic",
+      "files": {
+        "poster": {
+          "svg": "gen/poster/spot_check.svg",
+          "png": "gen/poster/spot_check.png"
+        },
+        "varsity": {
+          "svg": "gen/varsity/spot_check.svg",
+          "png": "gen/varsity/spot_check.png"
+        },
+        "risograph": {
+          "svg": "gen/risograph/spot_check.svg",
+          "png": "gen/risograph/spot_check.png"
+        },
+        "gold-etch": {
+          "svg": "gen/gold-etch/spot_check.svg",
+          "png": "gen/gold-etch/spot_check.png"
+        },
+        "halftone": {
+          "svg": "gen/halftone/spot_check.svg",
+          "png": "gen/halftone/spot_check.png"
+        },
+        "neon": {
+          "svg": "gen/neon/spot_check.svg",
+          "png": "gen/neon/spot_check.png"
+        },
+        "boxing": {
+          "svg": "gen/boxing/spot_check.svg",
+          "png": "gen/boxing/spot_check.png"
+        }
+      }
+    },
+    {
+      "id": "second_wind",
+      "name": "Second Wind",
+      "family": "catch-up",
+      "rarity": "rare",
+      "files": {
+        "poster": {
+          "svg": "gen/poster/second_wind.svg",
+          "png": "gen/poster/second_wind.png"
+        },
+        "varsity": {
+          "svg": "gen/varsity/second_wind.svg",
+          "png": "gen/varsity/second_wind.png"
+        },
+        "risograph": {
+          "svg": "gen/risograph/second_wind.svg",
+          "png": "gen/risograph/second_wind.png"
+        },
+        "gold-etch": {
+          "svg": "gen/gold-etch/second_wind.svg",
+          "png": "gen/gold-etch/second_wind.png"
+        },
+        "halftone": {
+          "svg": "gen/halftone/second_wind.svg",
+          "png": "gen/halftone/second_wind.png"
+        },
+        "neon": {
+          "svg": "gen/neon/second_wind.svg",
+          "png": "gen/neon/second_wind.png"
+        },
+        "boxing": {
+          "svg": "gen/boxing/second_wind.svg",
+          "png": "gen/boxing/second_wind.png"
+        }
+      }
+    },
+    {
+      "id": "mulligan",
+      "name": "Mulligan",
+      "family": "catch-up",
+      "rarity": "common",
+      "files": {
+        "poster": {
+          "svg": "gen/poster/mulligan.svg",
+          "png": "gen/poster/mulligan.png"
+        },
+        "varsity": {
+          "svg": "gen/varsity/mulligan.svg",
+          "png": "gen/varsity/mulligan.png"
+        },
+        "risograph": {
+          "svg": "gen/risograph/mulligan.svg",
+          "png": "gen/risograph/mulligan.png"
+        },
+        "gold-etch": {
+          "svg": "gen/gold-etch/mulligan.svg",
+          "png": "gen/gold-etch/mulligan.png"
+        },
+        "halftone": {
+          "svg": "gen/halftone/mulligan.svg",
+          "png": "gen/halftone/mulligan.png"
+        },
+        "neon": {
+          "svg": "gen/neon/mulligan.svg",
+          "png": "gen/neon/mulligan.png"
+        },
+        "boxing": {
+          "svg": "gen/boxing/mulligan.svg",
+          "png": "gen/boxing/mulligan.png"
+        }
+      }
+    },
+    {
+      "id": "underdog",
+      "name": "Underdog",
+      "family": "catch-up",
+      "rarity": "epic",
+      "files": {
+        "poster": {
+          "svg": "gen/poster/underdog.svg",
+          "png": "gen/poster/underdog.png"
+        },
+        "varsity": {
+          "svg": "gen/varsity/underdog.svg",
+          "png": "gen/varsity/underdog.png"
+        },
+        "risograph": {
+          "svg": "gen/risograph/underdog.svg",
+          "png": "gen/risograph/underdog.png"
+        },
+        "gold-etch": {
+          "svg": "gen/gold-etch/underdog.svg",
+          "png": "gen/gold-etch/underdog.png"
+        },
+        "halftone": {
+          "svg": "gen/halftone/underdog.svg",
+          "png": "gen/halftone/underdog.png"
+        },
+        "neon": {
+          "svg": "gen/neon/underdog.svg",
+          "png": "gen/neon/underdog.png"
+        },
+        "boxing": {
+          "svg": "gen/boxing/underdog.svg",
+          "png": "gen/boxing/underdog.png"
+        }
+      }
+    }
+  ],
+  "backs": {
+    "poster": "gen/poster/_back.png",
+    "varsity": "gen/varsity/_back.png",
+    "risograph": "gen/risograph/_back.png",
+    "gold-etch": "gen/gold-etch/_back.png",
+    "halftone": "gen/halftone/_back.png",
+    "neon": "gen/neon/_back.png",
+    "boxing": "gen/boxing/_back.png"
+  }
+}

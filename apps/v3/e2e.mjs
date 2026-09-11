@@ -1,17 +1,30 @@
 /* ═══════════════════════════════════════════════════════════════════════
    RWF V3 BATTLE COURSE — e2e (headless chromium + CDP, no deps)
-   ┄┄┄┄┄┄┄┄┄┄┄┄┄┄┄┄┄┄┄┄┄┄┄┄┄┄┄┄┄┄┄┄┄┄┄┄┄┄┄┄┄┄┄┄┄┄┄┄┄┄┄┄┄┄┄┄┄┄┄┄┄┄┄┄┄┄┄┄
-   The full battle, on the real app:
-     home → setup → create (fast battle) → THE 3D COURSE with the
-     draft-from-3 sheet over it → runners at the start line → keep a
-     card → LOG REPS (≤3-tap quick-log) → world positions advance
-     MATCHING progress % → mates + daily drop → play a card (CSS-3D
-     flight + 3D billboard burst + engine effect) → DANGER ZONE ramp →
-     close on the reps target → 3D PODIUM + confetti + charity →
-     rematch → close on the CLOCK (the other deadline) → language
-     sweep (battle words only) → desktop 1280×800 → frame-ms budget.
+   UX2 — THE 3-CLICK ENTRY EDITION
+   ┄┄┄┄┄┄┄┄┄┄┄┄┄┄┄┄┄┄┄┄┄┄┄┄┄┄┄┄┄┄┄┄┄┄┄┄┄┄┄┄┄┄┄┄┄┄┄┄┄┄┄┄┄┄┄┄┄┄┄┄┄┄┄┄┄┄┄┄┄
+   The founder's walk, verbatim ("3 clicks to playing"):
+     fresh visit → THE ENTRY (type your name → tap a tier → tap START
+     THE BATTLE) → ON THE 3D COURSE in a LIVE battle vs the seeded demo
+     crew (varied tiers, auto-seated) — no wizard, no draft screen, no
+     other page. Auto-dealt power-up in hand, TABLE camera, drag-to-look
+     hint, everything auto-set (target 200 · every day · bodyweight ·
+     weekly season · giving OFF). Then the deep game: LOG REPS → the
+     runner advances matching progress % → mates + daily drop → real 3D
+     card meshes + hover → play a card (CSS flight + 3D burst + engine
+     effect) → ⚙︎ HOUSE RULES (11 rule cards: target 200 ↔ 150/250, pack,
+     auto-deal, giving, FROG heads — live) → the POV trio → dashboard +
+     back-gesture → DANGER ZONE ramp → close on the REPS TARGET → result
+     (giving OFF → the house-rules nudge, no charity row) → flip giving
+     ON + auto-deal OFF in ⚙︎ → REMATCH → draft-from-3 (the manual path
+     returns) → close on the CLOCK → result (charity row back, pot
+     designated) → JOIN WITH CODE → the hub (START A BATTLE · JOIN ·
+     battles with LIVE pills) → desktop 1280×800 → frame-ms budget.
+   Plus the 390×844 DISPLAY AUDIT (founder: "text cutoff, buttons
+   covered, need to scroll"): zero horizontal overflow, no vertical
+   scroll on the entry or the battle, the hand on-screen, the feed never
+   under-running the buttons, long names truncated with full-name-on-tap.
    Zero console errors is a hard gate. Shots land in apps/v3/shots/
-   with the _v3 suffix (390×844 @2x + one desktop).
+   with the _ux2 suffix (390×844 @2x + desktop legs).
    ═══════════════════════════════════════════════════════════════════════ */
 import { spawn } from "node:child_process";
 import { mkdirSync, writeFileSync } from "node:fs";
@@ -50,7 +63,7 @@ const server = Bun.serve({
     } else if (p.startsWith("/site/")) {
       fsPath = join(ROOT, p); // three.js r177 + model-avatars.js + recolor
     } else if (p.startsWith("/models/")) {
-      fsPath = join(ROOT, "site/models", p.replace(/^\/models\//, "")); // Geno + Soldier GLBs
+      fsPath = join(ROOT, "site/models", p.replace(/^\/models\//, "")); // meshy trio + Geno GLBs
     } else if (p === "/" || p.endsWith("/")) {
       fsPath = join(HERE, p === "/" ? "index.html" : join(p.replace(/^\//, ""), "index.html"));
     } else {
@@ -154,7 +167,7 @@ async function click(sel) {
 }
 async function shot(name) {
   const r = await send("Page.captureScreenshot", { format: "png" });
-  writeFileSync(join(SHOTS, `${String(step).padStart(2, "0")}-${name}_v3.png`), Buffer.from(r.data, "base64"));
+  writeFileSync(join(SHOTS, `${String(step).padStart(2, "0")}-${name}_ux2.png`), Buffer.from(r.data, "base64"));
 }
 const text = (sel) => evalJs(`document.querySelector('${sel}')?.textContent ?? null`);
 const exists = (sel) => evalJs(`!!document.querySelector('${sel}')`);
@@ -168,67 +181,84 @@ const langClean = (where) =>
   evalJs(`(() => { const t = document.querySelector('#app')?.innerText || ''; return !${BANNED.toString()}.test(t); })()`)
     .then((clean) => ok(clean === true, `battle language clean on ${where} (no kitty/poker/lap/race-night/table/felt)`));
 
+/* ── display-audit helpers (the founder: "text cutoff, buttons covered,
+   need to scroll" — every check runs at 390×844) ── */
+const audit = {
+  noHScroll: () => evalJs(`document.scrollingElement.scrollWidth - document.scrollingElement.clientWidth`),
+  viewFits: (sel) => evalJs(`(() => { const v = document.querySelector('${sel}'); return v ? v.scrollHeight - v.clientHeight : -999; })()`),
+  withinViewport: (sel) => evalJs(`(() => { const r = document.querySelector('${sel}')?.getBoundingClientRect(); return r ? (r.left >= -1 && r.right <= innerWidth + 1 && r.top >= -1 && r.bottom <= innerHeight + 1) : null; })()`),
+  feedAboveButtons: () => evalJs(`(() => { const f = document.querySelector('#feed')?.getBoundingClientRect(), b = document.querySelector('#logBtn')?.getBoundingClientRect(); return f && b ? f.bottom <= b.top + 1 : null; })()`),
+  handOnScreen: () => evalJs(`document.querySelector('#hand').getBoundingClientRect().bottom <= innerHeight + 1`),
+  noOverlap: (a, b) => evalJs(`(() => { const r1 = document.querySelector('${a}')?.getBoundingClientRect(), r2 = document.querySelector('${b}')?.getBoundingClientRect(); return (r1 && r2) ? !(r1.top < r2.bottom && r2.top < r1.bottom && r1.left < r2.right && r2.left < r1.right) : null; })()`),
+};
+
 /* ═══════════════════════ THE WALK ═════════════════════════════════════ */
 mkdirSync(SHOTS, { recursive: true });
-console.log(`\nRWF V3 BATTLE COURSE E2E — ${BASE} (headless chromium, 390×844)\n`);
+console.log(`\nRWF V3 BATTLE COURSE E2E (UX2) — ${BASE} (headless chromium, 390×844)\n`);
 
 await send("Page.navigate", { url: `${BASE}/index.html#/home` });
 await waitFor(
-  () => evalJs(`document.readyState === 'complete' && window.__rwfV3?.ready === true && document.querySelector('.v3-h1') !== null`).catch(() => false),
-  { label: "v3 app load", timeout: 20000 }
+  () => evalJs(`document.readyState === 'complete' && window.__rwfV3?.ready === true && document.querySelector('#entry') !== null`).catch(() => false),
+  { label: "v3 app load → fresh visitor lands on the 3-click entry", timeout: 20000 }
 );
 await sleep(600);
 
-console.log("— HOME");
-ok(await exists(".v3-h1"), "home hero renders");
-ok(await exists("#newBattle"), "fast battle CTA shown");
-ok((await text(".v3-h1")).includes("course"), "hero speaks the course language");
+console.log("— THE ENTRY (3 clicks to playing — no wizard, no hub first)");
+ok((await call("view()")) === "play", "fresh visit lands on THE ENTRY (#/play) — never a hub or wizard");
+ok(await exists("#nameIn"), "step 1 — the name field, front and centre");
+ok(await exists("#tiers"), "step 2 — the tier grid is on the same screen");
+ok(await exists("#startBattle"), "step 3 — START THE BATTLE is on the same screen");
+ok((await text("#startBattle")) === "START THE BATTLE", "the button says START THE BATTLE");
+ok((await evalJs(`document.querySelector('#startBattle').disabled`)) === true, "START is gated until name + tier");
+{
+  const tierFaces = await evalJs(`[...document.querySelectorAll('.v3-tier')].map(b => b.dataset.tier + ':' + b.querySelector('.v3-tier__x').textContent)`);
+  ok(tierFaces.length === 4 && tierFaces.every((f) => f.startsWith("couch:×") || f.startsWith("casual:×") || f.startsWith("fit:×") || f.startsWith("athlete:×")), `4 big tier targets, the ×multiplier on the face (${tierFaces.join(" · ")})`);
+}
+ok((await audit.noHScroll()) <= 1, "no horizontal overflow on the entry");
+ok((await audit.viewFits(".v3-screen")) <= 2, "the entry fits 390×844 with NO scrolling");
+await shot("entry");
+await langClean("entry");
 
-console.log("— QUICK BAR (persistent top nav: dashboard · cam · theme · sound)");
-ok(await exists("#v3quick"), "quick bar mounted (persistent, every screen)");
-ok(await exists("#qHome"), "dashboard button in the quick bar");
-ok((await evalJs(`document.querySelector('#qCam')?.hidden`)) === true, "camera cycle hidden off the battle course");
-ok(await exists(".v3-quick .v3-mute"), "sound toggle lives in the quick bar");
-await evalJs(`document.querySelector('#qTheme').click(); true`);
-await sleep(150);
-ok((await evalJs(`document.body.dataset.rwfTheme`)) === "court", "theme button cycles the skin (night → court)");
-ok((await evalJs(`localStorage.getItem('rwf.v3.theme')`)) === "court", "theme persists to rwf.v3.theme");
-await evalJs(`document.querySelector('#qTheme').click(); true`);
-ok((await evalJs(`document.body.dataset.rwfTheme`)) === "ice", "theme cycles again (court → ice)");
-await evalJs(`document.querySelector('#qTheme').click(); true`);
-ok((await evalJs(`document.body.dataset.rwfTheme`)) === "night", "theme wraps home (ice → night, shots stay on the default)");
+/* CLICK 1 — type your name (auto-advances) */
+await evalJs(`(() => { const i = document.querySelector('#nameIn'); i.focus(); i.value = 'Alexei'; i.dispatchEvent(new Event('input', { bubbles: true })); return true; })()`);
+await sleep(350);
+ok((await evalJs(`document.querySelector('[data-tier="couch"]').disabled`)) === false, "CLICK 1 (typing) auto-advances — the tier grid wakes up");
+await shot("entry-name");
 
-await shot("home");
-await langClean("home");
-
-console.log("— SETUP (identity)");
-await goto("#/setup");
-await evalJs(`(() => { const i = document.querySelector('#nameIn'); i.value = 'Alexei'; i.dispatchEvent(new Event('input', {bubbles:true})); return true; })()`);
+/* CLICK 2 — tap your tier (auto-advances) */
 await evalJs(`document.querySelector('[data-tier="couch"]').click(); true`);
-await sleep(150);
-await shot("setup");
-await click("#setupGo");
+await sleep(350);
+ok((await evalJs(`document.querySelector('#startBattle').disabled`)) === false, "CLICK 2 (tier tap) auto-advances — START THE BATTLE lights up");
+await shot("entry-tier");
+
+/* CLICK 3 — START → ON THE COURSE */
+await click("#startBattle");
+await waitFor(() => exists("#gl canvas").catch(() => false), { label: "the 3D course after three clicks" });
+await waitFor(() => call("runnerPos('you')").then((p) => !!p).catch(() => false), { label: "runner probe live" });
+await sleep(400);
+
+console.log("— THE COURSE LANDING (you are IN a live battle — nothing else first)");
+ok((await call("view()")) === "battle", "after START the view IS the battle course");
 const st1 = await evalJs(`JSON.parse(localStorage.getItem('rwf.v3') ?? 'null')`);
-ok(st1?.player?.name === "Alexei" && st1?.player?.tier === "couch", "player persisted to rwf.v3");
+ok(st1?.player?.name === "Alexei" && st1?.player?.tier === "couch", "player persisted to rwf.v3 (name + tier)");
+const mid = await call("matchId()");
+const m0 = st1.matches.find((m) => m.config.id === mid);
+ok(m0?.status === "live", "the battle is already LIVE (auto-deal — no draft screen, no start ceremony)");
+ok(m0?.config.targetReps === 200, "target auto-set to 200 (the founder's default)");
+ok((m0?.config.playDays ?? []).length === 7 && m0.config.playDays.includes(new Date().getDay()), "battle days auto-set — today active, every day");
+ok(m0?.players.length === 4 && m0.players.filter((p) => p.id !== "you").length === 3, "demo crew auto-seated — 3 instant opponents");
+ok(new Set(m0.players.map((p) => p.tier)).size >= 3, "crew tiers varied (a real ladder, not clones)");
+ok(m0?.players.some((p) => p.name.length > 12), "long-name runner seated (Mikayla) — the HUD must earn its ellipsis");
 ok((await evalJs(`localStorage.getItem('rwf.figma.v1')`)) === null, "v1 save key NOT written (independence)");
 ok((await evalJs(`localStorage.getItem('rwf.board.v2')`)) === null, "v2 save key NOT written (independence)");
-
-console.log("— CREATE (fast battle)");
-await goto("#/create");
-ok((await evalJs(`document.querySelector('#bName')?.value`)) === "The 300 Club", "battle name prefilled");
-ok((await evalJs(`document.querySelectorAll('#dayRow .v3-pick.is-on').length`)) === 3, "3 default battle days on");
-ok((await evalJs(`document.querySelectorAll('#tgtRow .v3-pick.is-on').length`)) === 1, "one target selected");
-await shot("create");
-await click("#startBattle");
-
-console.log("— THE COURSE (draft-from-3 sheet OVER the 3D course)");
-await waitFor(() => exists("#draftFan .bd-card").catch(() => false), { label: "draft sheet over the course" });
-await waitFor(() => evalJs(`!!document.querySelector('#gl canvas')`).catch(() => false), { label: "WebGL canvas mounted" });
-ok((await evalJs(`document.querySelectorAll('#draftFan .bd-card--deal').length`)) === 3, "3 cards dealt with deal-in animation");
-await shot("battle-draft");
-
-console.log("— RUNNERS AT THE START LINE");
-await waitFor(() => call("runnerPos('you')").then((p) => !!p).catch(() => false), { label: "runner probe live" });
+ok(await exists("#orbitHint"), "drag-to-look affordance shows on landing");
+ok((await call("camState()"))?.mode === "table", "TABLE camera is the default POV on landing");
+ok((await evalJs(`document.querySelectorAll('.v3-srow').length`)) === 4, "4 standings rows in the HUD");
+ok((await evalJs(`document.querySelector('#qCam')?.hidden`)) === false, "camera cycle live in the quick bar");
+ok(await exists("#battleClock"), "battle clock present");
+ok((await text("#clockTag")) === "BATTLE CLOCK", "clock label reads BATTLE CLOCK (battle language)");
+ok((await call("handKinds()")).length === 1, "power-up auto-dealt — 1 card in hand at START (no draft sheet)");
+ok(await evalJs(`!!document.querySelector('#hand .bd-card--deal')`), "the dealt card arrives with the deal-in animation");
 const p0 = await call("runnerPos('you')");
 const laneXs = await call("laneXs()");
 const COURSE = await call("courseLen()");
@@ -239,26 +269,31 @@ ok(laneXs.length === 4 && new Set(laneXs).size === 4, "4 distinct lanes (one per
 const spread = Math.max(...laneXs) - Math.min(...laneXs);
 ok(spread > 5.5 && spread < 7, `lanes spread across the course (Δ=${spread.toFixed(2)} ≈ 3×2.1)`);
 ok(Math.abs(laneXs.reduce((a, b) => a + b, 0)) < 0.01, "lanes centred on x=0");
-ok((await evalJs(`document.querySelectorAll('.v3-srow').length`)) === 4, "4 standings rows in the HUD");
-ok((await evalJs(`document.querySelector('#qCam')?.hidden`)) === false, "camera cycle is live in the quick bar on the course");
-ok(await exists("#battleClock"), "battle clock present");
-ok((await text("#clockTag")) === "BATTLE CLOCK", "clock label reads BATTLE CLOCK (battle language)");
+ok((await call("potTotal()")) === 80, "charity pot seeded — 4 × 20-pt entries");
+await shot("course-landing");
+await langClean("battle (landing)");
 
-console.log("— KEEP A CARD (draft → live)");
-await evalJs(`document.querySelectorAll('#draftFan .bd-card')[1].click(); true`);
-await sleep(180);
-ok(await evalJs(`document.querySelectorAll('#draftFan .bd-card.is-sel').length === 1`), "card selectable");
-await shot("draft-pick");
-await click("#keepBtn");
-await sleep(900); // pick-fly → keep → start
-ok(await evalJs(`!document.querySelector('#draftFan')`), "draft sheet closed after the pick");
-const mid = await call("matchId()");
-ok(!!mid, "match id resolves");
-const st2 = await evalJs(`JSON.parse(localStorage.getItem('rwf.v3'))`);
-const m0 = st2.matches.find((m) => m.config.id === mid);
-ok(m0?.status === "live", "battle live after the draft");
-ok((await evalJs(`document.querySelectorAll('#hand .bd-card--deal').length`)) === 1, "kept card dealt into hand (deal-in anim)");
-await shot("battle-live");
+console.log("— 390×844 DISPLAY AUDIT (the course landing)");
+ok((await audit.noHScroll()) <= 1, "no horizontal overflow mid-battle");
+ok((await audit.viewFits(".v3-battle")) <= 2, "the battle screen never scrolls vertically");
+ok(await audit.handOnScreen(), "the card hand sits fully on-screen");
+ok(await audit.feedAboveButtons(), "the feed stacks ABOVE the buttons — nothing covered");
+ok(await audit.noOverlap("#feed", "#logBtn"), "feed and LOG REPS never overlap");
+ok(await audit.noOverlap("#fxdock", ".v3-strip"), "fx chips never cover the standings strip");
+ok(await audit.noOverlap("#orbitHint span", ".v3-strip"), "orbit-hint pill clears the standings strip (the container is the full-course listener)");
+
+console.log("— LONG NAMES (truncated + full name on tap)");
+const mikaName = "Mikayla Long-Name-Rutherford";
+const mikaTrunc = await evalJs(`(() => {
+  const el = [...document.querySelectorAll('.v3-srow__name')].find(n => n.dataset.fullname === '${mikaName}');
+  if (!el) return null;
+  return { ellipsis: getComputedStyle(el).textOverflow === 'ellipsis', clipped: el.scrollWidth > el.clientWidth, w: el.clientWidth };
+})()`);
+ok(mikaTrunc?.ellipsis === true && mikaTrunc?.clipped === true, `long name truncates with ellipsis (row width ${mikaTrunc?.w}px)`);
+await evalJs(`[...document.querySelectorAll('.v3-srow__name')].find(n => n.dataset.fullname === '${mikaName}')?.click(); true`);
+await sleep(350);
+ok(((await evalJs(`document.querySelector('.bd-toast')?.textContent`)) ?? "") === mikaName, "tap the truncated name → the FULL name in a toast (nothing covers anything)");
+await shot("longname-toast");
 
 console.log("— LOG REPS (≤3-tap quick-log → runner advances matching progress %)");
 const posBefore = await call("runnerPos('you')");
@@ -285,7 +320,7 @@ ok(Math.abs(posAfter.z - expectedZ) < COURSE * 0.03,
    `world z matches progress % (z=${posAfter.z.toFixed(2)} vs expected ${expectedZ.toFixed(2)} · ${(prog * 100).toFixed(1)}%)`);
 ok(Math.abs(posAfter.z - posBefore.z) > 2, `runner visibly advanced down the course (Δz=${(posAfter.z - posBefore.z).toFixed(2)} on the 28-unit course)`);
 ok(Math.abs(posAfter.x - laneOfYou) < 0.15, "runner stays in its lane");
-ok(await call("potTotal()") === 85, "charity pot grew +5 (log tip)");
+ok((await call("potTotal()")) === 85, "charity pot grew +5 (log tip)");
 ok((await evalJs(`document.querySelectorAll('.v3-feed > div, .v3-feed div').length`)) >= 1, "commentary feed live");
 await shot("battle-logged");
 
@@ -303,7 +338,7 @@ await shot("battle-dealt");
 console.log("— 3D POWER-UP CARDS (real card meshes — site/models/cards3d.js)");
 const c3 = await call("cards3d()");
 ok(c3 && c3.total >= 2 && c3.total === c3.byRunner.you.n + Object.entries(c3.byRunner).filter(([pid]) => pid !== "you").reduce((a, [, r]) => a + r.n, 0),
-   `real card meshes fanned over the runners (${c3?.total} cards · ${c3?.meshes} meshes — your 2-card hand + mates' drafts; mates may have played cards in the sim)`);
+   `real card meshes fanned over the runners (${c3?.total} cards · ${c3?.meshes} meshes — your 2-card hand + mates' auto-drafts; mates may have played cards in the sim)`);
 ok(c3.byRunner.you.n === 2 && c3.meshes === c3.total * 3, `your hand renders as 2 real card meshes (${c3.byRunner.you.kinds.join(", ")}) — 3 meshes per card`);
 ok(Object.values(c3?.byRunner ?? {}).every((r) => r.n === 0 || r.xs.length === r.n), "every held card is a positioned mesh in its runner's fan");
 {
@@ -312,7 +347,7 @@ ok(Object.values(c3?.byRunner ?? {}).every((r) => r.n === 0 || r.xs.length === r
   const mean = youFan.xs.reduce((a, b) => a + b, 0) / youFan.xs.length;
   ok(Math.abs(mean) < 0.05, `your fan is centred on the runner (mean Δx=${mean.toFixed(3)})`);
   ok(new Set(youFan.xs).size === youFan.xs.length, "fan slots are distinct (no stacked cards)");
-  ok(c3.deals >= 5, `the DEAL moment ran (day-open draft + daily drop → ${c3.deals} deal arcs from the pot deck)`);
+  ok(c3.deals >= 1, `the DEAL moment ran (auto-deal + daily drop → ${c3.deals} deal arcs from the pot deck)`);
 }
 {
   // hover — raycast the pointer onto your first card
@@ -368,16 +403,69 @@ const m1 = (await evalJs(`JSON.parse(localStorage.getItem('rwf.v3'))`)).matches.
 ok((m1.powerLog ?? []).length >= 1, "engine power log recorded the play (real effect)");
 await shot("battle-played");
 
-console.log("— MOCAP + PERF (Geno runners under Soldier clips)");
-await waitFor(() => call("modelsReady()").catch(() => false), { label: "Geno + Soldier mocap loaded", timeout: 30000 });
-const pGeno = await call("runnerPos('you')");
-ok(pGeno.avatarReady === true, "your runner is a real Geno avatar (mocap-driven)");
-ok((await evalJs(`window.__rwfV3.runnerPos('sam')?.avatarReady`)) === true, "mates' runners are Geno avatars too");
+console.log("— ATELIER AVATARS (the meshy trio drives the course; Geno on fallback)");
+await waitFor(() => call("modelsReady()").catch(() => false), { label: "meshy trio + Soldier mocap loaded", timeout: 30000 });
+const pMeshy = await call("runnerPos('you')");
+ok(pMeshy.avatarReady === true, "your runner is a real rigged avatar (not the placeholder capsule)");
+const kinds4 = {};
+for (const pid of ["you", "sam", "alex", "mika"]) kinds4[pid] = (await call(`runnerPos('${pid}')`)).avatarKind;
+ok(Object.values(kinds4).every((k) => String(k).startsWith("meshy")), `all four runners wear the atelier's meshy trio (${Object.entries(kinds4).map(([p, k]) => `${p}=${k}`).join(" · ")})`);
 // walking frame budget: log 10 more so a runner is mid-lerp, sample the median frame
 await evalJs(`window.__rwfV3.driveLog(10); true`);
 await sleep(2200);
 const fms = await call("frameMs()");
 ok(fms > 0 && fms < 8, `frame render cost under the 8ms budget while walking (median ${fms.toFixed(2)}ms)`);
+
+console.log("— ⚙︎ HOUSE RULES (config as rule cards — the settings teaser)");
+await click("#qSettings");
+await waitFor(() => exists(".rule-card").catch(() => false), { label: "house-rules sheet" });
+const ruleCount = await evalJs(`document.querySelectorAll('.rule-card').length`);
+ok(ruleCount === 11, `11 rule cards on the sheet (target ×3 · set ×2 · auto-deal ×2 · giving ×2 · species head ×2) — got ${ruleCount}`);
+ok(((await text(".bd-sheet__h")) ?? "").toUpperCase().includes("HOUSE RULES"), "the sheet is framed as HOUSE RULES");
+ok(await exists(`.rule-card.is-on[data-rule="target"][data-val="standard"]`), "TARGET 200 (standard) is the selected rule card");
+ok(await exists(`.rule-card.is-on[data-rule="heads"][data-val="none"]`), "species head defaults to the atelier runner");
+await shot("settings-rules");
+// swap the target — the founder's literal example: "Target 200 ↔ 150/250"
+await evalJs(`document.querySelector('.rule-card[data-rule="target"][data-val="breezy"]').click(); true`);
+await sleep(300);
+ok((await call("prefs()")).target === "breezy", "TARGET 200 ↔ 150 — rule card swaps the stored house rule");
+ok(await exists(`.rule-card.is-on[data-rule="target"][data-val="breezy"]`), "the swapped card shows selected");
+// (giving + auto-deal stay at defaults here — the FIRST result must prove
+// the giving-OFF branch; they flip in the rematch leg below.)
+// THE FROG — species head, live right now
+await evalJs(`document.querySelector('.rule-card[data-rule="heads"][data-val="frog"]').click(); true`);
+await sleep(200);
+ok((await call("prefs()")).heads === "frog", "🐸 FROG head rule saved");
+let headsOn = false;
+for (let i = 0; i < 30 && !headsOn; i++) {
+  headsOn = true;
+  for (const pid of ["you", "sam", "alex", "mika"]) {
+    if ((await call(`runnerPos('${pid}')`)).headOn !== true) { headsOn = false; break; }
+  }
+  if (!headsOn) await sleep(300);
+}
+ok(headsOn, "frog heads attach LIVE on every runner (immediate where safe — no restart)");
+await evalJs(`document.querySelector('.bd-sheet__veil')?.click(); true`); // close — heads stay on for a look
+await sleep(500);
+await shot("battle-frogheads");
+ok((await call("headMode()")) === "frog", "course headMode = frog");
+// back to baseline runners for the POV shots
+await click("#qSettings");
+await waitFor(() => exists(".rule-card").catch(() => false), { label: "house-rules sheet again" });
+await evalJs(`document.querySelector('.rule-card[data-rule="heads"][data-val="none"]').click(); true`);
+await sleep(200);
+let headsOff = false;
+for (let i = 0; i < 30 && !headsOff; i++) {
+  headsOff = true;
+  for (const pid of ["you", "sam", "alex", "mika"]) {
+    if ((await call(`runnerPos('${pid}')`)).headOn !== false) { headsOff = false; break; }
+  }
+  if (!headsOff) await sleep(300);
+}
+ok(headsOff, "species head OFF detaches cleanly (dispose, no orphans)");
+await evalJs(`document.querySelector('.bd-sheet__veil')?.click(); true`);
+await sleep(300);
+ok((await audit.viewFits(".v3-battle")) <= 2, "battle still fits after the settings detour (sheet closed clean)");
 
 console.log("— THE POV (founder's oblique board-game view — three modes, same battle moment)");
 const cam0 = await call("camState()");
@@ -386,7 +474,7 @@ ok(cam0?.downDeg >= 50 && cam0?.downDeg <= 65,
    `TABLE looks down in the 50–65° oblique band (${cam0?.downDeg}° below horizon — perspective third person, not flat top-down)`);
 let allVisible = true;
 const screenPos = {};
-for (const pid of ["you", "sam", "alex", "jordan"]) {
+for (const pid of ["you", "sam", "alex", "mika"]) {
   const sp = await call(`runnerScreen('${pid}')`);
   screenPos[pid] = sp;
   if (!sp || Math.abs(sp.x) > 1 || Math.abs(sp.y) > 1) allVisible = false;
@@ -423,9 +511,17 @@ ok((await call("camState()"))?.mode === "table", "…and home (C → table)");
 
 await click("#qHome");
 ok(await call("view()") === "home", "dashboard button — ONE TAP from mid-battle → home");
-await evalJs(`location.hash = '#/battle?m=${mid}'; true`);
-await waitFor(() => exists("#gl canvas").catch(() => false), { label: "battle re-entered" });
-await sleep(500);
+ok(((await text("#newBattle")) ?? "") === "START A BATTLE", "the hub hero says START A BATTLE — self-evident");
+ok(((await text("#joinBtn")) ?? "") === "JOIN WITH CODE", "JOIN WITH CODE is the secondary — self-evident");
+ok((await evalJs(`document.querySelectorAll('.v3-bcard').length`)) >= 1, "your battles listed");
+ok(await exists(`.v3-bcard__status--live`), "the live battle carries a LIVE pill — one-tap resume is obvious");
+await shot("home-hub");
+await langClean("hub");
+
+// one-tap resume
+await evalJs(`document.querySelector('.v3-bcard').click(); true`);
+await waitFor(() => exists("#gl canvas").catch(() => false), { label: "one-tap resume → course" });
+ok((await call("view()")) === "battle", "ONE TAP on the live battle resumes the course");
 await evalJs(`history.back(); true`);
 await sleep(450);
 const backView = await call("view()");
@@ -469,46 +565,88 @@ const winRow = (await import("./engine.js")).finalStandings(mDone)[0];
 const winPos = await call(`runnerPos('${winRow.player.id}')`);
 ok(Math.abs(winPos.x) < 0.05, `winner's avatar stands on the centre (1st) block (x=${winPos.x})`);
 ok((await call("chipCount()")) > 0, "chip stacks on the charity pot pedestal");
+ok(!(await exists("#charRow")), "GIVING OFF (the default) — no charity row; the pot rides forward instead");
+ok(((await evalJs(`document.querySelector('.v3-pad')?.innerText`)) ?? "").includes("house rules"), "the result nudges: giving is OFF — flip it in ⚙︎ house rules");
 await shot("result-podium");
 await langClean("result");
 
-console.log("— CHARITY + REMATCH");
-await evalJs(`document.querySelector('#charRow .v3-pick').click(); true`);
+console.log("— FLIP THE HOUSE RULES (giving ON · auto-deal OFF) → REMATCH");
+await click("#qSettings");
+await waitFor(() => exists(".rule-card").catch(() => false), { label: "house rules over the result" });
+await evalJs(`document.querySelector('.rule-card[data-rule="giving"][data-val="true"]').click(); true`);
+await evalJs(`document.querySelector('.rule-card[data-rule="autoDeal"][data-val="false"]').click(); true`);
+await sleep(250);
+ok((await call("prefs()")).giving === true && (await call("prefs()")).autoDeal === false, "giving ON · auto-deal OFF — saved from the sheet");
+await evalJs(`document.querySelector('.rule-card[data-rule="target"][data-val="standard"]').click(); true`);
+await sleep(200);
+ok((await call("prefs()")).target === "standard", "target back to 200 for the rematch (200 ↔ 150/250, the founder's example)");
+await evalJs(`document.querySelector('.bd-sheet__veil')?.click(); true`);
 await sleep(300);
-const potAfter = (await evalJs(`JSON.parse(localStorage.getItem('rwf.v3'))`)).pots[mid];
-ok(potAfter?.designatedCharityId != null, "pot designated to a charity (pot ledger)");
-await shot("result-charity");
 await click("#rematchBtn");
-await waitFor(() => exists("#draftFan .bd-card").catch(() => false), { label: "rematch draft sheet" });
-ok(true, "rematch → fresh draft-from-3 over a fresh course");
-await shot("rematch-draft");
-
-console.log("— CLOSE ON THE CLOCK (deadline #2 — the other half of the dual deadline)");
-await evalJs(`document.querySelectorAll('#draftFan .bd-card')[0].click(); true`);
-await sleep(160);
+await waitFor(() => exists("#draftFan .bd-card").catch(() => false), { label: "rematch draft sheet (manual path returns)" });
+ok((await evalJs(`document.querySelectorAll('#draftFan .bd-card--deal').length`)) === 3, "3 cards dealt with deal-in animation");
+await shot("draft-pick");
+await evalJs(`document.querySelectorAll('#draftFan .bd-card')[1].click(); true`);
+await sleep(180);
 await click("#keepBtn");
 await sleep(900);
+ok(await evalJs(`!document.querySelector('#draftFan')`), "draft sheet closed after the pick");
+const mid2 = await call("matchId()");
+ok(mid2 && mid2 !== mid, "rematch is a fresh battle");
+const st2 = await evalJs(`JSON.parse(localStorage.getItem('rwf.v3'))`);
+const mRematch = st2.matches.find((m) => m.config.id === mid2);
+ok(mRematch?.status === "live", "rematch live after the manual draft");
+ok((await evalJs(`document.querySelectorAll('#hand .bd-card--deal').length`)) === 1, "kept card dealt into hand (deal-in anim)");
+await shot("battle-live2");
+ok(mRematch.config.targetReps === 200, "house rule applied — the rematch honors the current rule-card target (200)");
+
+console.log("— CLOSE ON THE CLOCK (deadline #2 — the other half of the dual deadline)");
 const cc = await evalJs(`window.__rwfV3.driveClockClose()`);
 ok(cc?.ok === true, "the clock closed the live battle");
 await sleep(1100);
 ok(await call("view()") === "result", "clock close routes to the result view");
 ok((await text(".v3-resultbar__s")).includes("clock closed it"), "result copy credits the clock (no closure bonus)");
+ok(await exists("#charRow"), "GIVING ON — the charity row is back at the result");
+await shot("result-charity");
+await evalJs(`document.querySelector('#charRow .v3-pick').click(); true`);
+await sleep(300);
+const potAfter = (await evalJs(`JSON.parse(localStorage.getItem('rwf.v3'))`)).pots[mid2];
+ok(potAfter?.designatedCharityId != null, "pot designated to a charity (pot ledger)");
 await shot("result-clockclose");
 await langClean("result (clock close)");
 
+console.log("— JOIN WITH CODE (the warm seat)");
+await goto("#/home");
+await click("#joinBtn");
+await waitFor(() => exists("#codeIn").catch(() => false), { label: "join sheet" });
+ok(((await text("#joinGo")) ?? "").includes("Join"), "the join sheet has a Join action");
+await evalJs(`(() => { const i = document.querySelector('#codeIn'); i.value = 'CREW-0QXZ'; i.dispatchEvent(new Event('input', { bubbles: true })); return true; })()`);
+await sleep(150);
+await click("#joinGo");
+await waitFor(() => exists("#gl canvas").catch(() => false), { label: "joined battle on the course" });
+const joinedId = await call("matchId()");
+const mJoined = (await evalJs(`JSON.parse(localStorage.getItem('rwf.v3'))`)).matches.find((m) => m.config.id === joinedId);
+ok(mJoined?.config.name === "Crew CREW-0QXZ" && mJoined?.status === "live", "the code opened a LIVE battle branded with the code (demo crew until friends link in)");
+await shot("join-battle");
+
 console.log("— HOME AFTER THE WAR");
 await goto("#/home");
-ok((await evalJs(`document.querySelectorAll('.v3-bcard').length`)) >= 2, "battles list shows the settled battles");
-ok(/SETTLED/.test((await evalJs(`document.querySelector('.v3-bcard__status')?.textContent`)) ?? ""), "settled battles carry the SETTLED status");
+ok((await evalJs(`document.querySelectorAll('.v3-bcard').length`)) >= 3, "hub lists the battles (settled + live + joined)");
+ok(await exists(`.v3-bcard__status--done`), "settled battles carry the SETTLED status");
+ok(await exists(`.v3-bcard__status--live`), "live battles carry the LIVE status — resume is obvious");
 await langClean("home (settled)");
 await shot("home-settled");
 
-console.log("— DESKTOP (1280×800)");
+console.log("— DESKTOP (1280×800) — same 3-click path");
 await send("Emulation.setDeviceMetricsOverride", { width: 1280, height: 800, deviceScaleFactor: 1, mobile: false });
-// one more live battle to check the desktop HUD rails
-await goto("#/create");
+await goto("#/play");
+await waitFor(() => exists("#nameIn").catch(() => false), { label: "desktop entry" });
+ok((await evalJs(`document.querySelector('#nameIn').value`)) === "Alexei", "returning runner lands PREFILLED (one tap to re-enter)");
+await evalJs(`(() => { const i = document.querySelector('#nameIn'); i.value = 'Alexei'; i.dispatchEvent(new Event('input', { bubbles: true })); return true; })()`);
+await evalJs(`document.querySelector('[data-tier="fit"]').click(); true`);
+await sleep(200);
 await click("#startBattle");
-await waitFor(() => exists("#draftFan .bd-card").catch(() => false), { label: "desktop draft" });
+await waitFor(() => exists("#draftFan .bd-card").catch(() => false), { label: "desktop draft (auto-deal still OFF)" });
 await evalJs(`document.querySelectorAll('#draftFan .bd-card')[0].click(); true`);
 await sleep(160);
 await click("#keepBtn");
@@ -555,5 +693,5 @@ if (failures.length || consoleErrors.length) {
   console.error(`FAILURES: ${failures.length ? failures.join(" · ") : "none"}${consoleErrors.length ? ` (+${consoleErrors.length} console errors)` : ""}`);
   process.exit(1);
 }
-console.log("ALL GREEN — /v3 battle course verified.");
+console.log("ALL GREEN — /v3 battle course verified (UX2: three clicks to playing).");
 process.exit(0);

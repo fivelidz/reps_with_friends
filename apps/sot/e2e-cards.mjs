@@ -52,6 +52,15 @@ const server = Bun.serve({
       if (await f2.exists()) return new Response(f2, { headers: { "content-type": "text/javascript" } });
       return new Response("not found", { status: 404 });
     }
+    if (p.startsWith("/site/")) {
+      // power-up art chips (site/powerup-art/gen) — the card icons the
+      // app now renders; 404s would trip the zero-console-error gate
+      const f3 = Bun.file(join(HERE, "..", "..", p.replace(/^\//, "").replace(/\.\./g, "")));
+      if (await f3.exists()) return new Response(f3, {
+        headers: { "content-type": MIME[p.slice(p.lastIndexOf("."))] ?? "application/octet-stream", "cache-control": "no-store" },
+      });
+      return new Response("not found", { status: 404 });
+    }
     const fsPath = p === "/" ? join(HERE, "index.html") : join(HERE, p.replace(/^\//, ""));
     const f = Bun.file(fsPath);
     if (await f.exists()) {

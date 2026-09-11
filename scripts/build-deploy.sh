@@ -125,6 +125,19 @@ find apps/sot -maxdepth 1 -type f \( -name "*.html" -o -name "*.js" -o -name "*.
 cp apps/sot/fonts/*.woff2 deploy/public/v4/fonts/
 cp apps/sot-engine.js deploy/public/v4/sot-engine.js
 
+# ── power-up art studio + review page (the /powerups link) ───────────
+# site/powerup-art is the generator + committed gen/ assets (SVG + PNG per
+# card per style, chips for the v4 app); apps/powerups is the founder
+# review surface. The page imports the shared engine at
+# /powerups/sot-engine.js — same explicit mapping serve.ts uses for /v4.
+# Art is served from /site/powerup-art/ (the existing site/ deploy copy
+# below would not include powerup-art without this).
+mkdir -p deploy/public/powerups deploy/public/site/powerup-art
+cp apps/powerups/index.html apps/powerups/powerups.js apps/powerups/powerups.css deploy/public/powerups/
+cp apps/sot-engine.js deploy/public/powerups/sot-engine.js
+cp -r site/powerup-art/gen deploy/public/site/powerup-art/gen
+cp site/powerup-art/symbols.js site/powerup-art/styles.js site/powerup-art/README.md deploy/public/site/powerup-art/ 2>/dev/null || true
+
 # ── v1 coverage hub (v1.1.0) — the share page at rwf.qalarc.com/v1 ─────
 # One page linking every live surface, dashboard and business document.
 # shots/ (verification screenshots) stay local, like figma-app's.

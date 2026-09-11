@@ -16,7 +16,7 @@ import { fileURLToPath } from "node:url";
 const HERE = dirname(fileURLToPath(import.meta.url));
 const WIKI = join(HERE, "..");
 const BASE = "http://127.0.0.1:4173";
-const PAGES = ["index", "game", "app", "versions", "bots", "verification", "avatars", "ops", "design", "status"];
+const PAGES = ["index", "game", "app", "versions", "bots", "verification", "avatars", "ops", "design", "status", "feedback"];
 
 let step = 0, passed = 0;
 const failures = [];
@@ -133,7 +133,9 @@ for (const p of PAGES) {
     await new Promise(r => setTimeout(r, 250));
     return { title: document.title, imgs: imgs.length, loaded, broken, nav: document.querySelectorAll('.wnav__link').length };
   })()`);
-  ok(stats.imgs > 0 && stats.broken.length === 0 && stats.imgs === stats.loaded,
+  // feedback.html is the admin stream — text-only by design, so no imgs>0
+  // requirement there (added 2026-09-11 with the feedback layer)
+  ok((stats.imgs > 0 || p === "feedback") && stats.broken.length === 0 && stats.imgs === stats.loaded,
      `${p}.html — ${stats.imgs} images, ${stats.loaded} decoded, 0 broken`);
 }
 ok(consoleErrors.length === 0, `zero console errors across all pages (${consoleErrors.length ? consoleErrors.join(" | ") : "clean"})`);

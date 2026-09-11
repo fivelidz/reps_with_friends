@@ -281,7 +281,13 @@
   </div>
 </section>
 
-<!-- ============ 5 · THE SQUAD ============ -->
+<!-- THE SQUAD (3D avatar strip) — REMOVED FROM THE LIVE PAGE 2026-09-11.
+     Founder call: the avatars come off the main screen until they're
+     product-ready. The markup + module below are archived intact inside an
+     inert <template> (not rendered, scripts inside never run) and return to
+     service by moving them back out. The .squad-* styles stay in site.css
+     and the system lives on at /avatars + /atelier (explore grid). -->
+<template id="squad-archive" hidden data-archived="2026-09-11">
 <section id="squad" class="section">
   <div class="container">
     <p class="kicker reveal">04 — The squad</p>
@@ -362,11 +368,12 @@
     }
   </script>
 </section>
+</template>
 
 <!-- ============ 6 · CONNECTIONS ============ -->
 <section id="connections" class="section">
   <div class="container">
-    <p class="kicker reveal">05 — The system</p>
+    <p class="kicker reveal">04 — The system</p>
     <h2 class="reveal">One engine, every chat</h2>
     <p class="lede reveal">Thin adapters translate platform events into a single command bus. One API, one match engine — every group chat. Adding Messenger later is one adapter, not a rewrite.</p>
     <div class="graph-wrap rwf-card reveal">
@@ -387,7 +394,7 @@
 <!-- ============ 7 · VERIFICATION ============ -->
 <section id="verification" class="section">
   <div class="container">
-    <p class="kicker reveal">06 — Verification</p>
+    <p class="kicker reveal">05 — Verification</p>
     <h2 class="reveal">Counted, not trusted</h2>
     <p class="lede reveal">Rep counts are cheap to lie about, so the system verifies them — in layers, each shipping in a different phase.</p>
     <div class="v-grid">
@@ -417,7 +424,7 @@
 <!-- ============ 8 · FEATURES ============ -->
 <section id="features" class="section">
   <div class="container">
-    <p class="kicker reveal">07 — Features</p>
+    <p class="kicker reveal">06 — Features</p>
     <h2 class="reveal">Built to stay fun</h2>
     <p class="lede reveal">The match is the hook. These are the reasons the group chat keeps playing on week twelve.</p>
     <div class="f-grid">
@@ -434,7 +441,7 @@
 <!-- ============ 9 · APP SHOWCASE ============ -->
 <section id="app-showcase" class="section">
   <div class="container">
-    <p class="kicker reveal">08 — The app</p>
+    <p class="kicker reveal">07 — The app</p>
     <h2 class="reveal">Inside the app</h2>
     <p class="lede reveal">Phone-first and hand-built with the same design system as this site. Tap any screen to open the real thing.</p>
     <div class="show-row">
@@ -578,7 +585,7 @@
 <!-- ============ 10 · ROADMAP ============ -->
 <section id="roadmap" class="section">
   <div class="container">
-    <p class="kicker reveal">09 — Roadmap</p>
+    <p class="kicker reveal">08 — Roadmap</p>
     <h2 class="reveal">Where this goes</h2>
     <p class="lede reveal">From due diligence this week to a corporate revenue engine — each phase proves the loop before it adds a layer.</p>
     <ol class="timeline">
@@ -609,7 +616,7 @@
 <!-- ============ 11 · EXPLORE ============ -->
 <section id="explore" class="section">
   <div class="container">
-    <p class="kicker reveal">10 — Explore</p>
+    <p class="kicker reveal">09 — Explore</p>
     <h2 class="reveal">Explore the full system</h2>
     <p class="lede reveal">Everything below is live on this box right now — no mocks, no coming-soon pages. Every version, design surface, sound, document and dashboard of Reps With Friends.</p>
 

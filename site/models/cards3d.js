@@ -35,6 +35,7 @@
    ═══════════════════════════════════════════════════════════════════════ */
 
 import * as THREE from "three";
+import { drawCardSymbol } from "../powerup-art/symbols.js";
 
 /* ── rarity treatment (matches the CSS: RAR_COL in v3/v2) ─────────────── */
 export const RARITY = {
@@ -200,12 +201,16 @@ export function cardFrontTexture(def) {
   g.font = "700 16px ui-monospace, monospace";
   g.textAlign = "center"; g.textBaseline = "middle";
   g.fillText(`◈${def.cost}`, CARD_W - 40, 39, 30);
-  // glyph — the family power, rarity-lit
-  g.font = "400 118px system-ui, sans-serif";
-  g.shadowColor = rar.hex; g.shadowBlur = 22;
-  g.fillStyle = rar.hex;
-  g.fillText(def.glyph, CARD_W / 2, CARD_H * 0.47);
-  g.shadowBlur = 0;
+  // glyph — the poster-master SYMBOL (site/powerup-art, the founder's
+  // "cool power-up symbols like they would be on sports posters"): real
+  // vector art — speed-line halo, chromatic misregistration, halftone
+  // shade — rarity-lit via the glow ink. Drawn once per card, cached
+  // (the texture cache above is unchanged). def.glyph stays as the
+  // engine-canonical emoji fallback for non-canvas UIs.
+  drawCardSymbol(g, def.id, {
+    x: CARD_W / 2, y: CARD_H * 0.47, size: 158,
+    glow: rar.hex,                        // the glow ink rides the rarity
+  });
   // name plate
   const plateY = CARD_H - 92;
   g.fillStyle = "rgba(6,7,9,0.72)";

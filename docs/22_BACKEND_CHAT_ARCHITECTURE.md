@@ -318,3 +318,53 @@ API is the shared truth. No accounts, no logins — codes + tokens only.
 - The v4 card-stack deals (draft/reroll/proofs) are app-local; server groups
   grant the canon day-kit via `/cmd` power-up verbs. Syncing the full card
   economy is the next seam if wanted.
+
+## 11. Wiki feedback (2026-09-11) — the founder's-crew-notes loop
+
+The founder: *"set up the wiki and allow a comment function that can be read
+for feedback."* Built as a zero-auth notes box on the API — this section is
+the wiring note.
+
+**Endpoints (apps/api, the production path):**
+
+| Route | What it does |
+|---|---|
+| `POST /feedback` | `{page?, name?, text}` → 201 `{ok, id, page, name, deduped}`. `page` defaults `index`, `name` defaults `anon`. |
+| `GET /feedback?page=` | One page's notes, newest first, + `total` (all-time). 400 without `?page`. |
+| `GET /feedback/recent?limit=50` | The whole stream, newest first; limit clamped 1–200 (default 50); + `total`. |
+
+**Store:** `.data/feedback.json` (override `RWF_FEEDBACK_DB`), atomic
+tmp+rename writes, newest 2000 kept. Module: `apps/api/src/feedback.ts` —
+dependency-free ON PURPOSE (see below). Zero auth BY DESIGN (the founder's
+crew leaving notes): hostile-input safe via length caps (text ≤1000 rejected
+over-length, name ≤40 / page ≤80 silently clamped), control-char stripping,
+a light per-IP rate limit (12 POSTs / 5 min) and same page+text dedupe
+within the newest 200 (re-POST → 201 `deduped:true`, nothing stored).
+Rendering escapes everything — `apps/wiki/feedback.js` uses textContent
+only, so stored input is inert even if a future consumer forgets.
+
+**Wiring (who serves /feedback where):**
+
+```
+wiki page (apps/wiki/feedback.js)
+  └─ same-origin fetch /feedback
+       ├─ rwf.qalarc.com/wiki (Cloudflare Pages): NO /feedback handler yet —
+       │  the widget degrades to an inline "unreachable" notice. To light it
+       │  up in prod, either (a) a Pages Function proxying to the API box, or
+       │  (b) a reverse-proxy route on the gmktec/alpha host → :4174. NEXT
+       │  STEP, needs the deploy-side call — nothing in apps/ blocks it.
+       └─ localhost:4173 (serve.ts): proxy → http://127.0.0.1:4174/feedback*
+          (2.5s timeout, x-forwarded-for passed through, verbatim status
+          passthrough). API DOWN? serve.ts answers locally by importing the
+          same feedback.ts module — `bun serve.ts` alone keeps the comment
+          box working, same file, same caps. (Two writers never race: both
+          sides write the same atomic tmp+rename pattern.)
+```
+
+**Wiki UI:** comment box + this page's notes at the bottom of every wiki
+page; `/wiki/feedback` (feedback.html) is the admin reading room — filter by
+page (a picked page loads its complete history via `?page=`, "all" uses
+`?limit=`), counts live, page names link back to chapters; the wiki index
+stat `[data-fb-total]` shows the all-time count. Tests: `bun test apps/api`
+(feedback.test.ts) + `bun apps/wiki/test/feedback-e2e.mjs` (module → API →
+serve.ts proxy → real browser: post → appears → stream shows it).
